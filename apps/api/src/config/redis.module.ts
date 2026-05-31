@@ -15,6 +15,7 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
         // e.g. rediss://default:password@host:6379
         const rawUrl = config.get<string>('REDIS_URL');
         const redisUrl = rawUrl?.trim();
+        console.log(`[Redis] REDIS_URL raw value: "${rawUrl}"`);
         console.log(`[Redis] URL prefix: "${redisUrl?.substring(0, 15)}" length: ${redisUrl?.length}`);
         if (redisUrl) {
           return new Redis(redisUrl);
