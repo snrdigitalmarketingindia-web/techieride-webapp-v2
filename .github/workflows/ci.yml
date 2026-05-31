@@ -96,6 +96,9 @@ jobs:
       - name: Run negative API tests (30)
         run: npm run test:api:negative
 
+      - name: Run business rules tests
+        run: npm run test:api:rules
+
       - name: Upload API log on failure
         if: failure()
         uses: actions/upload-artifact@v4
