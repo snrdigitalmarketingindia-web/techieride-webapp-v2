@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `bd9af99`)
+> **Last updated:** 2026-06-01 (latest: `10b3eb0`)
 
 ---
 
@@ -22,15 +22,15 @@
 ---
 
 ## Test Accounts (`TechieRide@2024`)
-| Email | Role |
-|---|---|
-| admin@techieride.in | Admin |
-| csr@csr.com | Admin |
-| priya@infosys.com | Ride Giver (APPROVED, rcVerified) |
-| raju@raju.com | Ride Giver |
-| arjun@tcs.com | Ride Seeker |
-| raghu@raghu.com | Ride Seeker |
-| ravi@wipro.com | Both |
+| Email | Role | Notes |
+|---|---|---|
+| admin@techieride.in | Admin | |
+| csr@csr.com | Admin | |
+| priya@infosys.com | Ride Giver | APPROVED, vehicle rcVerified=true |
+| raju@raju.com | Ride Giver | |
+| arjun@tcs.com | Ride Seeker | APPROVED |
+| raghu@raghu.com | Ride Seeker | |
+| ravi@wipro.com | Both | APPROVED |
 
 ---
 
@@ -42,144 +42,133 @@
 
 ---
 
-## What Was Done (Completed)
+## Session History — What Was Done
 
-### Infra & Deployment
-- [x] Vercel frontend deployed — `techieride-webapp-v2-web.vercel.app`
-- [x] CORS fixed — `FRONTEND_URL` on Render includes both Vercel URLs
-- [x] Redis `REDIS_URL` fixed (was `redis-cli --tls -u rediss://...`)
-- [x] Seed data run against Neon DB
-- [x] `vercel.json` — removed secret refs, fixed output dir to `.next`
-- [x] `useSearchParams` wrapped in Suspense on verify-email + reset-password pages
-- [x] `GeoJSON.LineString` type replaced with inline type in shared package
-- [x] Node.js upgraded to 24 in GitHub Actions
-- [x] Postgres health check fixed (`pg_isready -U techieride`)
-- [x] Redis debug logs removed from `redis.module.ts`
+### Sessions 1 & 2 — Core Build
+- [x] Vercel + Render deployed and live
+- [x] CORS, Redis URL, vercel.json, Suspense wrappers all fixed
+- [x] Seed data against Neon DB
+- [x] Business rules: one active ride per giver, one active request per seeker (API + UI)
+- [x] `GET /ride-requests/mine` — seeker endpoint
+- [x] Seeker requests page with Confirm Seat button
+- [x] All 4 original test suites written and green (37 + 30 + 30+ + 44 tests)
+- [x] GitHub Actions CI pipeline with Playwright E2E (50 tests)
 
-### Features
-- [x] `GET /ride-requests/mine` — seeker's own requests endpoint
-- [x] Seeker requests page shows PENDING/HOLD/CONFIRMED with Confirm Seat button
-- [x] Auto-select ride in Incoming (Giver) tab when only one ride exists
-- [x] **Business Rule (API+UI):** One active ride per giver — publish blocked while PUBLISHED/ONGOING
-- [x] **Business Rule (API):** One active request per seeker — blocked while PENDING/HOLD/CONFIRMED
-- [x] Ride creation form blocks publish + shows warning when active ride exists
+### Session 3 — QA Director Audit, Security Fixes & Full Test Coverage
 
-### Session 3 — QA Director Audit & Fixes
+#### API Bug Fixes (all were real production issues)
+| Bug | Fix | File |
+|---|---|---|
+| Unverified giver could publish rides | `verificationStatus !== APPROVED` → 403 | `rides.service.ts publish()` |
+| Unverified RC vehicle usable on rides | `vehicle.rcVerified !== true` → 403 | `rides.service.ts publish()` |
+| Vehicle delete mid-active-ride | Check PUBLISHED/ONGOING before soft-delete → 409 | `vehicles.service.ts remove()` |
+| Duplicate plate → unhandled 500 | Catch Prisma P2002 → 409 ConflictException | `vehicles.service.ts create()` |
+| BOTH user could request own ride | Check `rideGiver.userId === userId` → 403 | `ride-requests.service.ts create()` |
+| resendVerification leaked email existence | Always return 200 (no enumeration) | `auth.service.ts` |
+| FCM token not updatable via PATCH /users/me | Added `fcmToken` to UpdateProfileDto | `update-profile.dto.ts` |
+| Admin had no way to verify vehicle RC | Added `PATCH /admin/vehicles/:id/verify` + `/reject` | `admin.controller/service` |
 
-#### P0 Critical API Bug Fixes
-- [x] `rides.service.ts publish()`: blocks if `verificationStatus !== APPROVED` → 403
-- [x] `rides.service.ts publish()`: blocks if `vehicle.rcVerified !== true` → 403
-- [x] `vehicles.service.ts remove()`: blocks deletion if vehicle in active PUBLISHED/ONGOING ride → 409
-- [x] `vehicles.service.ts create()`: catches Prisma P2002 (duplicate plate) → 409 instead of 500
-- [x] `ride-requests.service.ts create()`: BOTH-role users blocked from requesting their own ride → 403
-- [x] `admin.controller/service`: added `PATCH /admin/vehicles/:id/verify` and `/reject` endpoints
-- [x] `auth.service.ts resendVerification()`: always returns 200 — no email enumeration
-- [x] `update-profile.dto.ts`: added `fcmToken` field — users can now update push token via PATCH /users/me
+#### New Test Suites Added
+| Suite | Script | Tests |
+|---|---|---|
+| Production coverage (13 sections) | `test:api:coverage` | 69 |
+| Final gap-closing (14 sections) | `test:api:final` | ~45 |
 
 #### Test Infrastructure
-- [x] `tests/helpers.ts` — shared helper: `freshGiver()` runs full verification flow (register → submit docs → admin approve → add vehicle → admin verify RC). All suites use this.
-- [x] All 6 API test suites updated to use verified givers — no more publish() failures in tests
-- [x] `e2e-api.ts` — fresh giver now verified before publish tests
-- [x] `e2e-api-extended.ts` — `createGiver()` now includes RC verification step
-- [x] `e2e-api-negative.ts` — `freshVerifiedGiver()` helper added; giverB/C/D all fully verified
-- [x] `e2e-api-business-rules.ts` — `setupFreshPair()` includes full verification flow
-- [x] `e2e-api-coverage.ts` — 17 test failures fixed (see Gotchas section)
-- [x] `e2e-api-final.ts` — 14 sections, ~45 tests; imports from shared helpers
+- [x] `tests/helpers.ts` — shared `freshGiver()` that runs the full verified flow: register → submit docs → admin approve → add vehicle → admin verify RC. All suites import from here.
+- [x] All 6 API test suites updated so freshly-created givers are fully verified before publish tests
+- [x] Fixed 17 test assertion bugs in coverage suite (wrong field names, wrong params, missing imports)
 
-#### Strategy Documents (in repo root)
-- [x] `TEST_AUTOMATION_STRATEGY.md` — every finding mapped to test type + CI stage + priority
-- [x] `PLAYWRIGHT_TEST_PLAN.md` — 50+ UI scenarios across 8 spec files, prioritised by permission leaks
+#### Strategy Documents (repo root)
+- [x] `TEST_AUTOMATION_STRATEGY.md` — every finding mapped to test type, CI stage, priority action
+- [x] `PLAYWRIGHT_TEST_PLAN.md` — 50+ UI scenarios across 8 spec files
 
-#### CI Pipeline
-- [x] `ci-autofix.yml` — on failure: auto-creates GitHub Issue with parsed ❌ lines; on success: closes open issues
-- [x] `PATCH /admin/vehicles/:id/verify` wired into CI test setup for all fresh givers
+#### CI Pipeline Additions
+- [x] `ci-autofix.yml` — on failure: auto-creates GitHub Issue with extracted ❌ lines; on success: closes it
+- [x] `test:api:coverage` and `test:api:final` wired into CI pipeline
+- [x] `test:all` script runs all 6 suites in sequence
 
 ---
 
 ## Current CI Status
-| Suite | Script | Tests | Status |
+
+| Suite | Script | Tests | Last Known Status |
 |---|---|---|---|
-| Base lifecycle | `test:api` | 37 | ✅ Passing |
-| Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Passing |
-| Negative / boundary | `test:api:negative` | 33 | ✅ Passing |
-| Business rules | `test:api:rules` | 44 | ✅ Passing |
-| Production coverage (13 sections) | `test:api:coverage` | 69 | 🔄 Pending `bd9af99` |
-| Final gap-closing (14 sections) | `test:api:final` | ~45 | 🔄 Pending `bd9af99` |
-| Playwright E2E | `test:ui` | 50 | ✅ Passing |
+| Base lifecycle | `test:api` | 37 | ✅ Green (run #67) |
+| Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Green (run #67) |
+| Negative / boundary | `test:api:negative` | 33 | ✅ Green (run #67) |
+| Business rules | `test:api:rules` | 44 | ✅ Green (run #67) |
+| Production coverage | `test:api:coverage` | 69 | 🔄 Runs #68+#69 in progress |
+| Final gap-closing | `test:api:final` | ~45 | 🔄 Runs #68+#69 in progress |
+| Playwright E2E | `test:ui` | 50 | ✅ Green (run #67) |
 
-**Total API tests: ~258+ across 6 suites**
+**Total API tests: ~258+ across 6 suites + 50 Playwright = ~308 automated checks**
 
-**Last commit:** `bd9af99` — Fix final 2 coverage failures — BOTH own-ride guard + duplicate plate 500
+**Latest commits pushed:**
+- `bd9af99` — Fix final 2 coverage failures (BOTH own-ride guard + duplicate plate 500)
+- `10b3eb0` — Handoff doc update
 
 ---
 
 ## CI Auto-Fix Watchdog
-`.github/workflows/ci-autofix.yml` — fires automatically after every CI run:
-- **On failure:** Parses logs, extracts failing test names, creates a GitHub Issue labeled `ci-failure`
-- **On success:** Automatically closes any open `ci-failure` issues
-- **Limitation:** Requires `gh` CLI on dev machine to fetch logs manually. Install: `brew install gh && gh auth login`
+`.github/workflows/ci-autofix.yml` fires after every CI run:
+- **On failure** → auto-creates GitHub Issue labeled `ci-failure` with parsed failure lines
+- **On success** → auto-closes any open `ci-failure` issues
+
+**Current limitation:** Cannot auto-fetch CI logs from dev machine without `gh` CLI.
+Fix once: `brew install gh && gh auth login`
 
 ---
 
-## Pending / Next Steps
-1. Verify CI on `bd9af99` — coverage suite should now be 69/69
-2. Install `gh` CLI locally (`brew install gh && gh auth login`) so CI failures can be auto-fetched without pasting logs
-3. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
-4. Test full ride lifecycle on live app end-to-end with real users
-5. Write 35 missing Playwright tests (see `PLAYWRIGHT_TEST_PLAN.md` — `permission-leaks.spec.ts`, `verification-bypass.spec.ts` are P0)
-6. Write unit tests for business rule logic — currently 0 unit tests (see `TEST_AUTOMATION_STRATEGY.md` Stage 2)
-7. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
+## Pending / Next Steps (Priority Order)
+
+1. **Confirm** runs #68+#69 green — coverage should be 69/69, final ~45/45
+2. **Install `gh` CLI** — `brew install gh && gh auth login` — enables auto CI log fetching
+3. **Add `RESEND_API_KEY`** to Render env for real email delivery (currently dev mode — emails logged to console only)
+4. **End-to-end test on live app** with real users — full ride lifecycle
+5. **Write 35 missing Playwright tests** — P0 first: `permission-leaks.spec.ts`, `verification-bypass.spec.ts` (see `PLAYWRIGHT_TEST_PLAN.md`)
+6. **Write unit tests** — 0 unit tests currently. Start with `gamification.service.ts` ecoLevel thresholds and `roles.guard.ts` (see `TEST_AUTOMATION_STRATEGY.md` Stage 2)
+7. **Upcoming features:** real-time GPS tracking UI, notifications bell, admin verification workflow UI
 
 ---
 
 ## Business Rules (API Enforced)
-| Rule | File | Notes |
+| Rule | Enforced In | Behaviour |
 |---|---|---|
-| One active ride per giver | `rides.service.ts → publish()` | Checks PUBLISHED/ONGOING |
-| One active request per seeker | `ride-requests.service.ts → create()` | Checks PENDING/HOLD/CONFIRMED |
-| Giver verificationStatus must be APPROVED to publish | `rides.service.ts → publish()` | → 403 if PENDING/REJECTED |
-| Vehicle rcVerified must be true to publish | `rides.service.ts → publish()` | → 403 if false |
-| Cannot delete vehicle used in active ride | `vehicles.service.ts → remove()` | → 409 |
-| Re-request after REJECTED | Allowed | Terminal state |
-| Re-request after CANCELLED | Allowed | Terminal state |
-| Publish after COMPLETED/CANCELLED | Allowed | Terminal state |
-| Cancel a COMPLETED or CANCELLED ride | `rides.service.ts → cancel()` | → 400 |
-| BOTH user requesting their own ride | `ride-requests.service.ts → create()` | Checks rideGiver.userId === userId → 403 |
+| One active ride per giver | `rides.service.ts → publish()` | Checks PUBLISHED/ONGOING → 400 |
+| Giver must be APPROVED to publish | `rides.service.ts → publish()` | verificationStatus check → 403 |
+| Vehicle RC must be verified to publish | `rides.service.ts → publish()` | rcVerified check → 403 |
+| One active request per seeker | `ride-requests.service.ts → create()` | PENDING/HOLD/CONFIRMED → 409 |
+| BOTH user cannot request own ride | `ride-requests.service.ts → create()` | rideGiver.userId === userId → 403 |
+| Cannot delete vehicle in active ride | `vehicles.service.ts → remove()` | PUBLISHED/ONGOING check → 409 |
+| Duplicate plate number | `vehicles.service.ts → create()` | Prisma P2002 → 409 |
+| Cannot cancel COMPLETED/CANCELLED ride | `rides.service.ts → cancel()` | → 400 |
+| Re-request after REJECTED/CANCELLED | `ride-requests.service.ts → create()` | Allowed — terminal state |
+| Publish after COMPLETED/CANCELLED ride | `rides.service.ts → publish()` | Allowed — terminal state |
 
 ---
 
-## Key API Shapes (confirmed from source)
+## Key API Field Names (confirmed from source — gotcha-prone)
 
-### Gamification Summary (`GET /gamification/summary`)
-```json
-{ "totalPoints": 0, "ecoLevel": "SEED", "co2SavedKg": "0.00", "pointsHistory": [] }
-```
-⚠️ Field is `totalPoints` NOT `ecoPoints` — tests must use `totalPoints`
-
-### Search Rides (`GET /rides/search`)
-Required params: `originLat`, `originLng`, `destinationLat`, `destinationLng`, `date` (YYYY-MM-DD)
-Optional: `page`, `limit`
-⚠️ Does NOT accept `originName`/`destinationName` — those are stored fields, not search params
-
-### Emergency Contact (`POST /users/me/emergency-contacts`)
-```json
-{ "name": "string", "phone": "string", "relationship": "string" }
-```
-⚠️ Field is `relationship` NOT `relation`
-
-### Update Profile (`PATCH /users/me`)
-Accepts: `fullName`, `profilePhoto`, `gender`, `companyName`, `fcmToken`
+| Endpoint | Field trap | Correct |
+|---|---|---|
+| `GET /gamification/summary` | ~~ecoPoints~~ | `totalPoints` |
+| `GET /gamification/summary` | ~~co2Saved~~ | `co2SavedKg` |
+| `GET /rides/search` | ~~originName, destinationName~~ | `originLat`, `originLng`, `destinationLat`, `destinationLng`, `date` (all required) |
+| `POST /users/me/emergency-contacts` | ~~relation~~ | `relationship` |
+| `PATCH /users/me` | accepts | `fullName`, `profilePhoto`, `gender`, `companyName`, `fcmToken` |
+| Leaderboard `period` param | ~~`all`~~ | `alltime` or `monthly` |
 
 ---
 
 ## Gotchas / Notes
-- **RideStatus enum:** `DRAFT`, `PUBLISHED`, `ONGOING`, `COMPLETED`, `CANCELLED` — NO `STARTED`
-- **Email domain whitelist:** `wipro.com`, `tcs.com`, `infosys.com` etc. `testco.com` NOT allowed
-- **freshGiver() in helpers.ts** runs full verification: register → submit docs → admin approve → add vehicle → admin verify RC. Takes ~3-4 API calls. Use it for any test that needs to publish a ride.
-- **register() in helpers.ts** is raw — no verification. Use for testing NOT_SUBMITTED verification status.
-- **Dist must be rebuilt** after any API source change: `cd apps/api && npm run build` then `git add apps/api/dist/`
-- **Vercel project** is `techieride-webapp-v2-web` (the `-api` one was deleted accidentally)
-- **Admin vehicle endpoints:** `PATCH /admin/vehicles/:id/verify` and `/reject` — new in this session, needed by all test helpers that create fresh givers
+- **RideStatus enum:** `DRAFT` → `PUBLISHED` → `ONGOING` → `COMPLETED`/`CANCELLED`. No `STARTED`.
+- **Email domain whitelist:** `wipro.com`, `tcs.com`, `infosys.com` etc. `testco.com` NOT allowed.
+- **`freshGiver()` in `tests/helpers.ts`** — runs full 5-step verification flow. Use for any test that calls `publish()`. Takes ~5 extra API calls per giver.
+- **`register()` in `tests/helpers.ts`** — raw registration, no verification. Use only for testing NOT_SUBMITTED status.
+- **Dist must be rebuilt** after every API source change: `cd apps/api && npm run build` then `git add apps/api/dist/`.
+- **Vercel project name** is `techieride-webapp-v2-web` (the `-api` accidental project was deleted).
+- **BOTH role users** have both giver and seeker capabilities but cannot request seats on their own rides.
 
 ---
 
