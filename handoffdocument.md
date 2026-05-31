@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `6ea7e58`)
+> **Last updated:** 2026-06-01 (latest: `0291d3a`)
 
 ---
 
@@ -109,6 +109,7 @@
 **Total API tests: ~258+ across 6 suites + 50 Playwright = ~308 automated checks**
 
 **Latest commits pushed:**
+- `0291d3a` — Fix extended test: cancel re-request after rejection + guard security test
 - `6ea7e58` — Fix 8 final suite failures (4 API bugs + 4 test corrections)
 - `be976f3` — Fix ci-autofix.yml SyntaxError in github-script
 
@@ -147,7 +148,7 @@ Fix once: `brew install gh && gh auth login`
 | Cannot delete vehicle in active ride | `vehicles.service.ts → remove()` | PUBLISHED/ONGOING check → 409 |
 | Duplicate plate number | `vehicles.service.ts → create()` | Prisma P2002 → 409 |
 | Cannot cancel COMPLETED/CANCELLED ride | `rides.service.ts → cancel()` | → 400 |
-| Re-request after REJECTED/CANCELLED | `ride-requests.service.ts → create()` | Allowed via upsert — resets record to PENDING |
+| Re-request after REJECTED/CANCELLED | `ride-requests.service.ts → create()` | Allowed via upsert — resets record to PENDING. ⚠️ Leaves seeker with PENDING state, blocking other ride requests until cancelled |
 | Concurrent seat approval race | `ride-requests.service.ts → approve()` | Atomic `updateMany WHERE availableSeats > 0` |
 | Ride cancel notifies passengers | `rides.service.ts → cancel()` | HOLD/CONFIRMED get RIDE_CANCELLED notification |
 | Publish after COMPLETED/CANCELLED ride | `rides.service.ts → publish()` | Allowed — terminal state |
