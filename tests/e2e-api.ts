@@ -239,8 +239,8 @@ async function run() {
   // interference from existing active rides on the seeded account
   const ts = Date.now();
   const freshGiverEmail = `fresh_giver_${ts}@testco.com`;
-  const freshGiver = await registerAndLogin(freshGiverEmail, 'RIDE_GIVER');
-  const giverClient = makeClient(freshGiver.token);
+  const freshGiverToken = await registerAndLogin(freshGiverEmail, 'Fresh Giver', 'RIDE_GIVER');
+  const giverClient = makeClient(freshGiverToken);
 
   await test('Giver can fetch own profile', async () => {
     const r = await giverClient.get('/users/me');
@@ -317,8 +317,8 @@ async function run() {
 
   // Use a fresh seeker account to avoid interference from existing active requests
   const freshSeekerEmail = `fresh_seeker_${ts}@testco.com`;
-  const freshSeeker = await registerAndLogin(freshSeekerEmail, 'RIDE_SEEKER');
-  const seekerClient = makeClient(freshSeeker.token);
+  const freshSeekerToken = await registerAndLogin(freshSeekerEmail, 'Fresh Seeker', 'RIDE_SEEKER');
+  const seekerClient = makeClient(freshSeekerToken);
 
   await test('Seeker can fetch own profile', async () => {
     const r = await seekerClient.get('/users/me');
