@@ -26,7 +26,8 @@ let UsersService = class UsersService {
         });
         if (!user)
             throw new common_1.NotFoundException('User not found');
-        return user;
+        const { passwordHash, emailVerificationToken, emailVerificationExpiry, passwordResetToken, passwordResetExpiry, ...safeUser } = user;
+        return safeUser;
     }
     async getPublicProfile(userId) {
         const user = await this.prisma.user.findUnique({

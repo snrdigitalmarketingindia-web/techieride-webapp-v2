@@ -153,14 +153,27 @@ let RidesService = class RidesService {
         if ([shared_1.RideStatus.COMPLETED, shared_1.RideStatus.CANCELLED].includes(ride.status)) {
             throw new common_1.BadRequestException(`Cannot cancel a ${ride.status} ride`);
         }
+        const confirmedParticipants = await this.prisma.rideRequest.findMany({
+            where: { rideId, status: { in: ['HOLD', 'CONFIRMED'] } },
+            include: { seeker: { include: { user: true } } },
+        });
         await this.prisma.rideRequest.updateMany({
             where: { rideId, status: { in: ['PENDING', 'APPROVED', 'HOLD', 'CONFIRMED'] } },
             data: { status: 'CANCELLED', cancelReason: 'Ride cancelled' },
         });
-        return this.prisma.ride.update({
+        const updated = await this.prisma.ride.update({
             where: { id: rideId },
             data: { status: shared_1.RideStatus.CANCELLED, cancelledAt: new Date(), cancelReason: reason },
         });
+        for (const req of confirmedParticipants) {
+            await this.notifications.create(req.seeker.userId, {
+                type: shared_1.NotificationType.RIDE_CANCELLED,
+                title: 'Your ride has been cancelled',
+                body: `${ride.originName} → ${ride.destinationName} was cancelled${reason ? `: ${reason}` : ''}`,
+                data: { rideId },
+            });
+        }
+        return updated;
     }
     async search(dto) {
         const rides = await this.prisma.ride.findMany({

@@ -16,7 +16,10 @@ export class UsersService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+    // Strip all sensitive fields before returning
+    const { passwordHash, emailVerificationToken, emailVerificationExpiry,
+            passwordResetToken, passwordResetExpiry, ...safeUser } = user;
+    return safeUser;
   }
 
   async getPublicProfile(userId: string) {

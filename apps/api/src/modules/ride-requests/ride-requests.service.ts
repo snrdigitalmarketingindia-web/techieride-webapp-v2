@@ -42,7 +42,10 @@ export class RideRequestsService {
     const existing = await this.prisma.rideRequest.findUnique({
       where: { rideId_seekerId: { rideId: dto.rideId, seekerId: seeker.id } },
     });
-    if (existing) throw new ConflictException('You already have a request for this ride');
+    // Allow re-request after terminal states (CANCELLED, REJECTED, NO_SHOW)
+    if (existing && !['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(existing.status)) {
+      throw new ConflictException('You already have an active request for this ride');
+    }
 
     // Block if seeker already has an active request on another ride
     const activeRequest = await this.prisma.rideRequest.findFirst({
@@ -56,8 +59,11 @@ export class RideRequestsService {
       throw new ConflictException('You already have an active ride request. Cancel it before requesting another ride.');
     }
 
-    const request = await this.prisma.rideRequest.create({
-      data: {
+    // Upsert: if a terminal record (CANCELLED/REJECTED) exists for this ride+seeker,
+    // reset it to PENDING rather than inserting a duplicate (@@unique constraint).
+    const request = await this.prisma.rideRequest.upsert({
+      where: { rideId_seekerId: { rideId: dto.rideId, seekerId: seeker.id } },
+      create: {
         rideId: dto.rideId,
         seekerId: seeker.id,
         pickupLat: dto.pickupLat,
@@ -67,6 +73,19 @@ export class RideRequestsService {
         dropLng: dto.dropLng,
         dropName: dto.dropName,
         status: 'PENDING',
+      },
+      update: {
+        status: 'PENDING',
+        holdExpiresAt: null,
+        confirmedAt: null,
+        cancelledAt: null,
+        cancelReason: null,
+        pickupLat: dto.pickupLat,
+        pickupLng: dto.pickupLng,
+        pickupName: dto.pickupName,
+        dropLat: dto.dropLat,
+        dropLng: dto.dropLng,
+        dropName: dto.dropName,
       },
     });
 
@@ -111,22 +130,25 @@ export class RideRequestsService {
     }
 
     const ride = await this.prisma.ride.findUnique({ where: { id: request.rideId } });
-    if (!ride || ride.availableSeats <= 0) {
-      throw new BadRequestException('No seats available');
-    }
+    if (!ride) throw new NotFoundException('Ride not found');
 
     const holdExpiresAt = new Date(Date.now() + SEAT_HOLD_TTL_SECONDS * 1000);
 
-    await this.prisma.$transaction([
-      this.prisma.rideRequest.update({
-        where: { id: requestId },
-        data: { status: 'HOLD', holdExpiresAt },
-      }),
-      this.prisma.ride.update({
-        where: { id: ride.id },
-        data: { availableSeats: { decrement: 1 } },
-      }),
-    ]);
+    // Atomic conditional decrement — only succeeds if availableSeats > 0 at write time.
+    // This prevents the race condition where two concurrent approvals both read seats > 0
+    // then both decrement, resulting in negative seat counts.
+    const seatUpdate = await this.prisma.ride.updateMany({
+      where: { id: ride.id, availableSeats: { gt: 0 } },
+      data: { availableSeats: { decrement: 1 } },
+    });
+    if (seatUpdate.count === 0) {
+      throw new BadRequestException('No seats available');
+    }
+
+    await this.prisma.rideRequest.update({
+      where: { id: requestId },
+      data: { status: 'HOLD', holdExpiresAt },
+    });
 
     // Set Redis TTL for hold
     await this.redis.setex(

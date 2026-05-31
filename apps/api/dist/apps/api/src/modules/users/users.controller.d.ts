@@ -13,7 +13,6 @@ export declare class UsersController {
             averageRating: number;
             totalRidesTaken: number;
         } | null;
-    } & {
         email: string;
         fullName: string;
         gender: import(".prisma/client").$Enums.Gender | null;
@@ -22,14 +21,9 @@ export declare class UsersController {
         role: import(".prisma/client").$Enums.UserRole;
         phone: string | null;
         id: string;
-        passwordHash: string;
         profilePhoto: string | null;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
-        emailVerificationToken: string | null;
-        emailVerificationExpiry: Date | null;
-        passwordResetToken: string | null;
-        passwordResetExpiry: Date | null;
         isActive: boolean;
         fcmToken: string | null;
         ecoPoints: number;

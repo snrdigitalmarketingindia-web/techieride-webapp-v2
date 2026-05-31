@@ -45,8 +45,9 @@ let RideRequestsService = class RideRequestsService {
         const existing = await this.prisma.rideRequest.findUnique({
             where: { rideId_seekerId: { rideId: dto.rideId, seekerId: seeker.id } },
         });
-        if (existing)
-            throw new common_1.ConflictException('You already have a request for this ride');
+        if (existing && !['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(existing.status)) {
+            throw new common_1.ConflictException('You already have an active request for this ride');
+        }
         const activeRequest = await this.prisma.rideRequest.findFirst({
             where: {
                 seekerId: seeker.id,
@@ -57,8 +58,9 @@ let RideRequestsService = class RideRequestsService {
         if (activeRequest) {
             throw new common_1.ConflictException('You already have an active ride request. Cancel it before requesting another ride.');
         }
-        const request = await this.prisma.rideRequest.create({
-            data: {
+        const request = await this.prisma.rideRequest.upsert({
+            where: { rideId_seekerId: { rideId: dto.rideId, seekerId: seeker.id } },
+            create: {
                 rideId: dto.rideId,
                 seekerId: seeker.id,
                 pickupLat: dto.pickupLat,
@@ -68,6 +70,19 @@ let RideRequestsService = class RideRequestsService {
                 dropLng: dto.dropLng,
                 dropName: dto.dropName,
                 status: 'PENDING',
+            },
+            update: {
+                status: 'PENDING',
+                holdExpiresAt: null,
+                confirmedAt: null,
+                cancelledAt: null,
+                cancelReason: null,
+                pickupLat: dto.pickupLat,
+                pickupLng: dto.pickupLng,
+                pickupName: dto.pickupName,
+                dropLat: dto.dropLat,
+                dropLng: dto.dropLng,
+                dropName: dto.dropName,
             },
         });
         await this.notifications.create(ride.rideGiver.userId, {
@@ -107,20 +122,20 @@ let RideRequestsService = class RideRequestsService {
             throw new common_1.BadRequestException('Request is no longer pending');
         }
         const ride = await this.prisma.ride.findUnique({ where: { id: request.rideId } });
-        if (!ride || ride.availableSeats <= 0) {
+        if (!ride)
+            throw new common_1.NotFoundException('Ride not found');
+        const holdExpiresAt = new Date(Date.now() + shared_1.SEAT_HOLD_TTL_SECONDS * 1000);
+        const seatUpdate = await this.prisma.ride.updateMany({
+            where: { id: ride.id, availableSeats: { gt: 0 } },
+            data: { availableSeats: { decrement: 1 } },
+        });
+        if (seatUpdate.count === 0) {
             throw new common_1.BadRequestException('No seats available');
         }
-        const holdExpiresAt = new Date(Date.now() + shared_1.SEAT_HOLD_TTL_SECONDS * 1000);
-        await this.prisma.$transaction([
-            this.prisma.rideRequest.update({
-                where: { id: requestId },
-                data: { status: 'HOLD', holdExpiresAt },
-            }),
-            this.prisma.ride.update({
-                where: { id: ride.id },
-                data: { availableSeats: { decrement: 1 } },
-            }),
-        ]);
+        await this.prisma.rideRequest.update({
+            where: { id: requestId },
+            data: { status: 'HOLD', holdExpiresAt },
+        });
         await this.redis.setex(shared_1.REDIS_KEYS.SEAT_HOLD(ride.id, request.seekerId), shared_1.SEAT_HOLD_TTL_SECONDS, requestId);
         const seeker = await this.prisma.rideSeeker.findUnique({
             where: { id: request.seekerId },
