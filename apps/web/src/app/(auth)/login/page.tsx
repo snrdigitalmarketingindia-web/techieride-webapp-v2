@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
   // Forgot password state
   const [forgotMode, setForgotMode] = useState(false);
@@ -27,11 +28,20 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
+      setUnverifiedEmail('');
       await login(email.toLowerCase().trim(), password);
       const { user } = useAuthStore.getState();
       router.push(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Invalid email or password');
+      const msg = e.response?.data?.message || '';
+      if (msg === 'EMAIL_NOT_VERIFIED') {
+        setUnverifiedEmail(email.toLowerCase().trim());
+        setError('');
+      } else if (msg === 'EMAIL_BOUNCED') {
+        setError('Your email address could not be reached. Please contact support.');
+      } else {
+        setError(msg || 'Invalid email or password');
+      }
     } finally {
       setLoading(false);
     }
@@ -120,6 +130,30 @@ export default function LoginPage() {
           <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
           <span className="inline-block mt-1 text-xs text-orange-400 font-medium">v2.0_Beta</span>
         </div>
+
+        {unverifiedEmail && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
+            <p className="text-sm font-medium text-amber-800 mb-1">📧 Email not verified</p>
+            <p className="text-sm text-amber-700">
+              Please check your email and click the verify link sent to{' '}
+              <strong>{unverifiedEmail}</strong>
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  await authApi.resendVerification(unverifiedEmail);
+                  setUnverifiedEmail('');
+                  setError('Verification email resent — please check your inbox.');
+                } catch {
+                  setError('Could not resend. Please try again in a moment.');
+                }
+              }}
+              className="mt-2 text-xs text-amber-700 underline hover:text-amber-900"
+            >
+              Didn't receive it? Resend verification email
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4">

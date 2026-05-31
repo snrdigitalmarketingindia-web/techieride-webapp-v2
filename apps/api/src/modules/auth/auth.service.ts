@@ -148,16 +148,14 @@ export class AuthService {
 
     if (!user.isActive) throw new UnauthorizedException('Account suspended. Contact admin.');
 
-    if (user.emailStatus !== 'VERIFIED') {
+    if (user.emailStatus === 'BOUNCED') {
       throw new UnauthorizedException(
-        'Please verify your email before logging in. Check your inbox or request a new verification email.'
+        'EMAIL_BOUNCED'
       );
     }
 
-    if (user.emailStatus === 'BOUNCED') {
-      throw new UnauthorizedException(
-        'Your email address could not be delivered to. Please contact support.'
-      );
+    if (user.emailStatus !== 'VERIFIED') {
+      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
     }
 
     return this.generateTokens(user);
