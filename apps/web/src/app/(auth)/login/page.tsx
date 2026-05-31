@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
+// useAuthStore.getState() used post-login for role-based redirect
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,7 +39,8 @@ export default function LoginPage() {
     setError('');
     try {
       await login(phone, otp);
-      router.push('/dashboard');
+      const { user } = useAuthStore.getState();
+      router.push(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
     } catch (e: any) {
       setError(e.response?.data?.message || 'Invalid OTP');
     } finally {
