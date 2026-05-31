@@ -24,6 +24,7 @@ exports.RedisModule = RedisModule = __decorate([
                 useFactory: (config) => {
                     const rawUrl = config.get('REDIS_URL');
                     const redisUrl = rawUrl?.trim();
+                    console.log(`[Redis] REDIS_URL raw value: "${rawUrl}"`);
                     console.log(`[Redis] URL prefix: "${redisUrl?.substring(0, 15)}" length: ${redisUrl?.length}`);
                     if (redisUrl) {
                         return new ioredis_1.default(redisUrl);
