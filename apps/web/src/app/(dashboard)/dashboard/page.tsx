@@ -59,17 +59,17 @@ export default function DashboardPage() {
             <p className="text-red-800 text-sm font-medium">❌ Verification rejected</p>
             <p className="text-red-700 text-sm">Please re-upload your documents</p>
           </div>
-          <Link href="/dashboard/profile" className="text-sm text-red-700 font-medium underline">Re-upload</Link>
+          <Link href="/profile" className="text-sm text-red-700 font-medium underline">Re-upload</Link>
         </div>
       )}
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { href: '/dashboard/rides/create', icon: '🚗', label: 'Offer Ride', color: 'bg-brand-50 border-brand-200' },
-          { href: '/dashboard/rides/search', icon: '🔍', label: 'Find Ride', color: 'bg-blue-50 border-blue-200' },
-          { href: '/dashboard/rides', icon: '📋', label: 'My Schedule', color: 'bg-purple-50 border-purple-200' },
-          { href: '/dashboard/rides/leaderboard', icon: '🏆', label: 'Leaderboard', color: 'bg-yellow-50 border-yellow-200' },
+          { href: '/rides/create', icon: '🚗', label: 'Offer Ride', color: 'bg-brand-50 border-brand-200' },
+          { href: '/rides/search', icon: '🔍', label: 'Find Ride', color: 'bg-blue-50 border-blue-200' },
+          { href: '/requests', icon: '📋', label: 'Requests', color: 'bg-purple-50 border-purple-200' },
+          { href: '/rides/leaderboard', icon: '🏆', label: 'Leaderboard', color: 'bg-yellow-50 border-yellow-200' },
         ].map((a) => (
           <Link key={a.href} href={a.href} className={`${a.color} border rounded-xl p-4 flex items-center gap-3 hover:opacity-80 transition`}>
             <span className="text-2xl">{a.icon}</span>
@@ -82,7 +82,7 @@ export default function DashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-900">Upcoming Rides</h2>
-          <Link href="/dashboard/rides" className="text-sm text-brand-600 hover:underline">View all</Link>
+          <Link href="/rides" className="text-sm text-brand-600 hover:underline">View all</Link>
         </div>
         {loading ? (
           <div className="text-center py-8 text-gray-400">Loading...</div>
@@ -90,14 +90,14 @@ export default function DashboardPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
             <div className="text-4xl mb-2">🚗</div>
             <p className="text-gray-500 text-sm">No upcoming rides</p>
-            <Link href="/dashboard/rides/create" className="inline-block mt-3 text-sm text-brand-600 font-medium hover:underline">
+            <Link href="/rides/create" className="inline-block mt-3 text-sm text-brand-600 font-medium hover:underline">
               Offer your first ride →
             </Link>
           </div>
         ) : (
           <div className="space-y-3">
             {upcomingRides.map((ride) => (
-              <Link key={ride.id} href={`/dashboard/rides/${ride.id}`}
+              <Link key={ride.id} href={`/rides/${ride.id}`}
                 className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 hover:border-brand-300 transition"
               >
                 <div className="flex-1">

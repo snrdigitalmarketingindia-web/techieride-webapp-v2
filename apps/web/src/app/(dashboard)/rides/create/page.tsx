@@ -58,7 +58,7 @@ export default function CreateRidePage() {
       }
 
       await ridesApi.publish(ride.id);
-      router.push('/dashboard/rides');
+      router.push('/rides');
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to create ride');
     } finally {
@@ -75,7 +75,7 @@ export default function CreateRidePage() {
       {vehicles.length === 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
           ⚠️ You need to add a vehicle first.{' '}
-          <a href="/dashboard/profile" className="font-medium underline">Add vehicle →</a>
+          <a href="/profile" className="font-medium underline">Add vehicle →</a>
         </div>
       )}
 

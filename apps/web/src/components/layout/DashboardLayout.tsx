@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { EcoLevel } from '@techieride/shared';
+import NotificationDrawer from './NotificationDrawer';
 
 const ECO_BADGES: Record<EcoLevel, string> = {
   SEED: '🌱',
@@ -16,9 +17,10 @@ const ECO_BADGES: Record<EcoLevel, string> = {
 
 const navLinks = [
   { href: '/dashboard', label: 'Home', icon: '🏠' },
-  { href: '/dashboard/rides', label: 'My Rides', icon: '🚗' },
-  { href: '/dashboard/rides/search', label: 'Find Ride', icon: '🔍' },
-  { href: '/dashboard/profile', label: 'Profile', icon: '👤' },
+  { href: '/rides', label: 'My Rides', icon: '🚗' },
+  { href: '/rides/search', label: 'Find Ride', icon: '🔍' },
+  { href: '/requests', label: 'Requests', icon: '📥' },
+  { href: '/profile', label: 'Profile', icon: '👤' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -51,6 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </span>
             </div>
           )}
+          <NotificationDrawer />
           <button onClick={() => { logout(); router.push('/'); }} className="text-sm text-gray-500 hover:text-red-500 transition">
             Logout
           </button>

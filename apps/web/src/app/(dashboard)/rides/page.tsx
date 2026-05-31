@@ -40,7 +40,7 @@ export default function MyRidesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">My Rides</h1>
-        <Link href="/dashboard/rides/create" className="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700 transition">
+        <Link href="/rides/create" className="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700 transition">
           + Offer Ride
         </Link>
       </div>
@@ -83,7 +83,7 @@ export default function MyRidesPage() {
                       <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">
                         ▶ Start Ride
                       </button>
-                      <Link href={`/dashboard/requests?rideId=${ride.id}`} className="text-xs border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
+                      <Link href={`/requests?rideId=${ride.id}`} className="text-xs border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
                         View Requests
                       </Link>
                     </>
@@ -93,7 +93,7 @@ export default function MyRidesPage() {
                       <button onClick={() => handleComplete(ride.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
                         ✅ Complete Ride
                       </button>
-                      <Link href={`/dashboard/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+                      <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
                         📡 Share Location
                       </Link>
                     </>
@@ -102,7 +102,7 @@ export default function MyRidesPage() {
               )}
 
               {tab === 'taken' && ride.status === 'ONGOING' && (
-                <Link href={`/dashboard/tracking/${ride.id}`} className="inline-flex items-center gap-1 text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+                <Link href={`/tracking/${ride.id}`} className="inline-flex items-center gap-1 text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
                   📍 Track Live
                 </Link>
               )}
