@@ -1,14 +1,12 @@
 #!/bin/bash
 set -e
 
-# Render sets working dir to apps/api (root directory setting)
-# We need to go to repo root to install all workspace deps
 REPO_ROOT="$(cd ../.. && pwd)"
 echo "📁 Repo root: $REPO_ROOT"
 
-echo "📦 Installing all workspace dependencies..."
+echo "📦 Installing all dependencies (including devDeps for build)..."
 cd "$REPO_ROOT"
-npm install
+npm install --include=dev
 
 echo "🔨 Building shared package..."
 npm run build --workspace=packages/shared
