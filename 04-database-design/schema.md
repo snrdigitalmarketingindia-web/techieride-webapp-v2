@@ -1,8 +1,11 @@
-# Database Design — Techie Ride WebApp V2
+# Database Design — TechieRide WebApp v2.0_Beta
+
+> **Version:** 2.0_Beta | **Last Updated:** May 2026
 
 **Database:** PostgreSQL 15  
-**Extension:** PostGIS (geospatial queries)  
-**Connection Pooler:** PgBouncer
+**ORM:** Prisma 5  
+**Connection Pooler:** PgBouncer (production)  
+**Hosted:** Railway (beta)
 
 ---
 
@@ -28,35 +31,51 @@ erDiagram
 
 ## 2. Table Definitions
 
-### 2.1 users
+### 2.1 users *(Updated in v2.0_Beta)*
+
+> **Changes from v1:** `phone` is now optional, `password_hash` added, OTP table removed,
+> `email_status` enum added, verification token fields added.
 
 ```sql
 CREATE TABLE users (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    phone           VARCHAR(15) UNIQUE NOT NULL,
-    email           VARCHAR(255) UNIQUE NOT NULL,
-    full_name       VARCHAR(100) NOT NULL,
-    profile_photo   TEXT,
-    gender          VARCHAR(10) CHECK (gender IN ('MALE','FEMALE','OTHER')),
-    company_name    VARCHAR(100),
-    employee_id     VARCHAR(50),
-    role            VARCHAR(20) NOT NULL DEFAULT 'RIDE_SEEKER'
-                        CHECK (role IN ('RIDE_GIVER','RIDE_SEEKER','BOTH','ADMIN')),
-    verification_status VARCHAR(20) NOT NULL DEFAULT 'PENDING'
-                        CHECK (verification_status IN ('PENDING','APPROVED','REJECTED')),
-    is_active       BOOLEAN NOT NULL DEFAULT TRUE,
-    fcm_token       TEXT,
-    eco_points      INTEGER NOT NULL DEFAULT 0,
-    eco_level       VARCHAR(20) NOT NULL DEFAULT 'SEED'
-                        CHECK (eco_level IN ('SEED','SPROUT','LEAF','TREE','FOREST')),
-    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email                       VARCHAR(255) UNIQUE NOT NULL,   -- office email (domain whitelist enforced)
+    password_hash               VARCHAR(255) NOT NULL,          -- bcrypt, 12 rounds
+    full_name                   VARCHAR(100) NOT NULL,
+    profile_photo               TEXT,
+    gender                      VARCHAR(10) CHECK (gender IN ('MALE','FEMALE','OTHER')),
+    company_name                VARCHAR(100),
+    phone                       VARCHAR(15) UNIQUE,             -- optional (was required in v1)
+    role                        VARCHAR(20) NOT NULL DEFAULT 'RIDE_SEEKER'
+                                    CHECK (role IN ('RIDE_GIVER','RIDE_SEEKER','BOTH','ADMIN')),
+    verification_status         VARCHAR(20) NOT NULL DEFAULT 'PENDING'
+                                    CHECK (verification_status IN ('PENDING','APPROVED','REJECTED')),
+    email_status                VARCHAR(20) NOT NULL DEFAULT 'PENDING'
+                                    CHECK (email_status IN ('PENDING','VERIFIED','BOUNCED')),
+    email_verification_token    VARCHAR(255) UNIQUE,            -- hex token, expires in 24h
+    email_verification_expiry   TIMESTAMP WITH TIME ZONE,
+    password_reset_token        VARCHAR(255) UNIQUE,            -- hex token, expires in 1h
+    password_reset_expiry       TIMESTAMP WITH TIME ZONE,
+    is_active                   BOOLEAN NOT NULL DEFAULT TRUE,
+    fcm_token                   TEXT,
+    eco_points                  INTEGER NOT NULL DEFAULT 0,
+    eco_level                   VARCHAR(20) NOT NULL DEFAULT 'SEED'
+                                    CHECK (eco_level IN ('SEED','SPROUT','LEAF','TREE','FOREST')),
+    created_at                  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at                  TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_email_status ON users(email_status);
 CREATE INDEX idx_users_verification_status ON users(verification_status);
 ```
+
+**Email status values:**
+| Status | Meaning |
+|---|---|
+| `PENDING` | Registered, verification email sent, not yet clicked |
+| `VERIFIED` | User clicked verification link — can log in |
+| `BOUNCED` | Resend bounce webhook fired — email undeliverable, account deactivated |
 
 ---
 

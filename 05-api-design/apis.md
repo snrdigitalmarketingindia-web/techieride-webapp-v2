@@ -1,6 +1,8 @@
-# API Design — Techie Ride WebApp V2
+# API Design — TechieRide WebApp v2.0_Beta
 
-**Base URL:** `https://api.techieride.in/v1`  
+> **Version:** 2.0_Beta | **Last Updated:** May 2026
+
+**Base URL:** `https://api.techieride.in/api/v1`  
 **Auth:** Bearer JWT (except public endpoints)  
 **Content-Type:** `application/json`
 
@@ -8,51 +10,83 @@
 
 ## Authentication Rules
 
-| Route Pattern | Auth Required |
-|--------------|--------------|
-| `POST /auth/*` | No |
-| `GET /rides/search` | No (limited response) |
-| All other routes | Yes — `Authorization: Bearer <access_token>` |
-| `/admin/*` | Yes + role = ADMIN |
+| Route Pattern | Auth Required | Notes |
+|---|---|---|
+| `POST /auth/*` | No | Errors pass through interceptor without token refresh |
+| `GET /auth/verify-email` | No | Email verification link handler |
+| `GET /rides/search` | No | Limited response |
+| All other routes | Yes — `Authorization: Bearer <access_token>` | |
+| `/admin/*` | Yes + `role = ADMIN` | Returns 403 for non-admins |
 
 ---
 
-## 1. Auth APIs
+## 1. Auth APIs *(Rewritten in v2.0_Beta)*
+
+> **Removed:** Phone OTP login (`/auth/login` with phone, `/auth/verify-otp`)  
+> **Added:** Email+password login, email verification, password reset, bounce webhook
 
 ### Register
 ```
 POST /auth/register
 Body: {
-  phone: string,
-  email: string,         // work email
+  email: string,          // must be approved IT company domain
+  password: string,       // min 8 chars, bcrypt-hashed server-side
   fullName: string,
-  password: string,
+  gender: "MALE" | "FEMALE" | "OTHER",
   companyName: string,
-  employeeId: string,
-  gender: "MALE" | "FEMALE" | "OTHER"
+  role: "RIDE_GIVER" | "RIDE_SEEKER" | "BOTH",
+  phone?: string          // optional, exactly 10 digits
 }
 Response 201: {
-  userId: string,
-  message: "OTP sent to phone"
+  message: "Account created! Please check your office email to verify your account.",
+  email: string
 }
+Response 403: { message: "Only verified IT company email addresses are accepted." }
+Response 409: { message: "An account with this email already exists" }
+Response 400: Validation errors
 ```
 
-### Verify OTP
-```
-POST /auth/verify-otp
-Body: { phone: string, otp: string }
-Response 200: {
-  accessToken: string,
-  refreshToken: string,
-  user: UserDTO
-}
-```
-
-### Login (request OTP)
+### Login
 ```
 POST /auth/login
-Body: { phone: string }
-Response 200: { message: "OTP sent" }
+Body: { email: string, password: string }
+Response 200: { accessToken: string, refreshToken: string }
+Response 401: "Invalid email or password"
+Response 401: "EMAIL_NOT_VERIFIED"   → frontend shows resend link
+Response 401: "EMAIL_BOUNCED"        → frontend shows contact support
+Response 401: "Account suspended. Contact admin."
+```
+
+### Verify Email (link from inbox)
+```
+GET /auth/verify-email?token=<hex-token>
+Response 200: { message: "Email verified successfully! You can now log in." }
+Response 404: Invalid/expired token
+Response 400: Token expired
+```
+
+### Resend Verification Email
+```
+POST /auth/resend-verification
+Body: { email: string }
+Response 200: { message: "Verification email resent." }
+```
+
+### Forgot Password
+```
+POST /auth/forgot-password
+Body: { email: string }
+Response 200: { message: "If that email exists, a reset link has been sent." }
+// Always 200 — prevents email enumeration
+```
+
+### Reset Password
+```
+POST /auth/reset-password
+Body: { token: string, newPassword: string }
+Response 200: { message: "Password reset successfully." }
+Response 404: Invalid/expired token
+Response 400: Token expired
 ```
 
 ### Refresh Token
@@ -60,13 +94,16 @@ Response 200: { message: "OTP sent" }
 POST /auth/refresh
 Body: { refreshToken: string }
 Response 200: { accessToken: string, refreshToken: string }
+Response 401: Invalid/expired refresh token
 ```
 
-### Logout
+### Bounce Webhook (Resend → API)
 ```
-POST /auth/logout
-Auth: Required
-Response 200: { message: "Logged out" }
+POST /auth/webhook/bounce
+Headers: { svix-signature: <secret> }
+Body: { type: "email.bounced", data: { to: string[] } }
+Response 200: { ok: true }
+// Marks user emailStatus=BOUNCED, isActive=false
 ```
 
 ---

@@ -1,19 +1,26 @@
-# Low-Level Design — Techie Ride WebApp V2
+# Low-Level Design — TechieRide WebApp v2.0_Beta
 
-## 1. User Model
+> **Version:** 2.0_Beta | **Last Updated:** May 2026
+
+## 1. User Model *(Updated in v2.0_Beta)*
 
 ```typescript
 User {
   id: UUID (PK)
-  phone: string (unique)
-  email: string (unique, work email)
+  email: string (unique, work email — domain whitelist enforced)
+  passwordHash: string (bcrypt, 12 rounds)
   fullName: string
-  profilePhoto: string (MinIO URL)
-  gender: enum(MALE, FEMALE, OTHER)
-  companyName: string
-  employeeId: string
+  profilePhoto: string (MinIO URL, nullable)
+  gender: enum(MALE, FEMALE, OTHER) (nullable)
+  companyName: string (nullable)
+  phone: string (unique, optional — 10 digits Indian mobile)
   role: enum(RIDE_GIVER, RIDE_SEEKER, BOTH, ADMIN)
   verificationStatus: enum(PENDING, APPROVED, REJECTED)
+  emailStatus: enum(PENDING, VERIFIED, BOUNCED)      // NEW
+  emailVerificationToken: string (nullable, unique)  // NEW
+  emailVerificationExpiry: timestamp (nullable)      // NEW
+  passwordResetToken: string (nullable, unique)      // NEW
+  passwordResetExpiry: timestamp (nullable)          // NEW
   isActive: boolean
   fcmToken: string (nullable)
   ecoPoints: integer (default: 0)
@@ -23,10 +30,22 @@ User {
 }
 ```
 
+> **Removed in v2.0_Beta:** `employeeId` field (user uploads Company ID card instead)  
+> **Removed in v2.0_Beta:** `Otp` model (replaced by email+password auth)  
+> **Changed in v2.0_Beta:** `phone` is now optional (was required in v1)
+
+### Email Status Transitions
+
+```
+PENDING → VERIFIED  (user clicks verification link in email)
+PENDING → BOUNCED   (Resend bounce webhook fires — email undeliverable)
+VERIFIED → BOUNCED  (bounce on subsequent emails — rare)
+```
+
 ### Verification Status Transitions
 
 ```
-PENDING → APPROVED  (admin reviews and approves documents)
+PENDING → APPROVED  (admin reviews and approves Company ID card)
 PENDING → REJECTED  (admin rejects with reason)
 REJECTED → PENDING  (user re-uploads documents)
 ```
