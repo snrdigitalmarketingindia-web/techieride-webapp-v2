@@ -5,15 +5,20 @@ echo "📁 Working dir: $(pwd)"
 echo "📂 Contents:"
 ls -la
 
-# If dist doesn't exist, rebuild
+echo "📂 dist contents:"
+ls -la dist/ 2>/dev/null || echo "dist folder missing!"
+echo "📂 dist recursive:"
+find dist -type f 2>/dev/null || echo "no files in dist"
+
+# If dist/main.js doesn't exist, rebuild
 if [ ! -f "dist/main.js" ]; then
   echo "⚠️  dist/main.js not found — rebuilding..."
   cd ../..
   NODE_ENV=development npm install
   npm run build --workspace=apps/api
   cd apps/api
-  echo "📂 After build:"
-  ls -la dist/ 2>/dev/null || echo "dist still missing!"
+  echo "📂 After rebuild — dist recursive:"
+  find dist -type f 2>/dev/null || echo "dist still empty!"
 fi
 
 echo "🗄️  Running Prisma migrations..."
