@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `10b3eb0`)
+> **Last updated:** 2026-06-01 (latest: `6ea7e58`)
 
 ---
 
@@ -67,6 +67,10 @@
 | resendVerification leaked email existence | Always return 200 (no enumeration) | `auth.service.ts` |
 | FCM token not updatable via PATCH /users/me | Added `fcmToken` to UpdateProfileDto | `update-profile.dto.ts` |
 | Admin had no way to verify vehicle RC | Added `PATCH /admin/vehicles/:id/verify` + `/reject` | `admin.controller/service` |
+| Ride cancel didn't notify passengers | Notify HOLD/CONFIRMED participants on cancel | `rides.service.ts cancel()` |
+| Re-request after cancel → 409 | Allow re-request after CANCELLED/REJECTED; upsert instead of create | `ride-requests.service.ts create()` |
+| Race condition: 2 concurrent approvals both succeed | Atomic `updateMany WHERE availableSeats > 0` | `ride-requests.service.ts approve()` |
+| `passwordHash` leaked in GET /users/me | Strip sensitive fields before returning | `users.service.ts getProfile()` |
 
 #### New Test Suites Added
 | Suite | Script | Tests |
@@ -98,15 +102,15 @@
 | Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Green (run #67) |
 | Negative / boundary | `test:api:negative` | 33 | ✅ Green (run #67) |
 | Business rules | `test:api:rules` | 44 | ✅ Green (run #67) |
-| Production coverage | `test:api:coverage` | 69 | 🔄 Runs #68+#69 in progress |
-| Final gap-closing | `test:api:final` | ~45 | 🔄 Runs #68+#69 in progress |
+| Production coverage | `test:api:coverage` | 69 | 🔄 Pending `6ea7e58` |
+| Final gap-closing | `test:api:final` | 57 | 🔄 Pending `6ea7e58` |
 | Playwright E2E | `test:ui` | 50 | ✅ Green (run #67) |
 
 **Total API tests: ~258+ across 6 suites + 50 Playwright = ~308 automated checks**
 
 **Latest commits pushed:**
-- `bd9af99` — Fix final 2 coverage failures (BOTH own-ride guard + duplicate plate 500)
-- `10b3eb0` — Handoff doc update
+- `6ea7e58` — Fix 8 final suite failures (4 API bugs + 4 test corrections)
+- `be976f3` — Fix ci-autofix.yml SyntaxError in github-script
 
 ---
 
@@ -143,7 +147,9 @@ Fix once: `brew install gh && gh auth login`
 | Cannot delete vehicle in active ride | `vehicles.service.ts → remove()` | PUBLISHED/ONGOING check → 409 |
 | Duplicate plate number | `vehicles.service.ts → create()` | Prisma P2002 → 409 |
 | Cannot cancel COMPLETED/CANCELLED ride | `rides.service.ts → cancel()` | → 400 |
-| Re-request after REJECTED/CANCELLED | `ride-requests.service.ts → create()` | Allowed — terminal state |
+| Re-request after REJECTED/CANCELLED | `ride-requests.service.ts → create()` | Allowed via upsert — resets record to PENDING |
+| Concurrent seat approval race | `ride-requests.service.ts → approve()` | Atomic `updateMany WHERE availableSeats > 0` |
+| Ride cancel notifies passengers | `rides.service.ts → cancel()` | HOLD/CONFIRMED get RIDE_CANCELLED notification |
 | Publish after COMPLETED/CANCELLED ride | `rides.service.ts → publish()` | Allowed — terminal state |
 
 ---
@@ -158,6 +164,8 @@ Fix once: `brew install gh && gh auth login`
 | `POST /users/me/emergency-contacts` | ~~relation~~ | `relationship` |
 | `PATCH /users/me` | accepts | `fullName`, `profilePhoto`, `gender`, `companyName`, `fcmToken` |
 | Leaderboard `period` param | ~~`all`~~ | `alltime` or `monthly` |
+| `GET /users/me` | ~~includes passwordHash~~ | Stripped — only safe fields returned |
+| Bounce webhook unknown payload | ~~400~~ | 200 (silent no-op by design) |
 
 ---
 
