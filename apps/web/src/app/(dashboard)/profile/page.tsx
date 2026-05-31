@@ -52,7 +52,13 @@ export default function ProfilePage() {
     setUploading(docType);
     try {
       const url = await uploadFile(file, docType);
-      setUploadedDocs(prev => ({ ...prev, [`${docType.replace('_', '')}Url`]: url } as any));
+      const keyMap: Record<string, keyof UploadedDocs> = {
+        employee_id:      'employeeIdUrl',
+        driving_license:  'drivingLicenseUrl',
+        rc:               'rcUrl',
+      };
+      const key = keyMap[docType];
+      if (key) setUploadedDocs(prev => ({ ...prev, [key]: url }));
     } catch {
       alert('Upload failed. Make sure MinIO is running.');
     } finally {
