@@ -44,6 +44,10 @@ export const useAuthStore = create<AuthState>()(
           const { data } = await authApi.login(email, password);
           get().setTokens(data.accessToken, data.refreshToken);
           await get().fetchProfile();
+          // If profile fetch silently failed, surface it as an error
+          if (!get().isAuthenticated) {
+            throw new Error('Unable to load your profile. Please try again.');
+          }
         } finally {
           set({ isLoading: false });
         }
@@ -69,8 +73,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data } = await usersApi.getMe();
           set({ user: data, isAuthenticated: true });
-        } catch {
+        } catch (e: any) {
+          // 401 = not authenticated, clear silently
+          // Other errors (network, 500) — clear auth but let caller surface the error
           set({ user: null, isAuthenticated: false });
+          if (e?.response?.status !== 401) throw e;
         }
       },
     }),
