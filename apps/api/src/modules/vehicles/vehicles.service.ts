@@ -9,9 +9,16 @@ export class VehiclesService {
   async create(userId: string, dto: CreateVehicleDto) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) throw new ForbiddenException('Only ride givers can add vehicles');
-    return this.prisma.vehicle.create({
-      data: { rideGiverId: giver.id, ...dto },
-    });
+    try {
+      return await this.prisma.vehicle.create({
+        data: { rideGiverId: giver.id, ...dto },
+      });
+    } catch (e: any) {
+      if (e?.code === 'P2002') {
+        throw new ConflictException('A vehicle with this plate number already exists');
+      }
+      throw e;
+    }
   }
 
   async findMine(userId: string) {

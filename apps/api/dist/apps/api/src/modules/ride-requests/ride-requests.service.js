@@ -39,6 +39,9 @@ let RideRequestsService = class RideRequestsService {
             throw new common_1.BadRequestException('Ride is not available');
         if (ride.availableSeats <= 0)
             throw new common_1.BadRequestException('No seats available');
+        if (ride.rideGiver.userId === userId) {
+            throw new common_1.ForbiddenException('You cannot request a seat on your own ride');
+        }
         const existing = await this.prisma.rideRequest.findUnique({
             where: { rideId_seekerId: { rideId: dto.rideId, seekerId: seeker.id } },
         });

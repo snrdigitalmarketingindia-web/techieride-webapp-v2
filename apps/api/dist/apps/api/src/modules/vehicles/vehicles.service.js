@@ -20,9 +20,17 @@ let VehiclesService = class VehiclesService {
         const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
         if (!giver)
             throw new common_1.ForbiddenException('Only ride givers can add vehicles');
-        return this.prisma.vehicle.create({
-            data: { rideGiverId: giver.id, ...dto },
-        });
+        try {
+            return await this.prisma.vehicle.create({
+                data: { rideGiverId: giver.id, ...dto },
+            });
+        }
+        catch (e) {
+            if (e?.code === 'P2002') {
+                throw new common_1.ConflictException('A vehicle with this plate number already exists');
+            }
+            throw e;
+        }
     }
     async findMine(userId) {
         const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });

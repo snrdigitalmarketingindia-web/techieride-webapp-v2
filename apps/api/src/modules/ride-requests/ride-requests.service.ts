@@ -34,6 +34,11 @@ export class RideRequestsService {
     if (ride.status !== 'PUBLISHED') throw new BadRequestException('Ride is not available');
     if (ride.availableSeats <= 0) throw new BadRequestException('No seats available');
 
+    // BOTH-role users cannot request a seat on a ride they own as giver
+    if (ride.rideGiver.userId === userId) {
+      throw new ForbiddenException('You cannot request a seat on your own ride');
+    }
+
     const existing = await this.prisma.rideRequest.findUnique({
       where: { rideId_seekerId: { rideId: dto.rideId, seekerId: seeker.id } },
     });
