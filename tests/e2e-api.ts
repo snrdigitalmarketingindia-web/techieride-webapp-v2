@@ -242,6 +242,20 @@ async function run() {
   const freshGiverToken = await registerAndLogin(freshGiverEmail, 'Fresh Giver', 'RIDE_GIVER');
   const giverClient = makeClient(freshGiverToken);
 
+  // Fresh giver must be identity-verified before they can publish rides
+  {
+    const profile = await giverClient.get('/users/me');
+    const freshGiverId = profile.data.id;
+    await giverClient.post('/verification/submit', {
+      employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc',
+    });
+    const queue = await adminClient.get('/admin/verification/pending');
+    const entry = queue.data.find((v: any) => v.userId === freshGiverId);
+    if (entry) {
+      await adminClient.patch(`/admin/verification/${entry.id}/review`, { decision: 'APPROVED' });
+    }
+  }
+
   await test('Giver can fetch own profile', async () => {
     const r = await giverClient.get('/users/me');
     assert(r.status === 200, `Got ${r.status}`);
@@ -257,6 +271,8 @@ async function run() {
     assert(r.status === 201, `Got ${r.status}: ${JSON.stringify(r.data)}`);
     vehicleId = r.data.id;
     assert(!!vehicleId, 'No vehicle ID returned');
+    // Admin must verify vehicle RC before giver can publish
+    await adminClient.patch(`/admin/vehicles/${vehicleId}/verify`);
   });
 
   await test('Giver can list own vehicles', async () => {
