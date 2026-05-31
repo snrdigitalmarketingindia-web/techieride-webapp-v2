@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `9792fd3`)
+> **Last updated:** 2026-06-01 (latest: `bd9af99`)
 
 ---
 
@@ -70,6 +70,8 @@
 - [x] `rides.service.ts publish()`: blocks if `verificationStatus !== APPROVED` → 403
 - [x] `rides.service.ts publish()`: blocks if `vehicle.rcVerified !== true` → 403
 - [x] `vehicles.service.ts remove()`: blocks deletion if vehicle in active PUBLISHED/ONGOING ride → 409
+- [x] `vehicles.service.ts create()`: catches Prisma P2002 (duplicate plate) → 409 instead of 500
+- [x] `ride-requests.service.ts create()`: BOTH-role users blocked from requesting their own ride → 403
 - [x] `admin.controller/service`: added `PATCH /admin/vehicles/:id/verify` and `/reject` endpoints
 - [x] `auth.service.ts resendVerification()`: always returns 200 — no email enumeration
 - [x] `update-profile.dto.ts`: added `fcmToken` field — users can now update push token via PATCH /users/me
@@ -101,13 +103,13 @@
 | Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Passing |
 | Negative / boundary | `test:api:negative` | 33 | ✅ Passing |
 | Business rules | `test:api:rules` | 44 | ✅ Passing |
-| Production coverage (13 sections) | `test:api:coverage` | ~69 | 🔄 Pending `9792fd3` |
-| Final gap-closing (14 sections) | `test:api:final` | ~45 | 🔄 Pending `9792fd3` |
+| Production coverage (13 sections) | `test:api:coverage` | 69 | 🔄 Pending `bd9af99` |
+| Final gap-closing (14 sections) | `test:api:final` | ~45 | 🔄 Pending `bd9af99` |
 | Playwright E2E | `test:ui` | 50 | ✅ Passing |
 
 **Total API tests: ~258+ across 6 suites**
 
-**Last commit:** `9792fd3` — Fix 17 coverage suite failures + 2 API bugs
+**Last commit:** `bd9af99` — Fix final 2 coverage failures — BOTH own-ride guard + duplicate plate 500
 
 ---
 
@@ -120,7 +122,7 @@
 ---
 
 ## Pending / Next Steps
-1. Verify CI on `9792fd3` — coverage + final suites should now be fully green
+1. Verify CI on `bd9af99` — coverage suite should now be 69/69
 2. Install `gh` CLI locally (`brew install gh && gh auth login`) so CI failures can be auto-fetched without pasting logs
 3. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
 4. Test full ride lifecycle on live app end-to-end with real users
@@ -142,6 +144,7 @@
 | Re-request after CANCELLED | Allowed | Terminal state |
 | Publish after COMPLETED/CANCELLED | Allowed | Terminal state |
 | Cancel a COMPLETED or CANCELLED ride | `rides.service.ts → cancel()` | → 400 |
+| BOTH user requesting their own ride | `ride-requests.service.ts → create()` | Checks rideGiver.userId === userId → 403 |
 
 ---
 
