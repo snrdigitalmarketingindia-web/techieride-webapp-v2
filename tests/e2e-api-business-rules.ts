@@ -136,7 +136,7 @@ async function setupFreshPair(suffix: string) {
   const v = await giverClient.post('/vehicles', {
     make: 'Maruti', model: 'Swift', year: 2022,
     color: 'Blue', plateNumber: `TS${ts.toString().slice(-4)}AB`,
-    capacity: 4,
+    totalSeats: 4,
   });
   const vehicleId = v.status === 201 ? v.data.id : null;
 
