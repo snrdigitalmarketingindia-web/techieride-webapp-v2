@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `b29b84c`)
+> **Last updated:** 2026-06-01 (latest: `98f6ce8`)
 
 ---
 
@@ -80,19 +80,21 @@
 | `test:api:extended` | 30 | ✅ All passing |
 | `test:api:negative` | 30+ | ✅ All passing |
 | `test:api:rules` | 44 | ✅ All passing |
+| `test:api:coverage` | ~60 | 🔄 Pending — new suite, commit `98f6ce8` |
 | Playwright E2E | 50 | ✅ All passing |
 
-**All test suites green as of `b29b84c`**
+**Previous suites all green. Coverage suite pending CI run.**
 
-**Last commit:** `b29b84c` — Update handoffdocument
+**Last commit:** `98f6ce8` — Add production coverage test suite (13 sections, ~60 tests)
 
 ---
 
 ## Pending / Next Steps
-1. Remove debug log from `apps/api/src/config/redis.module.ts` line 19 (`[Redis] REDIS_URL raw value`)
-2. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
-3. Test full ride lifecycle on live app end-to-end with real users
-4. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
+1. Verify `test:api:coverage` CI run on `98f6ce8` — fix any failures
+2. Remove debug log from `apps/api/src/config/redis.module.ts` line 19
+3. Add `RESEND_API_KEY` to Render env for real email delivery
+4. Test full ride lifecycle on live app end-to-end
+5. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
 
 ---
 
