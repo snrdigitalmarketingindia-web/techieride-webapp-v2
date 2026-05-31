@@ -235,7 +235,12 @@ async function run() {
 
   agent('Ride Giver Agent');
 
-  const giverClient = makeClient(giverToken);
+  // Use a fresh giver account for ride lifecycle tests to avoid
+  // interference from existing active rides on the seeded account
+  const ts = Date.now();
+  const freshGiverEmail = `fresh_giver_${ts}@testco.com`;
+  const freshGiver = await registerAndLogin(freshGiverEmail, 'RIDE_GIVER');
+  const giverClient = makeClient(freshGiver.token);
 
   await test('Giver can fetch own profile', async () => {
     const r = await giverClient.get('/users/me');
@@ -259,18 +264,6 @@ async function run() {
     assert(r.status === 200, `Got ${r.status}`);
     assert(r.data.length > 0, 'No vehicles found');
   });
-
-  // Cancel any existing active rides so the new rule doesn't block publishing
-  {
-    const existing = await giverClient.get('/rides/given');
-    if (existing.status === 200) {
-      for (const ride of existing.data) {
-        if (['PUBLISHED', 'STARTED'].includes(ride.status)) {
-          await giverClient.patch(`/rides/${ride.id}/cancel`, { reason: 'CI cleanup' });
-        }
-      }
-    }
-  }
 
   await test('Giver can create a ride', async () => {
     const tomorrow = new Date();
@@ -322,7 +315,10 @@ async function run() {
 
   agent('Ride Seeker Agent');
 
-  const seekerClient = makeClient(seekerToken);
+  // Use a fresh seeker account to avoid interference from existing active requests
+  const freshSeekerEmail = `fresh_seeker_${ts}@testco.com`;
+  const freshSeeker = await registerAndLogin(freshSeekerEmail, 'RIDE_SEEKER');
+  const seekerClient = makeClient(freshSeeker.token);
 
   await test('Seeker can fetch own profile', async () => {
     const r = await seekerClient.get('/users/me');
