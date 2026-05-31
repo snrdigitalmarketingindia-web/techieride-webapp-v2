@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `408dacf`)
+> **Last updated:** 2026-06-01 (latest: `621f476`)
 
 ---
 
@@ -79,10 +79,10 @@
 | `test:api` | 37 | ✅ Passing |
 | `test:api:extended` | 30 | 🔄 Pending — last fix: commit `8cf8cec` (isolated flows) |
 | `test:api:negative` | 30+ | 🔄 Pending — last fix: `631ad3d` (fresh isolated accounts) |
-| `test:api:rules` | ~40 | 🔄 Pending — last fix: `408dacf` (`capacity` → `totalSeats`) |
+| `test:api:rules` | ~44 | 🔄 Pending — last fix: `621f476` (4 issues fixed, was 40/44) |
 | Playwright E2E | 50 | 🔄 Pending |
 
-**Last commit:** `408dacf` — Fix business rules test: `capacity` → `totalSeats` in vehicle creation
+**Last commit:** `621f476` — Fix business rules tests + API: block cancel on COMPLETED rides, fix seat/notification assertions
 
 ---
 
@@ -104,6 +104,7 @@
 | Re-request after REJECTED | Allowed | Terminal state |
 | Re-request after CANCELLED | Allowed | Terminal state |
 | Publish after COMPLETED/CANCELLED | Allowed | Terminal state |
+| Cancel a COMPLETED or CANCELLED ride | `rides.service.ts → cancel()` | Returns 400 — added this session |
 
 ---
 
