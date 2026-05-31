@@ -335,7 +335,7 @@ async function run() {
 
   await test('Register with phone number < 10 digits → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '12345', fullName: 'Bad User', email: 'bad@test.com',
+      phone: '12345', fullName: 'Bad User', email: 'bad@wipro.com',
       gender: 'MALE', companyName: 'X', employeeId: 'X-1', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
@@ -343,7 +343,7 @@ async function run() {
 
   await test('Register with missing fullName → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '9700000099', email: 'nofull@test.com',
+      phone: '9700000099', email: 'nofull@wipro.com',
       gender: 'MALE', companyName: 'X', employeeId: 'X-2', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
@@ -386,7 +386,7 @@ async function run() {
 
       await test('Non-seeker (giver) gets 403 on GET /ride-requests/mine', async () => {
         const pureGiver = await registerAndLogin(
-          `puregiver_${Date.now()}@test.com`, 'RIDE_GIVER'
+          `puregiver_${Date.now()}@wipro.com`, 'RIDE_GIVER'
         );
         const r = await makeClient(pureGiver.token).get('/ride-requests/mine');
         assert(r.status === 403, `Expected 403, got ${r.status}`);

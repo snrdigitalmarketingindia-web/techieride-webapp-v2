@@ -238,7 +238,7 @@ async function run() {
   // Use a fresh giver account for ride lifecycle tests to avoid
   // interference from existing active rides on the seeded account
   const ts = Date.now();
-  const freshGiverEmail = `fresh_giver_${ts}@testco.com`;
+  const freshGiverEmail = `fresh_giver_${ts}@wipro.com`;
   const freshGiverToken = await registerAndLogin(freshGiverEmail, 'Fresh Giver', 'RIDE_GIVER');
   const giverClient = makeClient(freshGiverToken);
 
@@ -316,7 +316,7 @@ async function run() {
   agent('Ride Seeker Agent');
 
   // Use a fresh seeker account to avoid interference from existing active requests
-  const freshSeekerEmail = `fresh_seeker_${ts}@testco.com`;
+  const freshSeekerEmail = `fresh_seeker_${ts}@tcs.com`;
   const freshSeekerToken = await registerAndLogin(freshSeekerEmail, 'Fresh Seeker', 'RIDE_SEEKER');
   const seekerClient = makeClient(freshSeekerToken);
 

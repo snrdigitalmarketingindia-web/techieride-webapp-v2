@@ -124,8 +124,8 @@ async function getVehicleId(giverClient: AxiosInstance): Promise<string | null> 
 // ── Setup fresh giver + seeker accounts for isolated tests ─────────────────
 async function setupFreshPair(suffix: string) {
   const ts = Date.now();
-  const giverEmail  = `giver_${suffix}_${ts}@testco.com`;
-  const seekerEmail = `seeker_${suffix}_${ts}@testco.com`;
+  const giverEmail  = `giver_${suffix}_${ts}@wipro.com`;
+  const seekerEmail = `seeker_${suffix}_${ts}@wipro.com`;
   const giver  = await registerAndLogin(giverEmail,  'RIDE_GIVER');
   const seeker = await registerAndLogin(seekerEmail, 'RIDE_SEEKER');
   const giverClient  = makeClient(giver.token);
