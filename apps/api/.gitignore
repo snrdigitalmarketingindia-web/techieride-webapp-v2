@@ -1,0 +1,2 @@
+# Allow dist to be committed so Render doesn't need to rebuild
+!dist/
