@@ -138,6 +138,9 @@ let RidesService = class RidesService {
         const isAdmin = user?.role === 'ADMIN';
         if (!isOwner && !isAdmin)
             throw new common_1.ForbiddenException();
+        if ([shared_1.RideStatus.COMPLETED, shared_1.RideStatus.CANCELLED].includes(ride.status)) {
+            throw new common_1.BadRequestException(`Cannot cancel a ${ride.status} ride`);
+        }
         await this.prisma.rideRequest.updateMany({
             where: { rideId, status: { in: ['PENDING', 'APPROVED', 'HOLD', 'CONFIRMED'] } },
             data: { status: 'CANCELLED', cancelReason: 'Ride cancelled' },

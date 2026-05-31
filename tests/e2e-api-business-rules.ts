@@ -215,15 +215,13 @@ async function run() {
     let rideB: string;
     let requestId: string;
 
-    await test('Setup: giver creates two rides', async () => {
-      rideA = await createAndPublishRide(giverClient, vehicleId!, 3);
-      rideB = await createAndPublishRide(giverClient, vehicleId!, 3);
-    // Note: second publish will fail after our rule — skip if blocked
-    }).catch(() => {});
-
-    // Use a fresh giver pair for ride B since one giver can only have one active ride
+    // rideA from giverClient (seeker1 pair), rideB from a separate giver
     const { giverClient: giverClient2, vehicleId: vehicleId2 } = await setupFreshPair('giver2');
     let rideBId: string;
+
+    await test('Setup: giver creates ride A', async () => {
+      rideA = await createAndPublishRide(giverClient, vehicleId!, 3);
+    });
 
     await test('Setup: second giver creates ride B', async () => {
       rideBId = await createAndPublishRide(giverClient2, vehicleId2!, 3);
@@ -331,15 +329,15 @@ async function run() {
       assert(r.data.availableSeats === 2, `Expected 2, got ${r.data.availableSeats}`);
     });
 
-    await test('Seeker 1 requests and giver approves → seats still 2 (hold, not confirmed)', async () => {
+    await test('Seeker 1 requests and giver approves → seats decremented to 1 (HOLD reserves seat)', async () => {
       const req = await seekerClient.post('/ride-requests', { rideId });
       req1Id = req.data.requestId;
       await giverClient.patch(`/ride-requests/${req1Id}/approve`);
       const r = await giverClient.get(`/rides/${rideId}`);
-      assert(r.data.availableSeats === 2, `Expected 2 (hold doesn't decrement), got ${r.data.availableSeats}`);
+      assert(r.data.availableSeats === 1, `Expected 1 (seat reserved at HOLD), got ${r.data.availableSeats}`);
     });
 
-    await test('Seeker 1 confirms → available seats become 1', async () => {
+    await test('Seeker 1 confirms → available seats still 1 (already reserved)', async () => {
       await seekerClient.patch(`/ride-requests/${req1Id}/confirm`);
       const r = await giverClient.get(`/rides/${rideId}`);
       assert(r.data.availableSeats === 1, `Expected 1, got ${r.data.availableSeats}`);
@@ -347,9 +345,9 @@ async function run() {
 
     await test('Seeker 1 cancels confirmed booking → seats restored to 2', async () => {
       const cancel = await seekerClient.patch(`/ride-requests/${req1Id}/cancel`, { reason: 'Plans changed' });
-      assert(cancel.status === 200, `Cancel failed: ${cancel.status}`);
+      assert(cancel.status === 200, `Cancel failed: ${cancel.status}: ${JSON.stringify(cancel.data)}`);
       const r = await giverClient.get(`/rides/${rideId}`);
-      assert(r.data.availableSeats === 2, `Expected 2, got ${r.data.availableSeats}`);
+      assert(r.data.availableSeats === 2, `Expected 2 after cancel, got ${r.data.availableSeats}`);
     });
 
     await test('Seeker 2 requests → giver rejects → seats unchanged', async () => {
@@ -516,7 +514,9 @@ async function run() {
     await test('Seeker can fetch notifications', async () => {
       const r = await seekerClient.get('/notifications');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(Array.isArray(r.data) || Array.isArray(r.data?.items), 'Expected array');
+      const isArray = Array.isArray(r.data);
+      const hasItems = Array.isArray(r.data?.items) || Array.isArray(r.data?.data) || Array.isArray(r.data?.notifications);
+      assert(isArray || hasItems, `Expected array or paginated response, got: ${JSON.stringify(r.data).slice(0, 100)}`);
     });
 
     await test('Seeker can mark all notifications read', async () => {

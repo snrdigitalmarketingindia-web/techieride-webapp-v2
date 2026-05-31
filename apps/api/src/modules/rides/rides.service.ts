@@ -166,6 +166,10 @@ export class RidesService {
     const isAdmin = user?.role === 'ADMIN';
     if (!isOwner && !isAdmin) throw new ForbiddenException();
 
+    if ([RideStatus.COMPLETED, RideStatus.CANCELLED].includes(ride.status as RideStatus)) {
+      throw new BadRequestException(`Cannot cancel a ${ride.status} ride`);
+    }
+
     // Cancel all pending/confirmed requests
     await this.prisma.rideRequest.updateMany({
       where: { rideId, status: { in: ['PENDING', 'APPROVED', 'HOLD', 'CONFIRMED'] } },
