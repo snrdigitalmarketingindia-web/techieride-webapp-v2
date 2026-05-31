@@ -22,10 +22,13 @@ exports.RedisModule = RedisModule = __decorate([
                 provide: exports.REDIS_CLIENT,
                 inject: [config_1.ConfigService],
                 useFactory: (config) => {
-                    const redisUrl = config.get('REDIS_URL');
+                    const rawUrl = config.get('REDIS_URL');
+                    const redisUrl = rawUrl?.trim();
+                    console.log(`[Redis] URL prefix: "${redisUrl?.substring(0, 15)}" length: ${redisUrl?.length}`);
                     if (redisUrl) {
                         return new ioredis_1.default(redisUrl);
                     }
+                    console.log('[Redis] Falling back to host/port config');
                     return new ioredis_1.default({
                         host: config.get('REDIS_HOST', 'localhost'),
                         port: config.get('REDIS_PORT', 6379),
