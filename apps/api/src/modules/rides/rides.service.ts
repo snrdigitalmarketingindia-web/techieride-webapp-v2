@@ -66,6 +66,19 @@ export class RidesService {
     if (ride.status !== RideStatus.DRAFT) {
       throw new BadRequestException('Only DRAFT rides can be published');
     }
+
+    // Block if giver already has an active ride
+    const activeRide = await this.prisma.ride.findFirst({
+      where: {
+        rideGiverId: ride.rideGiverId,
+        status: { in: [RideStatus.PUBLISHED, RideStatus.STARTED] },
+        id: { not: rideId },
+      },
+    });
+    if (activeRide) {
+      throw new BadRequestException('You already have an active ride. Complete or cancel it before publishing a new one.');
+    }
+
     return this.prisma.ride.update({
       where: { id: rideId },
       data: { status: RideStatus.PUBLISHED },

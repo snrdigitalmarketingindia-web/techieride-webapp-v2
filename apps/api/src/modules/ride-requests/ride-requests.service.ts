@@ -39,6 +39,18 @@ export class RideRequestsService {
     });
     if (existing) throw new ConflictException('You already have a request for this ride');
 
+    // Block if seeker already has an active request on another ride
+    const activeRequest = await this.prisma.rideRequest.findFirst({
+      where: {
+        seekerId: seeker.id,
+        status: { in: ['PENDING', 'HOLD', 'CONFIRMED'] },
+        rideId: { not: dto.rideId },
+      },
+    });
+    if (activeRequest) {
+      throw new ConflictException('You already have an active ride request. Cancel it before requesting another ride.');
+    }
+
     const request = await this.prisma.rideRequest.create({
       data: {
         rideId: dto.rideId,
