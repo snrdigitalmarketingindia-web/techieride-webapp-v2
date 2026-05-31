@@ -36,7 +36,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {kpis.map((k) => (
           <div key={k.label} className={`bg-white rounded-xl border p-5 ${k.alert ? 'border-red-300' : 'border-gray-200'}`}>
             <div className="text-2xl mb-1">{k.icon}</div>

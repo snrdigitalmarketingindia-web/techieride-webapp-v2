@@ -60,10 +60,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col py-6 px-4 fixed h-full">
+      <aside className="w-14 sm:w-56 bg-white border-r border-gray-200 flex flex-col py-6 px-2 sm:px-4 fixed h-full overflow-hidden">
         <div className="flex items-center gap-2 mb-8">
           <span className="text-xl">🌿</span>
-          <div>
+          <div className="hidden sm:block">
             <p className="font-bold text-gray-900 text-sm">Techie Ride</p>
             <p className="text-xs text-gray-500">Admin Panel</p>
           </div>
@@ -79,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              <span>{l.icon}</span>{l.label}
+              <span>{l.icon}</span><span className="hidden sm:inline">{l.label}</span>
             </Link>
           ))}
         </nav>
@@ -88,7 +88,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className="text-xs text-gray-400">{user?.email}</p>
         </div>
       </aside>
-      <main className="ml-56 flex-1 p-8">{children}</main>
+      <main className="ml-14 sm:ml-56 flex-1 p-4 sm:p-8 min-w-0">{children}</main>
     </div>
   );
 }
