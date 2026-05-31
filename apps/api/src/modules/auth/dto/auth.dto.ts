@@ -2,7 +2,14 @@ import {
   IsEmail, IsString, MinLength, MaxLength,
   IsEnum, IsOptional, Matches,
 } from 'class-validator';
-import { UserRole, Gender } from '@techieride/shared';
+import { Gender } from '@techieride/shared';
+
+// Only these roles can self-register — ADMIN must be created by another admin
+export enum RegisterableRole {
+  RIDE_GIVER  = 'RIDE_GIVER',
+  RIDE_SEEKER = 'RIDE_SEEKER',
+  BOTH        = 'BOTH',
+}
 
 export class RegisterDto {
   @IsEmail()
@@ -24,11 +31,14 @@ export class RegisterDto {
   @IsString()
   companyName: string;
 
+  @IsOptional()
   @IsString()
-  employeeId: string;
+  employeeId?: string;
 
-  @IsEnum(UserRole)
-  role: UserRole;
+  @IsEnum(RegisterableRole, {
+    message: 'Role must be RIDE_GIVER, RIDE_SEEKER, or BOTH. ADMIN cannot be self-registered.',
+  })
+  role: RegisterableRole;
 
   @IsOptional()
   @IsString()

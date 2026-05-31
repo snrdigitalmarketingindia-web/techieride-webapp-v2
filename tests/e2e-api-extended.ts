@@ -309,15 +309,15 @@ async function run() {
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
 
-  await test('Admin cannot be created via register endpoint', async () => {
+  await test('Admin cannot be created via register endpoint → 400', async () => {
     const r = await makeClient().post('/auth/register', {
       email: `hacker.${Date.now()}@tcs.com`, password: SEED_PASSWORD,
-      fullName: 'Hacker', gender: 'MALE', phone: '9888888899',
+      fullName: 'Hacker', gender: 'MALE',
+      phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
       companyName: 'TCS', employeeId: 'N/A',
-      role: 'ADMIN',  // Should be rejected or ignored
+      role: 'ADMIN',  // Must be rejected — ADMIN cannot self-register
     });
-    // Either 400 (invalid role) or 201 but role defaulted to non-admin
-    assert(r.status === 400 || r.status === 201, `Expected 400 or 201, got ${r.status}`);
+    assert(r.status === 400, `Expected 400 (ADMIN role blocked), got ${r.status}: ${JSON.stringify(r.data)}`);
   });
 
   await test('Admin can suspend a user', async () => {
