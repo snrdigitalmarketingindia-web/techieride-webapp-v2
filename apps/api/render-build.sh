@@ -1,17 +1,17 @@
 #!/bin/bash
 set -e
 
-REPO_ROOT="$(cd ../.. && pwd)"
-echo "📁 Repo root: $REPO_ROOT"
+echo "📁 Working dir: $(pwd)"
+echo "📦 Installing dependencies..."
+cd ../..
+echo "📁 Repo root: $(pwd)"
 
-echo "📦 Installing all dependencies (including devDeps for build)..."
-cd "$REPO_ROOT"
-npm install --include=dev
-
-echo "🔨 Building shared package..."
-npm run build --workspace=packages/shared
+# Install everything including devDeps (needed for nest build, tsc)
+NODE_ENV=development npm install
 
 echo "🔨 Building API..."
-npm run build --workspace=apps/api
+cd apps/api
+NODE_ENV=development npm run build
 
-echo "✅ Build complete"
+echo "✅ Done. Contents of dist:"
+ls dist/ 2>/dev/null || echo "dist not found!"
