@@ -6,4 +6,5 @@ export class UpdateProfileDto {
   @IsString() @IsOptional() profilePhoto?: string;
   @IsEnum(Gender) @IsOptional() gender?: Gender;
   @IsString() @IsOptional() companyName?: string;
+  @IsString() @IsOptional() fcmToken?: string;
 }

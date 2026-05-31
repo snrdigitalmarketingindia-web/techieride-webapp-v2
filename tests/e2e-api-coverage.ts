@@ -24,7 +24,9 @@
 
 import axios from 'axios';
 import {
-  BASE, makeClient, loginAs, register, freshGiver, freshSeeker, publishRide,
+  BASE, SEED_PASSWORD, makeClient, loginAs, register,
+  freshGiver, freshSeeker, publishRide,
+  approveVerification, approveVehicleRc, getAdminClient,
 } from './helpers';
 
 const c = {
@@ -144,6 +146,7 @@ async function run() {
     const bothEmail = `cov_both_${ts}@wipro.com`;
     const bothAcc = await register(bothEmail, 'Both User', 'BOTH');
     const bothClient = makeClient(bothAcc.token);
+    const adminClient = await getAdminClient();
 
     await test('BOTH role user profile shows role=BOTH', async () => {
       const r = await bothClient.get('/users/me');
@@ -163,21 +166,23 @@ async function run() {
       const vehicles = await bothClient.get('/vehicles/my');
       const vId = vehicles.data[0]?.id;
       assert(!!vId, 'BOTH user has no vehicle');
+      // BOTH user needs identity verification + vehicle RC verified to publish
+      await approveVerification(bothAcc.userId, bothClient, adminClient);
+      await approveVehicleRc(vId, adminClient);
       const rideId = await publishRide(bothClient, vId);
       assert(!!rideId, 'Could not publish ride as BOTH user');
     });
 
     await test('BOTH user can also search for rides (seeker capability)', async () => {
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      // SearchRidesDto requires lat/lng coords (not names)
       const r = await bothClient.get('/rides/search', {
-        params: { originName: 'Kondapur', destinationName: 'HITEC City', date: tomorrow },
+        params: { originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.36, date: tomorrow },
       });
       assert(r.status === 200, `Expected 200, got ${r.status}`);
     });
 
     await test('BOTH user cannot request a seat on their own ride', async () => {
-      const vehicles = await bothClient.get('/vehicles/my');
-      const vId = vehicles.data[0]?.id;
       const rides = await bothClient.get('/rides/given');
       const myRideId = rides.data?.find((r: any) => r.status === 'PUBLISHED')?.id;
       if (myRideId) {
@@ -197,7 +202,7 @@ async function run() {
       const r = await seekerClient.post('/users/me/emergency-contacts', {
         name: 'Emergency Person',
         phone: '9876543210',
-        relation: 'Spouse',
+        relationship: 'Spouse',
       });
       assert([200, 201].includes(r.status), `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
       contactId = r.data.id;
@@ -287,8 +292,9 @@ async function run() {
     await test('Gamification summary returns required fields', async () => {
       const r = await seeker.client.get('/gamification/summary');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(r.data.ecoPoints !== undefined, 'Missing ecoPoints');
-      assert(r.data.ecoLevel !== undefined, 'Missing ecoLevel');
+      // API returns totalPoints + ecoLevel + co2SavedKg
+      assert(r.data.totalPoints !== undefined, `Missing totalPoints in: ${JSON.stringify(r.data)}`);
+      assert(r.data.ecoLevel !== undefined, `Missing ecoLevel in: ${JSON.stringify(r.data)}`);
     });
 
     await test('Leaderboard returns ranked list', async () => {
@@ -304,14 +310,14 @@ async function run() {
     });
 
     await test('Leaderboard all-time period works', async () => {
-      const r = await makeClient().get('/gamification/leaderboard', { params: { period: 'all' } });
+      const r = await makeClient().get('/gamification/leaderboard', { params: { period: 'alltime' } });
       assert([200, 400].includes(r.status), `Expected 200/400, got ${r.status}`);
     });
 
     await test('Fresh user starts with 0 eco points', async () => {
       const r = await seeker.client.get('/gamification/summary');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(r.data.ecoPoints === 0, `Expected 0 points for fresh user, got ${r.data.ecoPoints}`);
+      assert(r.data.totalPoints === 0, `Expected 0 points for fresh user, got ${r.data.totalPoints}`);
     });
 
     await test('Unauthenticated cannot get gamification summary → 401', async () => {
@@ -410,9 +416,13 @@ async function run() {
     });
 
     await test('Duplicate plate number → 409', async () => {
+      // Fetch the giver's existing vehicle plate then try to insert it again
+      const vehicles = await giver.client.get('/vehicles/my');
+      const existingPlate = vehicles.data.find((v: any) => v.isActive)?.plateNumber;
+      assert(!!existingPlate, 'Could not find giver vehicle plate for duplicate test');
       const r = await giver.client.post('/vehicles', {
         make: 'Honda', model: 'City', color: 'Blue',
-        plateNumber: `TSC${ts.toString().slice(-5)}`, // same as freshGiver's vehicle
+        plateNumber: existingPlate,
         totalSeats: 4,
       });
       assert([409, 400].includes(r.status), `Expected 409/400 for duplicate plate, got ${r.status}`);
@@ -434,8 +444,9 @@ async function run() {
     const seeker = await freshSeeker('search');
 
     await test('Search returns rides for valid date', async () => {
+      // SearchRidesDto requires originLat, originLng, destinationLat, destinationLng, date
       const r = await seeker.client.get('/rides/search', {
-        params: { date: tomorrow },
+        params: { originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.36, date: tomorrow },
       });
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       const list = Array.isArray(r.data) ? r.data : r.data.data || [];
@@ -444,7 +455,7 @@ async function run() {
 
     await test('Search with origin filter returns matching rides', async () => {
       const r = await seeker.client.get('/rides/search', {
-        params: { originName: 'Kondapur', date: tomorrow },
+        params: { originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.36, date: tomorrow },
       });
       assert(r.status === 200, `Expected 200, got ${r.status}`);
     });
@@ -521,15 +532,15 @@ async function run() {
   // ── 10. VERIFICATION WORKFLOW ─────────────────────────────────────────────
   section('10. Verification Workflow');
   {
-    const giver = await freshGiver('verif');
+    // Use raw register (not freshGiver) so verification starts at NOT_SUBMITTED
+    const rawAcc = await register(`cov_rawgiver_${ts}@wipro.com`, 'Raw Giver', 'RIDE_GIVER');
+    const giver = { client: makeClient(rawAcc.token), userId: rawAcc.userId };
 
-    await test('Fresh giver verification status is PENDING', async () => {
+    await test('Fresh giver verification status is NOT_SUBMITTED', async () => {
       const r = await giver.client.get('/verification/status');
-      assert([200, 404].includes(r.status), `Expected 200/404, got ${r.status}`);
-      if (r.status === 200) {
-        assert(['PENDING', 'NOT_SUBMITTED'].includes(r.data.status || r.data),
-          `Expected PENDING/NOT_SUBMITTED, got ${JSON.stringify(r.data)}`);
-      }
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(['PENDING', 'NOT_SUBMITTED'].includes(r.data.status),
+        `Expected NOT_SUBMITTED/PENDING, got ${JSON.stringify(r.data)}`);
     });
 
     await test('Giver can submit verification documents', async () => {

@@ -53,6 +53,7 @@ let UsersService = class UsersService {
                 profilePhoto: dto.profilePhoto,
                 gender: dto.gender,
                 companyName: dto.companyName,
+                ...(dto.fcmToken !== undefined ? { fcmToken: dto.fcmToken } : {}),
             },
         });
     }

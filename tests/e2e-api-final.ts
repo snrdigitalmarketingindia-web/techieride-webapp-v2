@@ -150,14 +150,14 @@ async function run() {
     await test('Giver earns eco points after ride completion', async () => {
       const r = await giver.client.get('/gamification/summary');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      const pts: number = r.data.ecoPoints ?? 0;
+      const pts: number = r.data.totalPoints ?? r.data.ecoPoints ?? 0;
       assert(pts > giverPtsBefore, `Expected giver points > ${giverPtsBefore}, got ${pts}`);
     });
 
     await test('Seeker earns eco points after ride completion', async () => {
       const r = await seeker.client.get('/gamification/summary');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      const pts: number = r.data.ecoPoints ?? 0;
+      const pts: number = r.data.totalPoints ?? r.data.ecoPoints ?? 0;
       assert(pts > seekerPtsBefore, `Expected seeker points > ${seekerPtsBefore}, got ${pts}`);
     });
 

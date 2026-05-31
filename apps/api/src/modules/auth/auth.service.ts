@@ -128,9 +128,9 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase() },
     });
-    if (!user) throw new NotFoundException('No account found with this email');
-    if (user.emailStatus === 'VERIFIED') {
-      throw new BadRequestException('Email is already verified');
+    // Always return 200 — never reveal whether an account exists (prevents enumeration)
+    if (!user || user.emailStatus === 'VERIFIED') {
+      return { message: 'If that email exists and is unverified, a new link has been sent.' };
     }
 
     const emailVerificationToken = randomBytes(32).toString('hex');

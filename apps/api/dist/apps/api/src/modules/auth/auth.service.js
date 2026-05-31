@@ -105,10 +105,8 @@ let AuthService = class AuthService {
         const user = await this.prisma.user.findUnique({
             where: { email: email.toLowerCase() },
         });
-        if (!user)
-            throw new common_1.NotFoundException('No account found with this email');
-        if (user.emailStatus === 'VERIFIED') {
-            throw new common_1.BadRequestException('Email is already verified');
+        if (!user || user.emailStatus === 'VERIFIED') {
+            return { message: 'If that email exists and is unverified, a new link has been sent.' };
         }
         const emailVerificationToken = (0, crypto_1.randomBytes)(32).toString('hex');
         const emailVerificationExpiry = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000);

@@ -44,6 +44,7 @@ export class UsersService {
         profilePhoto: dto.profilePhoto,
         gender: dto.gender as any,
         companyName: dto.companyName,
+        ...(dto.fcmToken !== undefined ? { fcmToken: dto.fcmToken } : {}),
       },
     });
   }

@@ -4,4 +4,5 @@ export declare class UpdateProfileDto {
     profilePhoto?: string;
     gender?: Gender;
     companyName?: string;
+    fcmToken?: string;
 }

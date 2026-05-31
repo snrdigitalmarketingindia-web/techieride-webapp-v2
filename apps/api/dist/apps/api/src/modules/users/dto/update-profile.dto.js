@@ -35,4 +35,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], UpdateProfileDto.prototype, "companyName", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "fcmToken", void 0);
 //# sourceMappingURL=update-profile.dto.js.map
