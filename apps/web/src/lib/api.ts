@@ -44,8 +44,11 @@ api.interceptors.response.use(
 // ─── Auth ─────────────────────────────────────────────
 export const authApi = {
   register: (data: any) => api.post('/auth/register', data),
-  login: (phone: string) => api.post('/auth/login', { phone }),
-  verifyOtp: (phone: string, otp: string) => api.post('/auth/verify-otp', { phone, otp }),
+  login: (email: string, password: string) => api.post('/auth/login', { email, password }),
+  verifyEmail: (token: string) => api.get(`/auth/verify-email?token=${token}`),
+  resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, newPassword: string) => api.post('/auth/reset-password', { token, newPassword }),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
 };
 

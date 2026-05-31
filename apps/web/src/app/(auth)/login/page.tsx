@@ -6,55 +6,115 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-// useAuthStore.getState() used post-login for role-based redirect
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const requestOtp = async () => {
-    if (!/^[6-9]\d{9}$/.test(phone)) {
-      setError('Enter a valid 10-digit mobile number');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    try {
-      await authApi.login(phone);
-      setStep('otp');
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Forgot password state
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
-  const verifyAndLogin = async () => {
-    if (otp.length !== 6) { setError('Enter 6-digit OTP'); return; }
+  const handleLogin = async () => {
+    if (!email || !password) { setError('Please enter your email and password'); return; }
     setLoading(true);
     setError('');
     try {
-      await login(phone, otp);
+      await login(email.toLowerCase().trim(), password);
       const { user } = useAuthStore.getState();
       router.push(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Invalid OTP');
+      setError(e.response?.data?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleForgot = async () => {
+    if (!forgotEmail) return;
+    setForgotLoading(true);
+    try {
+      await authApi.forgotPassword(forgotEmail.toLowerCase().trim());
+      setForgotSent(true);
+    } catch {
+      setForgotSent(true); // Always show success to prevent email enumeration
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  // ── Forgot password view ──────────────────────────────────────────────
+  if (forgotMode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
+          <div className="text-center mb-6">
+            <div className="flex justify-center mb-3">
+              <Image src="/logo.png" alt="TechieRide" width={140} height={48} className="object-contain" priority />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">Reset password</h2>
+            <p className="text-sm text-gray-500 mt-1">We'll send a reset link to your office email</p>
+          </div>
+
+          {forgotSent ? (
+            <div className="text-center space-y-4">
+              <div className="text-4xl">📬</div>
+              <p className="text-sm text-gray-700">
+                If an account exists for <strong>{forgotEmail}</strong>, a reset link has been sent. Check your inbox.
+              </p>
+              <button
+                onClick={() => { setForgotMode(false); setForgotSent(false); setForgotEmail(''); }}
+                className="w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition"
+              >
+                Back to Login
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Office Email</label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <button
+                onClick={handleForgot}
+                disabled={forgotLoading || !forgotEmail}
+                className="w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 transition"
+              >
+                {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+              </button>
+              <button
+                onClick={() => setForgotMode(false)}
+                className="w-full text-sm text-gray-500 hover:text-brand-600 transition"
+              >
+                ← Back to Login
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Main login view ───────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <Image src="/logo.png" alt="Techieride" width={160} height={54} className="object-contain" priority />
+            <Image src="/logo.png" alt="TechieRide" width={160} height={54} className="object-contain" priority />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
@@ -67,69 +127,62 @@ export default function LoginPage() {
           </div>
         )}
 
-        {step === 'phone' ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg">
-                  +91
-                </span>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="9876543210"
-                  className="flex-1 px-3 py-2.5 text-sm border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-            </div>
-            <button
-              onClick={requestOtp}
-              disabled={loading}
-              className="w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 transition"
-            >
-              {loading ? 'Sending OTP...' : 'Send OTP'}
-            </button>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Office Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              placeholder="you@company.com"
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+              autoComplete="email"
+            />
           </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600 text-center">
-              OTP sent to +91 {phone.slice(0, 3)}•••{phone.slice(-3)}
-            </p>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <div className="relative">
               <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="• • • • • •"
-                className="w-full text-center text-2xl tracking-[0.5em] px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                placeholder="••••••••"
+                className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 pr-10"
+                autoComplete="current-password"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
             </div>
-            <button
-              onClick={verifyAndLogin}
-              disabled={loading || otp.length !== 6}
-              className="w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 transition"
-            >
-              {loading ? 'Verifying...' : 'Verify & Sign In'}
-            </button>
-            <button
-              onClick={() => { setStep('phone'); setOtp(''); setError(''); }}
-              className="w-full text-sm text-brand-600 hover:underline"
-            >
-              Change number
-            </button>
+            <div className="text-right mt-1">
+              <button
+                onClick={() => { setForgotMode(true); setForgotEmail(email); }}
+                className="text-xs text-brand-600 hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
           </div>
-        )}
+
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 transition"
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
+          </button>
+        </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          New to Techieride?{' '}
-          <Link href="/signup" className="text-brand-600 font-medium hover:underline">
-            Create account
-          </Link>
+          New to TechieRide?{' '}
+          <Link href="/signup" className="text-brand-600 font-medium hover:underline">Create account</Link>
         </p>
       </div>
     </div>

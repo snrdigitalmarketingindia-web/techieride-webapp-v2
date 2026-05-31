@@ -10,7 +10,7 @@ interface AuthState {
   isAuthenticated: boolean;
   _hasHydrated: boolean;
 
-  login: (phone: string, otp: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   register: (data: any) => Promise<{ userId: string }>;
   logout: () => void;
   fetchProfile: () => Promise<void>;
@@ -38,10 +38,10 @@ export const useAuthStore = create<AuthState>()(
         set({ accessToken, refreshToken, isAuthenticated: true });
       },
 
-      login: async (phone, otp) => {
+      login: async (email, password) => {
         set({ isLoading: true });
         try {
-          const { data } = await authApi.verifyOtp(phone, otp);
+          const { data } = await authApi.login(email, password);
           get().setTokens(data.accessToken, data.refreshToken);
           await get().fetchProfile();
         } finally {
