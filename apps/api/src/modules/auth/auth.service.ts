@@ -10,6 +10,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { isAllowedDomain } from '../../config/allowed-domains';
 import { RegisterDto, LoginDto, ResetPasswordDto } from './dto/auth.dto';
+import { UserRole } from '@techieride/shared';
 
 const BCRYPT_ROUNDS = 12;
 const VERIFY_TOKEN_TTL_HOURS = 24;
@@ -59,7 +60,7 @@ export class AuthService {
         companyName: dto.companyName,
         employeeId: dto.employeeId,
         phone: dto.phone,
-        role: dto.role,
+        role: dto.role as unknown as UserRole,
         emailVerificationToken,
         emailVerificationExpiry,
         emailStatus: 'PENDING',
