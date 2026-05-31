@@ -14,6 +14,7 @@
     "db:migrate": "prisma migrate dev --schema=./prisma/schema.prisma",
     "db:studio": "prisma studio --schema=./prisma/schema.prisma",
     "db:seed": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json prisma/seed.ts",
+    "test:api": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api.ts",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
