@@ -1,0 +1,53 @@
+import {
+  Controller, Post, UseInterceptors, UploadedFile,
+  BadRequestException, Query, Get,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { memoryStorage } from 'multer';
+import { UploadsService } from './uploads.service';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+@ApiTags('Uploads')
+@ApiBearerAuth()
+@Controller('uploads')
+export class UploadsController {
+  constructor(private uploads: UploadsService) {}
+
+  @Post('document')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', {
+    storage: memoryStorage(),
+    limits: { fileSize: MAX_SIZE },
+    fileFilter: (_, file, cb) => {
+      if (!ALLOWED_TYPES.includes(file.mimetype)) {
+        return cb(new BadRequestException('Only JPG, PNG, WebP, PDF allowed'), false);
+      }
+      cb(null, true);
+    },
+  }))
+  async uploadDocument(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser('id') userId: string,
+    @Query('type') docType: 'employee_id' | 'driving_license' | 'rc' | 'profile_photo' = 'employee_id',
+  ) {
+    if (!file) throw new BadRequestException('No file provided');
+
+    const available = await this.uploads.isAvailable();
+    if (!available) {
+      throw new BadRequestException('Document storage is not available. Please try again later.');
+    }
+
+    const url = await this.uploads.uploadDocument(file, userId, docType);
+    return { url, docType, message: 'Upload successful' };
+  }
+
+  @Get('status')
+  async getStatus() {
+    const available = await this.uploads.isAvailable();
+    return { available, message: available ? 'MinIO storage ready' : 'Storage not available' };
+  }
+}

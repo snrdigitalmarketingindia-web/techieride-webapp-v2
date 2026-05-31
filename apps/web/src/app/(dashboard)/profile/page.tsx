@@ -1,17 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
-import { vehiclesApi, verificationApi } from '@/lib/api';
-import { EcoLevel } from '@techieride/shared';
+import { vehiclesApi, verificationApi, api } from '@/lib/api';
 
 const ECO_BADGES: Record<string, { icon: string; label: string; color: string }> = {
-  SEED: { icon: '🌱', label: 'Seed', color: 'bg-gray-100 text-gray-700' },
+  SEED:   { icon: '🌱', label: 'Seed',   color: 'bg-gray-100 text-gray-700' },
   SPROUT: { icon: '🌿', label: 'Sprout', color: 'bg-green-100 text-green-700' },
-  LEAF: { icon: '🍃', label: 'Leaf', color: 'bg-emerald-100 text-emerald-700' },
-  TREE: { icon: '🌳', label: 'Tree', color: 'bg-brand-100 text-brand-700' },
+  LEAF:   { icon: '🍃', label: 'Leaf',   color: 'bg-emerald-100 text-emerald-700' },
+  TREE:   { icon: '🌳', label: 'Tree',   color: 'bg-brand-100 text-brand-700' },
   FOREST: { icon: '🌲', label: 'Forest', color: 'bg-brand-600 text-white' },
 };
+
+interface UploadedDocs {
+  employeeIdUrl?: string;
+  drivingLicenseUrl?: string;
+  rcUrl?: string;
+}
 
 export default function ProfilePage() {
   const { user, fetchProfile } = useAuthStore();
@@ -20,11 +25,65 @@ export default function ProfilePage() {
   const [addVehicle, setAddVehicle] = useState(false);
   const [vForm, setVForm] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocs>({});
+  const [minioAvailable, setMinioAvailable] = useState<boolean | null>(null);
+  const [submitMsg, setSubmitMsg] = useState('');
 
   useEffect(() => {
     vehiclesApi.getMine().then((r) => setVehicles(r.data));
     verificationApi.getStatus().then((r) => setVerStatus(r.data));
+    // Check MinIO availability
+    api.get('/uploads/status').then(r => setMinioAvailable(r.data.available)).catch(() => setMinioAvailable(false));
   }, []);
+
+  const uploadFile = async (file: File, docType: string): Promise<string> => {
+    const form = new FormData();
+    form.append('file', file);
+    const { data } = await api.post(`/uploads/document?type=${docType}`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data.url;
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(docType);
+    try {
+      const url = await uploadFile(file, docType);
+      setUploadedDocs(prev => ({ ...prev, [`${docType.replace('_', '')}Url`]: url } as any));
+    } catch {
+      alert('Upload failed. Make sure MinIO is running.');
+    } finally {
+      setUploading(null);
+      e.target.value = '';
+    }
+  };
+
+  const submitVerification = async () => {
+    const payload: any = {};
+    if (uploadedDocs.employeeIdUrl) payload.employeeIdUrl = uploadedDocs.employeeIdUrl;
+    if (uploadedDocs.drivingLicenseUrl) payload.drivingLicenseUrl = uploadedDocs.drivingLicenseUrl;
+    if (uploadedDocs.rcUrl) payload.rcUrl = uploadedDocs.rcUrl;
+
+    if (!payload.employeeIdUrl) {
+      setSubmitMsg('Please upload your Employee ID first');
+      return;
+    }
+    setLoading(true);
+    try {
+      await verificationApi.submit(payload);
+      const r = await verificationApi.getStatus();
+      setVerStatus(r.data);
+      await fetchProfile();
+      setSubmitMsg('✅ Documents submitted! Under review within 24 hours.');
+    } catch {
+      setSubmitMsg('Submission failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const submitVehicle = async () => {
     setLoading(true);
@@ -33,6 +92,7 @@ export default function ProfilePage() {
       const r = await vehiclesApi.getMine();
       setVehicles(r.data);
       setAddVehicle(false);
+      setVForm({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
     } finally {
       setLoading(false);
     }
@@ -40,6 +100,7 @@ export default function ProfilePage() {
 
   const eco = user?.ecoLevel ? ECO_BADGES[user.ecoLevel] : ECO_BADGES.SEED;
   const inputCls = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
+  const isGiver = user?.role === 'RIDE_GIVER' || user?.role === 'BOTH';
 
   return (
     <div className="space-y-5 max-w-lg">
@@ -66,38 +127,81 @@ export default function ProfilePage() {
           </div>
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-500 text-xs">Verification</p>
-            <p className={`font-medium ${user?.verificationStatus === 'APPROVED' ? 'text-green-600' : user?.verificationStatus === 'REJECTED' ? 'text-red-600' : 'text-amber-600'}`}>
-              {user?.verificationStatus}
+            <p className={`font-medium text-sm ${
+              user?.verificationStatus === 'APPROVED' ? 'text-green-600' :
+              user?.verificationStatus === 'REJECTED' ? 'text-red-600' : 'text-amber-600'
+            }`}>
+              {user?.verificationStatus === 'APPROVED' ? '✅ Approved' :
+               user?.verificationStatus === 'REJECTED' ? '❌ Rejected' : '⏳ Pending'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Verification */}
+      {/* Verification upload */}
       {user?.verificationStatus !== 'APPROVED' && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-900 mb-3">📄 Document Verification</h2>
-          {verStatus?.status === 'REJECTED' && (
-            <div className="bg-red-50 text-red-700 text-sm rounded-lg p-3 mb-3">
-              Rejected: {verStatus.rejectionReason}
+          <h2 className="font-semibold text-gray-900 mb-1">📄 Verification Documents</h2>
+
+          {minioAvailable === false && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3 text-xs text-amber-800">
+              ⚠️ Document storage (MinIO) is not running. Start it with <code className="bg-amber-100 px-1 rounded">minio server ~/minio-data</code> then refresh.
             </div>
           )}
-          <p className="text-sm text-gray-600 mb-3">Submit your Employee ID for verification. Ride Givers also need Driving License + RC.</p>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-gray-600">Employee ID URL (MinIO/uploaded)</label>
-              <input placeholder="https://..." className={`${inputCls} mt-1`} id="empId" />
+
+          {verStatus?.status === 'REJECTED' && (
+            <div className="bg-red-50 text-red-700 text-sm rounded-lg p-3 mb-3">
+              ❌ Rejected: {verStatus.rejectionReason || 'Please re-upload your documents'}
             </div>
+          )}
+
+          <div className="space-y-3">
+            {/* Employee ID */}
+            <FileUploadField
+              label="Employee ID *"
+              docType="employee_id"
+              uploaded={!!uploadedDocs.employeeIdUrl}
+              uploading={uploading === 'employee_id'}
+              disabled={!minioAvailable}
+              onChange={e => handleFileChange(e, 'employee_id')}
+            />
+
+            {/* Driving License — Givers only */}
+            {isGiver && (
+              <FileUploadField
+                label="Driving License (Givers)"
+                docType="driving_license"
+                uploaded={!!uploadedDocs.drivingLicenseUrl}
+                uploading={uploading === 'driving_license'}
+                disabled={!minioAvailable}
+                onChange={e => handleFileChange(e, 'driving_license')}
+              />
+            )}
+
+            {/* RC — Givers only */}
+            {isGiver && (
+              <FileUploadField
+                label="Vehicle RC (Givers)"
+                docType="rc"
+                uploaded={!!uploadedDocs.rcUrl}
+                uploading={uploading === 'rc'}
+                disabled={!minioAvailable}
+                onChange={e => handleFileChange(e, 'rc')}
+              />
+            )}
+
+            {submitMsg && (
+              <p className={`text-sm ${submitMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>
+                {submitMsg}
+              </p>
+            )}
+
             <button
-              onClick={async () => {
-                const url = (document.getElementById('empId') as HTMLInputElement).value;
-                await verificationApi.submit({ employeeIdUrl: url });
-                const r = await verificationApi.getStatus();
-                setVerStatus(r.data);
-              }}
-              className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 transition"
+              onClick={submitVerification}
+              disabled={loading || !uploadedDocs.employeeIdUrl}
+              className="w-full bg-brand-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition"
             >
-              Submit for Review
+              {loading ? 'Submitting...' : 'Submit for Review'}
             </button>
           </div>
         </div>
@@ -114,16 +218,26 @@ export default function ProfilePage() {
 
         {addVehicle && (
           <div className="space-y-3 mb-4 p-4 bg-gray-50 rounded-xl">
-            {[['make', 'Make (e.g. Maruti)'], ['model', 'Model (e.g. Swift)'], ['color', 'Color'], ['plateNumber', 'Plate Number']].map(([k, p]) => (
-              <input key={k} placeholder={p} value={(vForm as any)[k]} onChange={(e) => setVForm((f) => ({ ...f, [k]: e.target.value }))} className={inputCls} />
+            {[
+              ['make', 'Make (e.g. Maruti)'],
+              ['model', 'Model (e.g. Swift)'],
+              ['color', 'Color'],
+              ['plateNumber', 'Plate Number'],
+            ].map(([k, p]) => (
+              <input key={k} placeholder={p} value={(vForm as any)[k]}
+                onChange={e => setVForm(f => ({ ...f, [k]: e.target.value }))}
+                className={inputCls} />
             ))}
             <div>
               <label className="text-xs text-gray-600">Total Seats</label>
-              <select value={vForm.totalSeats} onChange={(e) => setVForm((f) => ({ ...f, totalSeats: +e.target.value }))} className={`${inputCls} mt-1`}>
-                {[2, 3, 4, 5, 6, 7].map((n) => <option key={n} value={n}>{n} seats</option>)}
+              <select value={vForm.totalSeats}
+                onChange={e => setVForm(f => ({ ...f, totalSeats: +e.target.value }))}
+                className={`${inputCls} mt-1`}>
+                {[2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} seats</option>)}
               </select>
             </div>
-            <button onClick={submitVehicle} disabled={loading} className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
+            <button onClick={submitVehicle} disabled={loading}
+              className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
               {loading ? 'Adding...' : 'Add Vehicle'}
             </button>
           </div>
@@ -133,7 +247,7 @@ export default function ProfilePage() {
           <p className="text-sm text-gray-500 text-center py-4">No vehicles added yet</p>
         ) : (
           <div className="space-y-2">
-            {vehicles.map((v) => (
+            {vehicles.map(v => (
               <div key={v.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-gray-900">{v.make} {v.model}</p>
@@ -147,6 +261,43 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Reusable file upload field ──────────────────────────────────────────────
+function FileUploadField({
+  label, docType, uploaded, uploading, disabled, onChange,
+}: {
+  label: string;
+  docType: string;
+  uploaded: boolean;
+  uploading: boolean;
+  disabled: boolean | null;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
+      <div>
+        <p className="text-sm font-medium text-gray-700">{label}</p>
+        {uploaded && <p className="text-xs text-green-600 mt-0.5">✅ Uploaded</p>}
+      </div>
+      <input ref={inputRef} type="file" accept="image/*,.pdf" onChange={onChange} className="hidden" />
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        disabled={!!disabled || uploading}
+        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+          uploaded
+            ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+            : disabled
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-brand-600 text-white hover:bg-brand-700'
+        }`}
+      >
+        {uploading ? '⏳ Uploading...' : uploaded ? 'Replace' : 'Upload'}
+      </button>
     </div>
   );
 }

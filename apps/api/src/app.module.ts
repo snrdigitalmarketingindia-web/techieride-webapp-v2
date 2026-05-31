@@ -19,6 +19,7 @@ import { LiveTrackingModule } from './modules/live-tracking/live-tracking.module
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
     NotificationsModule,
     AdminModule,
     GamificationModule,
+    UploadsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
