@@ -16,11 +16,16 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 — but NOT for auth endpoints (login, register, etc.)
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config;
+    const isAuthEndpoint = original?.url?.includes('/auth/');
+
+    // Auth endpoints: always pass the error through so the page can show the message
+    if (isAuthEndpoint) return Promise.reject(error);
+
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       try {
@@ -34,7 +39,7 @@ api.interceptors.response.use(
       } catch {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') window.location.href = '/login';
       }
     }
     return Promise.reject(error);
