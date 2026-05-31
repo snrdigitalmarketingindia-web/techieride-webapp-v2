@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 const links = [
   { href: '/admin', label: 'Dashboard', icon: '📊' },
   { href: '/admin/verification', label: 'Verification', icon: '✅' },
+  { href: '/admin/vehicles', label: 'Vehicles', icon: '🚙' },
   { href: '/admin/users', label: 'Users', icon: '👤' },
   { href: '/admin/rides', label: 'Rides', icon: '🚗' },
 ];

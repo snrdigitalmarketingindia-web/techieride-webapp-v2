@@ -41,6 +41,9 @@ let AdminController = class AdminController {
     reviewVerification(id, adminId, body) {
         return this.verificationService.review(id, adminId, body.decision, body.rejectionReason);
     }
+    listVehicles(pending) {
+        return this.adminService.listVehicles(pending === 'true');
+    }
     verifyVehicle(id) {
         return this.adminService.verifyVehicle(id);
     }
@@ -100,6 +103,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "reviewVerification", null);
+__decorate([
+    (0, common_1.Get)('vehicles'),
+    __param(0, (0, common_1.Query)('pending')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "listVehicles", null);
 __decorate([
     (0, common_1.Patch)('vehicles/:id/verify'),
     __param(0, (0, common_1.Param)('id')),

@@ -52,6 +52,11 @@ export class AdminController {
     return this.verificationService.review(id, adminId, body.decision, body.rejectionReason);
   }
 
+  @Get('vehicles')
+  listVehicles(@Query('pending') pending?: string) {
+    return this.adminService.listVehicles(pending === 'true');
+  }
+
   @Patch('vehicles/:id/verify')
   verifyVehicle(@Param('id') id: string) {
     return this.adminService.verifyVehicle(id);

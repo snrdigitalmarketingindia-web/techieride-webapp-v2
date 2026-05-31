@@ -140,4 +140,7 @@ export const adminApi = {
   getAnalytics: (from?: string, to?: string) => api.get('/admin/analytics', { params: { from, to } }),
   getActiveSos: () => api.get('/admin/sos/active'),
   resolveSos: (id: string, notes: string) => api.patch(`/admin/sos/${id}/resolve`, { notes }),
+  listVehicles: (pending?: boolean) => api.get('/admin/vehicles', { params: pending ? { pending: 'true' } : {} }),
+  verifyVehicle: (id: string) => api.patch(`/admin/vehicles/${id}/verify`),
+  rejectVehicle: (id: string) => api.patch(`/admin/vehicles/${id}/reject`),
 };

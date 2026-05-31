@@ -16,6 +16,13 @@ export class VehiclesController {
   @Get('my') findMine(@CurrentUser('id') userId: string) {
     return this.service.findMine(userId);
   }
+  @Patch(':id/rc') updateRc(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body('rcUrl') rcUrl: string,
+  ) {
+    return this.service.updateRcUrl(id, userId, rcUrl);
+  }
   @Delete(':id') remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.service.remove(id, userId);
   }

@@ -148,7 +148,22 @@ async function main() {
       await prisma.rideSeeker.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
     }
     if (acc.role === UserRole.RIDE_GIVER || acc.role === UserRole.BOTH) {
-      await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
+      const giver = await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
+      // Give each seeded giver a verified vehicle so they can publish rides immediately
+      if (acc.email === 'raju@raju.com') {
+        await prisma.vehicle.upsert({
+          where: { plateNumber: 'TS07RJ1234' },
+          update: { rcVerified: true },
+          create: { rideGiverId: giver.id, make: 'Honda', model: 'City', color: 'Blue', plateNumber: 'TS07RJ1234', totalSeats: 4, rcVerified: true },
+        });
+      }
+      if (acc.email === 'venky@venky.com') {
+        await prisma.vehicle.upsert({
+          where: { plateNumber: 'TS07VK5678' },
+          update: { rcVerified: true },
+          create: { rideGiverId: giver.id, make: 'Hyundai', model: 'i20', color: 'Red', plateNumber: 'TS07VK5678', totalSeats: 4, rcVerified: true },
+        });
+      }
     }
     console.log(`✅ Test account: ${acc.email} (${acc.role})`);
   }

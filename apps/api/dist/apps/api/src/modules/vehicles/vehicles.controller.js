@@ -28,6 +28,9 @@ let VehiclesController = class VehiclesController {
     findMine(userId) {
         return this.service.findMine(userId);
     }
+    updateRc(id, userId, rcUrl) {
+        return this.service.updateRcUrl(id, userId, rcUrl);
+    }
     remove(id, userId) {
         return this.service.remove(id, userId);
     }
@@ -48,6 +51,15 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], VehiclesController.prototype, "findMine", null);
+__decorate([
+    (0, common_1.Patch)(':id/rc'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(2, (0, common_1.Body)('rcUrl')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], VehiclesController.prototype, "updateRc", null);
 __decorate([
     (0, common_1.Delete)(':id'),
     __param(0, (0, common_1.Param)('id')),

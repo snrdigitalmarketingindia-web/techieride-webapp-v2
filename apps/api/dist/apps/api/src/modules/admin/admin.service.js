@@ -75,6 +75,20 @@ let AdminService = class AdminService {
             data: { status: 'RESOLVED', resolvedBy: adminId, resolutionNotes: notes, resolvedAt: new Date() },
         });
     }
+    async listVehicles(onlyPending = false) {
+        return this.prisma.vehicle.findMany({
+            where: {
+                isActive: true,
+                ...(onlyPending ? { rcVerified: false } : {}),
+            },
+            include: {
+                rideGiver: {
+                    include: { user: { select: { fullName: true, email: true, phone: true } } },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
     async verifyVehicle(vehicleId) {
         return this.prisma.vehicle.update({
             where: { id: vehicleId },

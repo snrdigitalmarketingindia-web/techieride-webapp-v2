@@ -31,6 +31,20 @@ export declare class VehiclesController {
         rcUrl: string | null;
         rcVerified: boolean;
     }[]>;
+    updateRc(id: string, userId: string, rcUrl: string): Promise<{
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        totalSeats: number;
+        rideGiverId: string;
+        make: string;
+        model: string;
+        year: number | null;
+        color: string | null;
+        plateNumber: string;
+        rcUrl: string | null;
+        rcVerified: boolean;
+    }>;
     remove(id: string, userId: string): Promise<{
         id: string;
         isActive: boolean;

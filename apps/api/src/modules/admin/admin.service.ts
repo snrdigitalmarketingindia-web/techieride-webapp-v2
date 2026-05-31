@@ -74,6 +74,21 @@ export class AdminService {
     });
   }
 
+  async listVehicles(onlyPending = false) {
+    return this.prisma.vehicle.findMany({
+      where: {
+        isActive: true,
+        ...(onlyPending ? { rcVerified: false } : {}),
+      },
+      include: {
+        rideGiver: {
+          include: { user: { select: { fullName: true, email: true, phone: true } } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async verifyVehicle(vehicleId: string) {
     return this.prisma.vehicle.update({
       where: { id: vehicleId },

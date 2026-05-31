@@ -137,6 +137,38 @@ export declare class AdminService {
         triggeredAt: Date;
         resolvedAt: Date | null;
     }>;
+    listVehicles(onlyPending?: boolean): Promise<({
+        rideGiver: {
+            user: {
+                email: string;
+                fullName: string;
+                phone: string | null;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            userId: string;
+            drivingLicenseUrl: string | null;
+            licenseVerified: boolean;
+            totalRidesGiven: number;
+            averageRating: number;
+            preferredGender: string;
+            isAvailable: boolean;
+        };
+    } & {
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        totalSeats: number;
+        rideGiverId: string;
+        make: string;
+        model: string;
+        year: number | null;
+        color: string | null;
+        plateNumber: string;
+        rcUrl: string | null;
+        rcVerified: boolean;
+    })[]>;
     verifyVehicle(vehicleId: string): Promise<{
         id: string;
         isActive: boolean;
