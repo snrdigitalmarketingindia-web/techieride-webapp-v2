@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `235b1b7`)
+> **Last updated:** 2026-06-01 (latest: `8d1647f`)
 
 ---
 
@@ -26,8 +26,8 @@
 |---|---|---|
 | admin@techieride.in | Admin | |
 | csr@csr.com | Admin | |
-| priya@infosys.com | Ride Giver | APPROVED, vehicle rcVerified=true |
-| raju@raju.com | Ride Giver | |
+| priya@infosys.com | Ride Giver | APPROVED, vehicle TS09AB5678 rcVerified=true |
+| raju@raju.com | Ride Giver | APPROVED, vehicle TS07RJ1234 rcVerified=true |
 | arjun@tcs.com | Ride Seeker | APPROVED |
 | raghu@raghu.com | Ride Seeker | |
 | ravi@wipro.com | Both | APPROVED |
@@ -66,7 +66,10 @@
 | BOTH user could request own ride | Check `rideGiver.userId === userId` → 403 | `ride-requests.service.ts create()` |
 | resendVerification leaked email existence | Always return 200 (no enumeration) | `auth.service.ts` |
 | FCM token not updatable via PATCH /users/me | Added `fcmToken` to UpdateProfileDto | `update-profile.dto.ts` |
-| Admin had no way to verify vehicle RC | Added `PATCH /admin/vehicles/:id/verify` + `/reject` | `admin.controller/service` |
+| Admin had no way to verify vehicle RC | Added `PATCH /admin/vehicles/:id/verify` + `/reject` + `GET /admin/vehicles` | `admin.controller/service` |
+| No admin UI to approve vehicle RC | New `/admin/vehicles` page with approve/reject queue | `apps/web/src/app/admin/vehicles/page.tsx` |
+| Seeded givers (Raju, Venky) had no verified vehicle | Added seeded vehicles with `rcVerified=true` | `prisma/seed.ts` |
+| Givers couldn't upload RC URL | Added `PATCH /vehicles/:id/rc` route | `vehicles.controller.ts` |
 | Ride cancel didn't notify passengers | Notify HOLD/CONFIRMED participants on cancel | `rides.service.ts cancel()` |
 | Re-request after cancel → 409 | Allow re-request after CANCELLED/REJECTED via upsert | `ride-requests.service.ts create()` |
 | Race condition: 2 concurrent approvals succeed | Atomic `updateMany WHERE availableSeats > 0` | `ride-requests.service.ts approve()` |
@@ -126,7 +129,8 @@ Install once: `brew install gh && gh auth login`
 
 ## Pending / Next Steps (Priority Order)
 
-1. **Install `gh` CLI** — `brew install gh && gh auth login` — enables auto CI log fetching without pasting logs
+1. **Re-seed the live DB** — `npm run db:seed` against Neon to give Raju/Venky their verified vehicles
+2. **Install `gh` CLI** — `brew install gh && gh auth login` — enables auto CI log fetching without pasting logs
 2. **Add `RESEND_API_KEY`** to Render env for real email delivery (currently dev mode — emails logged to console only)
 3. **End-to-end test on live app** with real users — full ride lifecycle smoke test
 4. **Write 35 missing Playwright tests** — P0 first: `permission-leaks.spec.ts`, `verification-bypass.spec.ts` (see `PLAYWRIGHT_TEST_PLAN.md`)
