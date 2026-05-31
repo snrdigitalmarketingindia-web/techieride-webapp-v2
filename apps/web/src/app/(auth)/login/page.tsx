@@ -126,7 +126,7 @@ export default function LoginPage() {
         )}
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          New to Techie Ride?{' '}
+          New to Techieride?{' '}
           <Link href="/signup" className="text-brand-600 font-medium hover:underline">
             Create account
           </Link>

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function LandingPage() {
@@ -6,8 +7,8 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🌿</span>
-          <span className="font-bold text-xl text-brand-700">Techie Ride</span>
+          <Image src="/logo.png" alt="Techieride" width={130} height={44} className="object-contain" priority />
+          <span className="text-xs font-medium text-orange-400">v2.0_Beta</span>
         </div>
         <div className="flex gap-4">
           <Link href="/login" className="text-sm text-gray-600 hover:text-brand-600 transition">
@@ -39,7 +40,7 @@ export default function LandingPage() {
             href="/signup"
             className="bg-brand-600 text-white px-8 py-3 rounded-xl text-lg font-medium hover:bg-brand-700 transition shadow-lg"
           >
-            Join Techie Ride
+            Join Techieride
           </Link>
           <Link
             href="/login"
@@ -70,7 +71,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="text-center py-10 text-gray-400 text-sm border-t border-gray-100">
-        © 2025 Techie Ride · Built for Hyderabad IT professionals
+        © 2026 Techieride v2.0_Beta · Built for Hyderabad IT professionals
       </footer>
     </main>
   );
