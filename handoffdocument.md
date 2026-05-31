@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `98f6ce8`)
+> **Last updated:** 2026-06-01 (latest: `6387ee4`)
 
 ---
 
@@ -54,6 +54,7 @@
 - [x] `GeoJSON.LineString` type replaced with inline type in shared package
 - [x] Node.js upgraded to 24 in GitHub Actions
 - [x] Postgres health check fixed (`pg_isready -U techieride`)
+- [x] Redis debug logs removed from `redis.module.ts` (was leaking REDIS_URL to stdout)
 
 ### Features
 - [x] `GET /ride-requests/mine` — new endpoint for seeker's own requests
@@ -80,21 +81,20 @@
 | `test:api:extended` | 30 | ✅ All passing |
 | `test:api:negative` | 30+ | ✅ All passing |
 | `test:api:rules` | 44 | ✅ All passing |
-| `test:api:coverage` | ~60 | 🔄 Pending — new suite, commit `98f6ce8` |
+| `test:api:coverage` | ~60 | 🔄 Pending CI verification |
 | Playwright E2E | 50 | ✅ All passing |
 
 **Previous suites all green. Coverage suite pending CI run.**
 
-**Last commit:** `98f6ce8` — Add production coverage test suite (13 sections, ~60 tests)
+**Last commit:** `6387ee4` — Remove Redis debug logs + update handoff doc
 
 ---
 
 ## Pending / Next Steps
-1. Verify `test:api:coverage` CI run on `98f6ce8` — fix any failures
-2. Remove debug log from `apps/api/src/config/redis.module.ts` line 19
-3. Add `RESEND_API_KEY` to Render env for real email delivery
-4. Test full ride lifecycle on live app end-to-end
-5. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
+1. Verify `test:api:coverage` CI run — fix any failures (`6387ee4` is latest)
+2. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
+3. Test full ride lifecycle on live app end-to-end with real users
+4. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
 
 ---
 
