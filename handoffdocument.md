@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `42c204f`)
+> **Last updated:** 2026-06-01 (latest: `9792fd3`)
 
 ---
 
@@ -26,7 +26,7 @@
 |---|---|
 | admin@techieride.in | Admin |
 | csr@csr.com | Admin |
-| priya@infosys.com | Ride Giver |
+| priya@infosys.com | Ride Giver (APPROVED, rcVerified) |
 | raju@raju.com | Ride Giver |
 | arjun@tcs.com | Ride Seeker |
 | raghu@raghu.com | Ride Seeker |
@@ -54,26 +54,43 @@
 - [x] `GeoJSON.LineString` type replaced with inline type in shared package
 - [x] Node.js upgraded to 24 in GitHub Actions
 - [x] Postgres health check fixed (`pg_isready -U techieride`)
-- [x] Redis debug logs removed from `redis.module.ts` (was leaking REDIS_URL to stdout)
-- [x] `e2e-api-coverage.ts` — GPS tracking POST bug fixed (endpoint is WebSocket-only, not REST)
-- [x] `e2e-api-final.ts` — 14 sections, ~45 tests covering all remaining gaps
-- [x] `ci-autofix.yml` — auto-creates GitHub Issues on CI failure with parsed log output
+- [x] Redis debug logs removed from `redis.module.ts`
 
 ### Features
-- [x] `GET /ride-requests/mine` — new endpoint for seeker's own requests
+- [x] `GET /ride-requests/mine` — seeker's own requests endpoint
 - [x] Seeker requests page shows PENDING/HOLD/CONFIRMED with Confirm Seat button
 - [x] Auto-select ride in Incoming (Giver) tab when only one ride exists
 - [x] **Business Rule (API+UI):** One active ride per giver — publish blocked while PUBLISHED/ONGOING
 - [x] **Business Rule (API):** One active request per seeker — blocked while PENDING/HOLD/CONFIRMED
 - [x] Ride creation form blocks publish + shows warning when active ride exists
 
-### Test Fixes
-- [x] Test emails changed to allowed domains (`wipro.com`, `tcs.com`)
-- [x] `RideStatus.STARTED` → `RideStatus.ONGOING` bug fixed (was causing 500 on publish)
-- [x] `e2e-api.ts` — uses fresh `wipro.com`/`tcs.com` giver+seeker accounts per run
-- [x] `e2e-api-extended.ts` — refactored: separate giver+seeker per flow (A/B/C isolation)
-- [x] New test suite `e2e-api-business-rules.ts` — 8 sections, ~40 tests
-- [x] New Playwright spec `tests/e2e/requests.spec.ts` — 8 tests for request flow
+### Session 3 — QA Director Audit & Fixes
+
+#### P0 Critical API Bug Fixes
+- [x] `rides.service.ts publish()`: blocks if `verificationStatus !== APPROVED` → 403
+- [x] `rides.service.ts publish()`: blocks if `vehicle.rcVerified !== true` → 403
+- [x] `vehicles.service.ts remove()`: blocks deletion if vehicle in active PUBLISHED/ONGOING ride → 409
+- [x] `admin.controller/service`: added `PATCH /admin/vehicles/:id/verify` and `/reject` endpoints
+- [x] `auth.service.ts resendVerification()`: always returns 200 — no email enumeration
+- [x] `update-profile.dto.ts`: added `fcmToken` field — users can now update push token via PATCH /users/me
+
+#### Test Infrastructure
+- [x] `tests/helpers.ts` — shared helper: `freshGiver()` runs full verification flow (register → submit docs → admin approve → add vehicle → admin verify RC). All suites use this.
+- [x] All 6 API test suites updated to use verified givers — no more publish() failures in tests
+- [x] `e2e-api.ts` — fresh giver now verified before publish tests
+- [x] `e2e-api-extended.ts` — `createGiver()` now includes RC verification step
+- [x] `e2e-api-negative.ts` — `freshVerifiedGiver()` helper added; giverB/C/D all fully verified
+- [x] `e2e-api-business-rules.ts` — `setupFreshPair()` includes full verification flow
+- [x] `e2e-api-coverage.ts` — 17 test failures fixed (see Gotchas section)
+- [x] `e2e-api-final.ts` — 14 sections, ~45 tests; imports from shared helpers
+
+#### Strategy Documents (in repo root)
+- [x] `TEST_AUTOMATION_STRATEGY.md` — every finding mapped to test type + CI stage + priority
+- [x] `PLAYWRIGHT_TEST_PLAN.md` — 50+ UI scenarios across 8 spec files, prioritised by permission leaks
+
+#### CI Pipeline
+- [x] `ci-autofix.yml` — on failure: auto-creates GitHub Issue with parsed ❌ lines; on success: closes open issues
+- [x] `PATCH /admin/vehicles/:id/verify` wired into CI test setup for all fresh givers
 
 ---
 
@@ -82,28 +99,34 @@
 |---|---|---|---|
 | Base lifecycle | `test:api` | 37 | ✅ Passing |
 | Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Passing |
-| Negative / boundary | `test:api:negative` | 30+ | ✅ Passing |
+| Negative / boundary | `test:api:negative` | 33 | ✅ Passing |
 | Business rules | `test:api:rules` | 44 | ✅ Passing |
-| Production coverage (13 sections) | `test:api:coverage` | ~60 | 🔄 Pending `42c204f` |
-| Final gap-closing (14 sections) | `test:api:final` | ~45 | 🔄 Pending `42c204f` |
+| Production coverage (13 sections) | `test:api:coverage` | ~69 | 🔄 Pending `9792fd3` |
+| Final gap-closing (14 sections) | `test:api:final` | ~45 | 🔄 Pending `9792fd3` |
 | Playwright E2E | `test:ui` | 50 | ✅ Passing |
 
-**Total API tests: ~246+ across 6 suites**
+**Total API tests: ~258+ across 6 suites**
 
-**Last commit:** `42c204f` — Add final gap-closing tests + CI auto-fix watchdog
+**Last commit:** `9792fd3` — Fix 17 coverage suite failures + 2 API bugs
 
 ---
 
 ## CI Auto-Fix Watchdog
 `.github/workflows/ci-autofix.yml` — fires automatically after every CI run:
-- **On failure:** Parses logs, extracts failing test names, creates a GitHub Issue labeled `ci-failure` with a structured report. No manual log-posting needed.
-- **On success:** Automatically closes any open `ci-failure` issues.
+- **On failure:** Parses logs, extracts failing test names, creates a GitHub Issue labeled `ci-failure`
+- **On success:** Automatically closes any open `ci-failure` issues
+- **Limitation:** Requires `gh` CLI on dev machine to fetch logs manually. Install: `brew install gh && gh auth login`
+
+---
 
 ## Pending / Next Steps
-1. Monitor CI run on `42c204f` — coverage + final suites running for first time
-2. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
-3. Test full ride lifecycle on live app end-to-end with real users
-4. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
+1. Verify CI on `9792fd3` — coverage + final suites should now be fully green
+2. Install `gh` CLI locally (`brew install gh && gh auth login`) so CI failures can be auto-fetched without pasting logs
+3. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
+4. Test full ride lifecycle on live app end-to-end with real users
+5. Write 35 missing Playwright tests (see `PLAYWRIGHT_TEST_PLAN.md` — `permission-leaks.spec.ts`, `verification-bypass.spec.ts` are P0)
+6. Write unit tests for business rule logic — currently 0 unit tests (see `TEST_AUTOMATION_STRATEGY.md` Stage 2)
+7. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
 
 ---
 
@@ -112,20 +135,48 @@
 |---|---|---|
 | One active ride per giver | `rides.service.ts → publish()` | Checks PUBLISHED/ONGOING |
 | One active request per seeker | `ride-requests.service.ts → create()` | Checks PENDING/HOLD/CONFIRMED |
+| Giver verificationStatus must be APPROVED to publish | `rides.service.ts → publish()` | → 403 if PENDING/REJECTED |
+| Vehicle rcVerified must be true to publish | `rides.service.ts → publish()` | → 403 if false |
+| Cannot delete vehicle used in active ride | `vehicles.service.ts → remove()` | → 409 |
 | Re-request after REJECTED | Allowed | Terminal state |
 | Re-request after CANCELLED | Allowed | Terminal state |
 | Publish after COMPLETED/CANCELLED | Allowed | Terminal state |
-| Cancel a COMPLETED or CANCELLED ride | `rides.service.ts → cancel()` | Returns 400 — added this session |
+| Cancel a COMPLETED or CANCELLED ride | `rides.service.ts → cancel()` | → 400 |
+
+---
+
+## Key API Shapes (confirmed from source)
+
+### Gamification Summary (`GET /gamification/summary`)
+```json
+{ "totalPoints": 0, "ecoLevel": "SEED", "co2SavedKg": "0.00", "pointsHistory": [] }
+```
+⚠️ Field is `totalPoints` NOT `ecoPoints` — tests must use `totalPoints`
+
+### Search Rides (`GET /rides/search`)
+Required params: `originLat`, `originLng`, `destinationLat`, `destinationLng`, `date` (YYYY-MM-DD)
+Optional: `page`, `limit`
+⚠️ Does NOT accept `originName`/`destinationName` — those are stored fields, not search params
+
+### Emergency Contact (`POST /users/me/emergency-contacts`)
+```json
+{ "name": "string", "phone": "string", "relationship": "string" }
+```
+⚠️ Field is `relationship` NOT `relation`
+
+### Update Profile (`PATCH /users/me`)
+Accepts: `fullName`, `profilePhoto`, `gender`, `companyName`, `fcmToken`
 
 ---
 
 ## Gotchas / Notes
-- **RideStatus enum values:** `DRAFT`, `PUBLISHED`, `ONGOING`, `COMPLETED`, `CANCELLED` — NO `STARTED`
-- **Email domain whitelist:** Use `wipro.com`, `tcs.com`, `infosys.com` etc. `testco.com` NOT allowed
-- **`registerAndLogin` in `e2e-api.ts`:** takes `(email, fullName, role)` → returns `string` token
-- **`registerAndLogin` in `e2e-api-negative.ts`:** takes `(email, role)` → returns `{token, userId}`
-- **Dist must be rebuilt** after API source changes: `cd apps/api && npm run build` then commit `dist/`
+- **RideStatus enum:** `DRAFT`, `PUBLISHED`, `ONGOING`, `COMPLETED`, `CANCELLED` — NO `STARTED`
+- **Email domain whitelist:** `wipro.com`, `tcs.com`, `infosys.com` etc. `testco.com` NOT allowed
+- **freshGiver() in helpers.ts** runs full verification: register → submit docs → admin approve → add vehicle → admin verify RC. Takes ~3-4 API calls. Use it for any test that needs to publish a ride.
+- **register() in helpers.ts** is raw — no verification. Use for testing NOT_SUBMITTED verification status.
+- **Dist must be rebuilt** after any API source change: `cd apps/api && npm run build` then `git add apps/api/dist/`
 - **Vercel project** is `techieride-webapp-v2-web` (the `-api` one was deleted accidentally)
+- **Admin vehicle endpoints:** `PATCH /admin/vehicles/:id/verify` and `/reject` — new in this session, needed by all test helpers that create fresh givers
 
 ---
 
