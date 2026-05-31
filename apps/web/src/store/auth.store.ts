@@ -31,6 +31,10 @@ export const useAuthStore = create<AuthState>()(
       setHasHydrated: (v) => set({ _hasHydrated: v }),
 
       setTokens: (accessToken, refreshToken) => {
+        // Must write to localStorage directly — the API interceptor reads
+        // localStorage.getItem('accessToken'), not the Zustand persist key.
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
         set({ accessToken, refreshToken, isAuthenticated: true });
       },
 
@@ -51,6 +55,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
         set({
           user: null,
           accessToken: null,
