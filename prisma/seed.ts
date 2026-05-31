@@ -120,6 +120,39 @@ async function main() {
   await prisma.rideGiver.upsert({ where: { userId: ravi.id }, update: {}, create: { userId: ravi.id, licenseVerified: true, totalRidesGiven: 8, averageRating: 4.9 } });
   console.log('✅ Both Ravi:', ravi.email, '| 🍃 LEAF level');
 
+  // ── Dev/Test accounts (non-IT domains, dev only) ──────────────────────
+  const testAccounts = [
+    { email: 'csr@csr.com',     fullName: 'CSR Admin',   role: UserRole.ADMIN },
+    { email: 'raghu@raghu.com', fullName: 'Raghu',       role: UserRole.RIDE_SEEKER },
+    { email: 'raju@raju.com',   fullName: 'Raju',        role: UserRole.RIDE_GIVER },
+    { email: 'venky@venky.com', fullName: 'Venky',       role: UserRole.BOTH },
+  ];
+
+  for (const acc of testAccounts) {
+    const u = await prisma.user.upsert({
+      where: { email: acc.email },
+      update: {},
+      create: {
+        email: acc.email,
+        passwordHash: await hashPw(SEED_PASSWORD),
+        fullName: acc.fullName,
+        role: acc.role,
+        verificationStatus: VerificationStatus.APPROVED,
+        emailStatus: 'VERIFIED',
+        isActive: true,
+        companyName: 'Test',
+        employeeId: `TEST-${acc.fullName.toUpperCase().slice(0, 4)}`,
+      },
+    });
+    if (acc.role === UserRole.RIDE_SEEKER || acc.role === UserRole.BOTH) {
+      await prisma.rideSeeker.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
+    }
+    if (acc.role === UserRole.RIDE_GIVER || acc.role === UserRole.BOTH) {
+      await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
+    }
+    console.log(`✅ Test account: ${acc.email} (${acc.role})`);
+  }
+
   // ── Gamification points ────────────────────────────────────────────────
   for (const [user, pts] of [[arjun, 60], [priya, 180], [ravi, 340]] as const) {
     const exists = await prisma.gamificationPoint.findFirst({ where: { userId: user.id, eventType: 'SEED_DATA' } });
@@ -135,6 +168,11 @@ async function main() {
   console.log('  Seeker : arjun@tcs.com');
   console.log('  Giver  : priya@infosys.com');
   console.log('  Both   : ravi@wipro.com');
+  console.log('\n  Dev-only test accounts:');
+  console.log('  Admin  : csr@csr.com');
+  console.log('  Seeker : raghu@raghu.com');
+  console.log('  Giver  : raju@raju.com');
+  console.log('  Both   : venky@venky.com');
 }
 
 main()
