@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `0291d3a`)
+> **Last updated:** 2026-06-01 (latest: `235b1b7`)
 
 ---
 
@@ -56,7 +56,7 @@
 
 ### Session 3 — QA Director Audit, Security Fixes & Full Test Coverage
 
-#### API Bug Fixes (all were real production issues)
+#### API Bug Fixes (all production issues, now resolved)
 | Bug | Fix | File |
 |---|---|---|
 | Unverified giver could publish rides | `verificationStatus !== APPROVED` → 403 | `rides.service.ts publish()` |
@@ -68,50 +68,49 @@
 | FCM token not updatable via PATCH /users/me | Added `fcmToken` to UpdateProfileDto | `update-profile.dto.ts` |
 | Admin had no way to verify vehicle RC | Added `PATCH /admin/vehicles/:id/verify` + `/reject` | `admin.controller/service` |
 | Ride cancel didn't notify passengers | Notify HOLD/CONFIRMED participants on cancel | `rides.service.ts cancel()` |
-| Re-request after cancel → 409 | Allow re-request after CANCELLED/REJECTED; upsert instead of create | `ride-requests.service.ts create()` |
-| Race condition: 2 concurrent approvals both succeed | Atomic `updateMany WHERE availableSeats > 0` | `ride-requests.service.ts approve()` |
+| Re-request after cancel → 409 | Allow re-request after CANCELLED/REJECTED via upsert | `ride-requests.service.ts create()` |
+| Race condition: 2 concurrent approvals succeed | Atomic `updateMany WHERE availableSeats > 0` | `ride-requests.service.ts approve()` |
 | `passwordHash` leaked in GET /users/me | Strip sensitive fields before returning | `users.service.ts getProfile()` |
+| ci-autofix.yml SyntaxError | Merge two script steps into one (no cross-step interpolation) | `.github/workflows/ci-autofix.yml` |
 
 #### New Test Suites Added
-| Suite | Script | Tests |
-|---|---|---|
-| Production coverage (13 sections) | `test:api:coverage` | 69 |
-| Final gap-closing (14 sections) | `test:api:final` | ~45 |
+| Suite | Script | Tests | Status |
+|---|---|---|---|
+| Production coverage (13 sections) | `test:api:coverage` | 69 | ✅ All green |
+| Final gap-closing (14 sections) | `test:api:final` | 57 | ✅ All green |
 
 #### Test Infrastructure
-- [x] `tests/helpers.ts` — shared `freshGiver()` that runs the full verified flow: register → submit docs → admin approve → add vehicle → admin verify RC. All suites import from here.
-- [x] All 6 API test suites updated so freshly-created givers are fully verified before publish tests
-- [x] Fixed 17 test assertion bugs in coverage suite (wrong field names, wrong params, missing imports)
+- [x] `tests/helpers.ts` — shared `freshGiver()` runs full verified flow: register → submit docs → admin approve → add vehicle → admin verify RC
+- [x] All 6 API test suites updated to use verified givers
+- [x] 17 assertion bugs fixed in coverage suite (field names, params, missing imports)
+- [x] Extended suite fixed: re-request cancel-cleanup + security test guard
 
 #### Strategy Documents (repo root)
 - [x] `TEST_AUTOMATION_STRATEGY.md` — every finding mapped to test type, CI stage, priority action
 - [x] `PLAYWRIGHT_TEST_PLAN.md` — 50+ UI scenarios across 8 spec files
 
-#### CI Pipeline Additions
-- [x] `ci-autofix.yml` — on failure: auto-creates GitHub Issue with extracted ❌ lines; on success: closes it
-- [x] `test:api:coverage` and `test:api:final` wired into CI pipeline
-- [x] `test:all` script runs all 6 suites in sequence
+#### CI Pipeline
+- [x] `ci-autofix.yml` — on failure: auto-creates GitHub Issue with parsed ❌ lines; on success: closes it
+- [x] `test:api:coverage` and `test:api:final` added to CI pipeline
+- [x] `test:all` runs all 6 suites in sequence
 
 ---
 
-## Current CI Status
+## ✅ Current CI Status — ALL GREEN
 
-| Suite | Script | Tests | Last Known Status |
+| Suite | Script | Tests | Status |
 |---|---|---|---|
-| Base lifecycle | `test:api` | 37 | ✅ Green (run #67) |
-| Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Green (run #67) |
-| Negative / boundary | `test:api:negative` | 33 | ✅ Green (run #67) |
-| Business rules | `test:api:rules` | 44 | ✅ Green (run #67) |
-| Production coverage | `test:api:coverage` | 69 | 🔄 Pending `6ea7e58` |
-| Final gap-closing | `test:api:final` | 57 | 🔄 Pending `6ea7e58` |
-| Playwright E2E | `test:ui` | 50 | ✅ Green (run #67) |
+| Base lifecycle | `test:api` | 37 | ✅ Green |
+| Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Green |
+| Negative / boundary | `test:api:negative` | 33 | ✅ Green |
+| Business rules | `test:api:rules` | 44 | ✅ Green |
+| Production coverage (13 sections) | `test:api:coverage` | 69 | ✅ Green |
+| Final gap-closing (14 sections) | `test:api:final` | 57 | ✅ Green |
+| Playwright E2E | `test:ui` | 50 | ✅ Green |
 
-**Total API tests: ~258+ across 6 suites + 50 Playwright = ~308 automated checks**
+**Total: 320 automated checks — all passing**
 
-**Latest commits pushed:**
-- `0291d3a` — Fix extended test: cancel re-request after rejection + guard security test
-- `6ea7e58` — Fix 8 final suite failures (4 API bugs + 4 test corrections)
-- `be976f3` — Fix ci-autofix.yml SyntaxError in github-script
+**Last commit:** `235b1b7`
 
 ---
 
@@ -120,20 +119,19 @@
 - **On failure** → auto-creates GitHub Issue labeled `ci-failure` with parsed failure lines
 - **On success** → auto-closes any open `ci-failure` issues
 
-**Current limitation:** Cannot auto-fetch CI logs from dev machine without `gh` CLI.
-Fix once: `brew install gh && gh auth login`
+**Limitation:** Cannot auto-fetch logs from dev machine without `gh` CLI.
+Install once: `brew install gh && gh auth login`
 
 ---
 
 ## Pending / Next Steps (Priority Order)
 
-1. **Confirm** runs #68+#69 green — coverage should be 69/69, final ~45/45
-2. **Install `gh` CLI** — `brew install gh && gh auth login` — enables auto CI log fetching
-3. **Add `RESEND_API_KEY`** to Render env for real email delivery (currently dev mode — emails logged to console only)
-4. **End-to-end test on live app** with real users — full ride lifecycle
-5. **Write 35 missing Playwright tests** — P0 first: `permission-leaks.spec.ts`, `verification-bypass.spec.ts` (see `PLAYWRIGHT_TEST_PLAN.md`)
-6. **Write unit tests** — 0 unit tests currently. Start with `gamification.service.ts` ecoLevel thresholds and `roles.guard.ts` (see `TEST_AUTOMATION_STRATEGY.md` Stage 2)
-7. **Upcoming features:** real-time GPS tracking UI, notifications bell, admin verification workflow UI
+1. **Install `gh` CLI** — `brew install gh && gh auth login` — enables auto CI log fetching without pasting logs
+2. **Add `RESEND_API_KEY`** to Render env for real email delivery (currently dev mode — emails logged to console only)
+3. **End-to-end test on live app** with real users — full ride lifecycle smoke test
+4. **Write 35 missing Playwright tests** — P0 first: `permission-leaks.spec.ts`, `verification-bypass.spec.ts` (see `PLAYWRIGHT_TEST_PLAN.md`)
+5. **Write unit tests** — 0 unit tests currently. Start with `gamification.service.ts` ecoLevel thresholds and `roles.guard.ts` (see `TEST_AUTOMATION_STRATEGY.md` Stage 2)
+6. **Upcoming features:** real-time GPS tracking UI, notifications bell, admin verification workflow UI
 
 ---
 
@@ -148,36 +146,36 @@ Fix once: `brew install gh && gh auth login`
 | Cannot delete vehicle in active ride | `vehicles.service.ts → remove()` | PUBLISHED/ONGOING check → 409 |
 | Duplicate plate number | `vehicles.service.ts → create()` | Prisma P2002 → 409 |
 | Cannot cancel COMPLETED/CANCELLED ride | `rides.service.ts → cancel()` | → 400 |
-| Re-request after REJECTED/CANCELLED | `ride-requests.service.ts → create()` | Allowed via upsert — resets record to PENDING. ⚠️ Leaves seeker with PENDING state, blocking other ride requests until cancelled |
-| Concurrent seat approval race | `ride-requests.service.ts → approve()` | Atomic `updateMany WHERE availableSeats > 0` |
-| Ride cancel notifies passengers | `rides.service.ts → cancel()` | HOLD/CONFIRMED get RIDE_CANCELLED notification |
-| Publish after COMPLETED/CANCELLED ride | `rides.service.ts → publish()` | Allowed — terminal state |
+| Re-request after REJECTED/CANCELLED | `ride-requests.service.ts → create()` | Allowed via upsert — resets to PENDING |
+| Concurrent seat approval | `ride-requests.service.ts → approve()` | Atomic `updateMany WHERE availableSeats > 0` → only one succeeds |
+| Ride cancel notifies passengers | `rides.service.ts → cancel()` | HOLD/CONFIRMED seekers get RIDE_CANCELLED notification |
+| Publish after COMPLETED/CANCELLED | `rides.service.ts → publish()` | Allowed — terminal state |
 
 ---
 
-## Key API Field Names (confirmed from source — gotcha-prone)
+## Key API Field Names (gotcha-prone — confirmed from source)
 
-| Endpoint | Field trap | Correct |
+| Endpoint | ❌ Wrong | ✅ Correct |
 |---|---|---|
-| `GET /gamification/summary` | ~~ecoPoints~~ | `totalPoints` |
-| `GET /gamification/summary` | ~~co2Saved~~ | `co2SavedKg` |
-| `GET /rides/search` | ~~originName, destinationName~~ | `originLat`, `originLng`, `destinationLat`, `destinationLng`, `date` (all required) |
-| `POST /users/me/emergency-contacts` | ~~relation~~ | `relationship` |
-| `PATCH /users/me` | accepts | `fullName`, `profilePhoto`, `gender`, `companyName`, `fcmToken` |
-| Leaderboard `period` param | ~~`all`~~ | `alltime` or `monthly` |
-| `GET /users/me` | ~~includes passwordHash~~ | Stripped — only safe fields returned |
-| Bounce webhook unknown payload | ~~400~~ | 200 (silent no-op by design) |
+| `GET /gamification/summary` | `ecoPoints` | `totalPoints` |
+| `GET /gamification/summary` | `co2Saved`, `co2SavedGrams` | `co2SavedKg` (string, e.g. `"0.00"`) |
+| `GET /rides/search` | `originName`, `destinationName` | `originLat`, `originLng`, `destinationLat`, `destinationLng`, `date` (all required) |
+| `POST /users/me/emergency-contacts` | `relation` | `relationship` |
+| `PATCH /users/me` | — | accepts: `fullName`, `profilePhoto`, `gender`, `companyName`, `fcmToken` |
+| Leaderboard `period` param | `all` | `alltime` or `monthly` |
+| `POST /auth/webhook/bounce` (unknown payload) | expect 400 | returns 200 (silent no-op by design) |
 
 ---
 
 ## Gotchas / Notes
 - **RideStatus enum:** `DRAFT` → `PUBLISHED` → `ONGOING` → `COMPLETED`/`CANCELLED`. No `STARTED`.
 - **Email domain whitelist:** `wipro.com`, `tcs.com`, `infosys.com` etc. `testco.com` NOT allowed.
-- **`freshGiver()` in `tests/helpers.ts`** — runs full 5-step verification flow. Use for any test that calls `publish()`. Takes ~5 extra API calls per giver.
+- **`freshGiver()` in `tests/helpers.ts`** — runs full 5-step verified flow. Use for any test that calls `publish()`.
 - **`register()` in `tests/helpers.ts`** — raw registration, no verification. Use only for testing NOT_SUBMITTED status.
+- **Upsert on re-request:** When a seeker re-requests after CANCELLED/REJECTED, the upsert resets the record to PENDING. This is correct API behavior but means the seeker has an active request again — tests must account for this (cancel it if the seeker needs to be free for another ride).
 - **Dist must be rebuilt** after every API source change: `cd apps/api && npm run build` then `git add apps/api/dist/`.
-- **Vercel project name** is `techieride-webapp-v2-web` (the `-api` accidental project was deleted).
-- **BOTH role users** have both giver and seeker capabilities but cannot request seats on their own rides.
+- **Vercel project** is `techieride-webapp-v2-web` (the `-api` accidental project was deleted).
+- **`GET /users/me`** strips sensitive fields: `passwordHash`, `emailVerificationToken`, `emailVerificationExpiry`, `passwordResetToken`, `passwordResetExpiry`.
 
 ---
 
