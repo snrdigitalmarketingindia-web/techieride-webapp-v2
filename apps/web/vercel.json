@@ -2,9 +2,5 @@
   "framework": "nextjs",
   "buildCommand": "cd ../.. && npm run build --workspace=apps/web",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "cd ../.. && npm ci",
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@next_public_api_url",
-    "NEXT_PUBLIC_WS_URL": "@next_public_ws_url"
-  }
+  "installCommand": "cd ../.. && npm ci"
 }

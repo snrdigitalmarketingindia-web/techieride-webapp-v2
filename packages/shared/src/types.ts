@@ -38,7 +38,7 @@ export interface RideDTO {
   destinationName: string;
   destinationLat: number;
   destinationLng: number;
-  routePolyline?: GeoJSON.LineString;
+  routePolyline?: { type: 'LineString'; coordinates: [number, number][] };
   estimatedDistanceKm?: number;
   estimatedDurationMin?: number;
   departureDate: string;
