@@ -13,15 +13,27 @@ const links = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!_hasHydrated) return;
     if (!isAuthenticated || user?.role !== 'ADMIN') {
       router.push('/login');
     }
-  }, [isAuthenticated, user]);
+  }, [_hasHydrated, isAuthenticated, user]);
+
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-3 animate-pulse">🌿</div>
+          <p className="text-gray-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -35,8 +47,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <nav className="space-y-1 flex-1">
           {links.map((l) => (
-            <Link key={l.href} href={l.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${pathname === l.href ? 'bg-brand-50 text-brand-700 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}>
+            <Link
+              key={l.href}
+              href={l.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition ${
+                pathname === l.href
+                  ? 'bg-brand-50 text-brand-700 font-medium'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
               <span>{l.icon}</span>{l.label}
             </Link>
           ))}

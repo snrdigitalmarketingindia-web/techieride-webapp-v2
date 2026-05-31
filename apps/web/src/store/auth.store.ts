@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { authApi, usersApi } from '@/lib/api';
 
 interface AuthState {
@@ -8,12 +8,14 @@ interface AuthState {
   refreshToken: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  _hasHydrated: boolean;
 
   login: (phone: string, otp: string) => Promise<void>;
   register: (data: any) => Promise<{ userId: string }>;
   logout: () => void;
   fetchProfile: () => Promise<void>;
   setTokens: (access: string, refresh: string) => void;
+  setHasHydrated: (v: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -24,10 +26,11 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
       isLoading: false,
       isAuthenticated: false,
+      _hasHydrated: false,
+
+      setHasHydrated: (v) => set({ _hasHydrated: v }),
 
       setTokens: (accessToken, refreshToken) => {
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
         set({ accessToken, refreshToken, isAuthenticated: true });
       },
 
@@ -48,9 +51,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          isAuthenticated: false,
+        });
       },
 
       fetchProfile: async () => {
@@ -64,7 +70,15 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'techieride-auth',
-      partialize: (state) => ({ accessToken: state.accessToken, refreshToken: state.refreshToken }),
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );

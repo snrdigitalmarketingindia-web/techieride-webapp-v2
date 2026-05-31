@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { EcoLevel } from '@techieride/shared';
 import NotificationDrawer from './NotificationDrawer';
@@ -26,15 +26,33 @@ const navLinks = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated, fetchProfile, logout } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated, fetchProfile, logout } = useAuthStore();
 
   useEffect(() => {
+    // Wait for Zustand to rehydrate from localStorage before checking auth.
+    // Without this, _hasHydrated is false on first render and isAuthenticated
+    // is always false, causing an instant redirect to /login on every page load.
+    if (!_hasHydrated) return;
+
     if (!isAuthenticated) {
       router.push('/login');
       return;
     }
+
     if (!user) fetchProfile();
-  }, [isAuthenticated]);
+  }, [_hasHydrated, isAuthenticated]);
+
+  // Show loading skeleton while Zustand is hydrating from localStorage
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-4xl mb-3 animate-pulse">🌿</div>
+          <p className="text-gray-400 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -54,7 +72,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           )}
           <NotificationDrawer />
-          <button onClick={() => { logout(); router.push('/'); }} className="text-sm text-gray-500 hover:text-red-500 transition">
+          <button
+            onClick={() => { logout(); router.push('/'); }}
+            className="text-sm text-gray-500 hover:text-red-500 transition"
+          >
             Logout
           </button>
         </div>
@@ -63,12 +84,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Content */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">{children}</main>
 
-      {/* Bottom nav */}
+      {/* Bottom nav (mobile) */}
       <nav className="bg-white border-t border-gray-200 px-4 py-2 flex justify-around sticky bottom-0 sm:hidden">
         {navLinks.map((link) => {
           const active = pathname === link.href;
           return (
-            <Link key={link.href} href={link.href} className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition ${active ? 'text-brand-600' : 'text-gray-500'}`}>
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition ${
+                active ? 'text-brand-600' : 'text-gray-500'
+              }`}
+            >
               <span className="text-xl">{link.icon}</span>
               <span className="text-xs font-medium">{link.label}</span>
             </Link>
@@ -81,7 +108,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {navLinks.map((link) => {
           const active = pathname === link.href;
           return (
-            <Link key={link.href} href={link.href} title={link.label} className={`text-2xl p-2 rounded-xl transition ${active ? 'bg-brand-100 text-brand-600' : 'text-gray-400 hover:bg-gray-100'}`}>
+            <Link
+              key={link.href}
+              href={link.href}
+              title={link.label}
+              className={`text-2xl p-2 rounded-xl transition ${
+                active ? 'bg-brand-100 text-brand-600' : 'text-gray-400 hover:bg-gray-100'
+              }`}
+            >
               {link.icon}
             </Link>
           );
