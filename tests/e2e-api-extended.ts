@@ -81,45 +81,57 @@ async function loginAsWithId(email: string): Promise<{ token: string; userId: st
 }
 
 // ─── Setup ────────────────────────────────────────────────────────────────
-async function setup() {
-  const adminToken = await loginAs('admin@techieride.in');
-  const giverToken = await registerAndLogin(`giver2.${Date.now()}@tcs.com`, 'Giver Two', 'RIDE_GIVER');
-  const seeker1Token = await registerAndLogin(`seeker1.${Date.now()}@tcs.com`, 'Seeker One', 'RIDE_SEEKER');
-  const seeker2Token = await registerAndLogin(`seeker2.${Date.now()}@tcs.com`, 'Seeker Two', 'RIDE_SEEKER');
-
-  const admin = makeClient(adminToken);
-  const giver = makeClient(giverToken);
-  const s1 = makeClient(seeker1Token);
-  const s2 = makeClient(seeker2Token);
-
-  // Approve giver
-  const giverProfile = await giver.get('/users/me');
-  const giverId = giverProfile.data.id;
-  await giver.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+async function createGiver(admin: AxiosInstance, suffix: string) {
+  const ts = Date.now();
+  const token = await registerAndLogin(`giver_ext_${suffix}_${ts}@wipro.com`, `Giver ${suffix}`, 'RIDE_GIVER');
+  const client = makeClient(token);
+  const profile = await client.get('/users/me');
+  const giverId = profile.data.id;
+  await client.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
   const queue = await admin.get('/admin/verification/pending');
   const req = queue.data.find((v: any) => v.userId === giverId);
   if (req) await admin.patch(`/admin/verification/${req.id}/review`, { decision: 'APPROVED' });
-
-  // Add vehicle
-  const veh = await giver.post('/vehicles', {
+  const veh = await client.post('/vehicles', {
     make: 'Toyota', model: 'Innova', color: 'White',
-    plateNumber: `TS09EXT${Date.now().toString().slice(-4)}`, totalSeats: 2,
+    plateNumber: `TS${ts.toString().slice(-5)}`, totalSeats: 4,
   });
-  const vehicleId = veh.data.id;
+  return { client, token, vehicleId: veh.data.id };
+}
 
-  // Create ride with 1 seat (for race condition test)
+async function setup() {
+  const adminToken = await loginAs('admin@techieride.in');
+  const admin = makeClient(adminToken);
+
+  // Each flow gets its own giver so the one-active-ride rule doesn't interfere
+  const giverA = await createGiver(admin, 'A'); // rejection + cancellation flows
+  const giverB = await createGiver(admin, 'B'); // race condition flow
+  const giverC = await createGiver(admin, 'C'); // security flow
+
+  const ts = Date.now();
+  const seeker1Token = await registerAndLogin(`seeker1_${ts}@tcs.com`, 'Seeker One', 'RIDE_SEEKER');
+  const seeker2Token = await registerAndLogin(`seeker2_${ts}@tcs.com`, 'Seeker Two', 'RIDE_SEEKER');
+  const seeker3Token = await registerAndLogin(`seeker3_${ts}@tcs.com`, 'Seeker Three', 'RIDE_SEEKER');
+
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
 
-  const rideSmall = await giver.post('/rides', {
-    vehicleId, originName: 'Ameerpet', originLat: 17.4374, originLng: 78.4487,
+  // Giver A: ride for rejection flow (1 seat)
+  const rideSmall = await giverA.client.post('/rides', {
+    vehicleId: giverA.vehicleId,
+    originName: 'Ameerpet', originLat: 17.4374, originLng: 78.4487,
     destinationName: 'Gachibowli', destinationLat: 17.4400, destinationLng: 78.3489,
     departureDate: tomorrow.toISOString().split('T')[0],
     departureTime: '10:00', totalSeats: 1, notes: 'Test ride',
   });
-  await giver.patch(`/rides/${rideSmall.data.id}/publish`);
+  await giverA.client.patch(`/rides/${rideSmall.data.id}/publish`);
 
-  return { adminToken, giverToken, seeker1Token, seeker2Token, vehicleId, rideSmall: rideSmall.data };
+  return {
+    adminToken,
+    giverToken: giverA.token, giverBToken: giverB.token, giverCToken: giverC.token,
+    vehicleId: giverA.vehicleId, vehicleBId: giverB.vehicleId, vehicleCId: giverC.vehicleId,
+    seeker1Token, seeker2Token, seeker3Token,
+    rideSmall: rideSmall.data,
+  };
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────
@@ -131,10 +143,17 @@ async function run() {
   console.log(`${c.dim}Setting up test agents...${c.reset}`);
   const ctx = await setup();
   const admin = makeClient(ctx.adminToken);
-  const giver = makeClient(ctx.giverToken);
-  const s1 = makeClient(ctx.seeker1Token);
-  const s2 = makeClient(ctx.seeker2Token);
+  const giver  = makeClient(ctx.giverToken);   // Giver A — rejection flow
+  const giverB = makeClient(ctx.giverBToken);  // Giver B — cancellation flow
+  const giverC = makeClient(ctx.giverCToken);  // Giver C — race + security flow
+  // Each flow gets fresh seekers so the one-active-request rule doesn't interfere
+  const s1 = makeClient(ctx.seeker1Token);  // rejection + race flow
+  const s2 = makeClient(ctx.seeker2Token);  // cancellation flow
+  const s3 = makeClient(ctx.seeker3Token);  // race flow (second racer)
   const { rideSmall, vehicleId } = ctx;
+  const vehicleBId = ctx.vehicleBId;
+  const vehicleCId = ctx.vehicleCId;
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
 
   // ══════════════════════════════════════════
   //  1. REJECTION FLOW
@@ -169,19 +188,17 @@ async function run() {
   });
 
   // ══════════════════════════════════════════
-  //  2. CANCELLATION FLOW
+  //  2. CANCELLATION FLOW  (giverB + s2)
   // ══════════════════════════════════════════
   section('❌ Cancellation Flow');
 
-  // Create fresh ride for cancellation tests
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
-  const cancelRideResp = await giver.post('/rides', {
-    vehicleId, originName: 'LB Nagar', originLat: 17.3616, originLng: 78.5524,
+  const cancelRideResp = await giverB.post('/rides', {
+    vehicleId: vehicleBId, originName: 'LB Nagar', originLat: 17.3616, originLng: 78.5524,
     destinationName: 'Secunderabad', destinationLat: 17.4399, destinationLng: 78.4983,
     departureDate: tomorrow.toISOString().split('T')[0],
     departureTime: '08:00', totalSeats: 2,
   });
-  await giver.patch(`/rides/${cancelRideResp.data.id}/publish`);
+  await giverB.patch(`/rides/${cancelRideResp.data.id}/publish`);
   const cancelRideId = cancelRideResp.data.id;
 
   let cancelRequestId = '';
@@ -191,7 +208,7 @@ async function run() {
     assert(req.status === 201, `Request: ${JSON.stringify(req.data)}`);
     cancelRequestId = req.data.requestId;
 
-    const apr = await giver.patch(`/ride-requests/${cancelRequestId}/approve`);
+    const apr = await giverB.patch(`/ride-requests/${cancelRequestId}/approve`);
     assert(apr.data.status === 'HOLD', `Expected HOLD`);
 
     const conf = await s2.patch(`/ride-requests/${cancelRequestId}/confirm`);
@@ -199,83 +216,68 @@ async function run() {
   });
 
   await test('Seeker can cancel a confirmed booking', async () => {
-    const r = await s2.patch(`/ride-requests/${cancelRequestId}/cancel`, {
-      reason: 'Change of plans',
-    });
+    const r = await s2.patch(`/ride-requests/${cancelRequestId}/cancel`, { reason: 'Change of plans' });
     assert(r.status === 200, `Got ${r.status}`);
     assert(r.data.status === 'CANCELLED', `Expected CANCELLED`);
   });
 
   await test('Seat restored after seeker cancellation', async () => {
-    const r = await giver.get(`/rides/${cancelRideId}`);
+    const r = await giverB.get(`/rides/${cancelRideId}`);
     assert(r.data.availableSeats === 2, `Expected 2, got ${r.data.availableSeats}`);
   });
 
   await test('Giver can cancel a published ride', async () => {
-    const freshRide = await giver.post('/rides', {
-      vehicleId, originName: 'Kukatpally', originLat: 17.4849, originLng: 78.3987,
-      destinationName: 'Financial District', destinationLat: 17.4156, destinationLng: 78.3482,
-      departureDate: tomorrow.toISOString().split('T')[0],
-      departureTime: '07:30', totalSeats: 3,
-    });
-    await giver.patch(`/rides/${freshRide.data.id}/publish`);
-
-    const r = await giver.patch(`/rides/${freshRide.data.id}/cancel`, {
-      reason: 'Vehicle breakdown',
-    });
+    // cancelRideId is still PUBLISHED — cancel it
+    const r = await giverB.patch(`/rides/${cancelRideId}/cancel`, { reason: 'Vehicle breakdown' });
     assert(r.status === 200, `Got ${r.status}`);
     assert(r.data.status === 'CANCELLED', `Expected CANCELLED`);
   });
 
   await test('Cannot book seats on a CANCELLED ride', async () => {
-    // find a cancelled ride
-    const r = await s1.post('/ride-requests', { rideId: cancelRideId });
-    // cancelRideId is still PUBLISHED — use a different check
-    // Just verify the status works correctly for available rides
-    assert([201, 400, 409].includes(r.status), `Got ${r.status}`);
+    const r = await s2.post('/ride-requests', { rideId: cancelRideId });
+    assert(r.status === 400, `Expected 400 on cancelled ride, got ${r.status}`);
   });
 
   // ══════════════════════════════════════════
-  //  3. RACE CONDITION — Last seat
+  //  3. RACE CONDITION — Last seat (giverC + s1 + s3)
   // ══════════════════════════════════════════
   section('🏎️ Race Condition — Last Seat');
 
-  // Create a 1-seat ride
-  const raceRide = await giver.post('/rides', {
-    vehicleId, originName: 'Dilsukhnagar', originLat: 17.3688, originLng: 78.5247,
+  const raceRide = await giverC.post('/rides', {
+    vehicleId: vehicleCId, originName: 'Dilsukhnagar', originLat: 17.3688, originLng: 78.5247,
     destinationName: 'Uppal', destinationLat: 17.4008, destinationLng: 78.5593,
     departureDate: tomorrow.toISOString().split('T')[0],
     departureTime: '11:00', totalSeats: 1,
   });
-  await giver.patch(`/rides/${raceRide.data.id}/publish`);
+  await giverC.patch(`/rides/${raceRide.data.id}/publish`);
   const raceRideId = raceRide.data.id;
 
   let race1Id = '';
-  let race2Id = '';
+  let race3Id = '';
 
   await test('Both seekers request the single last seat', async () => {
-    const [r1, r2] = await Promise.all([
+    // s1 has no active requests (rejection flow left it with PENDING/REJECTED — OK)
+    // s3 is fresh with no requests
+    const [r1, r3] = await Promise.all([
       s1.post('/ride-requests', { rideId: raceRideId }),
-      s2.post('/ride-requests', { rideId: raceRideId }),
+      s3.post('/ride-requests', { rideId: raceRideId }),
     ]);
-    // Both should succeed (PENDING) — uniqueness enforced per seeker
-    assert([201, 409].includes(r1.status), `S1: ${r1.status}`);
-    assert([201, 409].includes(r2.status), `S2: ${r2.status}`);
+    assert([201, 409].includes(r1.status), `S1: ${r1.status}: ${JSON.stringify(r1.data)}`);
+    assert([201, 409].includes(r3.status), `S3: ${r3.status}: ${JSON.stringify(r3.data)}`);
     if (r1.status === 201) race1Id = r1.data.requestId;
-    if (r2.status === 201) race2Id = r2.data.requestId;
+    if (r3.status === 201) race3Id = r3.data.requestId;
   });
 
   await test('Giver approves S1 → seat goes on hold', async () => {
     if (!race1Id) return;
-    const r = await giver.patch(`/ride-requests/${race1Id}/approve`);
+    const r = await giverC.patch(`/ride-requests/${race1Id}/approve`);
     assert(r.status === 200, `Got ${r.status}`);
     assert(r.data.status === 'HOLD', `Expected HOLD`);
   });
 
-  await test('Giver cannot approve S2 when seat is on hold', async () => {
-    if (!race2Id) return;
-    const r = await giver.patch(`/ride-requests/${race2Id}/approve`);
-    // Should fail — no seats available
+  await test('Giver cannot approve S3 when seat is on hold', async () => {
+    if (!race3Id) return;
+    const r = await giverC.patch(`/ride-requests/${race3Id}/approve`);
     assert(r.status === 400, `Expected 400 (no seats), got ${r.status}`);
   });
 
@@ -284,7 +286,7 @@ async function run() {
     const r = await s1.patch(`/ride-requests/${race1Id}/confirm`);
     assert(r.status === 200, `Got ${r.status}`);
     assert(r.data.status === 'CONFIRMED', `Expected CONFIRMED`);
-    const ride = await giver.get(`/rides/${raceRideId}`);
+    const ride = await giverC.get(`/rides/${raceRideId}`);
     assert(ride.data.availableSeats === 0, `Expected 0 seats`);
   });
 
@@ -294,7 +296,6 @@ async function run() {
   section('🔐 Security Tests');
 
   await test('Seeker cannot approve their own ride request', async () => {
-    // s1 tries to approve their own request
     const r = await s1.patch(`/ride-requests/${race1Id}/approve`);
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
@@ -419,21 +420,26 @@ async function run() {
   // ══════════════════════════════════════════
   section('🆘 SOS Flow');
 
-  // Create and start a ride to trigger SOS
-  const sosRide = await giver.post('/rides', {
-    vehicleId, originName: 'Miyapur', originLat: 17.4948, originLng: 78.3588,
+  // Create and start a ride to trigger SOS — use giverB (cancellation ride is cancelled so giverB is free)
+  // and a fresh seeker so no active-request conflicts
+  const ts2 = Date.now();
+  const sosSeekerToken = await registerAndLogin(`sos_seeker_${ts2}@tcs.com`, 'SOS Seeker', 'RIDE_SEEKER');
+  const sosSeeker = makeClient(sosSeekerToken);
+
+  const sosRide = await giverB.post('/rides', {
+    vehicleId: vehicleBId, originName: 'Miyapur', originLat: 17.4948, originLng: 78.3588,
     destinationName: 'Madhapur', destinationLat: 17.4483, destinationLng: 78.3915,
     departureDate: tomorrow.toISOString().split('T')[0],
     departureTime: '12:00', totalSeats: 2,
   });
-  await giver.patch(`/rides/${sosRide.data.id}/publish`);
-  const s1Req = await s1.post('/ride-requests', { rideId: sosRide.data.id });
-  const aprSos = await giver.patch(`/ride-requests/${s1Req.data.requestId}/approve`);
-  await s1.patch(`/ride-requests/${s1Req.data.requestId}/confirm`);
-  await giver.patch(`/rides/${sosRide.data.id}/start`);
+  await giverB.patch(`/rides/${sosRide.data.id}/publish`);
+  const s1Req = await sosSeeker.post('/ride-requests', { rideId: sosRide.data.id });
+  await giverB.patch(`/ride-requests/${s1Req.data.requestId}/approve`);
+  await sosSeeker.patch(`/ride-requests/${s1Req.data.requestId}/confirm`);
+  await giverB.patch(`/rides/${sosRide.data.id}/start`);
 
   await test('Participant can trigger SOS during active ride', async () => {
-    const r = await s1.post('/sos', {
+    const r = await sosSeeker.post('/sos', {
       rideId: sosRide.data.id,
       lat: 17.4483, lng: 78.3915,
     });
