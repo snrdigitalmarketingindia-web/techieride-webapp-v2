@@ -7,7 +7,7 @@ export default function LandingPage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Techieride" width={130} height={44} className="object-contain" priority />
+          <Image src="/logo.png" alt="TechieRide" width={130} height={44} className="object-contain" priority />
           <span className="text-xs font-medium text-orange-400">v2.0_Beta</span>
         </div>
         <div className="flex gap-4">

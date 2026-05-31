@@ -77,25 +77,37 @@ enum SosStatus {
   RESOLVED
 }
 
+enum EmailStatus {
+  PENDING
+  VERIFIED
+  BOUNCED
+}
+
 // ─── User ──────────────────────────────────────────────────────────────────
 
 model User {
-  id                 String             @id @default(uuid())
-  phone              String             @unique
-  email              String             @unique
-  fullName           String
-  profilePhoto       String?
-  gender             Gender?
-  companyName        String?
-  employeeId         String?
-  role               UserRole           @default(RIDE_SEEKER)
-  verificationStatus VerificationStatus @default(PENDING)
-  isActive           Boolean            @default(true)
-  fcmToken           String?
-  ecoPoints          Int                @default(0)
-  ecoLevel           EcoLevel           @default(SEED)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                        String             @id @default(uuid())
+  email                     String             @unique
+  passwordHash              String
+  fullName                  String
+  profilePhoto              String?
+  gender                    Gender?
+  companyName               String?
+  employeeId                String?
+  phone                     String?            @unique
+  role                      UserRole           @default(RIDE_SEEKER)
+  verificationStatus        VerificationStatus @default(PENDING)
+  emailStatus               EmailStatus        @default(PENDING)
+  emailVerificationToken    String?            @unique
+  emailVerificationExpiry   DateTime?
+  passwordResetToken        String?            @unique
+  passwordResetExpiry       DateTime?
+  isActive                  Boolean            @default(true)
+  fcmToken                  String?
+  ecoPoints                 Int                @default(0)
+  ecoLevel                  EcoLevel           @default(SEED)
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
 
   rideGiver            RideGiver?
   rideSeeker           RideSeeker?
@@ -106,26 +118,13 @@ model User {
   ratingsGiven         RideRating[]       @relation("rater")
   ratingsReceived      RideRating[]       @relation("ratee")
   sosEvents            SosEvent[]
-  otp                  Otp?
 
-  @@index([phone])
   @@index([email])
+  @@index([emailStatus])
   @@index([verificationStatus])
   @@map("users")
 }
 
-model Otp {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  otpHash   String
-  expiresAt DateTime
-  attempts  Int      @default(0)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("otps")
-}
 
 model EmergencyContact {
   id           String @id @default(uuid())

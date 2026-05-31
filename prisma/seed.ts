@@ -1,38 +1,50 @@
 import { PrismaClient, Gender, UserRole, VerificationStatus, EcoLevel } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🌱 Seeding Techie Ride database...\n');
+// All seed accounts use this password for easy testing
+const SEED_PASSWORD = 'TechieRide@2024';
+const BCRYPT_ROUNDS = 12;
 
-  // ── Admin ──────────────────────────────────────────────────────────
+async function hashPw(pw: string) {
+  return bcrypt.hash(pw, BCRYPT_ROUNDS);
+}
+
+async function main() {
+  console.log('🌱 Seeding TechieRide database...\n');
+
+  // ── Admin ──────────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
-    where: { phone: '9999999999' },
+    where: { email: 'admin@techieride.in' },
     update: {},
     create: {
-      phone: '9999999999',
       email: 'admin@techieride.in',
+      passwordHash: await hashPw(SEED_PASSWORD),
       fullName: 'TR Admin',
       role: UserRole.ADMIN,
       verificationStatus: VerificationStatus.APPROVED,
+      emailStatus: 'VERIFIED',
       isActive: true,
     },
   });
   console.log('✅ Admin:', admin.email);
 
-  // ── Ride Seeker: Arjun ─────────────────────────────────────────────
+  // ── Ride Seeker: Arjun ─────────────────────────────────────────────────
   const arjun = await prisma.user.upsert({
-    where: { phone: '9876543210' },
-    update: { verificationStatus: VerificationStatus.APPROVED },
+    where: { email: 'arjun@tcs.com' },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED' },
     create: {
-      phone: '9876543210',
       email: 'arjun@tcs.com',
+      passwordHash: await hashPw(SEED_PASSWORD),
       fullName: 'Arjun Mehta',
       gender: Gender.MALE,
       companyName: 'TCS',
       employeeId: 'TCS-001',
+      phone: '9876543210',
       role: UserRole.RIDE_SEEKER,
       verificationStatus: VerificationStatus.APPROVED,
+      emailStatus: 'VERIFIED',
       ecoPoints: 60,
       ecoLevel: EcoLevel.SEED,
     },
@@ -49,19 +61,21 @@ async function main() {
   });
   console.log('✅ Seeker Arjun:', arjun.email);
 
-  // ── Ride Giver: Priya ──────────────────────────────────────────────
+  // ── Ride Giver: Priya ──────────────────────────────────────────────────
   const priya = await prisma.user.upsert({
-    where: { phone: '9000000001' },
-    update: { verificationStatus: VerificationStatus.APPROVED },
+    where: { email: 'priya@infosys.com' },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED' },
     create: {
-      phone: '9000000001',
       email: 'priya@infosys.com',
+      passwordHash: await hashPw(SEED_PASSWORD),
       fullName: 'Priya Sharma',
       gender: Gender.FEMALE,
       companyName: 'Infosys',
       employeeId: 'INF-002',
+      phone: '9000000001',
       role: UserRole.RIDE_GIVER,
       verificationStatus: VerificationStatus.APPROVED,
+      emailStatus: 'VERIFIED',
       ecoPoints: 180,
       ecoLevel: EcoLevel.SPROUT,
     },
@@ -83,19 +97,21 @@ async function main() {
   });
   console.log('✅ Giver Priya:', priya.email, '| Vehicle:', vehicle.plateNumber);
 
-  // ── Both: Ravi ─────────────────────────────────────────────────────
+  // ── Both: Ravi ─────────────────────────────────────────────────────────
   const ravi = await prisma.user.upsert({
-    where: { phone: '9111111111' },
+    where: { email: 'ravi@wipro.com' },
     update: {},
     create: {
-      phone: '9111111111',
       email: 'ravi@wipro.com',
+      passwordHash: await hashPw(SEED_PASSWORD),
       fullName: 'Ravi Kumar',
       gender: Gender.MALE,
       companyName: 'Wipro',
       employeeId: 'WIP-101',
+      phone: '9111111111',
       role: UserRole.BOTH,
       verificationStatus: VerificationStatus.APPROVED,
+      emailStatus: 'VERIFIED',
       ecoPoints: 340,
       ecoLevel: EcoLevel.LEAF,
     },
@@ -104,7 +120,7 @@ async function main() {
   await prisma.rideGiver.upsert({ where: { userId: ravi.id }, update: {}, create: { userId: ravi.id, licenseVerified: true, totalRidesGiven: 8, averageRating: 4.9 } });
   console.log('✅ Both Ravi:', ravi.email, '| 🍃 LEAF level');
 
-  // ── Gamification points ────────────────────────────────────────────
+  // ── Gamification points ────────────────────────────────────────────────
   for (const [user, pts] of [[arjun, 60], [priya, 180], [ravi, 340]] as const) {
     const exists = await prisma.gamificationPoint.findFirst({ where: { userId: user.id, eventType: 'SEED_DATA' } });
     if (!exists) {
@@ -114,12 +130,11 @@ async function main() {
   console.log('✅ ECO points seeded');
 
   console.log('\n🚀 Seed complete!\n');
-  console.log('Test accounts:');
-  console.log('  Admin  : phone 9999999999');
-  console.log('  Seeker : phone 9876543210 (Arjun / TCS)');
-  console.log('  Giver  : phone 9000000001 (Priya / Infosys)');
-  console.log('  Both   : phone 9111111111 (Ravi / Wipro)');
-  console.log('  OTP prints to API console in dev mode.');
+  console.log('Test accounts (all use password: TechieRide@2024)');
+  console.log('  Admin  : admin@techieride.in');
+  console.log('  Seeker : arjun@tcs.com');
+  console.log('  Giver  : priya@infosys.com');
+  console.log('  Both   : ravi@wipro.com');
 }
 
 main()

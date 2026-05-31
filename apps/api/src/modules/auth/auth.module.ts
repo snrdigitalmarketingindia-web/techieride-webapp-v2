@@ -5,11 +5,12 @@ import { ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { OtpService } from './otp.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     PassportModule,
+    EmailModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -19,7 +20,7 @@ import { OtpService } from './otp.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, OtpService],
+  providers: [AuthService, JwtStrategy],
   exports: [AuthService],
 })
 export class AuthModule {}

@@ -1,78 +1,232 @@
 import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  BadRequestException,
+  Injectable, UnauthorizedException, BadRequestException,
+  ConflictException, NotFoundException, ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { OtpService } from './otp.service';
-import { RegisterDto } from './dto/register.dto';
-import { UserRole } from '@techieride/shared';
+import { EmailService } from '../email/email.service';
+import { isAllowedDomain } from '../../config/allowed-domains';
+import { RegisterDto, LoginDto, ResetPasswordDto } from './dto/auth.dto';
+
+const BCRYPT_ROUNDS = 12;
+const VERIFY_TOKEN_TTL_HOURS = 24;
+const RESET_TOKEN_TTL_HOURS = 1;
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
-    private jwtService: JwtService,
+    private jwt: JwtService,
     private config: ConfigService,
-    private otpService: OtpService,
+    private email: EmailService,
   ) {}
 
+  // ── Register ─────────────────────────────────────────────────────────────
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findFirst({
-      where: { OR: [{ phone: dto.phone }, { email: dto.email }] },
-    });
-    if (existing) {
-      throw new ConflictException('Phone or email already registered');
+    const emailLower = dto.email.toLowerCase().trim();
+
+    // 1. Domain whitelist check
+    if (!isAllowedDomain(emailLower)) {
+      throw new ForbiddenException(
+        'Only verified IT company email addresses are accepted. ' +
+        'Personal emails (gmail, yahoo, etc.) are not allowed.'
+      );
     }
 
+    // 2. Duplicate check
+    const existing = await this.prisma.user.findUnique({ where: { email: emailLower } });
+    if (existing) throw new ConflictException('An account with this email already exists');
+
+    // 3. Hash password
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+
+    // 4. Generate email verification token
+    const emailVerificationToken = randomBytes(32).toString('hex');
+    const emailVerificationExpiry = new Date(
+      Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000
+    );
+
+    // 5. Create user
     const user = await this.prisma.user.create({
       data: {
-        phone: dto.phone,
-        email: dto.email,
+        email: emailLower,
+        passwordHash,
         fullName: dto.fullName,
-        gender: dto.gender as any,
+        gender: dto.gender,
         companyName: dto.companyName,
         employeeId: dto.employeeId,
-        role: dto.role as UserRole,
+        phone: dto.phone,
+        role: dto.role,
+        emailVerificationToken,
+        emailVerificationExpiry,
+        emailStatus: 'PENDING',
       },
     });
 
-    if (dto.role === UserRole.RIDE_GIVER || dto.role === UserRole.BOTH) {
+    // 6. Create role profile
+    if (dto.role === 'RIDE_GIVER' || dto.role === 'BOTH') {
       await this.prisma.rideGiver.create({ data: { userId: user.id } });
     }
-    if (dto.role === UserRole.RIDE_SEEKER || dto.role === UserRole.BOTH) {
+    if (dto.role === 'RIDE_SEEKER' || dto.role === 'BOTH') {
       await this.prisma.rideSeeker.create({ data: { userId: user.id } });
     }
 
-    await this.otpService.sendOtp(dto.phone, user.id);
-    return { userId: user.id, message: 'OTP sent to phone' };
+    // 7. Send verification email (non-blocking)
+    await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
+
+    return {
+      message: 'Account created! Please check your office email to verify your account.',
+      email: emailLower,
+    };
   }
 
-  async requestOtp(phone: string) {
-    const user = await this.prisma.user.findUnique({ where: { phone } });
-    if (!user) throw new UnauthorizedException('Phone number not registered');
-    await this.otpService.sendOtp(phone, user.id);
-    return { message: 'OTP sent' };
+  // ── Verify Email ─────────────────────────────────────────────────────────
+  async verifyEmail(token: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { emailVerificationToken: token },
+    });
+
+    if (!user) throw new NotFoundException('Invalid or expired verification link');
+    if (user.emailStatus === 'VERIFIED') {
+      return { message: 'Email already verified. Please log in.' };
+    }
+    if (user.emailVerificationExpiry && user.emailVerificationExpiry < new Date()) {
+      throw new BadRequestException('Verification link has expired. Please request a new one.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailStatus: 'VERIFIED',
+        emailVerificationToken: null,
+        emailVerificationExpiry: null,
+      },
+    });
+
+    // Send welcome email
+    await this.email.sendWelcomeEmail(user.email, user.fullName);
+
+    return { message: 'Email verified successfully! You can now log in.' };
   }
 
-  async verifyOtp(phone: string, otp: string) {
-    const user = await this.prisma.user.findUnique({ where: { phone } });
-    if (!user) throw new UnauthorizedException('Phone number not registered');
+  // ── Resend Verification ───────────────────────────────────────────────────
+  async resendVerification(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+    if (!user) throw new NotFoundException('No account found with this email');
+    if (user.emailStatus === 'VERIFIED') {
+      throw new BadRequestException('Email is already verified');
+    }
 
-    const valid = await this.otpService.verifyOtp(user.id, otp);
-    if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
-    if (!user.isActive) throw new UnauthorizedException('Account suspended');
+    const emailVerificationToken = randomBytes(32).toString('hex');
+    const emailVerificationExpiry = new Date(
+      Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000
+    );
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerificationToken, emailVerificationExpiry },
+    });
+
+    await this.email.sendVerificationEmail(user.email, user.fullName, emailVerificationToken);
+    return { message: 'Verification email resent. Please check your inbox.' };
+  }
+
+  // ── Login ────────────────────────────────────────────────────────────────
+  async login(dto: LoginDto) {
+    const emailLower = dto.email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({ where: { email: emailLower } });
+
+    if (!user) throw new UnauthorizedException('Invalid email or password');
+
+    const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordMatch) throw new UnauthorizedException('Invalid email or password');
+
+    if (!user.isActive) throw new UnauthorizedException('Account suspended. Contact admin.');
+
+    if (user.emailStatus !== 'VERIFIED') {
+      throw new UnauthorizedException(
+        'Please verify your email before logging in. Check your inbox or request a new verification email.'
+      );
+    }
+
+    if (user.emailStatus === 'BOUNCED') {
+      throw new UnauthorizedException(
+        'Your email address could not be delivered to. Please contact support.'
+      );
+    }
 
     return this.generateTokens(user);
   }
 
+  // ── Forgot Password ──────────────────────────────────────────────────────
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    // Always return success to prevent email enumeration
+    if (!user) return { message: 'If that email exists, a reset link has been sent.' };
+
+    const passwordResetToken = randomBytes(32).toString('hex');
+    const passwordResetExpiry = new Date(
+      Date.now() + RESET_TOKEN_TTL_HOURS * 60 * 60 * 1000
+    );
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken, passwordResetExpiry },
+    });
+
+    await this.email.sendPasswordResetEmail(user.email, user.fullName, passwordResetToken);
+    return { message: 'If that email exists, a reset link has been sent.' };
+  }
+
+  // ── Reset Password ────────────────────────────────────────────────────────
+  async resetPassword(dto: ResetPasswordDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { passwordResetToken: dto.token },
+    });
+
+    if (!user) throw new NotFoundException('Invalid or expired reset link');
+    if (user.passwordResetExpiry && user.passwordResetExpiry < new Date()) {
+      throw new BadRequestException('Reset link has expired. Please request a new one.');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        passwordResetToken: null,
+        passwordResetExpiry: null,
+      },
+    });
+
+    return { message: 'Password reset successfully. You can now log in.' };
+  }
+
+  // ── Bounce Webhook (called by Resend) ────────────────────────────────────
+  async handleEmailBounce(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+    if (!user) return;
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailStatus: 'BOUNCED', isActive: false },
+    });
+  }
+
+  // ── Refresh Tokens ────────────────────────────────────────────────────────
   async refreshTokens(refreshToken: string) {
     try {
-      const payload = this.jwtService.verify(refreshToken, {
+      const payload = this.jwt.verify(refreshToken, {
         secret: this.config.get('JWT_REFRESH_SECRET'),
       });
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
@@ -83,10 +237,11 @@ export class AuthService {
     }
   }
 
+  // ── Token generator ───────────────────────────────────────────────────────
   private generateTokens(user: { id: string; role: string; email: string }) {
     const payload = { sub: user.id, role: user.role, email: user.email };
-    const accessToken = this.jwtService.sign(payload);
-    const refreshToken = this.jwtService.sign(payload, {
+    const accessToken = this.jwt.sign(payload);
+    const refreshToken = this.jwt.sign(payload, {
       secret: this.config.get('JWT_REFRESH_SECRET'),
       expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
     });
