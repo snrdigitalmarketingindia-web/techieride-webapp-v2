@@ -260,6 +260,18 @@ async function run() {
     assert(r.data.length > 0, 'No vehicles found');
   });
 
+  // Cancel any existing active rides so the new rule doesn't block publishing
+  {
+    const existing = await giverClient.get('/rides/given');
+    if (existing.status === 200) {
+      for (const ride of existing.data) {
+        if (['PUBLISHED', 'STARTED'].includes(ride.status)) {
+          await giverClient.patch(`/rides/${ride.id}/cancel`, { reason: 'CI cleanup' });
+        }
+      }
+    }
+  }
+
   await test('Giver can create a ride', async () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
