@@ -30,7 +30,6 @@ export default function SignupPage() {
     fullName: '',
     gender: Gender.MALE as string,
     companyName: '',
-    employeeId: '',
     role: UserRole.RIDE_SEEKER as string,
     phone: '',
   });
@@ -55,7 +54,7 @@ export default function SignupPage() {
     }
     if (step === 1) {
       if (!form.companyName.trim()) return 'Please enter your company name';
-      if (!form.employeeId.trim()) return 'Please enter your employee ID';
+      if (form.phone.length !== 10) return 'Please enter a valid 10-digit mobile number';
     }
     return null;
   };
@@ -77,9 +76,9 @@ export default function SignupPage() {
         fullName: form.fullName.trim(),
         gender: form.gender,
         companyName: form.companyName.trim(),
-        employeeId: form.employeeId.trim(),
+        employeeId: 'N/A',
         role: form.role,
-        phone: form.phone || undefined,
+        phone: form.phone,
       });
       setRegistered(true);
     } catch (e: any) {
@@ -236,24 +235,31 @@ export default function SignupPage() {
                 className={inputCls}
               />
             </Field>
-            <Field label="Employee ID">
-              <input
-                value={form.employeeId}
-                onChange={(e) => update('employeeId', e.target.value)}
-                placeholder="EMP-12345"
-                className={inputCls}
-              />
-            </Field>
-            <Field label="Phone (optional)">
+            <Field label="Mobile Number">
               <div className="flex">
                 <span className="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg">+91</span>
                 <input
+                  type="tel"
+                  inputMode="numeric"
                   value={form.phone}
-                  onChange={(e) => update('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '');
+                    if (val.length <= 10) update('phone', val);
+                  }}
                   placeholder="9876543210"
+                  maxLength={10}
                   className={`${inputCls} rounded-l-none`}
                   autoComplete="tel"
                 />
+              </div>
+              <div className="flex justify-between mt-1">
+                {form.phone.length > 0 && form.phone.length < 10 && (
+                  <p className="text-xs text-orange-500">{10 - form.phone.length} more digit{10 - form.phone.length !== 1 ? 's' : ''} needed</p>
+                )}
+                {form.phone.length === 10 && (
+                  <p className="text-xs text-brand-600">✅ Valid number</p>
+                )}
+                <p className="text-xs text-gray-400 ml-auto">{form.phone.length}/10</p>
               </div>
             </Field>
             <div className="flex gap-2">
@@ -268,9 +274,9 @@ export default function SignupPage() {
           <div className="space-y-4">
             <p className="text-sm font-medium text-gray-700">I want to:</p>
             {[
-              { value: UserRole.RIDE_SEEKER, label: '🧳 Find rides', desc: 'Look for rides offered by verified colleagues' },
-              { value: UserRole.RIDE_GIVER,  label: '🚗 Offer rides', desc: 'Share your commute with verified colleagues' },
-              { value: UserRole.BOTH,        label: '⚡ Both', desc: 'Offer rides on some days, take rides on others' },
+              { value: UserRole.RIDE_SEEKER, label: '🧳 Ride Seeker', desc: 'Look for rides offered by verified colleagues' },
+              { value: UserRole.RIDE_GIVER,  label: '🚗 Ride Giver',  desc: 'Share your commute with verified colleagues' },
+              { value: UserRole.BOTH,        label: '⚡ Both',         desc: 'Offer rides on some days, take rides on others' },
             ].map((r) => (
               <label
                 key={r.value}
