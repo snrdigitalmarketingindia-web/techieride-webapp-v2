@@ -13,5 +13,7 @@ echo "🔨 Building API..."
 cd apps/api
 NODE_ENV=development npm run build
 
-echo "✅ Done. Contents of dist:"
-ls dist/ 2>/dev/null || echo "dist not found!"
+echo "✅ Done. Searching for main.js:"
+find /opt/render/project/src -name "main.js" 2>/dev/null || find . -name "main.js" 2>/dev/null || echo "main.js not found anywhere!"
+echo "Contents of apps/api:"
+ls /opt/render/project/src/apps/api/ 2>/dev/null || ls . 2>/dev/null
