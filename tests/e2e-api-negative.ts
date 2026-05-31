@@ -86,6 +86,12 @@ async function run() {
   const giver  = makeClient(giverAcc.token);
   const seeker = makeClient(seekerAcc.token);
 
+  // Giver must be verified (verificationStatus=APPROVED) to be able to publish
+  await giver.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  const verQueue = await admin.get('/admin/verification/pending');
+  const verEntry = verQueue.data.find((v: any) => v.userId === giverAcc.userId);
+  if (verEntry) await admin.patch(`/admin/verification/${verEntry.id}/review`, { decision: 'APPROVED' });
+
   // Add vehicle for fresh giver
   const vehRes = await giver.post('/vehicles', {
     make: 'Honda', model: 'City', color: 'White',
@@ -93,6 +99,8 @@ async function run() {
   });
   const freshVehicleId = vehRes.data.id;
   assert(freshVehicleId, 'Could not create vehicle for negative tests');
+  // Admin verifies vehicle RC so publish() is not blocked
+  await admin.patch(`/admin/vehicles/${freshVehicleId}/verify`);
 
   // ── Role boundary: wrong role attempts ───────────────────────────────────
   console.log(`\n${c.bold}${c.cyan}━━━ 🚧 Role Boundaries ━━━${c.reset}`);
@@ -156,11 +164,21 @@ async function run() {
   // ── Invalid state transitions ─────────────────────────────────────────────
   console.log(`\n${c.bold}${c.cyan}━━━ ⚙️  Invalid State Transitions ━━━${c.reset}`);
 
+  // Helper: register + verify giver + add vehicle + verify RC
+  async function freshVerifiedGiver(suffix: string, plate: string) {
+    const acc = await registerAndLogin(`neg_giver${suffix}_${ts}@wipro.com`, 'RIDE_GIVER');
+    const client = makeClient(acc.token);
+    await client.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+    const q = await admin.get('/admin/verification/pending');
+    const e = q.data.find((v: any) => v.userId === acc.userId);
+    if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
+    const veh = await client.post('/vehicles', { make: 'Toyota', model: 'Etios', color: 'Grey', plateNumber: plate, totalSeats: 4 });
+    if (veh.data.id) await admin.patch(`/admin/vehicles/${veh.data.id}/verify`);
+    return { client, vehicleId: veh.data.id as string };
+  }
+
   // Fresh giver B for draft/published state tests (giver already has a published ride)
-  const giverBAcc = await registerAndLogin(`neg_giverB_${ts}@wipro.com`, 'RIDE_GIVER');
-  const giverB = makeClient(giverBAcc.token);
-  const vehB = await giverB.post('/vehicles', { make: 'Toyota', model: 'Etios', color: 'Grey', plateNumber: `TSB${ts.toString().slice(-4)}`, totalSeats: 4 });
-  const vehicleBId = vehB.data.id;
+  const { client: giverB, vehicleId: vehicleBId } = await freshVerifiedGiver('B', `TSB${ts.toString().slice(-4)}`);
 
   const draftRideRes = await giverB.post('/rides', {
     vehicleId: vehicleBId, originName: 'Gachibowli', destinationName: 'Madhapur',
@@ -194,10 +212,7 @@ async function run() {
   });
 
   // Fresh giver C for ONGOING state tests
-  const giverCAcc = await registerAndLogin(`neg_giverC_${ts}@wipro.com`, 'RIDE_GIVER');
-  const giverC = makeClient(giverCAcc.token);
-  const vehC = await giverC.post('/vehicles', { make: 'Maruti', model: 'Swift', color: 'Blue', plateNumber: `TSC${ts.toString().slice(-4)}`, totalSeats: 4 });
-  const vehicleCId = vehC.data.id;
+  const { client: giverC, vehicleId: vehicleCId } = await freshVerifiedGiver('C', `TSC${ts.toString().slice(-4)}`);
 
   const ongoingRideRes = await giverC.post('/rides', {
     vehicleId: vehicleCId, originName: 'Kukatpally', destinationName: 'Ameerpet',
@@ -223,9 +238,8 @@ async function run() {
   console.log(`\n${c.bold}${c.cyan}━━━ 📋 Request State Boundaries ━━━${c.reset}`);
 
   // Fresh giver D + fresh seeker for request state tests
-  const giverDAcc = await registerAndLogin(`neg_giverD_${ts}@wipro.com`, 'RIDE_GIVER');
-  const giverD = makeClient(giverDAcc.token);
-  const vehD = await giverD.post('/vehicles', { make: 'Hyundai', model: 'i20', color: 'Red', plateNumber: `TSD${ts.toString().slice(-4)}`, totalSeats: 4 });
+  const { client: giverD, vehicleId: vehDId } = await freshVerifiedGiver('D', `TSD${ts.toString().slice(-4)}`);
+  const vehD = { data: { id: vehDId } }; // keep existing references working
   const seekerBAcc = await registerAndLogin(`neg_seekerB_${ts}@tcs.com`, 'RIDE_SEEKER');
   const seekerB = makeClient(seekerBAcc.token);
 

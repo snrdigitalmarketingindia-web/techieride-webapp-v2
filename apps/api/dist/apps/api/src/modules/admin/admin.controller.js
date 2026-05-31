@@ -41,6 +41,12 @@ let AdminController = class AdminController {
     reviewVerification(id, adminId, body) {
         return this.verificationService.review(id, adminId, body.decision, body.rejectionReason);
     }
+    verifyVehicle(id) {
+        return this.adminService.verifyVehicle(id);
+    }
+    rejectVehicle(id, reason) {
+        return this.adminService.rejectVehicle(id, reason);
+    }
     listRides(status, page = 1, limit = 20) {
         return this.adminService.listAllRides(status, +page, +limit);
     }
@@ -94,6 +100,21 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "reviewVerification", null);
+__decorate([
+    (0, common_1.Patch)('vehicles/:id/verify'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "verifyVehicle", null);
+__decorate([
+    (0, common_1.Patch)('vehicles/:id/reject'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('reason')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "rejectVehicle", null);
 __decorate([
     (0, common_1.Get)('rides'),
     __param(0, (0, common_1.Query)('status')),

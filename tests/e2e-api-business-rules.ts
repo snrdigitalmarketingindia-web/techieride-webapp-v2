@@ -131,14 +131,24 @@ async function setupFreshPair(suffix: string) {
   const giverClient  = makeClient(giver.token);
   const seekerClient = makeClient(seeker.token);
 
+  // Giver must be verified before they can publish
+  const adminAcc = await loginAs('admin@techieride.in');
+  const admin = makeClient(adminAcc.token);
+  await giverClient.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  const queue = await admin.get('/admin/verification/pending');
+  const verReq = queue.data.find((v: any) => v.userId === giver.userId);
+  if (verReq) await admin.patch(`/admin/verification/${verReq.id}/review`, { decision: 'APPROVED' });
+
   // Add vehicle for giver
-  const phone = '9' + Math.floor(100000000 + Math.random() * 900000000).toString();
   const v = await giverClient.post('/vehicles', {
     make: 'Maruti', model: 'Swift', year: 2022,
     color: 'Blue', plateNumber: `TS${ts.toString().slice(-4)}AB`,
     totalSeats: 4,
   });
   const vehicleId = v.status === 201 ? v.data.id : null;
+
+  // Admin verifies vehicle RC so publish() is not blocked
+  if (vehicleId) await admin.patch(`/admin/vehicles/${vehicleId}/verify`);
 
   return { giverClient, seekerClient, vehicleId, giverEmail, seekerEmail };
 }

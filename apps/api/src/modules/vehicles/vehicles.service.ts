@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, ForbiddenException, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
@@ -31,6 +31,18 @@ export class VehiclesService {
   async remove(vehicleId: string, userId: string) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) throw new ForbiddenException();
+
+    const vehicle = await this.prisma.vehicle.findFirst({ where: { id: vehicleId, rideGiverId: giver.id } });
+    if (!vehicle) throw new NotFoundException('Vehicle not found');
+
+    // Block deletion if vehicle is used on an active (PUBLISHED/ONGOING) ride
+    const activeRide = await this.prisma.ride.findFirst({
+      where: { vehicleId, status: { in: ['PUBLISHED', 'ONGOING'] } },
+    });
+    if (activeRide) {
+      throw new ConflictException('Cannot remove a vehicle that is used in an active ride. Cancel or complete the ride first.');
+    }
+
     return this.prisma.vehicle.update({
       where: { id: vehicleId },
       data: { isActive: false },

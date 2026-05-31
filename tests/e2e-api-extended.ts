@@ -95,6 +95,8 @@ async function createGiver(admin: AxiosInstance, suffix: string) {
     make: 'Toyota', model: 'Innova', color: 'White',
     plateNumber: `TS${ts.toString().slice(-5)}`, totalSeats: 4,
   });
+  // Admin verifies vehicle RC so publish() is not blocked
+  if (veh.data.id) await admin.patch(`/admin/vehicles/${veh.data.id}/verify`);
   return { client, token, vehicleId: veh.data.id };
 }
 

@@ -75,6 +75,18 @@ let AdminService = class AdminService {
             data: { status: 'RESOLVED', resolvedBy: adminId, resolutionNotes: notes, resolvedAt: new Date() },
         });
     }
+    async verifyVehicle(vehicleId) {
+        return this.prisma.vehicle.update({
+            where: { id: vehicleId },
+            data: { rcVerified: true },
+        });
+    }
+    async rejectVehicle(vehicleId, reason) {
+        return this.prisma.vehicle.update({
+            where: { id: vehicleId },
+            data: { rcVerified: false },
+        });
+    }
     async listAllRides(status, page = 1, limit = 20) {
         const where = status ? { status } : {};
         const [data, total] = await this.prisma.$transaction([

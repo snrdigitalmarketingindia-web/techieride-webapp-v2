@@ -65,6 +65,18 @@ let RidesService = class RidesService {
         if (ride.status !== shared_1.RideStatus.DRAFT) {
             throw new common_1.BadRequestException('Only DRAFT rides can be published');
         }
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new common_1.ForbiddenException('User not found');
+        if (user.verificationStatus !== 'APPROVED') {
+            throw new common_1.ForbiddenException('Your identity verification must be approved before you can publish rides. ' +
+                `Current status: ${user.verificationStatus}.`);
+        }
+        const vehicle = await this.prisma.vehicle.findUnique({ where: { id: ride.vehicleId } });
+        if (!vehicle || !vehicle.rcVerified) {
+            throw new common_1.ForbiddenException('The vehicle\'s RC must be verified before publishing a ride. ' +
+                'Please upload your RC document and wait for admin approval.');
+        }
         const activeRide = await this.prisma.ride.findFirst({
             where: {
                 rideGiverId: ride.rideGiverId,

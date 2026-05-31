@@ -93,6 +93,34 @@ export declare class AdminController {
     }): Promise<{
         status: "APPROVED" | "REJECTED";
     }>;
+    verifyVehicle(id: string): Promise<{
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        totalSeats: number;
+        rideGiverId: string;
+        make: string;
+        model: string;
+        year: number | null;
+        color: string | null;
+        plateNumber: string;
+        rcUrl: string | null;
+        rcVerified: boolean;
+    }>;
+    rejectVehicle(id: string, reason?: string): Promise<{
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        totalSeats: number;
+        rideGiverId: string;
+        make: string;
+        model: string;
+        year: number | null;
+        color: string | null;
+        plateNumber: string;
+        rcUrl: string | null;
+        rcVerified: boolean;
+    }>;
     listRides(status?: string, page?: number, limit?: number): Promise<{
         data: ({
             rideGiver: {

@@ -43,6 +43,15 @@ let VehiclesService = class VehiclesService {
         const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
         if (!giver)
             throw new common_1.ForbiddenException();
+        const vehicle = await this.prisma.vehicle.findFirst({ where: { id: vehicleId, rideGiverId: giver.id } });
+        if (!vehicle)
+            throw new common_1.NotFoundException('Vehicle not found');
+        const activeRide = await this.prisma.ride.findFirst({
+            where: { vehicleId, status: { in: ['PUBLISHED', 'ONGOING'] } },
+        });
+        if (activeRide) {
+            throw new common_1.ConflictException('Cannot remove a vehicle that is used in an active ride. Cancel or complete the ride first.');
+        }
         return this.prisma.vehicle.update({
             where: { id: vehicleId },
             data: { isActive: false },

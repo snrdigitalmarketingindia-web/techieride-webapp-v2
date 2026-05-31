@@ -137,6 +137,34 @@ export declare class AdminService {
         triggeredAt: Date;
         resolvedAt: Date | null;
     }>;
+    verifyVehicle(vehicleId: string): Promise<{
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        totalSeats: number;
+        rideGiverId: string;
+        make: string;
+        model: string;
+        year: number | null;
+        color: string | null;
+        plateNumber: string;
+        rcUrl: string | null;
+        rcVerified: boolean;
+    }>;
+    rejectVehicle(vehicleId: string, reason?: string): Promise<{
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        totalSeats: number;
+        rideGiverId: string;
+        make: string;
+        model: string;
+        year: number | null;
+        color: string | null;
+        plateNumber: string;
+        rcUrl: string | null;
+        rcVerified: boolean;
+    }>;
     listAllRides(status?: string, page?: number, limit?: number): Promise<{
         data: ({
             rideGiver: {

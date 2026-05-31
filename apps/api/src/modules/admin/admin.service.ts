@@ -74,6 +74,20 @@ export class AdminService {
     });
   }
 
+  async verifyVehicle(vehicleId: string) {
+    return this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { rcVerified: true },
+    });
+  }
+
+  async rejectVehicle(vehicleId: string, reason?: string) {
+    return this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: { rcVerified: false },
+    });
+  }
+
   async listAllRides(status?: string, page = 1, limit = 20) {
     const where: any = status ? { status } : {};
     const [data, total] = await this.prisma.$transaction([

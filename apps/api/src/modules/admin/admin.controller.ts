@@ -52,6 +52,16 @@ export class AdminController {
     return this.verificationService.review(id, adminId, body.decision, body.rejectionReason);
   }
 
+  @Patch('vehicles/:id/verify')
+  verifyVehicle(@Param('id') id: string) {
+    return this.adminService.verifyVehicle(id);
+  }
+
+  @Patch('vehicles/:id/reject')
+  rejectVehicle(@Param('id') id: string, @Body('reason') reason?: string) {
+    return this.adminService.rejectVehicle(id, reason);
+  }
+
   @Get('rides')
   listRides(
     @Query('status') status?: string,

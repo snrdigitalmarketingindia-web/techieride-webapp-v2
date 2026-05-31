@@ -23,8 +23,9 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
-
-const BASE = 'http://localhost:3001/api/v1';
+import {
+  BASE, makeClient, loginAs, register, freshGiver, freshSeeker, publishRide, completeFullRide,
+} from './helpers';
 
 const c = {
   reset: '\x1b[0m', green: '\x1b[32m', red: '\x1b[31m',
@@ -53,89 +54,6 @@ async function test(name: string, fn: () => Promise<void>) {
 
 function assert(cond: boolean, msg: string) {
   if (!cond) throw new Error(msg);
-}
-
-function makeClient(token?: string): AxiosInstance {
-  return axios.create({
-    baseURL: BASE,
-    validateStatus: () => true,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-}
-
-const SEED_PASSWORD = 'TechieRide@2024';
-
-async function loginAs(email: string) {
-  const r = await makeClient().post('/auth/login', { email, password: SEED_PASSWORD });
-  assert(r.status === 200, `Login failed for ${email}: ${JSON.stringify(r.data)}`);
-  const payload = JSON.parse(Buffer.from(r.data.accessToken.split('.')[1], 'base64').toString());
-  return { token: r.data.accessToken as string, refreshToken: r.data.refreshToken as string, userId: payload.sub as string };
-}
-
-async function register(email: string, fullName: string, role: string) {
-  const r = await makeClient().post('/auth/register', {
-    email, password: SEED_PASSWORD, fullName,
-    gender: 'MALE', companyName: 'TestCorp', employeeId: 'N/A', role,
-    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
-  });
-  if (r.status !== 201 && r.status !== 409) throw new Error(`Register failed: ${JSON.stringify(r.data)}`);
-  return loginAs(email);
-}
-
-async function freshGiver(suffix: string) {
-  const ts = Date.now();
-  const acc = await register(`fin_giver_${suffix}_${ts}@wipro.com`, `Giver ${suffix}`, 'RIDE_GIVER');
-  const client = makeClient(acc.token);
-  const veh = await client.post('/vehicles', {
-    make: 'Honda', model: 'City', color: 'Silver',
-    plateNumber: `FIN${ts.toString().slice(-6)}`, totalSeats: 4,
-  });
-  assert(veh.status === 201, `Vehicle creation failed: ${JSON.stringify(veh.data)}`);
-  return { client, token: acc.token, userId: acc.userId, vehicleId: veh.data.id as string };
-}
-
-async function freshSeeker(suffix: string) {
-  const ts = Date.now();
-  const acc = await register(`fin_seeker_${suffix}_${ts}@tcs.com`, `Seeker ${suffix}`, 'RIDE_SEEKER');
-  return { client: makeClient(acc.token), token: acc.token, userId: acc.userId };
-}
-
-async function publishRide(giverClient: AxiosInstance, vehicleId: string, seats = 3) {
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-  const r = await giverClient.post('/rides', {
-    vehicleId, originName: 'Kondapur', originLat: 17.44, originLng: 78.34,
-    destinationName: 'HITEC City', destinationLat: 17.45, destinationLng: 78.36,
-    departureDate: tomorrow, departureTime: '09:00', totalSeats: seats,
-  });
-  assert(r.status === 201, `Create ride failed: ${JSON.stringify(r.data)}`);
-  const pub = await giverClient.patch(`/rides/${r.data.id}/publish`);
-  assert(pub.status === 200, `Publish failed: ${JSON.stringify(pub.data)}`);
-  return r.data.id as string;
-}
-
-/** Full lifecycle: publish → request → approve → confirm → start → complete */
-async function completeFullRide(seats = 1) {
-  const giver = await freshGiver('full');
-  const seeker = await freshSeeker('full');
-  const rideId = await publishRide(giver.client, giver.vehicleId, seats);
-
-  const reqR = await seeker.client.post('/ride-requests', { rideId });
-  assert(reqR.status === 201, `Request failed: ${JSON.stringify(reqR.data)}`);
-  const reqId = reqR.data.requestId as string;
-
-  const approve = await giver.client.patch(`/ride-requests/${reqId}/approve`);
-  assert(approve.status === 200, `Approve failed: ${JSON.stringify(approve.data)}`);
-
-  const confirm = await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
-  assert(confirm.status === 200, `Confirm failed: ${JSON.stringify(confirm.data)}`);
-
-  const start = await giver.client.patch(`/rides/${rideId}/start`);
-  assert(start.status === 200, `Start failed: ${JSON.stringify(start.data)}`);
-
-  const complete = await giver.client.patch(`/rides/${rideId}/complete`);
-  assert(complete.status === 200, `Complete failed: ${JSON.stringify(complete.data)}`);
-
-  return { giver, seeker, rideId, reqId };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
