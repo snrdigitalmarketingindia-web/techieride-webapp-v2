@@ -78,9 +78,21 @@ const SEEKER = 'arjun@tcs.com';       // seeded, verified
 async function run() {
   console.log(`\n${c.bold}${c.blue}━━━ 🚫 Negative / Boundary API Tests ━━━${c.reset}\n`);
 
+  const ts = Date.now();
   const admin  = await loginAs(ADMIN).then(s => makeClient(s.token));
-  const giver  = await loginAs(GIVER).then(s => makeClient(s.token));
-  const seeker = await loginAs(SEEKER).then(s => makeClient(s.token));
+  // Fresh isolated accounts — avoids interference from active rides/requests on seeded accounts
+  const giverAcc  = await registerAndLogin(`neg_giver_${ts}@wipro.com`,  'RIDE_GIVER');
+  const seekerAcc = await registerAndLogin(`neg_seeker_${ts}@tcs.com`, 'RIDE_SEEKER');
+  const giver  = makeClient(giverAcc.token);
+  const seeker = makeClient(seekerAcc.token);
+
+  // Add vehicle for fresh giver
+  const vehRes = await giver.post('/vehicles', {
+    make: 'Honda', model: 'City', color: 'White',
+    plateNumber: `TS${ts.toString().slice(-5)}`, totalSeats: 4,
+  });
+  const freshVehicleId = vehRes.data.id;
+  assert(freshVehicleId, 'Could not create vehicle for negative tests');
 
   // ── Role boundary: wrong role attempts ───────────────────────────────────
   console.log(`\n${c.bold}${c.cyan}━━━ 🚧 Role Boundaries ━━━${c.reset}`);
@@ -104,10 +116,7 @@ async function run() {
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
 
-  // Get giver's vehicle for subsequent tests
-  const vehiclesRes = await giver.get('/vehicles/my');
-  const vehicleId   = vehiclesRes.data[0]?.id;
-  assert(vehicleId, 'Giver has no vehicle — seed data missing');
+  const vehicleId = freshVehicleId;
 
   await test('Giver cannot request a seat on a ride → 403', async () => {
     // First create and publish a ride to have something to request
@@ -147,9 +156,14 @@ async function run() {
   // ── Invalid state transitions ─────────────────────────────────────────────
   console.log(`\n${c.bold}${c.cyan}━━━ ⚙️  Invalid State Transitions ━━━${c.reset}`);
 
-  // Create a DRAFT ride for state transition tests
-  const draftRideRes = await giver.post('/rides', {
-    vehicleId, originName: 'Gachibowli', destinationName: 'Madhapur',
+  // Fresh giver B for draft/published state tests (giver already has a published ride)
+  const giverBAcc = await registerAndLogin(`neg_giverB_${ts}@wipro.com`, 'RIDE_GIVER');
+  const giverB = makeClient(giverBAcc.token);
+  const vehB = await giverB.post('/vehicles', { make: 'Toyota', model: 'Etios', color: 'Grey', plateNumber: `TSB${ts.toString().slice(-4)}`, totalSeats: 4 });
+  const vehicleBId = vehB.data.id;
+
+  const draftRideRes = await giverB.post('/rides', {
+    vehicleId: vehicleBId, originName: 'Gachibowli', destinationName: 'Madhapur',
     originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.38,
     departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     departureTime: '10:00', totalSeats: 3,
@@ -158,96 +172,101 @@ async function run() {
   assert(draftRideId, 'Could not create draft ride for state tests');
 
   await test('Cannot start a DRAFT ride (not yet published) → 400', async () => {
-    const r = await giver.patch(`/rides/${draftRideId}/start`);
+    const r = await giverB.patch(`/rides/${draftRideId}/start`);
     assert(r.status === 400, `Expected 400, got ${r.status}: ${JSON.stringify(r.data)}`);
   });
 
   await test('Cannot complete a DRAFT ride → 400', async () => {
-    const r = await giver.patch(`/rides/${draftRideId}/complete`);
+    const r = await giverB.patch(`/rides/${draftRideId}/complete`);
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
-  // Publish it
-  await giver.patch(`/rides/${draftRideId}/publish`);
+  await giverB.patch(`/rides/${draftRideId}/publish`);
 
   await test('Cannot publish an already-PUBLISHED ride → 400', async () => {
-    const r = await giver.patch(`/rides/${draftRideId}/publish`);
+    const r = await giverB.patch(`/rides/${draftRideId}/publish`);
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
   await test('Cannot complete a PUBLISHED ride (not started) → 400', async () => {
-    const r = await giver.patch(`/rides/${draftRideId}/complete`);
+    const r = await giverB.patch(`/rides/${draftRideId}/complete`);
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
-  // Create an ONGOING ride for further state tests
-  const ongoingRideRes = await giver.post('/rides', {
-    vehicleId, originName: 'Kukatpally', destinationName: 'Ameerpet',
+  // Fresh giver C for ONGOING state tests
+  const giverCAcc = await registerAndLogin(`neg_giverC_${ts}@wipro.com`, 'RIDE_GIVER');
+  const giverC = makeClient(giverCAcc.token);
+  const vehC = await giverC.post('/vehicles', { make: 'Maruti', model: 'Swift', color: 'Blue', plateNumber: `TSC${ts.toString().slice(-4)}`, totalSeats: 4 });
+  const vehicleCId = vehC.data.id;
+
+  const ongoingRideRes = await giverC.post('/rides', {
+    vehicleId: vehicleCId, originName: 'Kukatpally', destinationName: 'Ameerpet',
     originLat: 17.49, originLng: 78.39, destinationLat: 17.44, destinationLng: 78.44,
     departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     departureTime: '11:00', totalSeats: 2,
   });
   const ongoingRideId = ongoingRideRes.data.id;
-  await giver.patch(`/rides/${ongoingRideId}/publish`);
-  await giver.patch(`/rides/${ongoingRideId}/start`);
+  await giverC.patch(`/rides/${ongoingRideId}/publish`);
+  await giverC.patch(`/rides/${ongoingRideId}/start`);
 
   await test('Cannot publish an ONGOING ride → 400', async () => {
-    const r = await giver.patch(`/rides/${ongoingRideId}/publish`);
+    const r = await giverC.patch(`/rides/${ongoingRideId}/publish`);
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
   await test('Cannot start an already-ONGOING ride → 400', async () => {
-    const r = await giver.patch(`/rides/${ongoingRideId}/start`);
+    const r = await giverC.patch(`/rides/${ongoingRideId}/start`);
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
   // ── Request state tests ───────────────────────────────────────────────────
   console.log(`\n${c.bold}${c.cyan}━━━ 📋 Request State Boundaries ━━━${c.reset}`);
 
-  // Create a ride with 1 seat for boundary tests
-  const singleSeatRideRes = await giver.post('/rides', {
-    vehicleId, originName: 'LB Nagar', destinationName: 'Secunderabad',
+  // Fresh giver D + fresh seeker for request state tests
+  const giverDAcc = await registerAndLogin(`neg_giverD_${ts}@wipro.com`, 'RIDE_GIVER');
+  const giverD = makeClient(giverDAcc.token);
+  const vehD = await giverD.post('/vehicles', { make: 'Hyundai', model: 'i20', color: 'Red', plateNumber: `TSD${ts.toString().slice(-4)}`, totalSeats: 4 });
+  const seekerBAcc = await registerAndLogin(`neg_seekerB_${ts}@tcs.com`, 'RIDE_SEEKER');
+  const seekerB = makeClient(seekerBAcc.token);
+
+  const singleSeatRideRes = await giverD.post('/rides', {
+    vehicleId: vehD.data.id, originName: 'LB Nagar', destinationName: 'Secunderabad',
     originLat: 17.35, originLng: 78.55, destinationLat: 17.44, destinationLng: 78.50,
     departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
     departureTime: '08:00', totalSeats: 1,
   });
   const singleSeatId = singleSeatRideRes.data.id;
-  await giver.patch(`/rides/${singleSeatId}/publish`);
+  await giverD.patch(`/rides/${singleSeatId}/publish`);
 
-  // Seeker requests
-  const reqRes = await seeker.post('/ride-requests', { rideId: singleSeatId });
+  const reqRes = await seekerB.post('/ride-requests', { rideId: singleSeatId });
   const requestId = reqRes.data.requestId ?? reqRes.data.id;
   assert(requestId, `Could not create request for state tests: ${JSON.stringify(reqRes.data)}`);
 
-  // Approve (puts in HOLD)
-  await giver.patch(`/ride-requests/${requestId}/approve`);
+  await giverD.patch(`/ride-requests/${requestId}/approve`);
 
   await test('Cannot confirm a non-existent / wrong request → 404', async () => {
-    const r = await seeker.patch('/ride-requests/00000000-0000-0000-0000-000000000000/confirm');
+    const r = await seekerB.patch('/ride-requests/00000000-0000-0000-0000-000000000000/confirm');
     assert(r.status === 404, `Expected 404, got ${r.status}`);
   });
 
   await test('Cannot cancel a HOLD request with wrong seeker → 403/404', async () => {
-    // Register a 3rd seeker who has nothing to do with this request
-    const stranger = await registerAndLogin(`stranger.${Date.now()}@tcs.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
+    const stranger = await registerAndLogin(`stranger_${ts}@tcs.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
     const r = await stranger.patch(`/ride-requests/${requestId}/cancel`);
     assert(r.status === 403 || r.status === 404, `Expected 403/404, got ${r.status}`);
   });
 
-  // Confirm to fill the seat
-  await seeker.patch(`/ride-requests/${requestId}/confirm`);
+  await seekerB.patch(`/ride-requests/${requestId}/confirm`);
 
   await test('Cannot book a seat on a ride with 0 available seats → 400', async () => {
-    const seeker2 = await registerAndLogin(`seeker2.${Date.now()}@tcs.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
+    const seeker2 = await registerAndLogin(`neg_seeker2_${ts}@wipro.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
     const r = await seeker2.post('/ride-requests', { rideId: singleSeatId });
     assert(r.status === 400, `Expected 400 (no seats), got ${r.status}`);
   });
 
-  // First cancel succeeds (CONFIRMED → CANCELLED is allowed so seeker can exit)
-  await seeker.patch(`/ride-requests/${requestId}/cancel`);
+  await seekerB.patch(`/ride-requests/${requestId}/cancel`);
 
   await test('Cannot cancel an already-CANCELLED request → 400', async () => {
-    const r = await seeker.patch(`/ride-requests/${requestId}/cancel`);
+    const r = await seekerB.patch(`/ride-requests/${requestId}/cancel`);
     assert(r.status === 400, `Expected 400 (already cancelled), got ${r.status}`);
   });
 
