@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -51,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-3 animate-pulse">🌿</div>
+          <Image src="/logo.png" alt="Techieride" width={140} height={48} className="object-contain animate-pulse mb-3" />
           <p className="text-gray-400 text-sm">Loading admin panel...</p>
         </div>
       </div>
@@ -61,11 +62,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="w-14 sm:w-56 bg-white border-r border-gray-200 flex flex-col py-6 px-2 sm:px-4 fixed h-full overflow-hidden">
-        <div className="flex items-center gap-2 mb-8">
-          <span className="text-xl">🌿</span>
-          <div className="hidden sm:block">
-            <p className="font-bold text-gray-900 text-sm">Techie Ride</p>
-            <p className="text-xs text-gray-500">Admin Panel</p>
+        <div className="flex flex-col items-center gap-1 mb-8">
+          <Image src="/logo.png" alt="Techieride" width={120} height={40} className="object-contain hidden sm:block" />
+          <span className="text-xl sm:hidden">🚗</span>
+          <div className="hidden sm:flex items-center gap-1">
+            <span className="text-xs text-gray-400">Admin Panel</span>
+            <span className="text-xs font-medium text-orange-400">v2.0_Beta</span>
           </div>
         </div>
         <nav className="space-y-1 flex-1">

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -47,7 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-4xl mb-3 animate-pulse">🌿</div>
+          <Image src="/logo.png" alt="Techieride" width={140} height={48} className="object-contain animate-pulse mb-3" />
           <p className="text-gray-400 text-sm">Loading...</p>
         </div>
       </div>
@@ -59,8 +60,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Top bar */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <span className="text-xl">🌿</span>
-          <span className="font-bold text-brand-700">Techie Ride</span>
+          <Image src="/logo.png" alt="Techieride" width={120} height={40} className="object-contain" priority />
+          <span className="text-xs font-medium text-gray-400 hidden sm:inline">v2.0_Beta</span>
         </div>
         <div className="flex items-center gap-3">
           {user && (

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -91,9 +92,12 @@ export default function SignupPage() {
     <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="text-4xl mb-2">🌿</div>
+          <div className="flex justify-center mb-3">
+            <Image src="/logo.png" alt="Techieride" width={160} height={54} className="object-contain" priority />
+          </div>
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
-          <p className="text-sm text-gray-500 mt-1">Join Techie Ride — Hyderabad's IT carpool network</p>
+          <p className="text-sm text-gray-500 mt-1">Join Techieride — Hyderabad's IT carpool network</p>
+          <span className="inline-block mt-1 text-xs text-orange-400 font-medium">v2.0_Beta</span>
         </div>
 
         {/* Step indicators */}

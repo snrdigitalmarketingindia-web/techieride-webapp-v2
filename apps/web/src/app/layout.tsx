@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Techie Ride — Verified IT Employee Carpooling',
+  title: 'Techieride v2.0_Beta — Verified IT Employee Carpooling',
   description: 'Safe, verified carpooling for Hyderabad IT professionals',
   manifest: '/manifest.json',
 };
