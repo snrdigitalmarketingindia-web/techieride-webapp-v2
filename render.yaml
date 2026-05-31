@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: techieride-api
+    runtime: node
+    rootDir: apps/api
+    buildCommand: cd ../.. && npm ci && npm run build --workspace=packages/shared && npm run build --workspace=apps/api
+    startCommand: npx prisma generate --schema=../../prisma/schema.prisma && npx prisma db push --schema=../../prisma/schema.prisma --accept-data-loss && node dist/main
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        sync: false        # paste from Neon dashboard
+      - key: REDIS_URL
+        sync: false        # paste from Upstash dashboard
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: RESEND_API_KEY
+        sync: false        # paste from Resend dashboard
+      - key: EMAIL_FROM
+        value: noreply@techieride.in
+      - key: APP_URL
+        sync: false        # paste your Vercel URL
+      - key: MINIO_ENDPOINT
+        value: localhost
+      - key: MINIO_PORT
+        value: 9000
+      - key: MINIO_USE_SSL
+        value: false
+      - key: MINIO_ACCESS_KEY
+        value: minioadmin
+      - key: MINIO_SECRET_KEY
+        value: minioadmin
+      - key: MINIO_BUCKET_DOCUMENTS
+        value: user-documents
+      - key: MINIO_BUCKET_PHOTOS
+        value: profile-photos
