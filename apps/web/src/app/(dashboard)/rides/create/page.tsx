@@ -40,7 +40,8 @@ export default function CreateRidePage() {
     setLoading(true);
     setError('');
     try {
-      const { data: ride } = await ridesApi.create(form);
+      const { saveAsTemplate, departureDays, ...ridePayload } = form;
+      const { data: ride } = await ridesApi.create(ridePayload);
 
       if (form.saveAsTemplate) {
         await templatesApi.create({
