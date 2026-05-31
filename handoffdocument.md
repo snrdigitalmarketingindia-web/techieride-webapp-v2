@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `6387ee4`)
+> **Last updated:** 2026-06-01 (latest: `42c204f`)
 
 ---
 
@@ -55,6 +55,9 @@
 - [x] Node.js upgraded to 24 in GitHub Actions
 - [x] Postgres health check fixed (`pg_isready -U techieride`)
 - [x] Redis debug logs removed from `redis.module.ts` (was leaking REDIS_URL to stdout)
+- [x] `e2e-api-coverage.ts` — GPS tracking POST bug fixed (endpoint is WebSocket-only, not REST)
+- [x] `e2e-api-final.ts` — 14 sections, ~45 tests covering all remaining gaps
+- [x] `ci-autofix.yml` — auto-creates GitHub Issues on CI failure with parsed log output
 
 ### Features
 - [x] `GET /ride-requests/mine` — new endpoint for seeker's own requests
@@ -75,23 +78,29 @@
 ---
 
 ## Current CI Status
-| Suite | Tests | Status |
-|---|---|---|
-| `test:api` | 37 | ✅ All passing |
-| `test:api:extended` | 30 | ✅ All passing |
-| `test:api:negative` | 30+ | ✅ All passing |
-| `test:api:rules` | 44 | ✅ All passing |
-| `test:api:coverage` | ~60 | 🔄 Pending CI verification |
-| Playwright E2E | 50 | ✅ All passing |
+| Suite | Script | Tests | Status |
+|---|---|---|---|
+| Base lifecycle | `test:api` | 37 | ✅ Passing |
+| Extended (reject/cancel/race/SOS) | `test:api:extended` | 30 | ✅ Passing |
+| Negative / boundary | `test:api:negative` | 30+ | ✅ Passing |
+| Business rules | `test:api:rules` | 44 | ✅ Passing |
+| Production coverage (13 sections) | `test:api:coverage` | ~60 | 🔄 Pending `42c204f` |
+| Final gap-closing (14 sections) | `test:api:final` | ~45 | 🔄 Pending `42c204f` |
+| Playwright E2E | `test:ui` | 50 | ✅ Passing |
 
-**Previous suites all green. Coverage suite pending CI run.**
+**Total API tests: ~246+ across 6 suites**
 
-**Last commit:** `6387ee4` — Remove Redis debug logs + update handoff doc
+**Last commit:** `42c204f` — Add final gap-closing tests + CI auto-fix watchdog
 
 ---
 
+## CI Auto-Fix Watchdog
+`.github/workflows/ci-autofix.yml` — fires automatically after every CI run:
+- **On failure:** Parses logs, extracts failing test names, creates a GitHub Issue labeled `ci-failure` with a structured report. No manual log-posting needed.
+- **On success:** Automatically closes any open `ci-failure` issues.
+
 ## Pending / Next Steps
-1. Verify `test:api:coverage` CI run — fix any failures (`6387ee4` is latest)
+1. Monitor CI run on `42c204f` — coverage + final suites running for first time
 2. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
 3. Test full ride lifecycle on live app end-to-end with real users
 4. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
