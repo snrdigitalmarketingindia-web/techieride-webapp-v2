@@ -1,0 +1,426 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum UserRole {
+  RIDE_GIVER
+  RIDE_SEEKER
+  BOTH
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EcoLevel {
+  SEED
+  SPROUT
+  LEAF
+  TREE
+  FOREST
+}
+
+enum RideStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  HOLD
+  CONFIRMED
+  REJECTED
+  CANCELLED
+  NO_SHOW
+}
+
+enum NotificationType {
+  RIDE_APPROVED
+  RIDE_REJECTED
+  RIDE_CONFIRMED
+  RIDE_STARTED
+  RIDE_COMPLETED
+  RIDE_CANCELLED
+  REQUEST_APPROVED
+  REQUEST_REJECTED
+  HOLD_EXPIRING
+  HOLD_EXPIRED
+  VERIFICATION_APPROVED
+  VERIFICATION_REJECTED
+  SOS_ALERT
+  GENERIC
+}
+
+enum SosStatus {
+  TRIGGERED
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+// ─── User ──────────────────────────────────────────────────────────────────
+
+model User {
+  id                 String             @id @default(uuid())
+  phone              String             @unique
+  email              String             @unique
+  fullName           String
+  profilePhoto       String?
+  gender             Gender?
+  companyName        String?
+  employeeId         String?
+  role               UserRole           @default(RIDE_SEEKER)
+  verificationStatus VerificationStatus @default(PENDING)
+  isActive           Boolean            @default(true)
+  fcmToken           String?
+  ecoPoints          Int                @default(0)
+  ecoLevel           EcoLevel           @default(SEED)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  rideGiver            RideGiver?
+  rideSeeker           RideSeeker?
+  notifications        Notification[]
+  gamificationPoints   GamificationPoint[]
+  verificationRequest  VerificationRequest?
+  emergencyContacts    EmergencyContact[]
+  ratingsGiven         RideRating[]       @relation("rater")
+  ratingsReceived      RideRating[]       @relation("ratee")
+  sosEvents            SosEvent[]
+  otp                  Otp?
+
+  @@index([phone])
+  @@index([email])
+  @@index([verificationStatus])
+  @@map("users")
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("otps")
+}
+
+model EmergencyContact {
+  id           String @id @default(uuid())
+  userId       String
+  name         String
+  phone        String
+  relationship String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("emergency_contacts")
+}
+
+// ─── Verification ─────────────────────────────────────────────────────────
+
+model VerificationRequest {
+  id                  String             @id @default(uuid())
+  userId              String             @unique
+  employeeIdUrl       String?
+  drivingLicenseUrl   String?
+  rcUrl               String?
+  status              VerificationStatus @default(PENDING)
+  rejectionReason     String?
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  submittedAt         DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("verification_requests")
+}
+
+// ─── Ride Giver ────────────────────────────────────────────────────────────
+
+model RideGiver {
+  id                  String  @id @default(uuid())
+  userId              String  @unique
+  drivingLicenseUrl   String?
+  licenseVerified     Boolean @default(false)
+  totalRidesGiven     Int     @default(0)
+  averageRating       Float   @default(0)
+  preferredGender     String  @default("ANY")
+  isAvailable         Boolean @default(true)
+  createdAt           DateTime @default(now())
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicles         Vehicle[]
+  rides            Ride[]
+  commuteTemplates CommuteTemplate[]
+
+  @@map("ride_givers")
+}
+
+// ─── Ride Seeker ──────────────────────────────────────────────────────────
+
+model RideSeeker {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  totalRidesTaken Int      @default(0)
+  averageRating   Float    @default(0)
+  preferredGender String   @default("ANY")
+  createdAt       DateTime @default(now())
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rideRequests     RideRequest[]
+  rideParticipants RideParticipant[]
+
+  @@map("ride_seekers")
+}
+
+// ─── Vehicle ───────────────────────────────────────────────────────────────
+
+model Vehicle {
+  id           String   @id @default(uuid())
+  rideGiverId  String
+  make         String
+  model        String
+  year         Int?
+  color        String?
+  plateNumber  String   @unique
+  rcUrl        String?
+  rcVerified   Boolean  @default(false)
+  totalSeats   Int
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  rideGiver        RideGiver         @relation(fields: [rideGiverId], references: [id], onDelete: Cascade)
+  rides            Ride[]
+  commuteTemplates CommuteTemplate[]
+
+  @@map("vehicles")
+}
+
+// ─── Commute Template ─────────────────────────────────────────────────────
+
+model CommuteTemplate {
+  id                String   @id @default(uuid())
+  rideGiverId       String
+  vehicleId         String
+  originName        String
+  originLat         Float
+  originLng         Float
+  destinationName   String
+  destinationLat    Float
+  destinationLng    Float
+  departureDays     Int[]
+  departureTime     String
+  totalSeats        Int
+  isActive          Boolean  @default(true)
+  lastPublishedDate DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  rideGiver RideGiver @relation(fields: [rideGiverId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id])
+  rides     Ride[]
+
+  @@index([rideGiverId])
+  @@index([isActive])
+  @@map("commute_templates")
+}
+
+// ─── Ride ─────────────────────────────────────────────────────────────────
+
+model Ride {
+  id                   String     @id @default(uuid())
+  rideGiverId          String
+  vehicleId            String
+  templateId           String?
+  originName           String
+  originLat            Float
+  originLng            Float
+  destinationName      String
+  destinationLat       Float
+  destinationLng       Float
+  routePolyline        Json?
+  estimatedDistanceKm  Float?
+  estimatedDurationMin Int?
+  departureDate        DateTime
+  departureTime        String
+  estimatedArrivalTime String?
+  totalSeats           Int
+  availableSeats       Int
+  status               RideStatus @default(DRAFT)
+  notes                String?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  cancelledAt          DateTime?
+  cancelReason         String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  rideGiver    RideGiver        @relation(fields: [rideGiverId], references: [id])
+  vehicle      Vehicle          @relation(fields: [vehicleId], references: [id])
+  template     CommuteTemplate? @relation(fields: [templateId], references: [id])
+  requests     RideRequest[]
+  participants RideParticipant[]
+  ratings      RideRating[]
+  sosEvents    SosEvent[]
+
+  @@index([rideGiverId])
+  @@index([status])
+  @@index([departureDate])
+  @@index([originLat, originLng])
+  @@map("rides")
+}
+
+// ─── Ride Request ─────────────────────────────────────────────────────────
+
+model RideRequest {
+  id             String        @id @default(uuid())
+  rideId         String
+  seekerId       String
+  pickupLat      Float?
+  pickupLng      Float?
+  pickupName     String?
+  dropLat        Float?
+  dropLng        Float?
+  dropName       String?
+  status         RequestStatus @default(PENDING)
+  holdExpiresAt  DateTime?
+  confirmedAt    DateTime?
+  cancelledAt    DateTime?
+  cancelReason   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  ride        Ride             @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  seeker      RideSeeker       @relation(fields: [seekerId], references: [id])
+  participant RideParticipant?
+
+  @@unique([rideId, seekerId])
+  @@index([rideId])
+  @@index([seekerId])
+  @@index([status])
+  @@map("ride_requests")
+}
+
+// ─── Ride Participant ─────────────────────────────────────────────────────
+
+model RideParticipant {
+  id          String    @id @default(uuid())
+  rideId      String
+  seekerId    String
+  requestId   String    @unique
+  pickupName  String?
+  dropName    String?
+  boardedAt   DateTime?
+  alightedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  ride    Ride        @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  seeker  RideSeeker  @relation(fields: [seekerId], references: [id])
+  request RideRequest @relation(fields: [requestId], references: [id])
+
+  @@unique([rideId, seekerId])
+  @@map("ride_participants")
+}
+
+// ─── Ride Rating ──────────────────────────────────────────────────────────
+
+model RideRating {
+  id        String   @id @default(uuid())
+  rideId    String
+  raterId   String
+  rateeId   String
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  ride  Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  rater User @relation("rater", fields: [raterId], references: [id])
+  ratee User @relation("ratee", fields: [rateeId], references: [id])
+
+  @@unique([rideId, raterId, rateeId])
+  @@map("ride_ratings")
+}
+
+// ─── Notification ─────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── Gamification ─────────────────────────────────────────────────────────
+
+model GamificationPoint {
+  id         String   @id @default(uuid())
+  userId     String
+  eventType  String
+  points     Int
+  rideId     String?
+  co2SavedG  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("gamification_points")
+}
+
+// ─── SOS Event ────────────────────────────────────────────────────────────
+
+model SosEvent {
+  id          String    @id @default(uuid())
+  userId      String
+  rideId      String?
+  lat         Float
+  lng         Float
+  status      SosStatus @default(TRIGGERED)
+  resolvedBy  String?
+  resolutionNotes String?
+  triggeredAt DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  user User  @relation(fields: [userId], references: [id])
+  ride Ride? @relation(fields: [rideId], references: [id])
+
+  @@index([status])
+  @@map("sos_events")
+}

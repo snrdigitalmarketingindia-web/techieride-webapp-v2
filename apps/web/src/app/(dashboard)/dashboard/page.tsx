@@ -1,0 +1,129 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useAuthStore } from '@/store/auth.store';
+import { ridesApi, gamificationApi } from '@/lib/api';
+import { RideStatus, EcoLevel } from '@techieride/shared';
+
+const ECO_BADGES: Record<string, string> = {
+  SEED: '🌱', SPROUT: '🌿', LEAF: '🍃', TREE: '🌳', FOREST: '🌲',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  PUBLISHED: 'bg-blue-100 text-blue-700',
+  ONGOING: 'bg-green-100 text-green-700',
+  COMPLETED: 'bg-gray-100 text-gray-600',
+  CANCELLED: 'bg-red-100 text-red-600',
+  DRAFT: 'bg-yellow-100 text-yellow-700',
+};
+
+export default function DashboardPage() {
+  const { user } = useAuthStore();
+  const [upcomingRides, setUpcomingRides] = useState<any[]>([]);
+  const [ecoSummary, setEcoSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      ridesApi.getGiven().then((r) => setUpcomingRides(r.data.slice(0, 3))),
+      gamificationApi.getSummary().then((r) => setEcoSummary(r.data)),
+    ]).finally(() => setLoading(false));
+  }, []);
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  return (
+    <div className="space-y-6">
+      {/* Greeting */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          {greeting}, {user?.fullName?.split(' ')[0]} 👋
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">
+          {ECO_BADGES[user?.ecoLevel || 'SEED']} {user?.ecoLevel} · {user?.ecoPoints || 0} ECO points
+        </p>
+      </div>
+
+      {/* Verification banner */}
+      {user?.verificationStatus === 'PENDING' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-amber-800 text-sm font-medium">⏳ Verification in progress</p>
+          <p className="text-amber-700 text-sm">Your documents are being reviewed. You'll be notified within 24 hours.</p>
+        </div>
+      )}
+      {user?.verificationStatus === 'REJECTED' && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-red-800 text-sm font-medium">❌ Verification rejected</p>
+            <p className="text-red-700 text-sm">Please re-upload your documents</p>
+          </div>
+          <Link href="/dashboard/profile" className="text-sm text-red-700 font-medium underline">Re-upload</Link>
+        </div>
+      )}
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-2 gap-3">
+        {[
+          { href: '/dashboard/rides/create', icon: '🚗', label: 'Offer Ride', color: 'bg-brand-50 border-brand-200' },
+          { href: '/dashboard/rides/search', icon: '🔍', label: 'Find Ride', color: 'bg-blue-50 border-blue-200' },
+          { href: '/dashboard/rides', icon: '📋', label: 'My Schedule', color: 'bg-purple-50 border-purple-200' },
+          { href: '/dashboard/rides/leaderboard', icon: '🏆', label: 'Leaderboard', color: 'bg-yellow-50 border-yellow-200' },
+        ].map((a) => (
+          <Link key={a.href} href={a.href} className={`${a.color} border rounded-xl p-4 flex items-center gap-3 hover:opacity-80 transition`}>
+            <span className="text-2xl">{a.icon}</span>
+            <span className="font-medium text-gray-800">{a.label}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* Upcoming rides */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-gray-900">Upcoming Rides</h2>
+          <Link href="/dashboard/rides" className="text-sm text-brand-600 hover:underline">View all</Link>
+        </div>
+        {loading ? (
+          <div className="text-center py-8 text-gray-400">Loading...</div>
+        ) : upcomingRides.length === 0 ? (
+          <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+            <div className="text-4xl mb-2">🚗</div>
+            <p className="text-gray-500 text-sm">No upcoming rides</p>
+            <Link href="/dashboard/rides/create" className="inline-block mt-3 text-sm text-brand-600 font-medium hover:underline">
+              Offer your first ride →
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {upcomingRides.map((ride) => (
+              <Link key={ride.id} href={`/dashboard/rides/${ride.id}`}
+                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 hover:border-brand-300 transition"
+              >
+                <div className="flex-1">
+                  <p className="font-medium text-gray-900 text-sm">{ride.originName} → {ride.destinationName}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {new Date(ride.departureDate).toLocaleDateString()} · {ride.departureTime}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">{ride.availableSeats}/{ride.totalSeats} seats</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ride.status]}`}>{ride.status}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ECO impact */}
+      {ecoSummary && (
+        <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-xl p-5 text-white">
+          <p className="text-brand-100 text-sm font-medium mb-1">🌍 Your ECO Impact</p>
+          <p className="text-3xl font-bold">{ecoSummary.co2SavedKg} kg CO₂</p>
+          <p className="text-brand-200 text-sm mt-1">saved across {ecoSummary.totalRides || 0} rides</p>
+        </div>
+      )}
+    </div>
+  );
+}
