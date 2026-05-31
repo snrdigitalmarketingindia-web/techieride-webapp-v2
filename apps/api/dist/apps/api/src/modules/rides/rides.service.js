@@ -68,7 +68,7 @@ let RidesService = class RidesService {
         const activeRide = await this.prisma.ride.findFirst({
             where: {
                 rideGiverId: ride.rideGiverId,
-                status: { in: [shared_1.RideStatus.PUBLISHED, shared_1.RideStatus.STARTED] },
+                status: { in: [shared_1.RideStatus.PUBLISHED, shared_1.RideStatus.ONGOING] },
                 id: { not: rideId },
             },
         });

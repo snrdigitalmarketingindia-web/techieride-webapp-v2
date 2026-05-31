@@ -71,7 +71,7 @@ export class RidesService {
     const activeRide = await this.prisma.ride.findFirst({
       where: {
         rideGiverId: ride.rideGiverId,
-        status: { in: [RideStatus.PUBLISHED, RideStatus.STARTED] },
+        status: { in: [RideStatus.PUBLISHED, RideStatus.ONGOING] },
         id: { not: rideId },
       },
     });
