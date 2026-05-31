@@ -16,9 +16,13 @@
     "db:seed": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json prisma/seed.ts",
     "test:api": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api.ts",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "test:api:extended": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-extended.ts",
+    "test:all": "npm run test:api && npm run test:api:extended",
+    "test:ui": "npx playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "concurrently": "^8.2.2",
     "typescript": "^5.3.3"
   }

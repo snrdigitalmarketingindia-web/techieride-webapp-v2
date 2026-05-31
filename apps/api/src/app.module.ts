@@ -20,6 +20,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { AdminModule } from './modules/admin/admin.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { SosModule } from './modules/sos/sos.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     AdminModule,
     GamificationModule,
     UploadsModule,
+    SosModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
