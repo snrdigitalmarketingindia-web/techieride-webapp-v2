@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `621f476`)
+> **Last updated:** 2026-06-01 (latest: `b29b84c`)
 
 ---
 
@@ -76,23 +76,23 @@
 ## Current CI Status
 | Suite | Tests | Status |
 |---|---|---|
-| `test:api` | 37 | ✅ Passing |
-| `test:api:extended` | 30 | 🔄 Pending — last fix: commit `8cf8cec` (isolated flows) |
-| `test:api:negative` | 30+ | 🔄 Pending — last fix: `631ad3d` (fresh isolated accounts) |
-| `test:api:rules` | ~44 | 🔄 Pending — last fix: `621f476` (4 issues fixed, was 40/44) |
-| Playwright E2E | 50 | 🔄 Pending |
+| `test:api` | 37 | ✅ All passing |
+| `test:api:extended` | 30 | ✅ All passing |
+| `test:api:negative` | 30+ | ✅ All passing |
+| `test:api:rules` | 44 | ✅ All passing |
+| Playwright E2E | 50 | ✅ All passing |
 
-**Last commit:** `621f476` — Fix business rules tests + API: block cancel on COMPLETED rides, fix seat/notification assertions
+**All test suites green as of `b29b84c`**
+
+**Last commit:** `b29b84c` — Update handoffdocument
 
 ---
 
 ## Pending / Next Steps
-1. Verify CI run on `8cf8cec` — confirm extended tests pass
-2. Run `npm run test:api:rules` locally and fix any failures
-3. Remove debug log from `apps/api/src/config/redis.module.ts` line 19
-4. Add `RESEND_API_KEY` to Render env for real email delivery
-5. Test full ride lifecycle on live app end-to-end
-6. Upcoming: real-time GPS tracking UI, notifications bell, admin verification UI
+1. Remove debug log from `apps/api/src/config/redis.module.ts` line 19 (`[Redis] REDIS_URL raw value`)
+2. Add `RESEND_API_KEY` to Render env for real email delivery (currently dev mode — emails logged to console)
+3. Test full ride lifecycle on live app end-to-end with real users
+4. Upcoming features: real-time GPS tracking UI, notifications bell, admin verification workflow UI
 
 ---
 
