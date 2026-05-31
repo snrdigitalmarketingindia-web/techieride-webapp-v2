@@ -18,7 +18,8 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "test:api:extended": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-extended.ts",
-    "test:all": "npm run test:api && npm run test:api:extended",
+    "test:api:negative": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-negative.ts",
+    "test:all": "npm run test:api && npm run test:api:extended && npm run test:api:negative",
     "test:ui": "npx playwright test"
   },
   "devDependencies": {

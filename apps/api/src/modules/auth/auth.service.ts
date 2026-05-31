@@ -65,6 +65,7 @@ export class AuthService {
 
     const valid = await this.otpService.verifyOtp(user.id, otp);
     if (!valid) throw new UnauthorizedException('Invalid or expired OTP');
+    if (!user.isActive) throw new UnauthorizedException('Account suspended');
 
     return this.generateTokens(user);
   }

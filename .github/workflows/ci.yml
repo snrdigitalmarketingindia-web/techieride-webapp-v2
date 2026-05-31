@@ -8,7 +8,7 @@ on:
 
 jobs:
   api-tests:
-    name: API Tests (67 tests)
+    name: API Tests (97 tests)
     runs-on: ubuntu-latest
 
     services:
@@ -92,6 +92,9 @@ jobs:
 
       - name: Run extended API tests (30)
         run: npm run test:api:extended
+
+      - name: Run negative API tests (30)
+        run: npm run test:api:negative
 
       - name: Upload API log on failure
         if: failure()
