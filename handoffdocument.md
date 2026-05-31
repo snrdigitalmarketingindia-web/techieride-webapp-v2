@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01
+> **Last updated:** 2026-06-01 (latest: `631ad3d`)
 
 ---
 
@@ -78,11 +78,11 @@
 |---|---|---|
 | `test:api` | 37 | ✅ Passing |
 | `test:api:extended` | 30 | 🔄 Pending — last fix: commit `8cf8cec` (isolated flows) |
-| `test:api:negative` | 30+ | ✅ Passing |
+| `test:api:negative` | 30+ | 🔄 Pending — last fix: `631ad3d` (fresh isolated accounts) |
 | `test:api:rules` | ~40 | 🔄 Not yet verified in CI |
 | Playwright E2E | 50 | 🔄 Pending |
 
-**Last commit:** `8cf8cec` — Fix extended tests: separate givers/seekers per flow
+**Last commit:** `631ad3d` — Fix negative tests: fresh isolated accounts per section
 
 ---
 
