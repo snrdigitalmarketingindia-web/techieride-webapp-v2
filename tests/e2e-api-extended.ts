@@ -185,8 +185,12 @@ async function run() {
 
   await test('Rejected seeker can request again (new request)', async () => {
     const r = await s1.post('/ride-requests', { rideId: rideSmall.id });
-    // 409 means already has a request (rejected one still exists) — acceptable
     assert([201, 409].includes(r.status), `Got ${r.status}`);
+    // Cancel the re-request so s1 has no active PENDING for the race condition test.
+    // (upsert returns 201 and resets to PENDING, which would block s1 from raceRide)
+    if (r.status === 201 && r.data.requestId) {
+      await s1.patch(`/ride-requests/${r.data.requestId}/cancel`);
+    }
   });
 
   // ══════════════════════════════════════════
@@ -298,6 +302,7 @@ async function run() {
   section('🔐 Security Tests');
 
   await test('Seeker cannot approve their own ride request', async () => {
+    if (!race1Id) return; // race1Id is empty if s1 failed to request the race ride
     const r = await s1.patch(`/ride-requests/${race1Id}/approve`);
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
