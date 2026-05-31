@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { loginUI, PHONES } from './helpers';
+import { loginUI, ACCOUNTS } from './helpers';
 
 test.describe('🚗 Ride Giver', () => {
   test.beforeEach(async ({ page }) => {
-    await loginUI(page, PHONES.giver);
+    await loginUI(page, 'giver');
   });
 
   test('lands on dashboard after login', async ({ page }) => {

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { loginUI, PHONES } from './helpers';
+import { loginUI, ACCOUNTS } from './helpers';
 
 test.describe('🛡️ Admin', () => {
   test.beforeEach(async ({ page }) => {
-    await loginUI(page, PHONES.admin);
+    await loginUI(page, 'admin');
   });
 
   test('admin login redirects to /admin', async ({ page }) => {
@@ -35,7 +35,7 @@ test.describe('🛡️ Admin', () => {
     // Fresh context logged in as seeker
     await context.clearCookies();
     await page.evaluate(() => localStorage.clear());
-    await loginUI(page, PHONES.seeker);
+    await loginUI(page, 'seeker');
     await page.goto('/admin');
     // Should be redirected away from /admin
     await expect(page).not.toHaveURL(/^http:\/\/localhost:3000\/admin$/);

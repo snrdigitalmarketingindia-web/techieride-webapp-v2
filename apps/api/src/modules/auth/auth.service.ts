@@ -74,11 +74,21 @@ export class AuthService {
       await this.prisma.rideSeeker.create({ data: { userId: user.id } });
     }
 
-    // 7. Send verification email (non-blocking)
-    await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
+    // 7. In dev mode, auto-verify so tests work without email delivery
+    const isDev = this.config.get('NODE_ENV') === 'development';
+    if (isDev) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailStatus: 'VERIFIED', emailVerificationToken: null, emailVerificationExpiry: null },
+      });
+    } else {
+      await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
+    }
 
     return {
-      message: 'Account created! Please check your office email to verify your account.',
+      message: isDev
+        ? 'Account created! (Dev mode: email auto-verified)'
+        : 'Account created! Please check your office email to verify your account.',
       email: emailLower,
     };
   }

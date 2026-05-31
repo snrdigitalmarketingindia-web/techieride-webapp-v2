@@ -48,39 +48,31 @@ function makeClient(token?: string): AxiosInstance {
   });
 }
 
-function getOtp(phone: string): string {
-  execSync('sleep 0.5');
-  const line = execSync(`grep "OTP for ${phone}" ${API_LOG} | tail -1`, { encoding: 'utf8' }).trim();
-  const match = line.match(/:\s*(\d{6})$/);
-  if (!match) throw new Error(`No OTP found for ${phone}`);
-  return match[1];
-}
+const SEED_PASSWORD = 'TechieRide@2024';
 
-async function loginAs(phone: string) {
+async function loginAs(email: string) {
   const c = makeClient();
-  await c.post('/auth/login', { phone });
-  await new Promise(r => setTimeout(r, 600));
-  const otp = getOtp(phone);
-  const r = await c.post('/auth/verify-otp', { phone, otp });
-  assert(r.status === 200 && r.data.accessToken, `Login failed for ${phone}: ${JSON.stringify(r.data)}`);
-  // Decode userId from JWT payload (base64 middle segment)
+  const r = await c.post('/auth/login', { email, password: SEED_PASSWORD });
+  assert(r.status === 200 && r.data.accessToken, `Login failed for ${email}: ${JSON.stringify(r.data)}`);
   const payload = JSON.parse(Buffer.from(r.data.accessToken.split('.')[1], 'base64').toString());
   return { token: r.data.accessToken, refreshToken: r.data.refreshToken, userId: payload.sub };
 }
 
-async function registerAndLogin(phone: string, role: 'RIDE_GIVER' | 'RIDE_SEEKER', extra: object = {}) {
+async function registerAndLogin(email: string, role: 'RIDE_GIVER' | 'RIDE_SEEKER') {
   const c = makeClient();
+  const phone = '9' + Math.floor(100000000 + Math.random() * 900000000).toString();
   await c.post('/auth/register', {
-    phone, fullName: `Test ${role}`, email: `${phone}@test.com`,
-    gender: 'MALE', companyName: 'TestCo', employeeId: `EMP-${phone}`, role, ...extra,
+    email, password: SEED_PASSWORD,
+    fullName: `Test ${role}`, phone,
+    gender: 'MALE', companyName: 'TestCo', employeeId: 'N/A', role,
   });
-  return loginAs(phone);
+  return loginAs(email);
 }
 
-// ─── Seed phones ──────────────────────────────────────────────────────────
-const ADMIN  = '9999999999';
-const GIVER  = '9000000001'; // Priya — seeded, verified, has vehicle
-const SEEKER = '9876543210'; // Arjun — seeded, verified
+// ─── Seed emails ──────────────────────────────────────────────────────────
+const ADMIN  = 'admin@techieride.in';
+const GIVER  = 'priya@infosys.com';   // seeded, verified, has vehicle
+const SEEKER = 'arjun@tcs.com';       // seeded, verified
 
 // ─── Main ─────────────────────────────────────────────────────────────────
 async function run() {
@@ -237,7 +229,7 @@ async function run() {
 
   await test('Cannot cancel a HOLD request with wrong seeker → 403/404', async () => {
     // Register a 3rd seeker who has nothing to do with this request
-    const stranger = await registerAndLogin('9555000001', 'RIDE_SEEKER').then(s => makeClient(s.token));
+    const stranger = await registerAndLogin(`stranger.${Date.now()}@tcs.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
     const r = await stranger.patch(`/ride-requests/${requestId}/cancel`);
     assert(r.status === 403 || r.status === 404, `Expected 403/404, got ${r.status}`);
   });
@@ -246,7 +238,7 @@ async function run() {
   await seeker.patch(`/ride-requests/${requestId}/confirm`);
 
   await test('Cannot book a seat on a ride with 0 available seats → 400', async () => {
-    const seeker2 = await registerAndLogin('9555000002', 'RIDE_SEEKER').then(s => makeClient(s.token));
+    const seeker2 = await registerAndLogin(`seeker2.${Date.now()}@tcs.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
     const r = await seeker2.post('/ride-requests', { rideId: singleSeatId });
     assert(r.status === 400, `Expected 400 (no seats), got ${r.status}`);
   });
@@ -280,7 +272,7 @@ async function run() {
   // ── Suspended user ────────────────────────────────────────────────────────
   console.log(`\n${c.bold}${c.cyan}━━━ 🔒 Suspended User ━━━${c.reset}`);
 
-  const suspendTarget = await registerAndLogin('9444000001', 'RIDE_SEEKER');
+  const suspendTarget = await registerAndLogin(`suspend.${Date.now()}@tcs.com`, 'RIDE_SEEKER');
   const suspendClient = makeClient(suspendTarget.token);
 
   // Verify they can call APIs before suspension

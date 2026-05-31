@@ -5,7 +5,7 @@
  */
 
 import { test, expect } from '@playwright/test';
-import { loginUI, PHONES } from './helpers';
+import { loginUI, ACCOUNTS } from './helpers';
 
 // iPhone 14 dimensions, run on Chromium (already installed)
 test.use({
@@ -21,8 +21,8 @@ test.use({
 test.describe('📱 Mobile Layout', () => {
   test('login page fits mobile viewport without overflow', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByPlaceholder('9876543210')).toBeVisible();
-    await expect(page.getByRole('button', { name: /send otp/i })).toBeVisible();
+    await expect(page.getByPlaceholder('you@company.com')).toBeVisible();
+    await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
 
     // No horizontal scroll
     const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
@@ -48,7 +48,7 @@ test.describe('📱 Mobile Layout', () => {
 
 test.describe('📱 Mobile Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await loginUI(page, PHONES.seeker);
+    await loginUI(page, 'seeker');
   });
 
   test('bottom nav is visible on mobile', async ({ page }) => {
@@ -96,7 +96,7 @@ test.describe('📱 Mobile Navigation', () => {
 
 test.describe('📱 Mobile Flows', () => {
   test('seeker can search for rides on mobile', async ({ page }) => {
-    await loginUI(page, PHONES.seeker);
+    await loginUI(page, 'seeker');
     await page.goto('/rides/search');
     await expect(page.getByRole('button', { name: /search/i })).toBeVisible();
     await page.getByRole('button', { name: /search/i }).click();
@@ -105,7 +105,7 @@ test.describe('📱 Mobile Flows', () => {
   });
 
   test('giver can view offer ride form on mobile', async ({ page }) => {
-    await loginUI(page, PHONES.giver);
+    await loginUI(page, 'giver');
     await page.goto('/rides/create');
     await expect(page.getByRole('heading', { name: /offer a ride/i })).toBeVisible();
     // Form fields should be full-width and usable
@@ -113,7 +113,7 @@ test.describe('📱 Mobile Flows', () => {
   });
 
   test('admin dashboard is usable on mobile', async ({ page }) => {
-    await loginUI(page, PHONES.admin);
+    await loginUI(page, 'admin');
     await expect(page).toHaveURL(/\/admin/);
     // KPI cards use grid-cols-2 on mobile — cards must be visible without overflow
     await expect(page.getByText(/total users/i).first()).toBeVisible({ timeout: 8_000 });
@@ -124,7 +124,7 @@ test.describe('📱 Mobile Flows', () => {
   });
 
   test('header is sticky and visible while scrolling', async ({ page }) => {
-    await loginUI(page, PHONES.seeker);
+    await loginUI(page, 'seeker');
     await page.goto('/dashboard');
     await page.evaluate(() => window.scrollTo(0, 500));
     const header = page.locator('header').first();
@@ -138,7 +138,7 @@ test.describe('📱 Mobile Flows', () => {
   });
 
   test('bottom nav is sticky and visible while scrolling', async ({ page }) => {
-    await loginUI(page, PHONES.seeker);
+    await loginUI(page, 'seeker');
     await page.goto('/dashboard');
     await page.evaluate(() => window.scrollTo(0, 500));
     const nav = page.locator('nav').last();

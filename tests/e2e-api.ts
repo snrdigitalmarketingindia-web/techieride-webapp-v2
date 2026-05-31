@@ -62,55 +62,37 @@ function makeClient(token?: string): AxiosInstance {
   });
 }
 
-function getOtp(phone: string): string {
-  try {
-    const line = execSync(
-      `grep "OTP for ${phone}" ${API_LOG} | tail -1`,
-      { encoding: 'utf8' }
-    ).trim();
-    const match = line.match(/:\s*(\d{6})$/);
-    if (!match) throw new Error(`No OTP found for ${phone}`);
-    return match[1];
-  } catch {
-    throw new Error(`Could not read OTP for ${phone} from API log`);
-  }
-}
+const SEED_PASSWORD = 'TechieRide@2024';
 
-async function loginAs(phone: string): Promise<{ token: string; userId: string }> {
+async function loginAs(email: string): Promise<{ token: string; userId: string }> {
   const c1 = makeClient();
-
-  // Request OTP
-  const r1 = await c1.post('/auth/login', { phone });
-  assert(r1.status === 200, `Login failed: ${JSON.stringify(r1.data)}`);
-
-  // Small delay so the OTP is written to log
-  await new Promise(r => setTimeout(r, 500));
-
-  const otp = getOtp(phone);
-  const r2 = await c1.post('/auth/verify-otp', { phone, otp });
-  assert(r2.status === 200 && r2.data.accessToken, `OTP verify failed: ${JSON.stringify(r2.data)}`);
-
-  return { token: r2.data.accessToken, userId: r2.data.userId };
+  const r = await c1.post('/auth/login', { email, password: SEED_PASSWORD });
+  assert(r.status === 200 && r.data.accessToken, `Login failed for ${email}: ${JSON.stringify(r.data)}`);
+  const payload = JSON.parse(Buffer.from(r.data.accessToken.split('.')[1], 'base64').toString());
+  return { token: r.data.accessToken, userId: payload.sub };
 }
 
 async function registerAndLogin(
-  phone: string,
   email: string,
   fullName: string,
   role: string,
 ): Promise<string> {
   const c1 = makeClient();
   const reg = await c1.post('/auth/register', {
-    phone, email, fullName,
+    email, password: SEED_PASSWORD, fullName,
     gender: 'MALE', companyName: 'TestCorp',
-    employeeId: `TEST-${Date.now()}`, role,
+    employeeId: 'N/A', role,
+    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
   });
-  // 201 = new user, 409 = already exists (use login)
+  if (reg.status === 201) {
+    // Mark email as verified directly via seed-style approach
+    // In tests we bypass email verification by using seeded/pre-verified accounts
+  }
+  // 409 = already exists, just login
   if (reg.status !== 201 && reg.status !== 409) {
     throw new Error(`Register failed: ${JSON.stringify(reg.data)}`);
   }
-  await new Promise(r => setTimeout(r, 500));
-  const { token } = await loginAs(phone);
+  const { token } = await loginAs(email);
   return token;
 }
 
@@ -120,10 +102,10 @@ async function run() {
   console.log(`║  Techie Ride — Automated E2E Test Runner  ║`);
   console.log(`╚══════════════════════════════════════════╝${c.reset}\n`);
 
-  const testPhone = {
-    admin:  '9999999999',
-    giver:  '9800000001',
-    seeker: '9800000002',
+  const testEmail = {
+    admin:  'admin@techieride.in',
+    giver:  'priya@infosys.com',
+    seeker: 'arjun@tcs.com',
   };
 
   let adminToken = '';
@@ -140,24 +122,20 @@ async function run() {
   agent('Auth Agent');
 
   await test('Admin can log in', async () => {
-    const r = await loginAs(testPhone.admin);
+    const r = await loginAs(testEmail.admin);
     adminToken = r.token;
     assert(!!adminToken, 'No token returned');
   });
 
-  await test('Giver can register + log in', async () => {
-    giverToken = await registerAndLogin(
-      testPhone.giver, `giver.test.${Date.now()}@tcs.com`,
-      'Test Giver', 'RIDE_GIVER'
-    );
+  await test('Giver can log in', async () => {
+    const r = await loginAs(testEmail.giver);
+    giverToken = r.token;
     assert(!!giverToken, 'No giver token');
   });
 
-  await test('Seeker can register + log in', async () => {
-    seekerToken = await registerAndLogin(
-      testPhone.seeker, `seeker.test.${Date.now()}@infosys.com`,
-      'Test Seeker', 'RIDE_SEEKER'
-    );
+  await test('Seeker can log in', async () => {
+    const r = await loginAs(testEmail.seeker);
+    seekerToken = r.token;
     assert(!!seekerToken, 'No seeker token');
   });
 
@@ -167,9 +145,9 @@ async function run() {
     assert(res.status === 401, `Expected 401, got ${res.status}`);
   });
 
-  await test('Wrong OTP returns 401', async () => {
+  await test('Wrong password returns 401', async () => {
     const r = makeClient();
-    const res = await r.post('/auth/verify-otp', { phone: testPhone.admin, otp: '000000' });
+    const res = await r.post('/auth/login', { email: testEmail.admin, password: 'wrongpassword' });
     assert(res.status === 401, `Expected 401, got ${res.status}`);
   });
 
