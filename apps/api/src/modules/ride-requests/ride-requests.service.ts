@@ -77,6 +77,16 @@ export class RideRequestsService {
     });
   }
 
+  async getMyRequests(userId: string) {
+    const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+    if (!seeker) throw new ForbiddenException();
+    return this.prisma.rideRequest.findMany({
+      where: { seekerId: seeker.id },
+      include: { ride: { include: { rideGiver: { include: { user: true } } } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async approve(requestId: string, userId: string) {
     const request = await this.getRequestForGiver(requestId, userId);
     if (request.status !== 'PENDING') {

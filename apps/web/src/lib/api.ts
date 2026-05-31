@@ -82,6 +82,7 @@ export const ridesApi = {
 // ─── Ride Requests ────────────────────────────────────
 export const requestsApi = {
   create: (data: any) => api.post('/ride-requests', data),
+  getMine: () => api.get('/ride-requests/mine'),
   getIncoming: (rideId: string) => api.get('/ride-requests/incoming', { params: { rideId } }),
   approve: (id: string) => api.patch(`/ride-requests/${id}/approve`),
   reject: (id: string, reason?: string) => api.patch(`/ride-requests/${id}/reject`, { reason }),

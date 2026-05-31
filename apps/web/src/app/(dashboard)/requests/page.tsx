@@ -72,7 +72,7 @@ export default function RequestsPage() {
   // My own seat requests (as seeker) — fetch rides taken and check request statuses
   const loadMine = () => {
     setLoading(true);
-    ridesApi.getTaken()
+    requestsApi.getMine()
       .then(r => setRequests(r.data))
       .finally(() => setLoading(false));
   };
@@ -237,19 +237,40 @@ export default function RequestsPage() {
             </div>
           ))}
 
-          {tab === 'mine' && requests.map((ride: any) => (
-            <div key={ride.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+          {tab === 'mine' && requests.map((req: any) => (
+            <div key={req.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{ride.originName} → {ride.destinationName}</p>
+                  <p className="text-sm font-medium text-gray-900">{req.ride?.originName} → {req.ride?.destinationName}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {ride.rideGiver?.user?.fullName} · {new Date(ride.departureDate).toLocaleDateString()} {ride.departureTime}
+                    {req.ride?.rideGiver?.user?.fullName} · {req.ride?.departureDate ? new Date(req.ride.departureDate).toLocaleDateString() : ''} {req.ride?.departureTime}
                   </p>
                 </div>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                  🎉 CONFIRMED
-                </span>
+                <div className="flex items-center gap-2">
+                  {req.status === 'HOLD' && req.holdExpiresAt && <HoldTimer expiresAt={req.holdExpiresAt} />}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
+                    {STATUS_ICONS[req.status]} {req.status}
+                  </span>
+                </div>
               </div>
+              {req.status === 'HOLD' && (
+                <button
+                  onClick={() => confirm(req.id)}
+                  disabled={processing === req.id}
+                  className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition"
+                >
+                  ✅ Confirm Seat
+                </button>
+              )}
+              {['HOLD', 'CONFIRMED', 'PENDING'].includes(req.status) && (
+                <button
+                  onClick={() => cancel(req.id)}
+                  disabled={processing === req.id}
+                  className="w-full border border-gray-200 text-gray-500 py-2 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 transition"
+                >
+                  Cancel Request
+                </button>
+              )}
             </div>
           ))}
         </div>

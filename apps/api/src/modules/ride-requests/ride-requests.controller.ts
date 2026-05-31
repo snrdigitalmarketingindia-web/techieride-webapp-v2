@@ -20,6 +20,11 @@ export class RideRequestsController {
     return this.service.getIncomingRequests(rideId, userId);
   }
 
+  @Get('mine')
+  mine(@CurrentUser('id') userId: string) {
+    return this.service.getMyRequests(userId);
+  }
+
   @Patch(':id/approve')
   approve(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.service.approve(id, userId);

@@ -28,6 +28,9 @@ let RideRequestsController = class RideRequestsController {
     incoming(rideId, userId) {
         return this.service.getIncomingRequests(rideId, userId);
     }
+    mine(userId) {
+        return this.service.getMyRequests(userId);
+    }
     approve(id, userId) {
         return this.service.approve(id, userId);
     }
@@ -58,6 +61,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], RideRequestsController.prototype, "incoming", null);
+__decorate([
+    (0, common_1.Get)('mine'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], RideRequestsController.prototype, "mine", null);
 __decorate([
     (0, common_1.Patch)(':id/approve'),
     __param(0, (0, common_1.Param)('id')),
