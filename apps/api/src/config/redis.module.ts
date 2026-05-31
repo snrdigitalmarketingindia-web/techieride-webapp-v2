@@ -15,7 +15,8 @@ export const REDIS_CLIENT = 'REDIS_CLIENT';
         // e.g. rediss://default:password@host:6379
         const redisUrl = config.get<string>('REDIS_URL');
         if (redisUrl) {
-          return new Redis(redisUrl, { tls: redisUrl.startsWith('rediss://') ? {} : undefined });
+          // ioredis handles TLS automatically from rediss:// scheme
+          return new Redis(redisUrl);
         }
         // Fallback: individual host/port/password (local dev)
         return new Redis({

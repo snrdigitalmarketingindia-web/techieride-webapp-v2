@@ -24,7 +24,7 @@ exports.RedisModule = RedisModule = __decorate([
                 useFactory: (config) => {
                     const redisUrl = config.get('REDIS_URL');
                     if (redisUrl) {
-                        return new ioredis_1.default(redisUrl, { tls: redisUrl.startsWith('rediss://') ? {} : undefined });
+                        return new ioredis_1.default(redisUrl);
                     }
                     return new ioredis_1.default({
                         host: config.get('REDIS_HOST', 'localhost'),
