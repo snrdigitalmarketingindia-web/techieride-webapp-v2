@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ridesApi, vehiclesApi, templatesApi } from '@/lib/api';
 
 export default function CreateRidePage() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [activeRide, setActiveRide] = useState<any>(null);
   const [form, setForm] = useState({
     vehicleId: '',
     originName: '',
@@ -29,6 +31,12 @@ export default function CreateRidePage() {
     vehiclesApi.getMine().then((r) => {
       setVehicles(r.data);
       if (r.data.length > 0) setForm((f) => ({ ...f, vehicleId: r.data[0].id }));
+    });
+    ridesApi.getGiven('PUBLISHED').then((r) => {
+      const active = (r.data || []).find((ride: any) =>
+        ['PUBLISHED', 'STARTED'].includes(ride.status)
+      );
+      if (active) setActiveRide(active);
     });
   }, []);
 
@@ -72,6 +80,14 @@ export default function CreateRidePage() {
   return (
     <div className="space-y-5 max-w-lg">
       <h1 className="text-xl font-bold text-gray-900">Offer a Ride</h1>
+
+      {activeRide && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+          ⚠️ You already have an active ride (<strong>{activeRide.originName} → {activeRide.destinationName}</strong>).
+          Complete or cancel it before posting a new one.{' '}
+          <Link href={`/rides/${activeRide.id}`} className="font-medium underline">View ride →</Link>
+        </div>
+      )}
 
       {vehicles.length === 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
@@ -138,7 +154,7 @@ export default function CreateRidePage() {
         </label>
       </div>
 
-      <button onClick={submit} disabled={loading || vehicles.length === 0}
+      <button onClick={submit} disabled={loading || vehicles.length === 0 || !!activeRide}
         className="w-full bg-brand-600 text-white py-3 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition">
         {loading ? 'Creating...' : '🚗 Publish Ride'}
       </button>

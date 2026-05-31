@@ -58,7 +58,14 @@ export default function RequestsPage() {
 
   // Load giver's rides for the selector
   useEffect(() => {
-    ridesApi.getGiven('PUBLISHED').then(r => setMyRides(r.data || []));
+    ridesApi.getGiven('PUBLISHED').then(r => {
+      const rides = r.data || [];
+      setMyRides(rides);
+      if (rides.length === 1 && tab === 'incoming') {
+        setRideId(rides[0].id);
+        loadIncoming(rides[0].id);
+      }
+    });
   }, []);
 
   const loadIncoming = (id: string) => {
