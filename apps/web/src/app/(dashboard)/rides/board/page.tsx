@@ -51,9 +51,9 @@ function RoutePatternCard({ route, rides, isSeeker }: { route: string; rides: an
   const totalSeats  = rides.reduce((s, r) => s + r.totalSeats, 0);
   const filledSeats = rides.reduce((s, r) => s + r.filledSeats, 0);
   const avgFillRate = totalSeats > 0 ? filledSeats / totalSeats : 0;
-  const times = [...new Set(rides.map((r: any) => r.departureTime))].sort();
+  const times = Array.from(new Set(rides.map((r: any) => r.departureTime))).sort();
   const publishedRide = rides.find((r: any) => r.status === 'PUBLISHED');
-  const givers = [...new Map(rides.map((r: any) => [r.rideGiver?.fullName, r.rideGiver])).values()].filter(Boolean);
+  const givers = Array.from(new Map(rides.map((r: any) => [r.rideGiver?.fullName, r.rideGiver])).values()).filter(Boolean);
   const [origin, dest] = route.split(' → ');
 
   return (
