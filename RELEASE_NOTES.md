@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 184 · c5f5f47 · 2026-06-01 20:05 UTC
+
+Commit: feat: add TechieRide logo as browser favicon
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/layout.tsx
+
+---
+
 ## Build 182 · ff45c2b · 2026-06-01 20:01 UTC
 
 Commit: fix: revert next.config.js to read version from package.json
