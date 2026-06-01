@@ -75,6 +75,7 @@ export const ridesApi = {
   start: (id: string) => api.patch(`/rides/${id}/start`),
   complete: (id: string) => api.patch(`/rides/${id}/complete`),
   cancel: (id: string, reason: string) => api.patch(`/rides/${id}/cancel`, { reason }),
+  community: (from: string, to: string) => api.get('/rides/community', { params: { from, to } }),
   board: (id: string) => api.patch(`/rides/${id}/board`),
   deboard: (id: string) => api.patch(`/rides/${id}/deboard`),
   markNoShow: (rideId: string, seekerId: string) => api.patch(`/rides/${rideId}/no-show/${seekerId}`),

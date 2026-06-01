@@ -574,5 +574,29 @@ export declare class RidesService {
         cancelledAt: Date | null;
         cancelReason: string | null;
     })[]>;
+    getCommunityRides(from: string, to: string): Promise<{
+        id: string;
+        originName: string;
+        destinationName: string;
+        departureDate: Date;
+        departureTime: string;
+        totalSeats: number;
+        availableSeats: number;
+        filledSeats: number;
+        fillRate: number;
+        status: import(".prisma/client").$Enums.RideStatus;
+        estimatedDistanceKm: number | null;
+        rideGiver: {
+            fullName: string;
+            ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+            averageRating: number;
+            totalRidesGiven: number;
+        };
+        vehicle: {
+            make: string;
+            model: string;
+            color: string | null;
+        };
+    }[]>;
     private findRideForGiver;
 }

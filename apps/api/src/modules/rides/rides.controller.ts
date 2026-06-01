@@ -20,6 +20,12 @@ export class RidesController {
     return this.ridesService.search(dto);
   }
 
+  @Public()
+  @Get('community')
+  community(@Query('from') from: string, @Query('to') to: string) {
+    return this.ridesService.getCommunityRides(from, to);
+  }
+
   @Get('given')
   getGiven(@CurrentUser('id') userId: string, @Query('status') status?: string) {
     return this.ridesService.getGivenRides(userId, status);

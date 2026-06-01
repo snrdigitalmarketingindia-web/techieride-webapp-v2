@@ -89,6 +89,30 @@ export declare class RidesController {
         cancelledAt: Date | null;
         cancelReason: string | null;
     }[]>;
+    community(from: string, to: string): Promise<{
+        id: string;
+        originName: string;
+        destinationName: string;
+        departureDate: Date;
+        departureTime: string;
+        totalSeats: number;
+        availableSeats: number;
+        filledSeats: number;
+        fillRate: number;
+        status: import(".prisma/client").$Enums.RideStatus;
+        estimatedDistanceKm: number | null;
+        rideGiver: {
+            fullName: string;
+            ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+            averageRating: number;
+            totalRidesGiven: number;
+        };
+        vehicle: {
+            make: string;
+            model: string;
+            color: string | null;
+        };
+    }[]>;
     getGiven(userId: string, status?: string): Promise<({
         vehicle: {
             id: string;

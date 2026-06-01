@@ -568,6 +568,47 @@ export class RidesService {
     return participants.map((p) => p.ride);
   }
 
+  async getCommunityRides(from: string, to: string) {
+    const fromDate = from ? new Date(from) : new Date();
+    const toDate   = to   ? new Date(to)   : new Date();
+    // Include both ends of the range
+    toDate.setHours(23, 59, 59, 999);
+
+    const rides = await this.prisma.ride.findMany({
+      where: {
+        status: { in: ['PUBLISHED', 'ONGOING', 'COMPLETED'] },
+        departureDate: { gte: fromDate, lte: toDate },
+      },
+      include: {
+        rideGiver: { include: { user: { select: { fullName: true, ecoLevel: true } } } },
+        vehicle:   { select: { make: true, model: true, color: true } },
+        participants: { select: { boardingStatus: true } },
+      },
+      orderBy: [{ departureDate: 'asc' }, { departureTime: 'asc' }],
+    });
+
+    return rides.map((r) => ({
+      id:              r.id,
+      originName:      r.originName,
+      destinationName: r.destinationName,
+      departureDate:   r.departureDate,
+      departureTime:   r.departureTime,
+      totalSeats:      r.totalSeats,
+      availableSeats:  r.availableSeats,
+      filledSeats:     r.totalSeats - r.availableSeats,
+      fillRate:        r.totalSeats > 0 ? (r.totalSeats - r.availableSeats) / r.totalSeats : 0,
+      status:          r.status,
+      estimatedDistanceKm: r.estimatedDistanceKm,
+      rideGiver: {
+        fullName:       r.rideGiver?.user?.fullName,
+        ecoLevel:       r.rideGiver?.user?.ecoLevel,
+        averageRating:  r.rideGiver?.averageRating,
+        totalRidesGiven: r.rideGiver?.totalRidesGiven,
+      },
+      vehicle: r.vehicle,
+    }));
+  }
+
   private async findRideForGiver(rideId: string, userId: string) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) throw new ForbiddenException('Not a ride giver');
