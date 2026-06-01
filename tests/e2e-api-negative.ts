@@ -81,10 +81,21 @@ async function run() {
   const ts = Date.now();
   const admin  = await loginAs(ADMIN).then(s => makeClient(s.token));
   // Fresh isolated accounts — avoids interference from active rides/requests on seeded accounts
-  const giverAcc  = await registerAndLogin(`neg_giver_${ts}@wipro.com`,  'RIDE_GIVER');
-  const seekerAcc = await registerAndLogin(`neg_seeker_${ts}@tcs.com`, 'RIDE_SEEKER');
+  const giverAcc  = await registerAndLogin(`neg_giver_${ts}@wipro.com`);
+  const seekerAcc = await registerAndLogin(`neg_seeker_${ts}@tcs.com`);
   const giver  = makeClient(giverAcc.token);
   const seeker = makeClient(seekerAcc.token);
+
+  // Helper: employee verification (required for all seekers to access ride routes)
+  async function empVerify(userId: string, client: AxiosInstance) {
+    await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    const q = await admin.get('/admin/verification/pending');
+    const e = q.data.find((v: any) => v.userId === userId && v.verificationType === 'EMPLOYEE');
+    if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
+  }
+
+  // Seeker employee verification
+  await empVerify(seekerAcc.userId, seeker);
 
   // Giver must be verified (verificationStatus=APPROVED) to be able to publish
   // Employee verification
@@ -252,8 +263,9 @@ async function run() {
   // Fresh giver D + fresh seeker for request state tests
   const { client: giverD, vehicleId: vehDId } = await freshVerifiedGiver('D', `TSD${ts.toString().slice(-4)}`);
   const vehD = { data: { id: vehDId } }; // keep existing references working
-  const seekerBAcc = await registerAndLogin(`neg_seekerB_${ts}@tcs.com`, 'RIDE_SEEKER');
+  const seekerBAcc = await registerAndLogin(`neg_seekerB_${ts}@tcs.com`);
   const seekerB = makeClient(seekerBAcc.token);
+  await empVerify(seekerBAcc.userId, seekerB);
 
   const singleSeatRideRes = await giverD.post('/rides', {
     vehicleId: vehD.data.id, originName: 'LB Nagar', destinationName: 'Secunderabad',
@@ -284,7 +296,9 @@ async function run() {
   await seekerB.patch(`/ride-requests/${requestId}/confirm`);
 
   await test('Cannot book a seat on a ride with 0 available seats → 400', async () => {
-    const seeker2 = await registerAndLogin(`neg_seeker2_${ts}@wipro.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
+    const seeker2Acc = await registerAndLogin(`neg_seeker2_${ts}@wipro.com`);
+    const seeker2 = makeClient(seeker2Acc.token);
+    await empVerify(seeker2Acc.userId, seeker2);
     const r = await seeker2.post('/ride-requests', { rideId: singleSeatId, pickupName: 'Kondapur Metro, Hyderabad' });
     assert(r.status === 400, `Expected 400 (no seats), got ${r.status}`);
   });
