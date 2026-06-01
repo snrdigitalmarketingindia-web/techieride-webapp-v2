@@ -2,6 +2,23 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 180 · 0ca3620 · 2026-06-01 19:57 UTC
+
+Commit: fix: use VERCEL_GIT_COMMIT_SHA as build identifier in next.config.js
+
+Version now shows as 2.1.0-{short-sha} on Vercel, always accurate for
+the exact commit deployed — no more stale build number from the
+race between Vercel deploy and the release-notes stamp workflow.
+Falls back to package.json version in local dev.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/next.config.js
+
+---
+
 
 Commit: feat: shared RideCard component — consistent participants + status + call everywhere
 
