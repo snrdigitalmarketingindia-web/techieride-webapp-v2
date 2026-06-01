@@ -12,7 +12,7 @@
  *
  * 2. ONE ACTIVE REQUEST PER SEEKER
  *    - Seeker cannot request ride B while having PENDING request on ride A
- *    - Seeker cannot request ride B while having HOLD request on ride A
+ *    - Seeker cannot request ride B while CONFIRMED on ride A
  *    - Seeker cannot request ride B while CONFIRMED on ride A
  *    - Seeker CAN request again after CANCELLING their previous request
  *    - Seeker CAN request again after being REJECTED
@@ -22,7 +22,7 @@
  *    - Available seats never go below 0
  *    - Seats restored on seeker cancellation
  *    - Seats restored on giver rejection
- *    - Seats restored when HOLD expires without confirmation
+ *    - Seats restored when CONFIRMED request is cancelled
  *
  * 4. RIDE STATE MACHINE
  *    - Cannot skip states (DRAFT → STARTED without PUBLISHED)
@@ -275,13 +275,13 @@ async function run() {
       requestId = r.data.requestId;
     });
 
-    await test('Giver approves request → seeker enters HOLD state', async () => {
+    await test('Giver approves request → seeker is directly CONFIRMED', async () => {
       const approve = await giverClient2.patch(`/ride-requests/${requestId}/approve`);
       assert(approve.status === 200, `Approve failed: ${approve.status}`);
-      assert(approve.data.status === 'HOLD', `Expected HOLD, got ${approve.data.status}`);
+      assert(approve.data.status === 'CONFIRMED', `Expected CONFIRMED, got ${approve.data.status}`);
     });
 
-    await test('Seeker CANNOT request ride A while in HOLD on ride B → 409', async () => {
+    await test('Seeker CANNOT request ride A while CONFIRMED on ride B → 409', async () => {
       const r = await seekerClient.post('/ride-requests', { rideId: rideA, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 409, `Expected 409, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
@@ -352,12 +352,12 @@ async function run() {
       assert(r.data.availableSeats === 2, `Expected 2, got ${r.data.availableSeats}`);
     });
 
-    await test('Seeker 1 requests and giver approves → seats decremented to 1 (HOLD reserves seat)', async () => {
+    await test('Seeker 1 requests and giver approves → seats decremented to 1', async () => {
       const req = await seekerClient.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       req1Id = req.data.requestId;
       await giverClient.patch(`/ride-requests/${req1Id}/approve`);
       const r = await giverClient.get(`/rides/${rideId}`);
-      assert(r.data.availableSeats === 1, `Expected 1 (seat reserved at HOLD), got ${r.data.availableSeats}`);
+      assert(r.data.availableSeats === 1, `Expected 1, got ${r.data.availableSeats}`);
     });
 
     await test('Seeker 1 confirms → available seats still 1 (already reserved)', async () => {
@@ -490,7 +490,7 @@ async function run() {
       assert(approve.status === 200, `Approve failed: ${approve.status}`);
     });
 
-    await test('Giver tries to approve a 2nd seeker while seat is on HOLD → 400', async () => {
+    await test('Giver tries to approve a 2nd seeker when no seats left → 400', async () => {
       const incoming = await giverClient.get('/ride-requests/incoming', { params: { rideId } });
       const pending = incoming.data.filter((r: any) => r.status === 'PENDING');
       if (pending.length > 0) {

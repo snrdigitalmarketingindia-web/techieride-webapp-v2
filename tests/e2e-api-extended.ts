@@ -236,10 +236,7 @@ async function run() {
     cancelRequestId = req.data.requestId;
 
     const apr = await giverB.patch(`/ride-requests/${cancelRequestId}/approve`);
-    assert(apr.data.status === 'HOLD', `Expected HOLD`);
-
-    const conf = await s2.patch(`/ride-requests/${cancelRequestId}/confirm`);
-    assert(conf.data.status === 'CONFIRMED', `Expected CONFIRMED`);
+    assert(apr.data.status === 'CONFIRMED', `Expected CONFIRMED`);
   });
 
   await test('Seeker can cancel a confirmed booking', async () => {
@@ -295,11 +292,11 @@ async function run() {
     if (r3.status === 201) race3Id = r3.data.requestId;
   });
 
-  await test('Giver approves S1 → seat goes on hold', async () => {
+  await test('Giver approves S1 → seat confirmed directly', async () => {
     if (!race1Id) return;
     const r = await giverC.patch(`/ride-requests/${race1Id}/approve`);
     assert(r.status === 200, `Got ${r.status}`);
-    assert(r.data.status === 'HOLD', `Expected HOLD`);
+    assert(r.data.status === 'CONFIRMED', `Expected CONFIRMED`);
   });
 
   await test('Giver cannot approve S3 when seat is on hold', async () => {

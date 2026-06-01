@@ -289,7 +289,7 @@ async function run() {
     assert(r.status === 404, `Expected 404, got ${r.status}`);
   });
 
-  await test('Cannot cancel a HOLD request with wrong seeker → 403/404', async () => {
+  await test('Cannot cancel a CONFIRMED request with wrong seeker → 403/404', async () => {
     const stranger = await registerAndLogin(`stranger_${ts}@tcs.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
     const r = await stranger.patch(`/ride-requests/${requestId}/cancel`);
     assert(r.status === 403 || r.status === 404, `Expected 403/404, got ${r.status}`);

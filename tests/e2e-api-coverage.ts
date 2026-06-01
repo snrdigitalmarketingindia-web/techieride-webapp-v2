@@ -656,19 +656,13 @@ async function run() {
     const reqId = reqR.data.requestId;
     await giver.client.patch(`/ride-requests/${reqId}/approve`);
 
-    // Verify approved request is in HOLD status (hold timer removed in v2.1.0)
-    await test('Approved request status is HOLD', async () => {
+    // approve() now goes directly to CONFIRMED (HOLD state removed)
+    await test('Approved request status is CONFIRMED', async () => {
       const r = await giver.client.get('/ride-requests/incoming', { params: { rideId } });
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       const req = r.data.find((x: any) => x.id === reqId);
       assert(!!req, 'Request not found in incoming');
-      assert(req.status === 'HOLD', `Expected HOLD status, got: ${req.status}`);
-    });
-
-    await test('Seeker can confirm HOLD request at any time', async () => {
-      const r = await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
-      assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(r.data.status === 'CONFIRMED', `Expected CONFIRMED, got ${r.data.status}`);
+      assert(req.status === 'CONFIRMED', `Expected CONFIRMED status, got: ${req.status}`);
     });
   }
 
