@@ -43,9 +43,11 @@ export default function MyRidesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">My Rides</h1>
-        <Link href="/rides/create" className="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700 transition">
-          + Offer Ride
-        </Link>
+        {isGiver && (
+          <Link href="/rides/create" className="bg-brand-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-700 transition">
+            + Offer Ride
+          </Link>
+        )}
       </div>
 
       {/* Only show tabs for BOTH role — pure giver or seeker sees no tab */}

@@ -4,9 +4,16 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ridesApi, vehiclesApi, templatesApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 
 export default function CreateRidePage() {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const isGiver = user?.role === 'RIDE_GIVER' || user?.role === 'BOTH';
+
+  useEffect(() => {
+    if (user && !isGiver) router.replace('/dashboard');
+  }, [user]);
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [activeRide, setActiveRide] = useState<any>(null);
   const [form, setForm] = useState({

@@ -221,8 +221,8 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Vehicles */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
+      {/* Vehicles — givers only */}
+      {isGiver && <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-900">🚗 My Vehicles</h2>
           <button onClick={() => setAddVehicle(!addVehicle)} className="text-sm text-brand-600 font-medium hover:underline">
@@ -274,7 +274,7 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
-      </div>
+      </div>}
     </div>
   );
 }

@@ -20,13 +20,20 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const role     = user?.role;
+  const isGiver  = role === 'RIDE_GIVER' || role === 'BOTH';
+  const isSeeker = role === 'RIDE_SEEKER' || role === 'BOTH';
+
   const [upcomingRides, setUpcomingRides] = useState<any[]>([]);
   const [ecoSummary, setEcoSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const ridesFetch = isGiver
+      ? ridesApi.getGiven().then((r) => r.data.slice(0, 3))
+      : ridesApi.getTaken().then((r) => r.data.slice(0, 3));
     Promise.all([
-      ridesApi.getGiven().then((r) => setUpcomingRides(r.data.slice(0, 3))),
+      ridesFetch.then(setUpcomingRides),
       gamificationApi.getSummary().then((r) => setEcoSummary(r.data)),
     ]).finally(() => setLoading(false));
   }, []);
@@ -63,14 +70,14 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Quick actions */}
+      {/* Quick actions — role-aware */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          { href: '/rides/create', icon: '🚗', label: 'Offer Ride', color: 'bg-brand-50 border-brand-200' },
-          { href: '/rides/search', icon: '🔍', label: 'Find Ride', color: 'bg-blue-50 border-blue-200' },
-          { href: '/requests', icon: '📋', label: 'Requests', color: 'bg-purple-50 border-purple-200' },
-          { href: '/rides/leaderboard', icon: '🏆', label: 'Leaderboard', color: 'bg-yellow-50 border-yellow-200' },
-        ].map((a) => (
+          isGiver  && { href: '/rides/create',     icon: '🚗', label: 'Offer Ride',     color: 'bg-brand-50 border-brand-200' },
+          isSeeker && { href: '/rides/board',       icon: '🗺️', label: 'Find Rides',     color: 'bg-blue-50 border-blue-200'   },
+                       { href: '/requests',         icon: '📋', label: 'Requests',       color: 'bg-purple-50 border-purple-200' },
+                       { href: '/rides/leaderboard',icon: '🏆', label: 'Leaderboard',    color: 'bg-yellow-50 border-yellow-200' },
+        ].filter(Boolean).map((a: any) => (
           <Link key={a.href} href={a.href} className={`${a.color} border rounded-xl p-4 flex items-center gap-3 hover:opacity-80 transition`}>
             <span className="text-2xl">{a.icon}</span>
             <span className="font-medium text-gray-800">{a.label}</span>
@@ -81,18 +88,24 @@ export default function DashboardPage() {
       {/* Upcoming rides */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-gray-900">Upcoming Rides</h2>
+          <h2 className="font-semibold text-gray-900">{isGiver ? 'My Upcoming Rides' : 'My Booked Rides'}</h2>
           <Link href="/rides" className="text-sm text-brand-600 hover:underline">View all</Link>
         </div>
         {loading ? (
           <div className="text-center py-8 text-gray-400">Loading...</div>
         ) : upcomingRides.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-            <div className="text-4xl mb-2">🚗</div>
-            <p className="text-gray-500 text-sm">No upcoming rides</p>
-            <Link href="/rides/create" className="inline-block mt-3 text-sm text-brand-600 font-medium hover:underline">
-              Offer your first ride →
-            </Link>
+            <div className="text-4xl mb-2">{isGiver ? '🚗' : '🧳'}</div>
+            <p className="text-gray-500 text-sm">{isGiver ? 'No upcoming rides' : 'No booked rides yet'}</p>
+            {isGiver ? (
+              <Link href="/rides/create" className="inline-block mt-3 text-sm text-brand-600 font-medium hover:underline">
+                Offer your first ride →
+              </Link>
+            ) : (
+              <Link href="/rides/board" className="inline-block mt-3 text-sm text-brand-600 font-medium hover:underline">
+                Find a ride →
+              </Link>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
