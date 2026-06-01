@@ -75,6 +75,7 @@ exports.ALLOWED_DOMAINS = new Set([
     'drdo.gov.in',
     'isro.gov.in',
     'nic.in',
+    'gmail.com',
 ]);
 function isAllowedDomain(email) {
     const domain = email.split('@')[1]?.toLowerCase();

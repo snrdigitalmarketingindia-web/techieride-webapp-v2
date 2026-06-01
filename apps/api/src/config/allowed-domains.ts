@@ -88,6 +88,9 @@ export const ALLOWED_DOMAINS: Set<string> = new Set([
   'drdo.gov.in',
   'isro.gov.in',
   'nic.in',
+
+  // ── TEST ONLY — remove before production launch ──────────────────────
+  'gmail.com',
 ]);
 
 /**
