@@ -149,8 +149,16 @@ export const adminApi = {
   listUsers: (params?: any) => api.get('/admin/users', { params }),
   suspendUser: (id: string) => api.patch(`/admin/users/${id}/suspend`),
   activateUser: (id: string) => api.patch(`/admin/users/${id}/activate`),
+  // 4 separate verification queues
+  getEmailPendingQueue: () => api.get('/admin/queues/email-pending'),
+  getExceptionQueue: () => api.get('/admin/queues/exception-requests'),
+  getDocumentQueue: () => api.get('/admin/queues/document-pending'),
+  getDriverQueue: () => api.get('/admin/queues/driver-pending'),
+  // review action (approve/reject any verification request)
+  reviewVerification: (id: string, data: { decision: 'APPROVED' | 'REJECTED'; rejectionReason?: string }) =>
+    api.patch(`/admin/verification/${id}/review`, data),
+  // legacy — all pending in one list
   getPendingVerifications: () => api.get('/admin/verification/pending'),
-  reviewVerification: (id: string, data: any) => api.patch(`/admin/verification/${id}/review`, data),
   listRides: (params?: any) => api.get('/admin/rides', { params }),
   getAnalytics: (from?: string, to?: string) => api.get('/admin/analytics', { params: { from, to } }),
   getActiveSos: () => api.get('/admin/sos/active'),
