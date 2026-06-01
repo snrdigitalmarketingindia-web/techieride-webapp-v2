@@ -455,7 +455,7 @@ let RidesService = class RidesService {
                     include: { rideGiver: { include: { user: true } }, vehicle: true },
                 },
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { ride: { departureDate: 'desc' } },
         });
         return participants.map((p) => p.ride);
     }

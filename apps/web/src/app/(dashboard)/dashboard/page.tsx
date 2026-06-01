@@ -84,7 +84,7 @@ export default function DashboardPage() {
             <p className="text-green-800 text-sm font-medium">✅ Employee verified — {user.trid}</p>
             <p className="text-green-700 text-sm">You can search and book rides. Want to offer rides too?</p>
           </div>
-          <Link href="/profile#become-giver" className="text-sm text-green-700 font-medium underline">Become a Giver</Link>
+          <Link href="/become-giver" className="text-sm text-green-700 font-medium underline">Become a Giver →</Link>
         </div>
       )}
       {user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' && (

@@ -111,8 +111,13 @@ export const templatesApi = {
 
 // ─── Verification ─────────────────────────────────────
 export const verificationApi = {
-  submit: (data: any) => api.post('/verification/submit', data),
+  submitEmployee: (data: { employeeIdUrl: string; profilePhotoUrl?: string }) =>
+    api.post('/verification/employee', data),
+  submitDriver: (data: { drivingLicenseUrl: string; rcUrl: string }) =>
+    api.post('/verification/driver', data),
   getStatus: () => api.get('/verification/status'),
+  // legacy alias kept for profile page compatibility
+  submit: (data: any) => api.post('/verification/employee', data),
 };
 
 // ─── Notifications ────────────────────────────────────

@@ -160,6 +160,20 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Become a Giver CTA */}
+      {user?.accountStatus === 'EMPLOYEE_VERIFIED' && (
+        <div className="bg-brand-50 border border-brand-200 rounded-xl p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-brand-900">Want to offer rides?</p>
+            <p className="text-sm text-brand-700 mt-0.5">Upload your DL and RC to become a Ride Giver and share your commute.</p>
+          </div>
+          <a href="/become-giver"
+            className="shrink-0 bg-brand-600 text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-brand-700 transition">
+            Become a Giver →
+          </a>
+        </div>
+      )}
+
       {/* Verification upload */}
       {!['EMPLOYEE_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'].includes(user?.accountStatus || '') && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
