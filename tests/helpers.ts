@@ -202,6 +202,12 @@ export async function completeFullRide(seats = 1) {
   const start = await giver.client.patch(`/rides/${rideId}/start`);
   if (start.status !== 200) throw new Error(`Start failed: ${JSON.stringify(start.data)}`);
 
+  const board = await seeker.client.patch(`/rides/${rideId}/board`);
+  if (board.status !== 200) throw new Error(`Board failed: ${JSON.stringify(board.data)}`);
+
+  const deboard = await seeker.client.patch(`/rides/${rideId}/deboard`);
+  if (deboard.status !== 200) throw new Error(`Deboard failed: ${JSON.stringify(deboard.data)}`);
+
   const complete = await giver.client.patch(`/rides/${rideId}/complete`);
   if (complete.status !== 200) throw new Error(`Complete failed: ${JSON.stringify(complete.data)}`);
 

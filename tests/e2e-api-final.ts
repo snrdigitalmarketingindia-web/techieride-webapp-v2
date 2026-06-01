@@ -138,6 +138,8 @@ async function run() {
     await giver.client.patch(`/ride-requests/${reqId}/approve`);
     await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
     await giver.client.patch(`/rides/${rideId}/start`);
+    await seeker.client.patch(`/rides/${rideId}/board`);
+    await seeker.client.patch(`/rides/${rideId}/deboard`);
     await giver.client.patch(`/rides/${rideId}/complete`);
 
     await test('Giver earns eco points after ride completion', async () => {

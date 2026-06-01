@@ -429,6 +429,16 @@ async function run() {
     assert(r.data.status === 'ONGOING', `Expected ONGOING, got ${r.data.status}`);
   });
 
+  await test('Seeker can board the ride', async () => {
+    const r = await seekerClient.patch(`/rides/${rideId}/board`);
+    assert(r.status === 200, `Got ${r.status}: ${JSON.stringify(r.data)}`);
+  });
+
+  await test('Seeker can deboard the ride', async () => {
+    const r = await seekerClient.patch(`/rides/${rideId}/deboard`);
+    assert(r.status === 200, `Got ${r.status}: ${JSON.stringify(r.data)}`);
+  });
+
   await test('Giver can complete the ride', async () => {
     const r = await giverClient.patch(`/rides/${rideId}/complete`);
     assert(r.status === 200, `Got ${r.status}: ${JSON.stringify(r.data)}`);
