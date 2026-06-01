@@ -85,9 +85,14 @@ function GiverView() {
             {/* Ride header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
               <div>
-                <p className="font-semibold text-gray-900 text-sm">{ride.originName} → {ride.destinationName}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-900 text-sm">{ride.originName} → {ride.destinationName}</p>
+                  <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${ride.availableSeats === 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-700'}`}>
+                    {ride.availableSeats}/{ride.totalSeats} seats
+                  </span>
+                </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  📅 {new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {ride.departureTime} · {ride.availableSeats}/{ride.totalSeats} seats
+                  📅 {new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {ride.departureTime}
                 </p>
               </div>
               <div className="flex items-center gap-2">
