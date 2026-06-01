@@ -7,6 +7,17 @@ import dynamic from 'next/dynamic';
 import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
+const BOARDING_COLORS: Record<string, string> = {
+  WAITING:   'bg-yellow-100 text-yellow-700',
+  BOARDED:   'bg-blue-100 text-blue-700',
+  DEBOARDED: 'bg-green-100 text-green-700',
+  NO_SHOW:   'bg-red-100 text-red-600',
+};
+
+const BOARDING_LABELS: Record<string, string> = {
+  WAITING: '⏳ Waiting', BOARDED: '🚗 Boarded', DEBOARDED: '✅ Deboarded', NO_SHOW: '❌ No Show',
+};
+
 const RideMap = dynamic(() => import('@/components/maps/RideMap'), { ssr: false });
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,6 +43,10 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [pickupName, setPickupName] = useState('');
   const [dropName, setDropName] = useState('');
   const [error, setError] = useState('');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const reloadRide = () =>
+    ridesApi.getById(params.id).then(r => setRide(r.data)).catch(() => {});
 
   useEffect(() => {
     ridesApi.getById(params.id)
@@ -39,6 +54,58 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       .catch(() => router.push('/rides/search'))
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  const handleNoShow = async (seekerUserId: string) => {
+    setActionLoading(`noshow-${seekerUserId}`);
+    setError('');
+    try {
+      await ridesApi.markNoShow(params.id, seekerUserId);
+      await reloadRide();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to mark no-show');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleComplete = async () => {
+    setActionLoading('complete');
+    setError('');
+    try {
+      await ridesApi.complete(params.id);
+      await reloadRide();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to complete ride');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBoard = async () => {
+    setActionLoading('board');
+    setError('');
+    try {
+      await ridesApi.board(params.id);
+      await reloadRide();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to board');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeboard = async () => {
+    setActionLoading('deboard');
+    setError('');
+    try {
+      await ridesApi.deboard(params.id);
+      await reloadRide();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to deboard');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const isMyRide = ride?.rideGiver?.userId === user?.id;
   const isSeeker = user?.role === 'RIDE_SEEKER' || user?.role === 'BOTH';
@@ -188,21 +255,41 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
         )}
       </div>
 
-      {/* Co-passengers */}
+      {/* Participants / boarding status */}
       {ride.participants?.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <p className="text-sm font-semibold text-gray-900 mb-3">
-            👥 Co-passengers ({ride.participants.length})
+            👥 Passengers ({ride.participants.length})
           </p>
-          <div className="flex flex-wrap gap-2">
-            {ride.participants.map((p: any) => (
-              <div key={p.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-1.5">
-                <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700">
-                  {p.seeker?.user?.fullName?.[0]}
+          <div className="space-y-2">
+            {ride.participants.map((p: any) => {
+              const name = p.seeker?.user?.fullName || 'Unknown';
+              const seekerUserId = p.seeker?.userId;
+              const status: string = p.boardingStatus || 'WAITING';
+              return (
+                <div key={p.id} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
+                  <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm font-bold text-brand-700 shrink-0">
+                    {name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
+                    {p.pickupName && <p className="text-xs text-gray-400 truncate">📍 {p.pickupName}</p>}
+                  </div>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${BOARDING_COLORS[status]}`}>
+                    {BOARDING_LABELS[status]}
+                  </span>
+                  {isMyRide && ride.status === 'ONGOING' && status === 'WAITING' && (
+                    <button
+                      onClick={() => handleNoShow(seekerUserId)}
+                      disabled={actionLoading === `noshow-${seekerUserId}`}
+                      className="text-xs text-red-600 border border-red-200 rounded-lg px-2 py-1 hover:bg-red-50 disabled:opacity-50 shrink-0"
+                    >
+                      {actionLoading === `noshow-${seekerUserId}` ? '…' : 'No Show'}
+                    </button>
+                  )}
                 </div>
-                <span className="text-sm text-gray-700">{p.seeker?.user?.fullName?.split(' ')[0]}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -225,12 +312,30 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                 </button>
               </>
             )}
-            {ride.status === 'ONGOING' && (
-              <Link href={`/tracking/${params.id}?giver=true`}
-                className="flex-1 text-center bg-green-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-green-700 transition shadow">
-                📡 Share My Location
-              </Link>
-            )}
+            {ride.status === 'ONGOING' && (() => {
+              const allResolved = ride.participants?.every(
+                (p: any) => p.boardingStatus === 'DEBOARDED' || p.boardingStatus === 'NO_SHOW'
+              ) ?? true;
+              const hasUnresolved = ride.participants?.some(
+                (p: any) => p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED'
+              );
+              return (
+                <div className="flex gap-2 w-full">
+                  <Link href={`/tracking/${params.id}?giver=true`}
+                    className="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow">
+                    📡 Location
+                  </Link>
+                  <button
+                    onClick={handleComplete}
+                    disabled={!allResolved || actionLoading === 'complete'}
+                    title={hasUnresolved ? 'All passengers must deboard or be marked no-show first' : ''}
+                    className="flex-1 bg-brand-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition shadow"
+                  >
+                    {actionLoading === 'complete' ? '…' : allResolved ? '✅ Complete Ride' : '🔒 Complete Ride'}
+                  </button>
+                </div>
+              );
+            })()}
           </div>
         ) : isSeeker && ride.status === 'PUBLISHED' ? (
           <div className="space-y-2">
@@ -261,12 +366,44 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
               </button>
             )}
           </div>
-        ) : ride.status === 'ONGOING' && alreadyParticipant ? (
-          <Link href={`/tracking/${params.id}`}
-            className="block text-center w-full bg-green-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-green-700 transition shadow">
-            📍 Track Live
-          </Link>
-        ) : null}
+        ) : ride.status === 'ONGOING' && alreadyParticipant ? (() => {
+          const myParticipant = ride.participants?.find((p: any) => p.seeker?.userId === user?.id);
+          const myStatus: string = myParticipant?.boardingStatus || 'WAITING';
+          return (
+            <div className="space-y-2">
+              {error && <p className="text-xs text-red-600 text-center">{error}</p>}
+              <div className="flex gap-2">
+                <Link href={`/tracking/${params.id}`}
+                  className="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow">
+                  📍 Track
+                </Link>
+                {myStatus === 'WAITING' && (
+                  <button
+                    onClick={handleBoard}
+                    disabled={actionLoading === 'board'}
+                    className="flex-1 bg-brand-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-brand-700 disabled:opacity-50 transition shadow"
+                  >
+                    {actionLoading === 'board' ? '…' : '🚗 I\'ve Boarded'}
+                  </button>
+                )}
+                {myStatus === 'BOARDED' && (
+                  <button
+                    onClick={handleDeboard}
+                    disabled={actionLoading === 'deboard'}
+                    className="flex-1 bg-green-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition shadow"
+                  >
+                    {actionLoading === 'deboard' ? '…' : '✅ I\'ve Arrived'}
+                  </button>
+                )}
+                {(myStatus === 'DEBOARDED' || myStatus === 'NO_SHOW') && (
+                  <div className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl text-sm font-medium text-center">
+                    {BOARDING_LABELS[myStatus]}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })() : null}
       </div>
 
       {/* Request seat sheet */}
