@@ -78,10 +78,14 @@ async function registerAndLogin(
   _roleIgnored?: string,  // role removed from RegisterDto — everyone starts as RIDE_SEEKER
 ): Promise<string> {
   const c1 = makeClient();
+  // Generate a deterministic 10-digit Indian mobile number from the email hash
+  const phoneHash = email.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const phone = `9${String(phoneHash).padStart(9, '0').slice(-9)}`;
   const reg = await c1.post('/auth/register', {
     email, password: SEED_PASSWORD, fullName,
     companyName: 'TestCorp',
     employeeId: 'N/A',
+    phone,
   });
   if (reg.status !== 201 && reg.status !== 409) {
     throw new Error(`Register failed: ${JSON.stringify(reg.data)}`);
