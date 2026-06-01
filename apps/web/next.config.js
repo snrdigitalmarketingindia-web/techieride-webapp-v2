@@ -1,15 +1,7 @@
 /** @type {import('next').NextConfig} */
-const { execSync } = require('child_process');
-const { version } = require('../../package.json');
-
-let buildSuffix = '0';
-try {
-  buildSuffix = execSync('git rev-list --count HEAD', { stdio: ['pipe', 'pipe', 'ignore'] })
-    .toString().trim();
-} catch {}
-
-const baseVersion = version.split('.').slice(0, 3).join('.');
-const fullVersion = `${baseVersion}.${buildSuffix}`;
+// Version is stamped into package.json by the release-notes GitHub Action on every push.
+// Format: 2.1.0.{commit-count} — always accurate, no git calls needed at build time.
+const { version: fullVersion } = require('../../package.json');
 
 const nextConfig = {
   env: {

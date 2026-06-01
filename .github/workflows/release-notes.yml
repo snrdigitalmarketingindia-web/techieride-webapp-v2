@@ -44,10 +44,23 @@ jobs:
           cat /tmp/entry.md >> RELEASE_NOTES.md
           printf '%s\n' "$TAIL" >> RELEASE_NOTES.md
 
-      - name: Commit updated notes
+      - name: Stamp build number into package.json
+        run: |
+          BUILD=$(git rev-list --count HEAD)
+          # Update version field: keep major.minor.patch, replace/add build suffix
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const base = pkg.version.split('.').slice(0, 3).join('.');
+            pkg.version = base + '.' + $BUILD;
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('Version stamped:', pkg.version);
+          "
+
+      - name: Commit updated notes and version
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add RELEASE_NOTES.md
-          git diff --cached --quiet || git commit -m "docs: release notes for build $(git rev-list --count HEAD) [release-notes]"
+          git add RELEASE_NOTES.md package.json
+          git diff --cached --quiet || git commit -m "docs: release notes + version bump for build $(git rev-list --count HEAD) [release-notes]"
           git push
