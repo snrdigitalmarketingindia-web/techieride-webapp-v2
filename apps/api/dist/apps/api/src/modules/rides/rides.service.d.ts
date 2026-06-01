@@ -213,6 +213,10 @@ export declare class RidesService {
         cancelledAt: Date | null;
         cancelReason: string | null;
     }>;
+    markNoShow(rideId: string, seekerId: string, giverId: string): Promise<{
+        status: string;
+        message: string;
+    }>;
     edit(rideId: string, userId: string, updates: {
         originName?: string;
         destinationName?: string;

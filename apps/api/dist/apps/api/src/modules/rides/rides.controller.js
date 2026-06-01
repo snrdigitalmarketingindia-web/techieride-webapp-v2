@@ -51,6 +51,9 @@ let RidesController = class RidesController {
     edit(id, userId, body) {
         return this.ridesService.edit(id, userId, body);
     }
+    markNoShow(id, seekerId, userId) {
+        return this.ridesService.markNoShow(id, seekerId, userId);
+    }
     board(id, userId) {
         return this.ridesService.board(id, userId);
     }
@@ -133,6 +136,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], RidesController.prototype, "edit", null);
+__decorate([
+    (0, common_1.Patch)(':id/no-show/:seekerId'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('seekerId')),
+    __param(2, (0, current_user_decorator_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], RidesController.prototype, "markNoShow", null);
 __decorate([
     (0, common_1.Patch)(':id/board'),
     __param(0, (0, common_1.Param)('id')),

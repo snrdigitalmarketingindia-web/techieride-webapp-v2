@@ -522,6 +522,10 @@ export declare class RidesController {
         cancelledAt: Date | null;
         cancelReason: string | null;
     }>;
+    markNoShow(id: string, seekerId: string, userId: string): Promise<{
+        status: string;
+        message: string;
+    }>;
     board(id: string, userId: string): Promise<{
         boardingStatus: string;
         rideAutoStarted: boolean;

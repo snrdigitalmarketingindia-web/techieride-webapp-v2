@@ -69,6 +69,7 @@ enum NotificationType {
   VERIFICATION_REJECTED
   SEEKER_BOARDED
   SEEKER_DEBOARDED
+  SEEKER_NO_SHOW
   SOS_ALERT
   GENERIC
 }
@@ -89,6 +90,7 @@ enum BoardingStatus {
   WAITING
   BOARDED
   DEBOARDED
+  NO_SHOW
 }
 
 // ─── User ──────────────────────────────────────────────────────────────────

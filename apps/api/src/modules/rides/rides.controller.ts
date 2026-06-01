@@ -60,6 +60,15 @@ export class RidesController {
     return this.ridesService.edit(id, userId, body);
   }
 
+  @Patch(':id/no-show/:seekerId')
+  markNoShow(
+    @Param('id') id: string,
+    @Param('seekerId') seekerId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.ridesService.markNoShow(id, seekerId, userId);
+  }
+
   @Patch(':id/board')
   board(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.ridesService.board(id, userId);

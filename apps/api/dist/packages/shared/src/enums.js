@@ -62,6 +62,7 @@ var NotificationType;
     NotificationType["VERIFICATION_REJECTED"] = "VERIFICATION_REJECTED";
     NotificationType["SEEKER_BOARDED"] = "SEEKER_BOARDED";
     NotificationType["SEEKER_DEBOARDED"] = "SEEKER_DEBOARDED";
+    NotificationType["SEEKER_NO_SHOW"] = "SEEKER_NO_SHOW";
     NotificationType["SOS_ALERT"] = "SOS_ALERT";
     NotificationType["GENERIC"] = "GENERIC";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
@@ -70,6 +71,7 @@ var BoardingStatus;
     BoardingStatus["WAITING"] = "WAITING";
     BoardingStatus["BOARDED"] = "BOARDED";
     BoardingStatus["DEBOARDED"] = "DEBOARDED";
+    BoardingStatus["NO_SHOW"] = "NO_SHOW";
 })(BoardingStatus || (exports.BoardingStatus = BoardingStatus = {}));
 var WsEvents;
 (function (WsEvents) {

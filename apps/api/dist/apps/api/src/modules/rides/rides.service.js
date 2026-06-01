@@ -226,9 +226,9 @@ let RidesService = class RidesService {
             throw new common_1.BadRequestException('Only ONGOING rides can be completed');
         }
         const boardingCheck = await this.prisma.rideParticipant.findMany({ where: { rideId } });
-        const notYetDeboarded = boardingCheck.filter(p => p.boardingStatus !== 'DEBOARDED');
-        if (notYetDeboarded.length > 0) {
-            throw new common_1.BadRequestException(`Cannot complete ride — ${notYetDeboarded.length} passenger(s) have not deboarded yet`);
+        const notYetResolved = boardingCheck.filter(p => p.boardingStatus !== 'DEBOARDED' && p.boardingStatus !== 'NO_SHOW');
+        if (notYetResolved.length > 0) {
+            throw new common_1.BadRequestException(`Cannot complete ride — ${notYetResolved.length} passenger(s) have not deboarded yet. Mark them as no-show if they didn't board.`);
         }
         const updated = await this.prisma.ride.update({
             where: { id: rideId },
@@ -302,6 +302,68 @@ let RidesService = class RidesService {
             await this.email.sendNotification(seekerUser.email, seekerUser.personalEmail, 'Your TechieRide ride was cancelled', html);
         }
         return updated;
+    }
+    async markNoShow(rideId, seekerId, giverId) {
+        const giver = await this.prisma.rideGiver.findUnique({ where: { userId: giverId } });
+        if (!giver)
+            throw new common_1.ForbiddenException();
+        const ride = await this.prisma.ride.findUnique({ where: { id: rideId } });
+        if (!ride)
+            throw new common_1.NotFoundException('Ride not found');
+        if (ride.rideGiverId !== giver.id)
+            throw new common_1.ForbiddenException('Not your ride');
+        if (ride.status !== shared_1.RideStatus.ONGOING) {
+            throw new common_1.BadRequestException('Can only mark no-show during an ONGOING ride');
+        }
+        let seeker = await this.prisma.rideSeeker.findUnique({ where: { id: seekerId } });
+        if (!seeker) {
+            seeker = await this.prisma.rideSeeker.findUnique({ where: { userId: seekerId } });
+        }
+        if (!seeker)
+            throw new common_1.NotFoundException('Seeker not found');
+        const participant = await this.prisma.rideParticipant.findUnique({
+            where: { rideId_seekerId: { rideId, seekerId: seeker.id } },
+        });
+        if (!participant)
+            throw new common_1.NotFoundException('Seeker is not a participant of this ride');
+        if (participant.boardingStatus !== 'WAITING') {
+            throw new common_1.BadRequestException(`Cannot mark no-show — seeker status is already ${participant.boardingStatus}`);
+        }
+        await this.prisma.$transaction([
+            this.prisma.rideParticipant.update({
+                where: { id: participant.id },
+                data: { boardingStatus: 'NO_SHOW' },
+            }),
+            this.prisma.rideRequest.updateMany({
+                where: { rideId, seekerId: seeker.id, status: 'CONFIRMED' },
+                data: { status: 'NO_SHOW' },
+            }),
+            this.prisma.ride.update({
+                where: { id: rideId },
+                data: { availableSeats: { increment: 1 } },
+            }),
+        ]);
+        await this.gamification.addPoints(seeker.userId, -10, 'NO_SHOW', rideId, 0);
+        const seekerUser = await this.prisma.user.findUnique({ where: { id: seeker.userId } });
+        await this.notifications.create(seeker.userId, {
+            type: shared_1.NotificationType.SEEKER_NO_SHOW,
+            title: 'Marked as No Show ⚠️',
+            body: `You were marked as no-show for the ride on ${ride.originName} → ${ride.destinationName}. -10 ECO points applied.`,
+            data: { rideId },
+        });
+        if (seekerUser) {
+            const html = `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#d97706">No Show Recorded ⚠️</h2>
+          <p>Hi ${seekerUser.fullName?.split(' ')[0]},</p>
+          <p>You have been marked as <strong>No Show</strong> for the following ride:</p>
+          <p><strong>${ride.originName} → ${ride.destinationName}</strong></p>
+          <p style="color:#dc2626">-10 ECO points have been deducted from your account.</p>
+          <p>Please ensure you inform the giver in advance if you are unable to join a confirmed ride.</p>
+        </div>`;
+            await this.email.sendNotification(seekerUser.email, seekerUser.personalEmail, 'TechieRide — You were marked as No Show', html);
+        }
+        return { status: 'NO_SHOW', message: 'Seeker marked as no-show. -10 ECO points applied.' };
     }
     async edit(rideId, userId, updates) {
         const ride = await this.findRideForGiver(rideId, userId);
