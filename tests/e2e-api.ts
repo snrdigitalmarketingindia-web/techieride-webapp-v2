@@ -393,7 +393,7 @@ async function run() {
   await test('Giver can approve the request', async () => {
     const r = await giverClient.patch(`/ride-requests/${requestId}/approve`);
     assert(r.status === 200, `Got ${r.status}: ${JSON.stringify(r.data)}`);
-    assert(r.data.status === 'HOLD', `Expected HOLD, got ${r.data.status}`);
+    assert(r.data.status === 'CONFIRMED', `Expected CONFIRMED, got ${r.data.status}`);
   });
 
   await test('Seat count decremented after approval', async () => {
