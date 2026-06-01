@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ridesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
+import { CallButton } from '@/components/ui/CallButton';
 
 const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'bg-blue-100 text-blue-700',
@@ -85,34 +86,82 @@ export default function MyRidesPage() {
               </div>
 
               {tab === 'given' && (
-                <div className="flex gap-2 flex-wrap">
-                  {ride.status === 'PUBLISHED' && (
-                    <>
-                      <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">
-                        ▶ Start Ride
-                      </button>
-                      <Link href={`/requests?rideId=${ride.id}`} className="text-xs border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
-                        View Requests
-                      </Link>
-                    </>
+                <div className="space-y-3">
+                  {/* Participants list */}
+                  {ride.participants?.length > 0 && (
+                    <div className="border-t border-gray-100 pt-3 space-y-2">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">👥 Passengers ({ride.participants.length})</p>
+                      {ride.participants.map((p: any) => (
+                        <div key={p.id} className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0">
+                              {p.seeker?.user?.fullName?.[0] || '?'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-gray-800 truncate">{p.seeker?.user?.fullName || 'Seeker'}</p>
+                              {p.pickupName && <p className="text-xs text-gray-400 truncate">📍 {p.pickupName}</p>}
+                            </div>
+                          </div>
+                          {p.seeker?.user?.phone && (
+                            <CallButton
+                              phone={p.seeker.user.phone}
+                              countryCode={p.seeker.user.countryCode}
+                              receiverId={p.seeker.userId}
+                              rideId={ride.id}
+                              label="Call"
+                              size="sm"
+                              variant="ghost"
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  {ride.status === 'ONGOING' && (
-                    <>
-                      <button onClick={() => handleComplete(ride.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
-                        ✅ Complete Ride
-                      </button>
-                      <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
-                        📡 Share Location
-                      </Link>
-                    </>
-                  )}
+                  {/* Action buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    {ride.status === 'PUBLISHED' && (
+                      <>
+                        <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">
+                          ▶ Start Ride
+                        </button>
+                        <Link href={`/requests?rideId=${ride.id}`} className="text-xs border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
+                          View Requests
+                        </Link>
+                      </>
+                    )}
+                    {ride.status === 'ONGOING' && (
+                      <>
+                        <button onClick={() => handleComplete(ride.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
+                          ✅ Complete Ride
+                        </button>
+                        <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+                          📡 Share Location
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </div>
               )}
 
-              {tab === 'taken' && ride.status === 'ONGOING' && (
-                <Link href={`/tracking/${ride.id}`} className="inline-flex items-center gap-1 text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
-                  📍 Track Live
-                </Link>
+              {tab === 'taken' && (
+                <div className="flex gap-2 flex-wrap items-center">
+                  {ride.rideGiver?.user?.phone && (
+                    <CallButton
+                      phone={ride.rideGiver.user.phone}
+                      countryCode={ride.rideGiver.user.countryCode}
+                      receiverId={ride.rideGiver.userId}
+                      rideId={ride.id}
+                      label="Call Giver"
+                      size="sm"
+                      variant="ghost"
+                    />
+                  )}
+                  {ride.status === 'ONGOING' && (
+                    <Link href={`/tracking/${ride.id}`} className="inline-flex items-center gap-1 text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+                      📍 Track Live
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
           ))}

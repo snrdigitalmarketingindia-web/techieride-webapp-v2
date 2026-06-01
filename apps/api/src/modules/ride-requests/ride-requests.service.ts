@@ -55,7 +55,7 @@ export class RideRequestsService {
     const activeRequest = await this.prisma.rideRequest.findFirst({
       where: {
         seekerId: seeker.id,
-        status: { in: ['PENDING', 'HOLD', 'CONFIRMED'] },
+        status: { in: ['PENDING', 'CONFIRMED'] },
         rideId: { not: dto.rideId },
       },
     });
@@ -147,26 +147,37 @@ export class RideRequestsService {
       throw new BadRequestException('No seats available');
     }
 
-    await this.prisma.rideRequest.update({
-      where: { id: requestId },
-      data: { status: 'HOLD', holdExpiresAt: null },
-    });
-
-    // Notify seeker
     const seeker = await this.prisma.rideSeeker.findUnique({
       where: { id: request.seekerId },
       include: { user: true },
     });
+
+    await this.prisma.$transaction([
+      this.prisma.rideRequest.update({
+        where: { id: requestId },
+        data: { status: 'CONFIRMED', confirmedAt: new Date() },
+      }),
+      this.prisma.rideParticipant.create({
+        data: {
+          rideId: request.rideId,
+          seekerId: request.seekerId,
+          requestId,
+          pickupName: request.pickupName,
+          dropName: request.dropName,
+        },
+      }),
+    ]);
+
     if (seeker) {
       await this.notifications.create(seeker.userId, {
         type: NotificationType.REQUEST_APPROVED,
-        title: 'Seat approved!',
-        body: 'Your seat has been approved. Confirm your seat to lock it in.',
+        title: 'Seat confirmed!',
+        body: 'Your seat has been confirmed. You\'re all set for the ride!',
         data: { requestId },
       });
     }
 
-    return { status: 'HOLD' };
+    return { status: 'CONFIRMED' };
   }
 
   async reject(requestId: string, userId: string, reason?: string) {
@@ -194,42 +205,13 @@ export class RideRequestsService {
     return updated;
   }
 
+  // No-op kept for API backwards compatibility — approve() now goes directly to CONFIRMED
   async confirm(requestId: string, userId: string) {
     const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
     if (!seeker) throw new ForbiddenException();
-
-    const request = await this.prisma.rideRequest.findUnique({
-      where: { id: requestId },
-      include: { ride: { include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } } } },
-    });
+    const request = await this.prisma.rideRequest.findUnique({ where: { id: requestId } });
     if (!request || request.seekerId !== seeker.id) throw new NotFoundException();
-    if (request.status !== 'HOLD') throw new BadRequestException('Request is not in hold state');
-
-    await this.prisma.$transaction([
-      this.prisma.rideRequest.update({
-        where: { id: requestId },
-        data: { status: 'CONFIRMED', confirmedAt: new Date() },
-      }),
-      this.prisma.rideParticipant.create({
-        data: {
-          rideId: request.rideId,
-          seekerId: seeker.id,
-          requestId,
-          pickupName: request.pickupName,
-          dropName: request.dropName,
-        },
-      }),
-    ]);
-
-    // Notify giver
-    await this.notifications.create(request.ride.rideGiver.userId, {
-      type: NotificationType.RIDE_CONFIRMED,
-      title: 'Seat confirmed!',
-      body: 'A seeker has confirmed their seat for your ride',
-      data: { rideId: request.rideId, requestId },
-    });
-
-    return { status: 'CONFIRMED' };
+    return { status: request.status };
   }
 
   async cancel(requestId: string, userId: string, reason?: string) {
@@ -242,18 +224,14 @@ export class RideRequestsService {
       throw new BadRequestException('Request already cancelled');
     }
 
-    // If in hold, restore seat
-    if (['HOLD', 'CONFIRMED'].includes(request.status)) {
+    if (request.status === 'CONFIRMED') {
       await this.prisma.ride.update({
         where: { id: request.rideId },
         data: { availableSeats: { increment: 1 } },
       });
-      await this.redis.del(REDIS_KEYS.SEAT_HOLD(request.rideId, seeker.id));
-      if (request.status === 'CONFIRMED') {
-        await this.prisma.rideParticipant.deleteMany({
-          where: { rideId: request.rideId, seekerId: seeker.id },
-        });
-      }
+      await this.prisma.rideParticipant.deleteMany({
+        where: { rideId: request.rideId, seekerId: seeker.id },
+      });
     }
 
     return this.prisma.rideRequest.update({

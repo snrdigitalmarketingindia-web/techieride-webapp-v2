@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_ICONS: Record<string, string> = {
-  PENDING: '⏳', HOLD: '🔒', CONFIRMED: '🎉',
+  PENDING: '⏳', HOLD: '🔒', CONFIRMED: '🎉',  // HOLD kept for legacy display only
   REJECTED: '❌', CANCELLED: '🚫', NO_SHOW: '👻',
 };
 
@@ -181,6 +181,7 @@ function SeekerView() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading]   = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
+  const { user } = useAuthStore();
 
   const load = () => {
     setLoading(true);
@@ -188,13 +189,6 @@ function SeekerView() {
   };
 
   useEffect(() => { load(); }, []);
-
-  const confirm = async (id: string) => {
-    setProcessing(id);
-    await requestsApi.confirm(id).catch((e: any) => alert(e.response?.data?.message || 'Failed'));
-    load();
-    setProcessing(null);
-  };
 
   const cancel = async (id: string) => {
     setProcessing(id);
@@ -229,18 +223,25 @@ function SeekerView() {
               </p>
               {req.pickupName && <p className="text-xs text-gray-400 mt-0.5">📍 {req.pickupName}</p>}
             </div>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
-              {STATUS_ICONS[req.status]} {req.status}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              {req.ride?.rideGiver?.user?.phone && req.status === 'CONFIRMED' && (
+                <CallButton
+                  phone={req.ride.rideGiver.user.phone}
+                  countryCode={req.ride.rideGiver.user.countryCode}
+                  receiverId={req.ride.rideGiver.userId}
+                  rideId={req.ride.id}
+                  label="Call Giver"
+                  size="sm"
+                  variant="ghost"
+                />
+              )}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
+                {STATUS_ICONS[req.status]} {req.status}
+              </span>
+            </div>
           </div>
           <div className="flex gap-2">
-            {req.status === 'HOLD' && (
-              <button onClick={() => confirm(req.id)} disabled={processing === req.id}
-                className="flex-1 bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
-                ✅ Confirm Seat
-              </button>
-            )}
-            {['HOLD', 'CONFIRMED', 'PENDING'].includes(req.status) && (
+            {['CONFIRMED', 'PENDING'].includes(req.status) && (
               <button onClick={() => cancel(req.id)} disabled={processing === req.id}
                 className="flex-1 border border-gray-200 text-gray-500 py-2 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 transition">
                 Cancel
