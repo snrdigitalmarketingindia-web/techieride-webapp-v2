@@ -5,21 +5,7 @@ import Link from 'next/link';
 import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { CallButton } from '@/components/ui/CallButton';
-
-const STATUS_COLORS: Record<string, string> = {
-  PUBLISHED: 'bg-blue-100 text-blue-700',
-  ONGOING: 'bg-green-100 text-green-700',
-  COMPLETED: 'bg-gray-100 text-gray-600',
-  CANCELLED: 'bg-red-100 text-red-600',
-  DRAFT: 'bg-yellow-100 text-yellow-700',
-};
-
-const BOARDING_BADGE: Record<string, { label: string; cls: string }> = {
-  WAITING:   { label: '⏳ Waiting',   cls: 'bg-yellow-100 text-yellow-700' },
-  BOARDED:   { label: '✅ Boarded',   cls: 'bg-green-100 text-green-700' },
-  DEBOARDED: { label: '🏁 Deboarded', cls: 'bg-gray-100 text-gray-500' },
-  NO_SHOW:   { label: '👻 No-show',   cls: 'bg-red-100 text-red-500' },
-};
+import { RideCard } from '@/components/ui/RideCard';
 
 export default function MyRidesPage() {
   const { user } = useAuthStore();
@@ -161,138 +147,63 @@ export default function MyRidesPage() {
             </div>
           )}
 
-          {rides.map((ride) => (
-            <div key={ride.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{ride.originName} → {ride.destinationName}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    📅 {new Date(ride.departureDate).toLocaleDateString()} · 🕐 {ride.departureTime}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">{ride.vehicle?.make} {ride.vehicle?.model}</p>
-                </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ride.status]}`}>{ride.status}</span>
-              </div>
+          {rides.map((ride) => {
+            // Pending requests section for giver PUBLISHED rides
+            const pendingReqs = tab === 'given' && ride.status === 'PUBLISHED'
+              ? (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING')
+              : [];
 
-              {tab === 'given' && (
-                <div className="space-y-3">
-                  {/* Participants list */}
-                  {ride.participants?.length > 0 && (
-                    <div className="border-t border-gray-100 pt-3 space-y-2">
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">👥 Passengers ({ride.participants.length})</p>
-                      {ride.participants.map((p: any) => (
-                        <div key={p.id} className="flex items-center gap-2">
-                          {/* Avatar */}
-                          <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0">
-                            {p.seeker?.user?.fullName?.[0] || '?'}
-                          </div>
-
-                          {/* Name + pickup */}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-gray-800 truncate">{p.seeker?.user?.fullName || 'Seeker'}</p>
-                            {p.pickupName && <p className="text-xs text-gray-400 truncate">📍 {p.pickupName}</p>}
-                          </div>
-
-                          {/* Boarding status badge */}
-                          {p.boardingStatus && BOARDING_BADGE[p.boardingStatus] && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${BOARDING_BADGE[p.boardingStatus].cls}`}>
-                              {BOARDING_BADGE[p.boardingStatus].label}
-                            </span>
-                          )}
-
-                          {/* Call — disabled for no-shows */}
-                          {p.seeker?.user?.phone && p.boardingStatus !== 'NO_SHOW' && (
-                            <CallButton
-                              phone={p.seeker.user.phone}
-                              countryCode={p.seeker.user.countryCode}
-                              receiverId={p.seeker.userId}
-                              rideId={ride.id}
-                              label="Call"
-                              size="sm"
-                              variant="ghost"
-                            />
-                          )}
+            const actions = (
+              <div className="space-y-2">
+                {/* Pending requests */}
+                {pendingReqs.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">📥 Pending ({pendingReqs.length})</p>
+                    {pendingReqs.map((req: any) => (
+                      <div key={req.id} className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0">
+                          {req.seeker?.user?.fullName?.[0] ?? '?'}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  {/* Pending requests inline for PUBLISHED rides */}
-                  {ride.status === 'PUBLISHED' && (() => {
-                    const pending = (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING');
-                    if (pending.length === 0) return null;
-                    return (
-                      <div className="border-t border-amber-100 pt-3 space-y-2">
-                        <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">📥 Pending Requests ({pending.length})</p>
-                        {pending.map((req: any) => (
-                          <div key={req.id} className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0">
-                              {req.seeker?.user?.fullName?.[0] ?? '?'}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-800 truncate">{req.seeker?.user?.fullName ?? 'Seeker'}</p>
-                              {req.pickupName && <p className="text-xs text-gray-400 truncate">📍 {req.pickupName}</p>}
-                            </div>
-                            {req.seeker?.user?.phone && (
-                              <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
-                                receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
-                            )}
-                            <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
-                              className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
-                              ✅ Approve
-                            </button>
-                            <button onClick={() => handleReject(req.id, ride.id)} disabled={processing === req.id}
-                              className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0">
-                              ❌ Reject
-                            </button>
-                          </div>
-                        ))}
+                        <p className="text-xs font-medium text-gray-800 flex-1 truncate">{req.seeker?.user?.fullName ?? 'Seeker'}</p>
+                        {req.seeker?.user?.phone && (
+                          <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
+                            receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
+                        )}
+                        <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
+                          className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">✅ Approve</button>
+                        <button onClick={() => handleReject(req.id, ride.id)} disabled={processing === req.id}
+                          className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0">❌ Reject</button>
                       </div>
-                    );
-                  })()}
-
-                  {/* Action buttons */}
-                  <div className="flex gap-2 flex-wrap">
-                    {ride.status === 'PUBLISHED' && (
-                      <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">
-                        ▶ Start Ride
-                      </button>
-                    )}
-                    {ride.status === 'ONGOING' && (
-                      <>
-                        <button onClick={() => handleComplete(ride.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">
-                          ✅ Complete Ride
-                        </button>
-                        <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
-                          📡 Share Location
-                        </Link>
-                      </>
-                    )}
+                    ))}
                   </div>
+                )}
+                {/* Action buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  {tab === 'given' && ride.status === 'PUBLISHED' && (
+                    <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">▶ Start Ride</button>
+                  )}
+                  {tab === 'given' && ride.status === 'ONGOING' && (
+                    <>
+                      <button onClick={() => handleComplete(ride.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">✅ Complete Ride</button>
+                      <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📡 Share Location</Link>
+                    </>
+                  )}
+                  {tab === 'taken' && ride.status === 'ONGOING' && (
+                    <Link href={`/tracking/${ride.id}`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📍 Track Live</Link>
+                  )}
                 </div>
-              )}
+              </div>
+            );
 
-              {tab === 'taken' && (
-                <div className="flex gap-2 flex-wrap items-center">
-                  {ride.rideGiver?.user?.phone && (
-                    <CallButton
-                      phone={ride.rideGiver.user.phone}
-                      countryCode={ride.rideGiver.user.countryCode}
-                      receiverId={ride.rideGiver.userId}
-                      rideId={ride.id}
-                      label="Call Giver"
-                      size="sm"
-                      variant="ghost"
-                    />
-                  )}
-                  {ride.status === 'ONGOING' && (
-                    <Link href={`/tracking/${ride.id}`} className="inline-flex items-center gap-1 text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
-                      📍 Track Live
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
+            return (
+              <RideCard
+                key={ride.id}
+                ride={ride}
+                viewAs={tab === 'given' ? 'giver' : 'seeker'}
+                actions={actions}
+              />
+            );
+          })}
         </div>
       )}
     </div>

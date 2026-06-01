@@ -494,40 +494,13 @@ export declare class RidesService {
     getTakenRides(userId: string): Promise<({
         rideGiver: {
             user: {
-                email: string;
                 fullName: string;
                 companyName: string | null;
-                employeeId: string | null;
-                gender: import(".prisma/client").$Enums.Gender | null;
                 phone: string | null;
                 countryCode: string;
-                personalEmail: string | null;
-                homeLocation: string | null;
-                officeLocation: string | null;
-                bloodGroup: string | null;
                 id: string;
-                passwordHash: string;
                 profilePhoto: string | null;
-                isPhoneVerified: boolean;
-                trid: string | null;
-                role: import(".prisma/client").$Enums.UserRole;
-                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
-                emailStatus: import(".prisma/client").$Enums.EmailStatus;
-                emailVerificationToken: string | null;
-                emailVerificationExpiry: Date | null;
-                passwordResetToken: string | null;
-                passwordResetExpiry: Date | null;
-                pendingEmail: string | null;
-                pendingEmailToken: string | null;
-                pendingEmailExpiry: Date | null;
-                isActive: boolean;
-                accountStatus: import(".prisma/client").$Enums.AccountStatus;
-                verificationMethod: string | null;
-                fcmToken: string | null;
-                ecoPoints: number;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
-                createdAt: Date;
-                updatedAt: Date;
             };
         } & {
             id: string;
@@ -554,6 +527,36 @@ export declare class RidesService {
             plateNumber: string;
             rcVerified: boolean;
         };
+        participants: ({
+            seeker: {
+                user: {
+                    fullName: string;
+                    companyName: string | null;
+                    phone: string | null;
+                    countryCode: string;
+                    id: string;
+                    profilePhoto: string | null;
+                };
+            } & {
+                id: string;
+                createdAt: Date;
+                userId: string;
+                totalRidesTaken: number;
+                averageRating: number;
+                preferredGender: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            rideId: string;
+            seekerId: string;
+            requestId: string;
+            pickupName: string | null;
+            dropName: string | null;
+            boardingStatus: import(".prisma/client").$Enums.BoardingStatus;
+            boardedAt: Date | null;
+            deboaredAt: Date | null;
+        })[];
     } & {
         id: string;
         createdAt: Date;

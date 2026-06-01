@@ -470,7 +470,14 @@ let RidesService = class RidesService {
             where: { seekerId: seeker.id },
             include: {
                 ride: {
-                    include: { rideGiver: { include: { user: true } }, vehicle: true },
+                    include: {
+                        rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
+                        vehicle: true,
+                        participants: {
+                            include: { seeker: { include: { user: { select: SEEKER_USER_SELECT } } } },
+                            orderBy: { createdAt: 'asc' },
+                        },
+                    },
                 },
             },
             orderBy: { ride: { departureDate: 'desc' } },
