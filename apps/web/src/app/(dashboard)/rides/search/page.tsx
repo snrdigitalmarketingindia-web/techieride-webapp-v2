@@ -5,6 +5,7 @@ import { ridesApi, requestsApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
 
 const RideMap = dynamic(() => import('@/components/maps/RideMap'), { ssr: false });
+const LocationPickerMap = dynamic(() => import('@/components/maps/LocationPickerMap'), { ssr: false });
 
 const inputCls = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
 
@@ -22,46 +23,20 @@ function BoardingModal({
   const [pickupLat, setPickupLat] = useState<number | undefined>();
   const [pickupLng, setPickupLng] = useState<number | undefined>();
   const [dropName, setDropName] = useState(ride.destinationName || '');
-  const [locating, setLocating] = useState(false);
-  const [locError, setLocError] = useState('');
+  const [mapMode, setMapMode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const useCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setLocError('Geolocation is not supported by your browser');
-      return;
-    }
-    setLocating(true);
-    setLocError('');
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setPickupLat(latitude);
-        setPickupLng(longitude);
-        // Reverse geocode using Nominatim (free, OpenStreetMap)
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-          );
-          const data = await res.json();
-          const name = data.display_name?.split(',').slice(0, 3).join(', ') || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-          setPickupName(name);
-        } catch {
-          setPickupName(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-        }
-        setLocating(false);
-      },
-      (err) => {
-        setLocError('Could not get your location. Please type your boarding point manually.');
-        setLocating(false);
-      },
-      { timeout: 10000 }
-    );
+  const handleLocationSelected = (lat: number, lng: number, address: string) => {
+    setPickupLat(lat);
+    setPickupLng(lng);
+    setPickupName(address);
+    setMapMode(false);
+    setError('');
   };
 
   const handleSubmit = () => {
-    if (!pickupName.trim()) { setError('Please enter your boarding point'); return; }
+    if (!pickupName.trim()) { setError('Please enter or pin your boarding point'); return; }
     if (!dropName.trim()) { setError('Please enter your drop point'); return; }
     setSubmitting(true);
     onConfirm({ pickupName: pickupName.trim(), pickupLat, pickupLng, dropName: dropName.trim() });
@@ -69,89 +44,108 @@ function BoardingModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center sm:items-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-5 space-y-4 shadow-xl">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">📍 Your Boarding Point</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
-        </div>
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden">
+        <div className="p-5 space-y-4">
 
-        {/* Ride info */}
-        <div className="bg-brand-50 rounded-xl px-4 py-3 text-sm">
-          <p className="font-medium text-brand-800">{ride.rideGiver?.user?.fullName}</p>
-          <p className="text-brand-600 text-xs mt-0.5">
-            {ride.originName} → {ride.destinationName} · {ride.departureTime}
-          </p>
-        </div>
-
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-        )}
-
-        {/* Boarding point */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-700">
-            Where should the giver pick you up? <span className="text-red-500">*</span>
-          </label>
-          <div className="flex gap-2">
-            <input
-              value={pickupName}
-              onChange={(e) => { setPickupName(e.target.value); setError(''); }}
-              placeholder="e.g. Kondapur Metro Exit 2, near Dominos"
-              className={`${inputCls} flex-1`}
-            />
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">📍 Your Boarding Point</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
           </div>
 
-          {/* Use current location */}
-          <button
-            type="button"
-            onClick={useCurrentLocation}
-            disabled={locating}
-            className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium disabled:opacity-50"
-          >
-            {locating ? (
-              <span className="animate-pulse">📡 Getting your location...</span>
-            ) : (
-              <span>📍 Use my current location</span>
-            )}
-          </button>
-
-          {locError && <p className="text-xs text-orange-500">{locError}</p>}
-
-          {pickupLat && pickupLng && (
-            <p className="text-xs text-brand-600 bg-brand-50 rounded px-2 py-1">
-              ✅ Location pinned: {pickupLat.toFixed(5)}, {pickupLng.toFixed(5)}
+          {/* Ride info */}
+          <div className="bg-brand-50 rounded-xl px-4 py-3 text-sm">
+            <p className="font-medium text-brand-800">{ride.rideGiver?.user?.fullName}</p>
+            <p className="text-brand-600 text-xs mt-0.5">
+              {ride.originName} → {ride.destinationName} · {ride.departureTime}
             </p>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
-        </div>
 
-        {/* Drop point */}
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">
-            Where are you dropping off? <span className="text-red-500">*</span>
-          </label>
-          <input
-            value={dropName}
-            onChange={(e) => setDropName(e.target.value)}
-            placeholder="e.g. HITEC City, Cyber Towers gate"
-            className={inputCls}
-          />
-          <p className="text-xs text-gray-400">Default: ride destination. Edit if you're getting off earlier.</p>
-        </div>
+          {/* Map picker mode */}
+          {mapMode ? (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium text-gray-700">Pin your boarding point</p>
+                <button
+                  onClick={() => setMapMode(false)}
+                  className="text-xs text-gray-400 hover:text-gray-600 underline"
+                >
+                  ← Back to text
+                </button>
+              </div>
+              <LocationPickerMap
+                initialLat={ride.originLat}
+                initialLng={ride.originLng}
+                onLocationSelect={handleLocationSelected}
+              />
+            </div>
+          ) : (
+            <>
+              {/* Boarding point input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Where should the giver pick you up? <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={pickupName}
+                  onChange={(e) => { setPickupName(e.target.value); setError(''); }}
+                  placeholder="e.g. Kondapur Metro Exit 2, near Dominos"
+                  className={inputCls}
+                />
 
-        <div className="flex gap-3 pt-1">
-          <button
-            onClick={onClose}
-            className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition"
-          >
-            {submitting ? 'Sending...' : '🚗 Request Seat'}
-          </button>
+                {/* Pinned coords shown if set */}
+                {pickupLat && pickupLng && (
+                  <p className="text-xs text-brand-600 bg-brand-50 rounded px-2 py-1">
+                    📍 Pinned: {pickupLat.toFixed(5)}, {pickupLng.toFixed(5)}
+                  </p>
+                )}
+
+                {/* Map pin button */}
+                <button
+                  type="button"
+                  onClick={() => setMapMode(true)}
+                  className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium"
+                >
+                  🗺️ Pin on map instead
+                </button>
+              </div>
+
+              {/* Drop point */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-700">
+                  Where are you dropping off? <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={dropName}
+                  onChange={(e) => setDropName(e.target.value)}
+                  placeholder="e.g. HITEC City, Cyber Towers gate"
+                  className={inputCls}
+                />
+                <p className="text-xs text-gray-400">Default: ride destination. Edit if getting off earlier.</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={onClose}
+                  className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition"
+                >
+                  {submitting ? 'Sending...' : '🚗 Request Seat'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
