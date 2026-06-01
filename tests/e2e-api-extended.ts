@@ -115,9 +115,23 @@ async function setup() {
   const giverC = await createGiver(admin, 'C'); // security flow
 
   const ts = Date.now();
-  const seeker1Token = await registerAndLogin(`seeker1_${ts}@tcs.com`, 'Seeker One', 'RIDE_SEEKER');
-  const seeker2Token = await registerAndLogin(`seeker2_${ts}@tcs.com`, 'Seeker Two', 'RIDE_SEEKER');
-  const seeker3Token = await registerAndLogin(`seeker3_${ts}@tcs.com`, 'Seeker Three', 'RIDE_SEEKER');
+  const seeker1Token = await registerAndLogin(`seeker1_${ts}@tcs.com`, 'Seeker One');
+  const seeker2Token = await registerAndLogin(`seeker2_${ts}@tcs.com`, 'Seeker Two');
+  const seeker3Token = await registerAndLogin(`seeker3_${ts}@tcs.com`, 'Seeker Three');
+
+  // Employee verification required before seekers can access ride routes
+  async function verifySeeker(token: string) {
+    const client = makeClient(token);
+    const profile = await client.get('/users/me');
+    const userId = profile.data.id;
+    await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    const q = await admin.get('/admin/verification/pending');
+    const e = q.data.find((v: any) => v.userId === userId && v.verificationType === 'EMPLOYEE');
+    if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
+  }
+  await verifySeeker(seeker1Token);
+  await verifySeeker(seeker2Token);
+  await verifySeeker(seeker3Token);
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -448,8 +462,17 @@ async function run() {
   // Create and start a ride to trigger SOS — use giverB (cancellation ride is cancelled so giverB is free)
   // and a fresh seeker so no active-request conflicts
   const ts2 = Date.now();
-  const sosSeekerToken = await registerAndLogin(`sos_seeker_${ts2}@tcs.com`, 'SOS Seeker', 'RIDE_SEEKER');
+  const sosSeekerToken = await registerAndLogin(`sos_seeker_${ts2}@tcs.com`, 'SOS Seeker');
   const sosSeeker = makeClient(sosSeekerToken);
+  // Employee verification required before SOS seeker can access ride routes
+  {
+    const profile = await sosSeeker.get('/users/me');
+    const sosSeekerId = profile.data.id;
+    await sosSeeker.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    const q = await admin.get('/admin/verification/pending');
+    const e = q.data.find((v: any) => v.userId === sosSeekerId && v.verificationType === 'EMPLOYEE');
+    if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
+  }
 
   const sosRide = await giverB.post('/rides', {
     vehicleId: vehicleBId, originName: 'Miyapur', originLat: 17.4948, originLng: 78.3588,
