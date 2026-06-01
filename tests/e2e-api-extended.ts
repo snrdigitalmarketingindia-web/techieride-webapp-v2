@@ -353,9 +353,10 @@ async function run() {
   // ══════════════════════════════════════════
   section('🛡️ Input Validation');
 
-  await test('Register with personal email (gmail) → 403', async () => {
+  await test('Register with non-corporate email (yahoo) → 403', async () => {
+    // gmail.com is whitelisted for testing — use yahoo.com which is never allowed
     const r = await makeClient().post('/auth/register', {
-      email: 'test@gmail.com', password: SEED_PASSWORD,
+      email: 'test@yahoo.com', password: SEED_PASSWORD,
       fullName: 'Test', gender: 'MALE', phone: '9800000099',
       homeLocation: 'Kondapur, Hyderabad',
       officeLocation: 'HITEC City, Madhapur, Hyderabad',
