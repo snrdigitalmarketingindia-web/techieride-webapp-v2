@@ -1,6 +1,6 @@
-# TechieRide Developer Notes
-> Detailed change log per build — what changed, why, and what to watch out for.
-> Updated every session. Read this before touching any module.
+# TechieRide Release Notes
+> Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
+> Read this before touching any module.
 
 ---
 

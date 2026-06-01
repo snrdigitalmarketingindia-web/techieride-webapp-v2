@@ -43,14 +43,14 @@ $CHANGED
 "
 
           # Prepend after the header block (line 4 = first blank line after header)
-          HEAD=$(head -4 DEVELOPER_NOTES.md)
-          TAIL=$(tail -n +5 DEVELOPER_NOTES.md)
-          printf '%s\n%s\n%s' "$HEAD" "$ENTRY" "$TAIL" > DEVELOPER_NOTES.md
+          HEAD=$(head -4 RELEASE_NOTES.md)
+          TAIL=$(tail -n +5 RELEASE_NOTES.md)
+          printf '%s\n%s\n%s' "$HEAD" "$ENTRY" "$TAIL" > RELEASE_NOTES.md
 
       - name: Commit updated notes
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add DEVELOPER_NOTES.md
+          git add RELEASE_NOTES.md
           git diff --cached --quiet || git commit -m "docs: release notes for build $(git rev-list --count HEAD) [release-notes]"
           git push
