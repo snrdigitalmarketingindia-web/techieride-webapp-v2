@@ -126,6 +126,14 @@ export default function ProfilePage() {
             </span>
           </div>
         </div>
+        {/* TRID Member Card */}
+        {(user as any)?.trid && (
+          <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-xl p-4 text-white text-center mb-1">
+            <p className="text-brand-200 text-xs mb-1">TechieRide Member ID</p>
+            <p className="text-2xl font-bold tracking-widest">{(user as any).trid}</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-500 text-xs">Company</p>

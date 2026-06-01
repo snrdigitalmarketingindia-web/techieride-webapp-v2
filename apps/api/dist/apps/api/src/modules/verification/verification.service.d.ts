@@ -1,9 +1,11 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
 export declare class VerificationService {
     private prisma;
     private notifications;
-    constructor(prisma: PrismaService, notifications: NotificationsService);
+    private email;
+    constructor(prisma: PrismaService, notifications: NotificationsService, email: EmailService);
     submitDocuments(userId: string, docs: {
         employeeIdUrl?: string;
         drivingLicenseUrl?: string;
@@ -23,6 +25,7 @@ export declare class VerificationService {
     }>;
     review(requestId: string, adminId: string, decision: 'APPROVED' | 'REJECTED', rejectionReason?: string): Promise<{
         status: "APPROVED" | "REJECTED";
+        trid: string | undefined;
     }>;
     getPendingQueue(): Promise<({
         user: {

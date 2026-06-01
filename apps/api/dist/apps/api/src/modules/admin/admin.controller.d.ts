@@ -102,6 +102,7 @@ export declare class AdminController {
         rejectionReason?: string;
     }): Promise<{
         status: "APPROVED" | "REJECTED";
+        trid: string | undefined;
     }>;
     listVehicles(pending?: string): Promise<({
         rideGiver: {

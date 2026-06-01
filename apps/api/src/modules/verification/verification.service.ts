@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { NotificationType } from '@techieride/shared';
+import { EmailService } from '../email/email.service';
+import { NotificationType, TRID_START } from '@techieride/shared';
 
 @Injectable()
 export class VerificationService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private email: EmailService,
   ) {}
 
   async submitDocuments(
@@ -54,8 +56,21 @@ export class VerificationService {
     decision: 'APPROVED' | 'REJECTED',
     rejectionReason?: string,
   ) {
-    const req = await this.prisma.verificationRequest.findUnique({ where: { id: requestId } });
+    const req = await this.prisma.verificationRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true },
+    });
     if (!req) throw new NotFoundException('Verification request not found');
+
+    // Generate TRID on approval
+    let trid: string | undefined;
+    if (decision === 'APPROVED' && !req.user.trid) {
+      const approvedCount = await this.prisma.user.count({
+        where: { trid: { not: null } },
+      });
+      const nextNumber = TRID_START + approvedCount;
+      trid = `TR${String(nextNumber).padStart(4, '0')}`;
+    }
 
     await this.prisma.$transaction([
       this.prisma.verificationRequest.update({
@@ -69,27 +84,37 @@ export class VerificationService {
       }),
       this.prisma.user.update({
         where: { id: req.userId },
-        data: { verificationStatus: decision },
+        data: {
+          verificationStatus: decision,
+          ...(trid ? { trid } : {}),
+        },
       }),
     ]);
 
+    // Send in-app notification
     await this.notifications.create(req.userId, {
-      type:
-        decision === 'APPROVED'
-          ? NotificationType.VERIFICATION_APPROVED
-          : NotificationType.VERIFICATION_REJECTED,
-      title:
-        decision === 'APPROVED'
-          ? 'Verification approved! 🎉'
-          : 'Verification not approved',
-      body:
-        decision === 'APPROVED'
-          ? 'You now have full access to Techie Ride'
-          : rejectionReason || 'Please re-upload your documents',
-      data: { requestId },
+      type: decision === 'APPROVED'
+        ? NotificationType.VERIFICATION_APPROVED
+        : NotificationType.VERIFICATION_REJECTED,
+      title: decision === 'APPROVED'
+        ? `Verification approved! Welcome, ${trid} 🎉`
+        : 'Verification not approved',
+      body: decision === 'APPROVED'
+        ? `Your TechieRide ID is ${trid}. You now have full access.`
+        : rejectionReason || 'Please re-upload your documents',
+      data: { requestId, trid },
     });
 
-    return { status: decision };
+    // Send welcome email with TRID on approval
+    if (decision === 'APPROVED' && trid) {
+      await this.email.sendWelcomeApprovedEmail(
+        req.user.personalEmail || req.user.email,
+        req.user.fullName,
+        trid,
+      );
+    }
+
+    return { status: decision, trid };
   }
 
   async getPendingQueue() {

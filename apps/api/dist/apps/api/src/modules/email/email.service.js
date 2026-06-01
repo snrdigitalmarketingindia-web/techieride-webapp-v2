@@ -69,6 +69,25 @@ let EmailService = EmailService_1 = class EmailService {
         await this.send(email, 'Reset your TechieRide password', html);
         this.logger.log(`Password reset email → ${email}`);
     }
+    async sendWelcomeApprovedEmail(email, fullName, trid) {
+        const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">You're verified, ${fullName.split(' ')[0]}! 🎉</h2>
+        <p style="color:#374151">Your TechieRide membership has been approved.</p>
+        <div style="background:#f0fdfa;border:2px solid #0d9488;border-radius:12px;padding:20px;margin:20px 0;text-align:center">
+          <p style="color:#6b7280;font-size:12px;margin:0 0 6px">Your TechieRide Member ID</p>
+          <p style="color:#0d9488;font-size:28px;font-weight:bold;margin:0;letter-spacing:2px">${trid}</p>
+        </div>
+        <p style="color:#374151">You can now publish rides, request seats, and be part of Hyderabad's verified IT carpool network.</p>
+        <a href="${this.appUrl}/dashboard"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Go to Dashboard
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px"><em>for a better society...</em></p>
+      </div>`;
+        await this.send(email, `Welcome to TechieRide — Your ID is ${trid} 🌿`, html);
+    }
     async sendWelcomeEmail(email, fullName) {
         const html = `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">

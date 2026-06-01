@@ -13,11 +13,13 @@ exports.VerificationService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const email_service_1 = require("../email/email.service");
 const shared_1 = require("@techieride/shared");
 let VerificationService = class VerificationService {
-    constructor(prisma, notifications) {
+    constructor(prisma, notifications, email) {
         this.prisma = prisma;
         this.notifications = notifications;
+        this.email = email;
     }
     async submitDocuments(userId, docs) {
         const request = await this.prisma.verificationRequest.upsert({
@@ -52,9 +54,20 @@ let VerificationService = class VerificationService {
         };
     }
     async review(requestId, adminId, decision, rejectionReason) {
-        const req = await this.prisma.verificationRequest.findUnique({ where: { id: requestId } });
+        const req = await this.prisma.verificationRequest.findUnique({
+            where: { id: requestId },
+            include: { user: true },
+        });
         if (!req)
             throw new common_1.NotFoundException('Verification request not found');
+        let trid;
+        if (decision === 'APPROVED' && !req.user.trid) {
+            const approvedCount = await this.prisma.user.count({
+                where: { trid: { not: null } },
+            });
+            const nextNumber = shared_1.TRID_START + approvedCount;
+            trid = `TR${String(nextNumber).padStart(4, '0')}`;
+        }
         await this.prisma.$transaction([
             this.prisma.verificationRequest.update({
                 where: { id: requestId },
@@ -67,7 +80,10 @@ let VerificationService = class VerificationService {
             }),
             this.prisma.user.update({
                 where: { id: req.userId },
-                data: { verificationStatus: decision },
+                data: {
+                    verificationStatus: decision,
+                    ...(trid ? { trid } : {}),
+                },
             }),
         ]);
         await this.notifications.create(req.userId, {
@@ -75,14 +91,17 @@ let VerificationService = class VerificationService {
                 ? shared_1.NotificationType.VERIFICATION_APPROVED
                 : shared_1.NotificationType.VERIFICATION_REJECTED,
             title: decision === 'APPROVED'
-                ? 'Verification approved! 🎉'
+                ? `Verification approved! Welcome, ${trid} 🎉`
                 : 'Verification not approved',
             body: decision === 'APPROVED'
-                ? 'You now have full access to Techie Ride'
+                ? `Your TechieRide ID is ${trid}. You now have full access.`
                 : rejectionReason || 'Please re-upload your documents',
-            data: { requestId },
+            data: { requestId, trid },
         });
-        return { status: decision };
+        if (decision === 'APPROVED' && trid) {
+            await this.email.sendWelcomeApprovedEmail(req.user.personalEmail || req.user.email, req.user.fullName, trid);
+        }
+        return { status: decision, trid };
     }
     async getPendingQueue() {
         return this.prisma.verificationRequest.findMany({
@@ -96,6 +115,7 @@ exports.VerificationService = VerificationService;
 exports.VerificationService = VerificationService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        email_service_1.EmailService])
 ], VerificationService);
 //# sourceMappingURL=verification.service.js.map
