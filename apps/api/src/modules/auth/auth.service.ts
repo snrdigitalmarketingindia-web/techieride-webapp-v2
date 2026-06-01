@@ -9,8 +9,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { isAllowedDomain } from '../../config/allowed-domains';
-import { RegisterDto, LoginDto, ResetPasswordDto } from './dto/auth.dto';
-import { UserRole } from '@techieride/shared';
+import { RegisterDto, LoginDto, ResetPasswordDto, ExceptionVerificationDto } from './dto/auth.dto';
 
 const BCRYPT_ROUNDS = 12;
 const VERIFY_TOKEN_TTL_HOURS = 24;
@@ -29,7 +28,6 @@ export class AuthService {
   async register(dto: RegisterDto) {
     const emailLower = dto.email.toLowerCase().trim();
 
-    // 1. Domain whitelist check
     if (!isAllowedDomain(emailLower)) {
       throw new ForbiddenException(
         'Only verified IT company email addresses are accepted. ' +
@@ -37,65 +35,62 @@ export class AuthService {
       );
     }
 
-    // 2. Duplicate check
     const existing = await this.prisma.user.findUnique({ where: { email: emailLower } });
     if (existing) throw new ConflictException('An account with this email already exists');
 
-    // 3. Hash password
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
-
-    // 4. Generate email verification token
     const emailVerificationToken = randomBytes(32).toString('hex');
     const emailVerificationExpiry = new Date(
       Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000
     );
 
-    // 5. Create user
+    // Everyone starts as RIDE_SEEKER — role upgrades happen post-verification
     const user = await this.prisma.user.create({
       data: {
         email: emailLower,
         personalEmail: dto.personalEmail?.toLowerCase().trim() || null,
         passwordHash,
         fullName: dto.fullName,
-        gender: dto.gender,
+        gender: dto.gender || null,
         companyName: dto.companyName,
-        employeeId: dto.employeeId,
-        phone: dto.phone,
+        employeeId: dto.employeeId || null,
+        phone: dto.phone || null,
         bloodGroup: dto.bloodGroup || null,
-        homeLocation: dto.homeLocation,
-        officeLocation: dto.officeLocation,
-        role: dto.role as unknown as UserRole,
+        homeLocation: dto.homeLocation || null,
+        officeLocation: dto.officeLocation || null,
+        role: 'RIDE_SEEKER',
         emailVerificationToken,
         emailVerificationExpiry,
         emailStatus: 'PENDING',
-        accountStatus: 'EMAIL_PENDING',
+        accountStatus: 'EMAIL_VERIFICATION_PENDING',
       },
     });
 
-    // 6. Create role profile
-    if (dto.role === 'RIDE_GIVER' || dto.role === 'BOTH') {
-      await this.prisma.rideGiver.create({ data: { userId: user.id } });
-    }
-    if (dto.role === 'RIDE_SEEKER' || dto.role === 'BOTH') {
-      await this.prisma.rideSeeker.create({ data: { userId: user.id } });
+    // All users get a seeker profile by default
+    await this.prisma.rideSeeker.create({ data: { userId: user.id } });
+
+    // Save emergency contact if provided
+    if (dto.emergencyContactName && dto.emergencyContactPhone) {
+      await this.prisma.emergencyContact.create({
+        data: {
+          userId: user.id,
+          name: dto.emergencyContactName,
+          phone: dto.emergencyContactPhone,
+          relationship: 'Emergency Contact',
+        },
+      });
     }
 
-    // 7. Save emergency contact
-    await this.prisma.emergencyContact.create({
-      data: {
-        userId: user.id,
-        name: dto.emergencyContactName,
-        phone: dto.emergencyContactPhone,
-        relationship: 'Emergency Contact',
-      },
-    });
-
-    // 8. In dev mode, auto-verify so tests work without email delivery
     const isDev = this.config.get('NODE_ENV') === 'development';
     if (isDev) {
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { emailStatus: 'VERIFIED', accountStatus: 'DOCS_PENDING', emailVerificationToken: null, emailVerificationExpiry: null },
+        data: {
+          emailStatus: 'VERIFIED',
+          accountStatus: 'DOCUMENT_VERIFICATION_PENDING',
+          emailVerificationToken: null,
+          emailVerificationExpiry: null,
+        },
       });
     } else {
       await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
@@ -127,24 +122,59 @@ export class AuthService {
       where: { id: user.id },
       data: {
         emailStatus: 'VERIFIED',
-        accountStatus: 'DOCS_PENDING',
+        accountStatus: 'DOCUMENT_VERIFICATION_PENDING',
+        verificationMethod: 'EMAIL_VERIFIED',
         emailVerificationToken: null,
         emailVerificationExpiry: null,
       },
     });
 
-    // Send welcome email
     await this.email.sendWelcomeEmail(user.email, user.fullName);
+    return { message: 'Email verified! Please upload your company ID card to complete verification.' };
+  }
 
-    return { message: 'Email verified successfully! You can now log in.' };
+  // ── Request Exception Verification (can't verify company email) ───────────
+  async requestExceptionVerification(userId: string, dto: ExceptionVerificationDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.accountStatus !== 'EMAIL_VERIFICATION_PENDING') {
+      throw new BadRequestException('Exception verification is only available for unverified accounts');
+    }
+
+    await this.prisma.verificationRequest.upsert({
+      where: { userId_verificationType: { userId, verificationType: 'EXCEPTION' } },
+      create: {
+        userId,
+        verificationType: 'EXCEPTION',
+        employeeIdUrl: dto.companyIdCardUrl,
+        exceptionReason: dto.reason,
+        status: 'PENDING',
+      },
+      update: {
+        employeeIdUrl: dto.companyIdCardUrl,
+        exceptionReason: dto.reason,
+        status: 'PENDING',
+        rejectionReason: null,
+        reviewedBy: null,
+        reviewedAt: null,
+      },
+    });
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        personalEmail: dto.personalEmail.toLowerCase().trim(),
+        employeeId: dto.employeeId,
+        accountStatus: 'EXCEPTION_VERIFICATION_REQUESTED',
+      },
+    });
+
+    return { message: 'Exception request submitted. Admin will review your documents within 2 business days.' };
   }
 
   // ── Resend Verification ───────────────────────────────────────────────────
   async resendVerification(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
-    // Always return 200 — never reveal whether an account exists (prevents enumeration)
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user || user.emailStatus === 'VERIFIED') {
       return { message: 'If that email exists and is unverified, a new link has been sent.' };
     }
@@ -173,28 +203,17 @@ export class AuthService {
     const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatch) throw new UnauthorizedException('Invalid email or password');
 
-    if (user.accountStatus === 'BANNED') {
-      throw new UnauthorizedException('ACCOUNT_BANNED');
-    }
-    if (user.accountStatus === 'DEACTIVATED') {
-      throw new UnauthorizedException('ACCOUNT_DEACTIVATED');
-    }
+    if (user.accountStatus === 'BANNED') throw new UnauthorizedException('ACCOUNT_BANNED');
+    if (user.accountStatus === 'DEACTIVATED') throw new UnauthorizedException('ACCOUNT_DEACTIVATED');
     if (!user.isActive) throw new UnauthorizedException('Account suspended. Contact admin.');
-
-    if (user.emailStatus === 'BOUNCED') {
-      throw new UnauthorizedException('EMAIL_BOUNCED');
-    }
+    if (user.emailStatus === 'BOUNCED') throw new UnauthorizedException('EMAIL_BOUNCED');
 
     return this.generateTokens(user);
   }
 
   // ── Forgot Password ──────────────────────────────────────────────────────
   async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
-
-    // Always return success to prevent email enumeration
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) return { message: 'If that email exists, a reset link has been sent.' };
 
     const passwordResetToken = randomBytes(32).toString('hex');
@@ -213,10 +232,7 @@ export class AuthService {
 
   // ── Reset Password ────────────────────────────────────────────────────────
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { passwordResetToken: dto.token },
-    });
-
+    const user = await this.prisma.user.findUnique({ where: { passwordResetToken: dto.token } });
     if (!user) throw new NotFoundException('Invalid or expired reset link');
     if (user.passwordResetExpiry && user.passwordResetExpiry < new Date()) {
       throw new BadRequestException('Reset link has expired. Please request a new one.');
@@ -225,23 +241,16 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
     await this.prisma.user.update({
       where: { id: user.id },
-      data: {
-        passwordHash,
-        passwordResetToken: null,
-        passwordResetExpiry: null,
-      },
+      data: { passwordHash, passwordResetToken: null, passwordResetExpiry: null },
     });
 
     return { message: 'Password reset successfully. You can now log in.' };
   }
 
-  // ── Bounce Webhook (called by Resend) ────────────────────────────────────
+  // ── Bounce Webhook ────────────────────────────────────────────────────────
   async handleEmailBounce(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     if (!user) return;
-
     await this.prisma.user.update({
       where: { id: user.id },
       data: { emailStatus: 'BOUNCED', isActive: false },
@@ -262,7 +271,6 @@ export class AuthService {
     }
   }
 
-  // ── Token generator ───────────────────────────────────────────────────────
   private generateTokens(user: { id: string; role: string; email: string }) {
     const payload = { sub: user.id, role: user.role, email: user.email };
     const accessToken = this.jwt.sign(payload);

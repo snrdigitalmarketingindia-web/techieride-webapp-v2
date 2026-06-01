@@ -46,39 +46,41 @@ let AuthService = class AuthService {
                 personalEmail: dto.personalEmail?.toLowerCase().trim() || null,
                 passwordHash,
                 fullName: dto.fullName,
-                gender: dto.gender,
+                gender: dto.gender || null,
                 companyName: dto.companyName,
-                employeeId: dto.employeeId,
-                phone: dto.phone,
+                employeeId: dto.employeeId || null,
+                phone: dto.phone || null,
                 bloodGroup: dto.bloodGroup || null,
-                homeLocation: dto.homeLocation,
-                officeLocation: dto.officeLocation,
-                role: dto.role,
+                homeLocation: dto.homeLocation || null,
+                officeLocation: dto.officeLocation || null,
+                role: 'RIDE_SEEKER',
                 emailVerificationToken,
                 emailVerificationExpiry,
                 emailStatus: 'PENDING',
-                accountStatus: 'EMAIL_PENDING',
+                accountStatus: 'EMAIL_VERIFICATION_PENDING',
             },
         });
-        if (dto.role === 'RIDE_GIVER' || dto.role === 'BOTH') {
-            await this.prisma.rideGiver.create({ data: { userId: user.id } });
+        await this.prisma.rideSeeker.create({ data: { userId: user.id } });
+        if (dto.emergencyContactName && dto.emergencyContactPhone) {
+            await this.prisma.emergencyContact.create({
+                data: {
+                    userId: user.id,
+                    name: dto.emergencyContactName,
+                    phone: dto.emergencyContactPhone,
+                    relationship: 'Emergency Contact',
+                },
+            });
         }
-        if (dto.role === 'RIDE_SEEKER' || dto.role === 'BOTH') {
-            await this.prisma.rideSeeker.create({ data: { userId: user.id } });
-        }
-        await this.prisma.emergencyContact.create({
-            data: {
-                userId: user.id,
-                name: dto.emergencyContactName,
-                phone: dto.emergencyContactPhone,
-                relationship: 'Emergency Contact',
-            },
-        });
         const isDev = this.config.get('NODE_ENV') === 'development';
         if (isDev) {
             await this.prisma.user.update({
                 where: { id: user.id },
-                data: { emailStatus: 'VERIFIED', accountStatus: 'DOCS_PENDING', emailVerificationToken: null, emailVerificationExpiry: null },
+                data: {
+                    emailStatus: 'VERIFIED',
+                    accountStatus: 'DOCUMENT_VERIFICATION_PENDING',
+                    emailVerificationToken: null,
+                    emailVerificationExpiry: null,
+                },
             });
         }
         else {
@@ -107,18 +109,52 @@ let AuthService = class AuthService {
             where: { id: user.id },
             data: {
                 emailStatus: 'VERIFIED',
-                accountStatus: 'DOCS_PENDING',
+                accountStatus: 'DOCUMENT_VERIFICATION_PENDING',
+                verificationMethod: 'EMAIL_VERIFIED',
                 emailVerificationToken: null,
                 emailVerificationExpiry: null,
             },
         });
         await this.email.sendWelcomeEmail(user.email, user.fullName);
-        return { message: 'Email verified successfully! You can now log in.' };
+        return { message: 'Email verified! Please upload your company ID card to complete verification.' };
+    }
+    async requestExceptionVerification(userId, dto) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        if (user.accountStatus !== 'EMAIL_VERIFICATION_PENDING') {
+            throw new common_1.BadRequestException('Exception verification is only available for unverified accounts');
+        }
+        await this.prisma.verificationRequest.upsert({
+            where: { userId_verificationType: { userId, verificationType: 'EXCEPTION' } },
+            create: {
+                userId,
+                verificationType: 'EXCEPTION',
+                employeeIdUrl: dto.companyIdCardUrl,
+                exceptionReason: dto.reason,
+                status: 'PENDING',
+            },
+            update: {
+                employeeIdUrl: dto.companyIdCardUrl,
+                exceptionReason: dto.reason,
+                status: 'PENDING',
+                rejectionReason: null,
+                reviewedBy: null,
+                reviewedAt: null,
+            },
+        });
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                personalEmail: dto.personalEmail.toLowerCase().trim(),
+                employeeId: dto.employeeId,
+                accountStatus: 'EXCEPTION_VERIFICATION_REQUESTED',
+            },
+        });
+        return { message: 'Exception request submitted. Admin will review your documents within 2 business days.' };
     }
     async resendVerification(email) {
-        const user = await this.prisma.user.findUnique({
-            where: { email: email.toLowerCase() },
-        });
+        const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
         if (!user || user.emailStatus === 'VERIFIED') {
             return { message: 'If that email exists and is unverified, a new link has been sent.' };
         }
@@ -139,23 +175,18 @@ let AuthService = class AuthService {
         const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
         if (!passwordMatch)
             throw new common_1.UnauthorizedException('Invalid email or password');
-        if (user.accountStatus === 'BANNED') {
+        if (user.accountStatus === 'BANNED')
             throw new common_1.UnauthorizedException('ACCOUNT_BANNED');
-        }
-        if (user.accountStatus === 'DEACTIVATED') {
+        if (user.accountStatus === 'DEACTIVATED')
             throw new common_1.UnauthorizedException('ACCOUNT_DEACTIVATED');
-        }
         if (!user.isActive)
             throw new common_1.UnauthorizedException('Account suspended. Contact admin.');
-        if (user.emailStatus === 'BOUNCED') {
+        if (user.emailStatus === 'BOUNCED')
             throw new common_1.UnauthorizedException('EMAIL_BOUNCED');
-        }
         return this.generateTokens(user);
     }
     async forgotPassword(email) {
-        const user = await this.prisma.user.findUnique({
-            where: { email: email.toLowerCase() },
-        });
+        const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
         if (!user)
             return { message: 'If that email exists, a reset link has been sent.' };
         const passwordResetToken = (0, crypto_1.randomBytes)(32).toString('hex');
@@ -168,9 +199,7 @@ let AuthService = class AuthService {
         return { message: 'If that email exists, a reset link has been sent.' };
     }
     async resetPassword(dto) {
-        const user = await this.prisma.user.findUnique({
-            where: { passwordResetToken: dto.token },
-        });
+        const user = await this.prisma.user.findUnique({ where: { passwordResetToken: dto.token } });
         if (!user)
             throw new common_1.NotFoundException('Invalid or expired reset link');
         if (user.passwordResetExpiry && user.passwordResetExpiry < new Date()) {
@@ -179,18 +208,12 @@ let AuthService = class AuthService {
         const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
         await this.prisma.user.update({
             where: { id: user.id },
-            data: {
-                passwordHash,
-                passwordResetToken: null,
-                passwordResetExpiry: null,
-            },
+            data: { passwordHash, passwordResetToken: null, passwordResetExpiry: null },
         });
         return { message: 'Password reset successfully. You can now log in.' };
     }
     async handleEmailBounce(email) {
-        const user = await this.prisma.user.findUnique({
-            where: { email: email.toLowerCase() },
-        });
+        const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
         if (!user)
             return;
         await this.prisma.user.update({

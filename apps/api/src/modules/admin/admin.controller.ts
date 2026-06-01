@@ -20,12 +20,12 @@ export class AdminController {
 
   @Get('users')
   listUsers(
-    @Query('verificationStatus') verificationStatus?: string,
+    @Query('accountStatus') accountStatus?: string,
     @Query('role') role?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.adminService.listUsers({ verificationStatus, role, page: +page, limit: +limit });
+    return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
   }
 
   @Patch('users/:id/suspend')
@@ -38,8 +38,29 @@ export class AdminController {
     return this.adminService.activateUser(id);
   }
 
+  // ── 4 Verification queues ─────────────────────────────────────────────
+  @Get('queues/email-pending')
+  getEmailPendingQueue() {
+    return this.adminService.getUsersByAccountStatus('EMAIL_VERIFICATION_PENDING');
+  }
+
+  @Get('queues/exception-requests')
+  getExceptionQueue() {
+    return this.verificationService.getQueue('EXCEPTION');
+  }
+
+  @Get('queues/document-pending')
+  getDocumentQueue() {
+    return this.verificationService.getQueue('EMPLOYEE');
+  }
+
+  @Get('queues/driver-pending')
+  getDriverQueue() {
+    return this.verificationService.getQueue('DRIVER');
+  }
+
   @Get('verification/pending')
-  getPendingVerifications() {
+  getAllPendingVerifications() {
     return this.verificationService.getPendingQueue();
   }
 

@@ -3,9 +3,11 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { Public } from '../../common/decorators/public.decorator';
+import { AllowUnverified } from '../../common/decorators/allow-unverified.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   RegisterDto, LoginDto, ForgotPasswordDto,
-  ResetPasswordDto, VerifyEmailDto, RefreshTokenDto,
+  ResetPasswordDto, VerifyEmailDto, RefreshTokenDto, ExceptionVerificationDto,
 } from './dto/auth.dto';
 import { ConfigService } from '@nestjs/config';
 
@@ -72,6 +74,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token' })
   refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshTokens(dto.refreshToken);
+  }
+
+  // ── Exception verification (can't verify company email) ───────────────
+  @AllowUnverified()
+  @Post('exception-verification')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request manual verification when company email cannot be verified' })
+  requestExceptionVerification(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ExceptionVerificationDto,
+  ) {
+    return this.authService.requestExceptionVerification(userId, dto);
   }
 
   // ── Resend bounce webhook ──────────────────────────────────────────────

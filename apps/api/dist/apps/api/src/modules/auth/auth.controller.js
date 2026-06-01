@@ -18,6 +18,8 @@ const swagger_1 = require("@nestjs/swagger");
 const throttler_1 = require("@nestjs/throttler");
 const auth_service_1 = require("./auth.service");
 const public_decorator_1 = require("../../common/decorators/public.decorator");
+const allow_unverified_decorator_1 = require("../../common/decorators/allow-unverified.decorator");
+const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const auth_dto_1 = require("./dto/auth.dto");
 const config_1 = require("@nestjs/config");
 let AuthController = class AuthController {
@@ -45,6 +47,9 @@ let AuthController = class AuthController {
     }
     refresh(dto) {
         return this.authService.refreshTokens(dto.refreshToken);
+    }
+    requestExceptionVerification(userId, dto) {
+        return this.authService.requestExceptionVerification(userId, dto);
     }
     async handleBounce(body, signature) {
         const webhookSecret = this.config.get('RESEND_WEBHOOK_SECRET');
@@ -132,6 +137,18 @@ __decorate([
     __metadata("design:paramtypes", [auth_dto_1.RefreshTokenDto]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "refresh", null);
+__decorate([
+    (0, allow_unverified_decorator_1.AllowUnverified)(),
+    (0, common_1.Post)('exception-verification'),
+    (0, throttler_1.Throttle)({ default: { ttl: 60000, limit: 3 } }),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Request manual verification when company email cannot be verified' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, auth_dto_1.ExceptionVerificationDto]),
+    __metadata("design:returntype", void 0)
+], AuthController.prototype, "requestExceptionVerification", null);
 __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.Post)('webhook/bounce'),

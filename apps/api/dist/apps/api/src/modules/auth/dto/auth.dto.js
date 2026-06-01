@@ -9,15 +9,9 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RefreshTokenDto = exports.VerifyEmailDto = exports.ResetPasswordDto = exports.ForgotPasswordDto = exports.LoginDto = exports.RegisterDto = exports.RegisterableRole = void 0;
+exports.ExceptionVerificationDto = exports.RefreshTokenDto = exports.VerifyEmailDto = exports.ResetPasswordDto = exports.ForgotPasswordDto = exports.LoginDto = exports.RegisterDto = void 0;
 const class_validator_1 = require("class-validator");
 const shared_1 = require("@techieride/shared");
-var RegisterableRole;
-(function (RegisterableRole) {
-    RegisterableRole["RIDE_GIVER"] = "RIDE_GIVER";
-    RegisterableRole["RIDE_SEEKER"] = "RIDE_SEEKER";
-    RegisterableRole["BOTH"] = "BOTH";
-})(RegisterableRole || (exports.RegisterableRole = RegisterableRole = {}));
 class RegisterDto {
 }
 exports.RegisterDto = RegisterDto;
@@ -38,11 +32,8 @@ __decorate([
     __metadata("design:type", String)
 ], RegisterDto.prototype, "fullName", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(shared_1.Gender),
-    __metadata("design:type", String)
-], RegisterDto.prototype, "gender", void 0);
-__decorate([
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(2),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "companyName", void 0);
 __decorate([
@@ -51,6 +42,12 @@ __decorate([
     __metadata("design:type", String)
 ], RegisterDto.prototype, "employeeId", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(shared_1.Gender),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "gender", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Matches)(/^[6-9]\d{9}$/, { message: 'Invalid Indian mobile number' }),
     __metadata("design:type", String)
@@ -61,31 +58,25 @@ __decorate([
     __metadata("design:type", String)
 ], RegisterDto.prototype, "personalEmail", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(RegisterableRole, {
-        message: 'Role must be RIDE_GIVER, RIDE_SEEKER, or BOTH. ADMIN cannot be self-registered.',
-    }),
-    __metadata("design:type", String)
-], RegisterDto.prototype, "role", void 0);
-__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.MaxLength)(100),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "homeLocation", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.MaxLength)(100),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "officeLocation", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "emergencyContactName", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^[6-9]\d{9}$/, { message: 'Invalid emergency contact number' }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "emergencyContactPhone", void 0);
 __decorate([
@@ -139,4 +130,24 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], RefreshTokenDto.prototype, "refreshToken", void 0);
+class ExceptionVerificationDto {
+}
+exports.ExceptionVerificationDto = ExceptionVerificationDto;
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "personalEmail", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "companyIdCardUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "employeeId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(20, { message: 'Please provide a detailed reason (at least 20 characters)' }),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "reason", void 0);
 //# sourceMappingURL=auth.dto.js.map

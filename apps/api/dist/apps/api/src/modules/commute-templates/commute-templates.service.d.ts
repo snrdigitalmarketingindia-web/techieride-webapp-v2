@@ -27,6 +27,7 @@ export declare class CommuteTemplatesService {
             id: string;
             isActive: boolean;
             createdAt: Date;
+            rcUrl: string | null;
             totalSeats: number;
             rideGiverId: string;
             make: string;
@@ -34,7 +35,6 @@ export declare class CommuteTemplatesService {
             year: number | null;
             color: string | null;
             plateNumber: string;
-            rcUrl: string | null;
             rcVerified: boolean;
         };
     } & {

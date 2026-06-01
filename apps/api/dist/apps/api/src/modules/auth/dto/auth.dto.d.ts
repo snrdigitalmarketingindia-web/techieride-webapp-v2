@@ -1,23 +1,17 @@
 import { Gender } from '@techieride/shared';
-export declare enum RegisterableRole {
-    RIDE_GIVER = "RIDE_GIVER",
-    RIDE_SEEKER = "RIDE_SEEKER",
-    BOTH = "BOTH"
-}
 export declare class RegisterDto {
     email: string;
     password: string;
     fullName: string;
-    gender: Gender;
     companyName: string;
     employeeId?: string;
-    phone: string;
+    gender?: Gender;
+    phone?: string;
     personalEmail?: string;
-    role: RegisterableRole;
-    homeLocation: string;
-    officeLocation: string;
-    emergencyContactName: string;
-    emergencyContactPhone: string;
+    homeLocation?: string;
+    officeLocation?: string;
+    emergencyContactName?: string;
+    emergencyContactPhone?: string;
     bloodGroup?: string;
 }
 export declare class LoginDto {
@@ -36,4 +30,10 @@ export declare class VerifyEmailDto {
 }
 export declare class RefreshTokenDto {
     refreshToken: string;
+}
+export declare class ExceptionVerificationDto {
+    personalEmail: string;
+    companyIdCardUrl: string;
+    employeeId: string;
+    reason: string;
 }

@@ -69,13 +69,13 @@ export class RidesService {
       throw new BadRequestException('Only DRAFT rides can be published');
     }
 
-    // Enforce: giver must have APPROVED verification before publishing
+    // Enforce: giver must have DRIVER_VERIFIED status before publishing
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new ForbiddenException('User not found');
-    if (user.verificationStatus !== 'APPROVED') {
+    if (user.accountStatus !== 'DRIVER_VERIFIED') {
       throw new ForbiddenException(
-        'Your identity verification must be approved before you can publish rides. ' +
-        `Current status: ${user.verificationStatus}.`,
+        'Driver verification is required before publishing rides. ' +
+        'Complete employee verification first, then apply to become a Ride Giver.',
       );
     }
 

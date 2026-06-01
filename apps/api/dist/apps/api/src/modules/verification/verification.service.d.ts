@@ -6,41 +6,83 @@ export declare class VerificationService {
     private notifications;
     private email;
     constructor(prisma: PrismaService, notifications: NotificationsService, email: EmailService);
-    submitDocuments(userId: string, docs: {
-        employeeIdUrl?: string;
-        drivingLicenseUrl?: string;
-        rcUrl?: string;
+    submitEmployeeDocs(userId: string, docs: {
+        employeeIdUrl: string;
+        profilePhotoUrl?: string;
     }): Promise<{
-        requestId: string;
-        status: string;
+        message: string;
+    }>;
+    submitDriverDocs(userId: string, docs: {
+        drivingLicenseUrl: string;
+        rcUrl: string;
+    }): Promise<{
+        message: string;
     }>;
     getStatus(userId: string): Promise<{
-        status: string;
-        rejectionReason?: undefined;
-        submittedAt?: undefined;
-    } | {
-        status: import(".prisma/client").$Enums.VerificationStatus;
-        rejectionReason: string | null;
-        submittedAt: Date;
+        employee: {
+            status: import(".prisma/client").$Enums.VerificationStatus;
+            rejectionReason: string | null;
+            submittedAt: Date;
+        } | null;
+        driver: {
+            status: import(".prisma/client").$Enums.VerificationStatus;
+            rejectionReason: string | null;
+            submittedAt: Date;
+        } | null;
+        exception: {
+            status: import(".prisma/client").$Enums.VerificationStatus;
+            rejectionReason: string | null;
+            submittedAt: Date;
+        } | null;
     }>;
     review(requestId: string, adminId: string, decision: 'APPROVED' | 'REJECTED', rejectionReason?: string): Promise<{
         status: "REJECTED" | "APPROVED";
         trid: string | undefined;
+        accountStatus: "EMPLOYEE_VERIFIED" | "DRIVER_VERIFIED" | "REJECTED";
     }>;
-    getPendingQueue(): Promise<({
+    getQueue(verificationType: 'EMPLOYEE' | 'DRIVER' | 'EXCEPTION'): Promise<({
         user: {
             email: string;
             fullName: string;
+            companyName: string | null;
             phone: string | null;
+            accountStatus: import(".prisma/client").$Enums.AccountStatus;
         };
     } & {
         id: string;
         updatedAt: Date;
         userId: string;
+        verificationType: import(".prisma/client").$Enums.VerificationType;
+        employeeIdUrl: string | null;
+        profilePhotoUrl: string | null;
         drivingLicenseUrl: string | null;
         rcUrl: string | null;
+        exceptionReason: string | null;
         status: import(".prisma/client").$Enums.VerificationStatus;
+        rejectionReason: string | null;
+        reviewedBy: string | null;
+        reviewedAt: Date | null;
+        submittedAt: Date;
+    })[]>;
+    getPendingQueue(): Promise<({
+        user: {
+            email: string;
+            fullName: string;
+            companyName: string | null;
+            phone: string | null;
+            accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        };
+    } & {
+        id: string;
+        updatedAt: Date;
+        userId: string;
+        verificationType: import(".prisma/client").$Enums.VerificationType;
         employeeIdUrl: string | null;
+        profilePhotoUrl: string | null;
+        drivingLicenseUrl: string | null;
+        rcUrl: string | null;
+        exceptionReason: string | null;
+        status: import(".prisma/client").$Enums.VerificationStatus;
         rejectionReason: string | null;
         reviewedBy: string | null;
         reviewedAt: Date | null;

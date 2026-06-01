@@ -53,14 +53,47 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Verification banner */}
-      {user?.verificationStatus === 'PENDING' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-          <p className="text-amber-800 text-sm font-medium">⏳ Verification in progress</p>
-          <p className="text-amber-700 text-sm">Your documents are being reviewed. You'll be notified within 24 hours.</p>
+      {/* Account status banners */}
+      {user?.accountStatus === 'EMAIL_VERIFICATION_PENDING' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-amber-800 text-sm font-medium">📧 Verify your email</p>
+            <p className="text-amber-700 text-sm">Check your office inbox for the verification link.</p>
+          </div>
+          <Link href="/verify-email" className="text-sm text-amber-700 font-medium underline">Resend</Link>
         </div>
       )}
-      {user?.verificationStatus === 'REJECTED' && (
+      {user?.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-blue-800 text-sm font-medium">🔍 Manual verification requested</p>
+          <p className="text-blue-700 text-sm">Admin is reviewing your exception request. You'll be notified within 2 business days.</p>
+        </div>
+      )}
+      {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-amber-800 text-sm font-medium">📋 Upload your documents</p>
+            <p className="text-amber-700 text-sm">Upload your company ID card to complete verification.</p>
+          </div>
+          <Link href="/profile" className="text-sm text-amber-700 font-medium underline">Upload</Link>
+        </div>
+      )}
+      {user?.accountStatus === 'EMPLOYEE_VERIFIED' && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <p className="text-green-800 text-sm font-medium">✅ Employee verified — {user.trid}</p>
+            <p className="text-green-700 text-sm">You can search and book rides. Want to offer rides too?</p>
+          </div>
+          <Link href="/profile#become-giver" className="text-sm text-green-700 font-medium underline">Become a Giver</Link>
+        </div>
+      )}
+      {user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-blue-800 text-sm font-medium">🚗 Driver verification in progress</p>
+          <p className="text-blue-700 text-sm">Your driving license and RC are being reviewed.</p>
+        </div>
+      )}
+      {user?.accountStatus === 'REJECTED' && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
           <div>
             <p className="text-red-800 text-sm font-medium">❌ Verification rejected</p>

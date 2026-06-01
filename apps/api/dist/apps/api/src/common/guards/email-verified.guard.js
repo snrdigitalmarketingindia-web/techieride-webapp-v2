@@ -14,7 +14,11 @@ const common_1 = require("@nestjs/common");
 const core_1 = require("@nestjs/core");
 const public_decorator_1 = require("../decorators/public.decorator");
 const allow_unverified_decorator_1 = require("../decorators/allow-unverified.decorator");
-const BLOCKED_STATUSES = ['DEACTIVATED', 'BANNED'];
+const allow_docs_pending_decorator_1 = require("../decorators/allow-docs-pending.decorator");
+const LOGIN_BLOCKED = ['DEACTIVATED', 'BANNED', 'DRAFT'];
+const EMAIL_GATE = ['EMAIL_VERIFICATION_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
+const DOCS_GATE = ['DOCUMENT_VERIFICATION_PENDING', 'REJECTED'];
+const FULL_ACCESS = ['EMPLOYEE_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'];
 let EmailVerifiedGuard = class EmailVerifiedGuard {
     constructor(reflector) {
         this.reflector = reflector;
@@ -26,22 +30,37 @@ let EmailVerifiedGuard = class EmailVerifiedGuard {
         ]);
         if (isPublic)
             return true;
+        const { user } = context.switchToHttp().getRequest();
+        if (!user)
+            return true;
+        const status = user.accountStatus;
+        if (LOGIN_BLOCKED.includes(status)) {
+            throw new common_1.UnauthorizedException('Your account is not accessible. Contact support.');
+        }
+        if (status === 'SUSPENDED') {
+            throw new common_1.ForbiddenException('Your account is suspended. Contact support.');
+        }
         const allowUnverified = this.reflector.getAllAndOverride(allow_unverified_decorator_1.ALLOW_UNVERIFIED_KEY, [
             context.getHandler(),
             context.getClass(),
         ]);
-        const { user } = context.switchToHttp().getRequest();
-        if (!user)
-            return true;
-        if (BLOCKED_STATUSES.includes(user.accountStatus)) {
-            throw new common_1.UnauthorizedException('Your account has been deactivated. Contact support.');
-        }
         if (allowUnverified)
             return true;
-        if (user.emailStatus !== 'VERIFIED') {
+        if (EMAIL_GATE.includes(status)) {
             throw new common_1.ForbiddenException('Please verify your email address to access this feature.');
         }
-        return true;
+        const allowDocsPending = this.reflector.getAllAndOverride(allow_docs_pending_decorator_1.ALLOW_DOCS_PENDING_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+        if (allowDocsPending)
+            return true;
+        if (DOCS_GATE.includes(status)) {
+            throw new common_1.ForbiddenException('Please complete your identity verification to access this feature.');
+        }
+        if (FULL_ACCESS.includes(status))
+            return true;
+        throw new common_1.ForbiddenException('Account verification required.');
     }
 };
 exports.EmailVerifiedGuard = EmailVerifiedGuard;

@@ -26,8 +26,8 @@ let AdminController = class AdminController {
         this.adminService = adminService;
         this.verificationService = verificationService;
     }
-    listUsers(verificationStatus, role, page = 1, limit = 20) {
-        return this.adminService.listUsers({ verificationStatus, role, page: +page, limit: +limit });
+    listUsers(accountStatus, role, page = 1, limit = 20) {
+        return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
     }
     suspendUser(id) {
         return this.adminService.suspendUser(id);
@@ -35,7 +35,19 @@ let AdminController = class AdminController {
     activateUser(id) {
         return this.adminService.activateUser(id);
     }
-    getPendingVerifications() {
+    getEmailPendingQueue() {
+        return this.adminService.getUsersByAccountStatus('EMAIL_VERIFICATION_PENDING');
+    }
+    getExceptionQueue() {
+        return this.verificationService.getQueue('EXCEPTION');
+    }
+    getDocumentQueue() {
+        return this.verificationService.getQueue('EMPLOYEE');
+    }
+    getDriverQueue() {
+        return this.verificationService.getQueue('DRIVER');
+    }
+    getAllPendingVerifications() {
         return this.verificationService.getPendingQueue();
     }
     reviewVerification(id, adminId, body) {
@@ -66,7 +78,7 @@ let AdminController = class AdminController {
 exports.AdminController = AdminController;
 __decorate([
     (0, common_1.Get)('users'),
-    __param(0, (0, common_1.Query)('verificationStatus')),
+    __param(0, (0, common_1.Query)('accountStatus')),
     __param(1, (0, common_1.Query)('role')),
     __param(2, (0, common_1.Query)('page')),
     __param(3, (0, common_1.Query)('limit')),
@@ -89,11 +101,35 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "activateUser", null);
 __decorate([
+    (0, common_1.Get)('queues/email-pending'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getEmailPendingQueue", null);
+__decorate([
+    (0, common_1.Get)('queues/exception-requests'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getExceptionQueue", null);
+__decorate([
+    (0, common_1.Get)('queues/document-pending'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getDocumentQueue", null);
+__decorate([
+    (0, common_1.Get)('queues/driver-pending'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getDriverQueue", null);
+__decorate([
     (0, common_1.Get)('verification/pending'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
-], AdminController.prototype, "getPendingVerifications", null);
+], AdminController.prototype, "getAllPendingVerifications", null);
 __decorate([
     (0, common_1.Patch)('verification/:id/review'),
     __param(0, (0, common_1.Param)('id')),

@@ -2,7 +2,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { RegisterDto, LoginDto, ResetPasswordDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ResetPasswordDto, ExceptionVerificationDto } from './dto/auth.dto';
 export declare class AuthService {
     private prisma;
     private jwt;
@@ -14,6 +14,9 @@ export declare class AuthService {
         email: string;
     }>;
     verifyEmail(token: string): Promise<{
+        message: string;
+    }>;
+    requestExceptionVerification(userId: string, dto: ExceptionVerificationDto): Promise<{
         message: string;
     }>;
     resendVerification(email: string): Promise<{

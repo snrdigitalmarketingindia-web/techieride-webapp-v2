@@ -20,6 +20,7 @@ const update_profile_dto_1 = require("./dto/update-profile.dto");
 const emergency_contact_dto_1 = require("./dto/emergency-contact.dto");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const allow_unverified_decorator_1 = require("../../common/decorators/allow-unverified.decorator");
+const allow_docs_pending_decorator_1 = require("../../common/decorators/allow-docs-pending.decorator");
 let UsersController = class UsersController {
     constructor(usersService) {
         this.usersService = usersService;
@@ -53,7 +54,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "getMyProfile", null);
 __decorate([
-    (0, allow_unverified_decorator_1.AllowUnverified)(),
+    (0, allow_docs_pending_decorator_1.AllowDocsPending)(),
     (0, common_1.Patch)('me'),
     __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
     __param(1, (0, common_1.Body)()),

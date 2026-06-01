@@ -12,12 +12,11 @@ export declare class JwtStrategy extends JwtStrategy_base {
     }): Promise<{
         email: string;
         fullName: string;
-        gender: import(".prisma/client").$Enums.Gender | null;
         companyName: string | null;
         employeeId: string | null;
+        gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
         personalEmail: string | null;
-        role: import(".prisma/client").$Enums.UserRole;
         homeLocation: string | null;
         officeLocation: string | null;
         bloodGroup: string | null;
@@ -25,6 +24,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
         passwordHash: string;
         profilePhoto: string | null;
         trid: string | null;
+        role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
         emailVerificationToken: string | null;
@@ -33,6 +33,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
         passwordResetExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        verificationMethod: string | null;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;

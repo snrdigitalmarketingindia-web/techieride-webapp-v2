@@ -70,9 +70,9 @@ let RidesService = class RidesService {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         if (!user)
             throw new common_1.ForbiddenException('User not found');
-        if (user.verificationStatus !== 'APPROVED') {
-            throw new common_1.ForbiddenException('Your identity verification must be approved before you can publish rides. ' +
-                `Current status: ${user.verificationStatus}.`);
+        if (user.accountStatus !== 'DRIVER_VERIFIED') {
+            throw new common_1.ForbiddenException('Driver verification is required before publishing rides. ' +
+                'Complete employee verification first, then apply to become a Ride Giver.');
         }
         const vehicle = await this.prisma.vehicle.findUnique({ where: { id: ride.vehicleId } });
         if (!vehicle || !vehicle.rcVerified) {

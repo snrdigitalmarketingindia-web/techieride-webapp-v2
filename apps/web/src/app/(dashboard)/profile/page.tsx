@@ -140,20 +140,28 @@ export default function ProfilePage() {
             <p className="font-medium text-gray-900">{user?.companyName || '—'}</p>
           </div>
           <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-gray-500 text-xs">Verification</p>
+            <p className="text-gray-500 text-xs">Account Status</p>
             <p className={`font-medium text-sm ${
-              user?.verificationStatus === 'APPROVED' ? 'text-green-600' :
-              user?.verificationStatus === 'REJECTED' ? 'text-red-600' : 'text-amber-600'
+              user?.accountStatus === 'DRIVER_VERIFIED' ? 'text-green-600' :
+              user?.accountStatus === 'EMPLOYEE_VERIFIED' ? 'text-blue-600' :
+              user?.accountStatus === 'REJECTED' ? 'text-red-600' :
+              user?.accountStatus === 'SUSPENDED' ? 'text-red-600' : 'text-amber-600'
             }`}>
-              {user?.verificationStatus === 'APPROVED' ? '✅ Approved' :
-               user?.verificationStatus === 'REJECTED' ? '❌ Rejected' : '⏳ Pending'}
+              {user?.accountStatus === 'DRIVER_VERIFIED' ? '✅ Driver Verified' :
+               user?.accountStatus === 'EMPLOYEE_VERIFIED' ? '✅ Employee Verified' :
+               user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' ? '⏳ Driver Review' :
+               user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' ? '⏳ Docs Pending' :
+               user?.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED' ? '🔍 Exception Review' :
+               user?.accountStatus === 'EMAIL_VERIFICATION_PENDING' ? '📧 Email Unverified' :
+               user?.accountStatus === 'REJECTED' ? '❌ Rejected' :
+               user?.accountStatus === 'SUSPENDED' ? '🚫 Suspended' : '⏳ Pending'}
             </p>
           </div>
         </div>
       </div>
 
       {/* Verification upload */}
-      {user?.verificationStatus !== 'APPROVED' && (
+      {!['EMPLOYEE_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'].includes(user?.accountStatus || '') && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="font-semibold text-gray-900 mb-1">📄 Verification Documents</h2>
 

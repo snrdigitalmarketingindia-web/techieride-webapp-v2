@@ -4,16 +4,18 @@ export declare class AdminController {
     private adminService;
     private verificationService;
     constructor(adminService: AdminService, verificationService: VerificationService);
-    listUsers(verificationStatus?: string, role?: string, page?: number, limit?: number): Promise<{
+    listUsers(accountStatus?: string, role?: string, page?: number, limit?: number): Promise<{
         data: {
             email: string;
             fullName: string;
             companyName: string | null;
             phone: string | null;
-            role: import(".prisma/client").$Enums.UserRole;
             id: string;
+            trid: string | null;
+            role: import(".prisma/client").$Enums.UserRole;
             verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
             isActive: boolean;
+            accountStatus: import(".prisma/client").$Enums.AccountStatus;
             createdAt: Date;
         }[];
         total: number;
@@ -23,12 +25,11 @@ export declare class AdminController {
     suspendUser(id: string): Promise<{
         email: string;
         fullName: string;
-        gender: import(".prisma/client").$Enums.Gender | null;
         companyName: string | null;
         employeeId: string | null;
+        gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
         personalEmail: string | null;
-        role: import(".prisma/client").$Enums.UserRole;
         homeLocation: string | null;
         officeLocation: string | null;
         bloodGroup: string | null;
@@ -36,6 +37,7 @@ export declare class AdminController {
         passwordHash: string;
         profilePhoto: string | null;
         trid: string | null;
+        role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
         emailVerificationToken: string | null;
@@ -44,6 +46,7 @@ export declare class AdminController {
         passwordResetExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        verificationMethod: string | null;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -53,12 +56,11 @@ export declare class AdminController {
     activateUser(id: string): Promise<{
         email: string;
         fullName: string;
-        gender: import(".prisma/client").$Enums.Gender | null;
         companyName: string | null;
         employeeId: string | null;
+        gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
         personalEmail: string | null;
-        role: import(".prisma/client").$Enums.UserRole;
         homeLocation: string | null;
         officeLocation: string | null;
         bloodGroup: string | null;
@@ -66,6 +68,7 @@ export declare class AdminController {
         passwordHash: string;
         profilePhoto: string | null;
         trid: string | null;
+        role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
         emailVerificationToken: string | null;
@@ -74,26 +77,112 @@ export declare class AdminController {
         passwordResetExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        verificationMethod: string | null;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
         createdAt: Date;
         updatedAt: Date;
     }>;
-    getPendingVerifications(): Promise<({
+    getEmailPendingQueue(): Promise<{
+        email: string;
+        fullName: string;
+        companyName: string | null;
+        id: string;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        createdAt: Date;
+    }[]>;
+    getExceptionQueue(): Promise<({
         user: {
             email: string;
             fullName: string;
+            companyName: string | null;
             phone: string | null;
+            accountStatus: import(".prisma/client").$Enums.AccountStatus;
         };
     } & {
         id: string;
         updatedAt: Date;
         userId: string;
+        verificationType: import(".prisma/client").$Enums.VerificationType;
+        employeeIdUrl: string | null;
+        profilePhotoUrl: string | null;
         drivingLicenseUrl: string | null;
         rcUrl: string | null;
+        exceptionReason: string | null;
         status: import(".prisma/client").$Enums.VerificationStatus;
+        rejectionReason: string | null;
+        reviewedBy: string | null;
+        reviewedAt: Date | null;
+        submittedAt: Date;
+    })[]>;
+    getDocumentQueue(): Promise<({
+        user: {
+            email: string;
+            fullName: string;
+            companyName: string | null;
+            phone: string | null;
+            accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        };
+    } & {
+        id: string;
+        updatedAt: Date;
+        userId: string;
+        verificationType: import(".prisma/client").$Enums.VerificationType;
         employeeIdUrl: string | null;
+        profilePhotoUrl: string | null;
+        drivingLicenseUrl: string | null;
+        rcUrl: string | null;
+        exceptionReason: string | null;
+        status: import(".prisma/client").$Enums.VerificationStatus;
+        rejectionReason: string | null;
+        reviewedBy: string | null;
+        reviewedAt: Date | null;
+        submittedAt: Date;
+    })[]>;
+    getDriverQueue(): Promise<({
+        user: {
+            email: string;
+            fullName: string;
+            companyName: string | null;
+            phone: string | null;
+            accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        };
+    } & {
+        id: string;
+        updatedAt: Date;
+        userId: string;
+        verificationType: import(".prisma/client").$Enums.VerificationType;
+        employeeIdUrl: string | null;
+        profilePhotoUrl: string | null;
+        drivingLicenseUrl: string | null;
+        rcUrl: string | null;
+        exceptionReason: string | null;
+        status: import(".prisma/client").$Enums.VerificationStatus;
+        rejectionReason: string | null;
+        reviewedBy: string | null;
+        reviewedAt: Date | null;
+        submittedAt: Date;
+    })[]>;
+    getAllPendingVerifications(): Promise<({
+        user: {
+            email: string;
+            fullName: string;
+            companyName: string | null;
+            phone: string | null;
+            accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        };
+    } & {
+        id: string;
+        updatedAt: Date;
+        userId: string;
+        verificationType: import(".prisma/client").$Enums.VerificationType;
+        employeeIdUrl: string | null;
+        profilePhotoUrl: string | null;
+        drivingLicenseUrl: string | null;
+        rcUrl: string | null;
+        exceptionReason: string | null;
+        status: import(".prisma/client").$Enums.VerificationStatus;
         rejectionReason: string | null;
         reviewedBy: string | null;
         reviewedAt: Date | null;
@@ -105,6 +194,7 @@ export declare class AdminController {
     }): Promise<{
         status: "REJECTED" | "APPROVED";
         trid: string | undefined;
+        accountStatus: "EMPLOYEE_VERIFIED" | "DRIVER_VERIFIED" | "REJECTED";
     }>;
     listVehicles(pending?: string): Promise<({
         rideGiver: {
@@ -117,17 +207,18 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             userId: string;
+            averageRating: number;
+            preferredGender: string;
             drivingLicenseUrl: string | null;
             licenseVerified: boolean;
             totalRidesGiven: number;
-            averageRating: number;
-            preferredGender: string;
             isAvailable: boolean;
         };
     } & {
         id: string;
         isActive: boolean;
         createdAt: Date;
+        rcUrl: string | null;
         totalSeats: number;
         rideGiverId: string;
         make: string;
@@ -135,13 +226,13 @@ export declare class AdminController {
         year: number | null;
         color: string | null;
         plateNumber: string;
-        rcUrl: string | null;
         rcVerified: boolean;
     })[]>;
     verifyVehicle(id: string): Promise<{
         id: string;
         isActive: boolean;
         createdAt: Date;
+        rcUrl: string | null;
         totalSeats: number;
         rideGiverId: string;
         make: string;
@@ -149,13 +240,13 @@ export declare class AdminController {
         year: number | null;
         color: string | null;
         plateNumber: string;
-        rcUrl: string | null;
         rcVerified: boolean;
     }>;
     rejectVehicle(id: string, reason?: string): Promise<{
         id: string;
         isActive: boolean;
         createdAt: Date;
+        rcUrl: string | null;
         totalSeats: number;
         rideGiverId: string;
         make: string;
@@ -163,7 +254,6 @@ export declare class AdminController {
         year: number | null;
         color: string | null;
         plateNumber: string;
-        rcUrl: string | null;
         rcVerified: boolean;
     }>;
     listRides(status?: string, page?: number, limit?: number): Promise<{
@@ -176,17 +266,18 @@ export declare class AdminController {
                 id: string;
                 createdAt: Date;
                 userId: string;
+                averageRating: number;
+                preferredGender: string;
                 drivingLicenseUrl: string | null;
                 licenseVerified: boolean;
                 totalRidesGiven: number;
-                averageRating: number;
-                preferredGender: string;
                 isAvailable: boolean;
             };
             vehicle: {
                 id: string;
                 isActive: boolean;
                 createdAt: Date;
+                rcUrl: string | null;
                 totalSeats: number;
                 rideGiverId: string;
                 make: string;
@@ -194,13 +285,13 @@ export declare class AdminController {
                 year: number | null;
                 color: string | null;
                 plateNumber: string;
-                rcUrl: string | null;
                 rcVerified: boolean;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            status: import(".prisma/client").$Enums.RideStatus;
             vehicleId: string;
             originName: string;
             originLat: number;
@@ -219,7 +310,6 @@ export declare class AdminController {
             estimatedDurationMin: number | null;
             estimatedArrivalTime: string | null;
             availableSeats: number;
-            status: import(".prisma/client").$Enums.RideStatus;
             startedAt: Date | null;
             completedAt: Date | null;
             cancelledAt: Date | null;
@@ -247,6 +337,7 @@ export declare class AdminController {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            status: import(".prisma/client").$Enums.RideStatus;
             vehicleId: string;
             originName: string;
             originLat: number;
@@ -265,7 +356,6 @@ export declare class AdminController {
             estimatedDurationMin: number | null;
             estimatedArrivalTime: string | null;
             availableSeats: number;
-            status: import(".prisma/client").$Enums.RideStatus;
             startedAt: Date | null;
             completedAt: Date | null;
             cancelledAt: Date | null;
@@ -274,8 +364,8 @@ export declare class AdminController {
     } & {
         id: string;
         userId: string;
-        rideId: string | null;
         status: import(".prisma/client").$Enums.SosStatus;
+        rideId: string | null;
         lat: number;
         lng: number;
         resolvedBy: string | null;
@@ -286,8 +376,8 @@ export declare class AdminController {
     resolveSos(id: string, adminId: string, notes: string): Promise<{
         id: string;
         userId: string;
-        rideId: string | null;
         status: import(".prisma/client").$Enums.SosStatus;
+        rideId: string | null;
         lat: number;
         lng: number;
         resolvedBy: string | null;

@@ -12,12 +12,11 @@ export declare class RideRequestsController {
             user: {
                 email: string;
                 fullName: string;
-                gender: import(".prisma/client").$Enums.Gender | null;
                 companyName: string | null;
                 employeeId: string | null;
+                gender: import(".prisma/client").$Enums.Gender | null;
                 phone: string | null;
                 personalEmail: string | null;
-                role: import(".prisma/client").$Enums.UserRole;
                 homeLocation: string | null;
                 officeLocation: string | null;
                 bloodGroup: string | null;
@@ -25,6 +24,7 @@ export declare class RideRequestsController {
                 passwordHash: string;
                 profilePhoto: string | null;
                 trid: string | null;
+                role: import(".prisma/client").$Enums.UserRole;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 emailStatus: import(".prisma/client").$Enums.EmailStatus;
                 emailVerificationToken: string | null;
@@ -33,6 +33,7 @@ export declare class RideRequestsController {
                 passwordResetExpiry: Date | null;
                 isActive: boolean;
                 accountStatus: import(".prisma/client").$Enums.AccountStatus;
+                verificationMethod: string | null;
                 fcmToken: string | null;
                 ecoPoints: number;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -43,16 +44,16 @@ export declare class RideRequestsController {
             id: string;
             createdAt: Date;
             userId: string;
+            totalRidesTaken: number;
             averageRating: number;
             preferredGender: string;
-            totalRidesTaken: number;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        rideId: string;
         status: import(".prisma/client").$Enums.RequestStatus;
+        rideId: string;
         cancelledAt: Date | null;
         cancelReason: string | null;
         seekerId: string;
@@ -71,12 +72,11 @@ export declare class RideRequestsController {
                 user: {
                     email: string;
                     fullName: string;
-                    gender: import(".prisma/client").$Enums.Gender | null;
                     companyName: string | null;
                     employeeId: string | null;
+                    gender: import(".prisma/client").$Enums.Gender | null;
                     phone: string | null;
                     personalEmail: string | null;
-                    role: import(".prisma/client").$Enums.UserRole;
                     homeLocation: string | null;
                     officeLocation: string | null;
                     bloodGroup: string | null;
@@ -84,6 +84,7 @@ export declare class RideRequestsController {
                     passwordHash: string;
                     profilePhoto: string | null;
                     trid: string | null;
+                    role: import(".prisma/client").$Enums.UserRole;
                     verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                     emailStatus: import(".prisma/client").$Enums.EmailStatus;
                     emailVerificationToken: string | null;
@@ -92,6 +93,7 @@ export declare class RideRequestsController {
                     passwordResetExpiry: Date | null;
                     isActive: boolean;
                     accountStatus: import(".prisma/client").$Enums.AccountStatus;
+                    verificationMethod: string | null;
                     fcmToken: string | null;
                     ecoPoints: number;
                     ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -102,17 +104,18 @@ export declare class RideRequestsController {
                 id: string;
                 createdAt: Date;
                 userId: string;
+                averageRating: number;
+                preferredGender: string;
                 drivingLicenseUrl: string | null;
                 licenseVerified: boolean;
                 totalRidesGiven: number;
-                averageRating: number;
-                preferredGender: string;
                 isAvailable: boolean;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
+            status: import(".prisma/client").$Enums.RideStatus;
             vehicleId: string;
             originName: string;
             originLat: number;
@@ -131,7 +134,6 @@ export declare class RideRequestsController {
             estimatedDurationMin: number | null;
             estimatedArrivalTime: string | null;
             availableSeats: number;
-            status: import(".prisma/client").$Enums.RideStatus;
             startedAt: Date | null;
             completedAt: Date | null;
             cancelledAt: Date | null;
@@ -141,8 +143,8 @@ export declare class RideRequestsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        rideId: string;
         status: import(".prisma/client").$Enums.RequestStatus;
+        rideId: string;
         cancelledAt: Date | null;
         cancelReason: string | null;
         seekerId: string;
@@ -162,8 +164,8 @@ export declare class RideRequestsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        rideId: string;
         status: import(".prisma/client").$Enums.RequestStatus;
+        rideId: string;
         cancelledAt: Date | null;
         cancelReason: string | null;
         seekerId: string;
@@ -183,8 +185,8 @@ export declare class RideRequestsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        rideId: string;
         status: import(".prisma/client").$Enums.RequestStatus;
+        rideId: string;
         cancelledAt: Date | null;
         cancelReason: string | null;
         seekerId: string;

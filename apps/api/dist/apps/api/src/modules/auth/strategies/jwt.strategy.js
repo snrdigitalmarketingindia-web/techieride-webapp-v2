@@ -27,8 +27,8 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
         if (!user || !user.isActive)
             throw new common_1.UnauthorizedException();
-        if (user.accountStatus === 'BANNED' || user.accountStatus === 'DEACTIVATED') {
-            throw new common_1.UnauthorizedException('Your account has been deactivated. Contact support.');
+        if (['BANNED', 'DEACTIVATED', 'DRAFT'].includes(user.accountStatus)) {
+            throw new common_1.UnauthorizedException('Your account is not accessible. Contact support.');
         }
         return user;
     }

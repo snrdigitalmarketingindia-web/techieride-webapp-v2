@@ -1,79 +1,67 @@
 import {
   IsEmail, IsString, MinLength, MaxLength,
-  IsEnum, IsOptional, Matches, IsNotEmpty,
+  IsEnum, IsOptional, Matches,
 } from 'class-validator';
 import { Gender } from '@techieride/shared';
 
-// Only these roles can self-register — ADMIN must be created by another admin
-export enum RegisterableRole {
-  RIDE_GIVER  = 'RIDE_GIVER',
-  RIDE_SEEKER = 'RIDE_SEEKER',
-  BOTH        = 'BOTH',
-}
-
 export class RegisterDto {
-  // ── Auth ────────────────────────────────────────────────────────────────
+  // ── Required ─────────────────────────────────────────────────────────────
   @IsEmail()
-  email: string; // official/company email — verification & auth only
+  email: string;
 
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   @MaxLength(64)
   password: string;
 
-  // ── Profile ──────────────────────────────────────────────────────────────
   @IsString()
   @MinLength(2)
   @MaxLength(100)
   fullName: string;
 
-  @IsEnum(Gender)
-  gender: Gender;
-
   @IsString()
+  @MinLength(2)
   companyName: string;
 
+  // ── Optional at registration — collected later via profile ────────────────
   @IsOptional()
   @IsString()
   employeeId?: string;
 
+  @IsOptional()
+  @IsEnum(Gender)
+  gender?: Gender;
+
+  @IsOptional()
   @IsString()
   @Matches(/^[6-9]\d{9}$/, { message: 'Invalid Indian mobile number' })
-  phone: string;
+  phone?: string;
 
   @IsOptional()
   @IsEmail()
-  personalEmail?: string; // personal email — app notifications (any domain)
+  personalEmail?: string;
 
-  @IsEnum(RegisterableRole, {
-    message: 'Role must be RIDE_GIVER, RIDE_SEEKER, or BOTH. ADMIN cannot be self-registered.',
-  })
-  role: RegisterableRole;
-
-  // ── Location ─────────────────────────────────────────────────────────────
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  homeLocation: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  officeLocation: string;
-
-  // ── Emergency Contact ────────────────────────────────────────────────────
-  @IsString()
-  @IsNotEmpty()
-  emergencyContactName: string;
-
-  @IsString()
-  @Matches(/^[6-9]\d{9}$/, { message: 'Invalid emergency contact number' })
-  emergencyContactPhone: string;
-
-  // ── Optional ─────────────────────────────────────────────────────────────
   @IsOptional()
   @IsString()
-  bloodGroup?: string; // A+/A-/B+/B-/O+/O-/AB+/AB-
+  @MaxLength(100)
+  homeLocation?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  officeLocation?: string;
+
+  @IsOptional()
+  @IsString()
+  emergencyContactName?: string;
+
+  @IsOptional()
+  @IsString()
+  emergencyContactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  bloodGroup?: string;
 }
 
 export class LoginDto {
@@ -108,4 +96,19 @@ export class VerifyEmailDto {
 export class RefreshTokenDto {
   @IsString()
   refreshToken: string;
+}
+
+export class ExceptionVerificationDto {
+  @IsEmail()
+  personalEmail: string;
+
+  @IsString()
+  companyIdCardUrl: string;
+
+  @IsString()
+  employeeId: string;
+
+  @IsString()
+  @MinLength(20, { message: 'Please provide a detailed reason (at least 20 characters)' })
+  reason: string;
 }

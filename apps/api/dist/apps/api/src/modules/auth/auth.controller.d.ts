@@ -1,5 +1,5 @@
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, RefreshTokenDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, RefreshTokenDto, ExceptionVerificationDto } from './dto/auth.dto';
 import { ConfigService } from '@nestjs/config';
 export declare class AuthController {
     private authService;
@@ -28,6 +28,9 @@ export declare class AuthController {
     refresh(dto: RefreshTokenDto): Promise<{
         accessToken: string;
         refreshToken: string;
+    }>;
+    requestExceptionVerification(userId: string, dto: ExceptionVerificationDto): Promise<{
+        message: string;
     }>;
     handleBounce(body: any, signature: string): Promise<{
         ok: boolean;

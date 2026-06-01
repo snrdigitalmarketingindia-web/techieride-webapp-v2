@@ -26,6 +26,7 @@ export declare class CommuteTemplatesController {
             id: string;
             isActive: boolean;
             createdAt: Date;
+            rcUrl: string | null;
             totalSeats: number;
             rideGiverId: string;
             make: string;
@@ -33,7 +34,6 @@ export declare class CommuteTemplatesController {
             year: number | null;
             color: string | null;
             plateNumber: string;
-            rcUrl: string | null;
             rcVerified: boolean;
         };
     } & {

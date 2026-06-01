@@ -11,8 +11,8 @@ export declare class SosService {
     resolve(sosId: string, adminId: string, notes: string): Promise<{
         id: string;
         userId: string;
-        rideId: string | null;
         status: import(".prisma/client").$Enums.SosStatus;
+        rideId: string | null;
         lat: number;
         lng: number;
         resolvedBy: string | null;
@@ -32,8 +32,8 @@ export declare class SosService {
     } & {
         id: string;
         userId: string;
-        rideId: string | null;
         status: import(".prisma/client").$Enums.SosStatus;
+        rideId: string | null;
         lat: number;
         lng: number;
         resolvedBy: string | null;

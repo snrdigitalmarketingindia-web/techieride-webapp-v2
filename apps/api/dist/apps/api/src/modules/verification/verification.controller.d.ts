@@ -2,21 +2,33 @@ import { VerificationService } from './verification.service';
 export declare class VerificationController {
     private service;
     constructor(service: VerificationService);
-    submit(userId: string, body: {
-        employeeIdUrl?: string;
-        drivingLicenseUrl?: string;
-        rcUrl?: string;
+    submitEmployeeDocs(userId: string, body: {
+        employeeIdUrl: string;
+        profilePhotoUrl?: string;
     }): Promise<{
-        requestId: string;
-        status: string;
+        message: string;
+    }>;
+    submitDriverDocs(userId: string, body: {
+        drivingLicenseUrl: string;
+        rcUrl: string;
+    }): Promise<{
+        message: string;
     }>;
     getStatus(userId: string): Promise<{
-        status: string;
-        rejectionReason?: undefined;
-        submittedAt?: undefined;
-    } | {
-        status: import(".prisma/client").$Enums.VerificationStatus;
-        rejectionReason: string | null;
-        submittedAt: Date;
+        employee: {
+            status: import(".prisma/client").$Enums.VerificationStatus;
+            rejectionReason: string | null;
+            submittedAt: Date;
+        } | null;
+        driver: {
+            status: import(".prisma/client").$Enums.VerificationStatus;
+            rejectionReason: string | null;
+            submittedAt: Date;
+        } | null;
+        exception: {
+            status: import(".prisma/client").$Enums.VerificationStatus;
+            rejectionReason: string | null;
+            submittedAt: Date;
+        } | null;
     }>;
 }

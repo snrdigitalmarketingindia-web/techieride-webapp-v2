@@ -17,7 +17,7 @@ async function main() {
   // ── Admin ──────────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@techieride.in' },
-    update: { accountStatus: AccountStatus.ACTIVE, emailStatus: 'VERIFIED' },
+    update: { accountStatus: AccountStatus.EMPLOYEE_VERIFIED, emailStatus: 'VERIFIED' },
     create: {
       email: 'admin@techieride.in',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -25,7 +25,7 @@ async function main() {
       role: UserRole.ADMIN,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.ACTIVE,
+      accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
       isActive: true,
     },
   });
@@ -34,7 +34,7 @@ async function main() {
   // ── Ride Seeker: Arjun ─────────────────────────────────────────────────
   const arjun = await prisma.user.upsert({
     where: { email: 'arjun@tcs.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.ACTIVE },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED },
     create: {
       email: 'arjun@tcs.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -48,7 +48,7 @@ async function main() {
       role: UserRole.RIDE_SEEKER,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.ACTIVE,
+      accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
       ecoPoints: 60,
       ecoLevel: EcoLevel.SEED,
     },
@@ -59,16 +59,16 @@ async function main() {
     create: { userId: arjun.id },
   });
   await prisma.verificationRequest.upsert({
-    where: { userId: arjun.id },
+    where: { userId_verificationType: { userId: arjun.id, verificationType: 'EMPLOYEE' } },
     update: { status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
-    create: { userId: arjun.id, employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: arjun.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
   console.log('✅ Seeker Arjun:', arjun.email);
 
   // ── Ride Giver: Priya ──────────────────────────────────────────────────
   const priya = await prisma.user.upsert({
     where: { email: 'priya@infosys.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.ACTIVE },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.DRIVER_VERIFIED },
     create: {
       email: 'priya@infosys.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -82,7 +82,7 @@ async function main() {
       role: UserRole.RIDE_GIVER,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.ACTIVE,
+      accountStatus: AccountStatus.DRIVER_VERIFIED,
       ecoPoints: 180,
       ecoLevel: EcoLevel.SPROUT,
     },
@@ -98,16 +98,21 @@ async function main() {
     create: { rideGiverId: priyaGiver.id, make: 'Maruti', model: 'Swift', color: 'White', plateNumber: 'TS09AB5678', totalSeats: 4, rcVerified: true },
   });
   await prisma.verificationRequest.upsert({
-    where: { userId: priya.id },
+    where: { userId_verificationType: { userId: priya.id, verificationType: 'EMPLOYEE' } },
     update: { status: VerificationStatus.APPROVED },
-    create: { userId: priya.id, employeeIdUrl: 'mock://approved', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: priya.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+  });
+  await prisma.verificationRequest.upsert({
+    where: { userId_verificationType: { userId: priya.id, verificationType: 'DRIVER' } },
+    update: { status: VerificationStatus.APPROVED },
+    create: { userId: priya.id, verificationType: 'DRIVER', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
   console.log('✅ Giver Priya:', priya.email, '| Vehicle:', vehicle.plateNumber);
 
   // ── Both: Ravi ─────────────────────────────────────────────────────────
   const ravi = await prisma.user.upsert({
     where: { email: 'ravi@wipro.com' },
-    update: { accountStatus: AccountStatus.ACTIVE, emailStatus: 'VERIFIED' },
+    update: { accountStatus: AccountStatus.DRIVER_VERIFIED, emailStatus: 'VERIFIED' },
     create: {
       email: 'ravi@wipro.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -121,7 +126,7 @@ async function main() {
       role: UserRole.BOTH,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.ACTIVE,
+      accountStatus: AccountStatus.DRIVER_VERIFIED,
       ecoPoints: 340,
       ecoLevel: EcoLevel.LEAF,
     },
@@ -139,9 +144,12 @@ async function main() {
   ];
 
   for (const acc of testAccounts) {
+    const acctStatus = (acc.role === UserRole.RIDE_GIVER || acc.role === UserRole.BOTH)
+      ? AccountStatus.DRIVER_VERIFIED
+      : AccountStatus.EMPLOYEE_VERIFIED;
     const u = await prisma.user.upsert({
       where: { email: acc.email },
-      update: { accountStatus: AccountStatus.ACTIVE, emailStatus: 'VERIFIED' },
+      update: { accountStatus: acctStatus, emailStatus: 'VERIFIED' },
       create: {
         email: acc.email,
         passwordHash: await hashPw(SEED_PASSWORD),
@@ -149,7 +157,7 @@ async function main() {
         role: acc.role,
         verificationStatus: VerificationStatus.APPROVED,
         emailStatus: 'VERIFIED',
-        accountStatus: AccountStatus.ACTIVE,
+        accountStatus: acctStatus,
         isActive: true,
         companyName: 'Test',
         employeeId: `TEST-${acc.fullName.toUpperCase().slice(0, 4)}`,

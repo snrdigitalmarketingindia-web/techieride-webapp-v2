@@ -1,21 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WsEvents = exports.BoardingStatus = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = exports.AccountStatus = void 0;
+exports.WsEvents = exports.BoardingStatus = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = exports.VerificationType = exports.AccountStatus = void 0;
 var AccountStatus;
 (function (AccountStatus) {
     AccountStatus["DRAFT"] = "DRAFT";
-    AccountStatus["EMAIL_PENDING"] = "EMAIL_PENDING";
-    AccountStatus["PROFILE_INCOMPLETE"] = "PROFILE_INCOMPLETE";
-    AccountStatus["DOCS_PENDING"] = "DOCS_PENDING";
-    AccountStatus["UNDER_REVIEW"] = "UNDER_REVIEW";
-    AccountStatus["ACTIVE"] = "ACTIVE";
-    AccountStatus["UPGRADE_PENDING"] = "UPGRADE_PENDING";
-    AccountStatus["COMPANY_CHANGE"] = "COMPANY_CHANGE";
+    AccountStatus["EMAIL_VERIFICATION_PENDING"] = "EMAIL_VERIFICATION_PENDING";
+    AccountStatus["EXCEPTION_VERIFICATION_REQUESTED"] = "EXCEPTION_VERIFICATION_REQUESTED";
+    AccountStatus["DOCUMENT_VERIFICATION_PENDING"] = "DOCUMENT_VERIFICATION_PENDING";
+    AccountStatus["EMPLOYEE_VERIFIED"] = "EMPLOYEE_VERIFIED";
+    AccountStatus["DRIVER_VERIFICATION_PENDING"] = "DRIVER_VERIFICATION_PENDING";
+    AccountStatus["DRIVER_VERIFIED"] = "DRIVER_VERIFIED";
     AccountStatus["SUSPENDED"] = "SUSPENDED";
     AccountStatus["REJECTED"] = "REJECTED";
     AccountStatus["DEACTIVATED"] = "DEACTIVATED";
     AccountStatus["BANNED"] = "BANNED";
 })(AccountStatus || (exports.AccountStatus = AccountStatus = {}));
+var VerificationType;
+(function (VerificationType) {
+    VerificationType["EMPLOYEE"] = "EMPLOYEE";
+    VerificationType["DRIVER"] = "DRIVER";
+    VerificationType["EXCEPTION"] = "EXCEPTION";
+})(VerificationType || (exports.VerificationType = VerificationType = {}));
 var Gender;
 (function (Gender) {
     Gender["MALE"] = "MALE";

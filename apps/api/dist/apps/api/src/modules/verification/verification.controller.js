@@ -17,12 +17,16 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const verification_service_1 = require("./verification.service");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
+const allow_docs_pending_decorator_1 = require("../../common/decorators/allow-docs-pending.decorator");
 let VerificationController = class VerificationController {
     constructor(service) {
         this.service = service;
     }
-    submit(userId, body) {
-        return this.service.submitDocuments(userId, body);
+    submitEmployeeDocs(userId, body) {
+        return this.service.submitEmployeeDocs(userId, body);
+    }
+    submitDriverDocs(userId, body) {
+        return this.service.submitDriverDocs(userId, body);
     }
     getStatus(userId) {
         return this.service.getStatus(userId);
@@ -30,14 +34,26 @@ let VerificationController = class VerificationController {
 };
 exports.VerificationController = VerificationController;
 __decorate([
-    (0, common_1.Post)('submit'),
+    (0, allow_docs_pending_decorator_1.AllowDocsPending)(),
+    (0, common_1.Post)('employee'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
-], VerificationController.prototype, "submit", null);
+], VerificationController.prototype, "submitEmployeeDocs", null);
 __decorate([
+    (0, common_1.Post)('driver'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], VerificationController.prototype, "submitDriverDocs", null);
+__decorate([
+    (0, allow_docs_pending_decorator_1.AllowDocsPending)(),
     (0, common_1.Get)('status'),
     __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
     __metadata("design:type", Function),

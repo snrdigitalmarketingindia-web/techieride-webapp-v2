@@ -18,8 +18,8 @@ let AdminService = class AdminService {
     }
     async listUsers(filters) {
         const where = {};
-        if (filters.verificationStatus)
-            where.verificationStatus = filters.verificationStatus;
+        if (filters.accountStatus)
+            where.accountStatus = filters.accountStatus;
         if (filters.role)
             where.role = filters.role;
         const [data, total] = await this.prisma.$transaction([
@@ -30,13 +30,23 @@ let AdminService = class AdminService {
                 orderBy: { createdAt: 'desc' },
                 select: {
                     id: true, fullName: true, phone: true, email: true,
-                    role: true, verificationStatus: true, isActive: true,
-                    companyName: true, createdAt: true,
+                    role: true, accountStatus: true, verificationStatus: true,
+                    isActive: true, companyName: true, trid: true, createdAt: true,
                 },
             }),
             this.prisma.user.count({ where }),
         ]);
         return { data, total, page: filters.page, limit: filters.limit };
+    }
+    async getUsersByAccountStatus(accountStatus) {
+        return this.prisma.user.findMany({
+            where: { accountStatus: accountStatus },
+            orderBy: { createdAt: 'asc' },
+            select: {
+                id: true, fullName: true, email: true, companyName: true,
+                accountStatus: true, createdAt: true,
+            },
+        });
     }
     async suspendUser(userId) {
         return this.prisma.user.update({ where: { id: userId }, data: { isActive: false } });
@@ -47,7 +57,7 @@ let AdminService = class AdminService {
     async getAnalytics(from, to) {
         const [totalUsers, verifiedUsers, totalRides, completedRides, cancelledRides, sosEvents,] = await this.prisma.$transaction([
             this.prisma.user.count(),
-            this.prisma.user.count({ where: { verificationStatus: 'APPROVED' } }),
+            this.prisma.user.count({ where: { accountStatus: { in: ['EMPLOYEE_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'] } } }),
             this.prisma.ride.count({ where: { createdAt: { gte: from, lte: to } } }),
             this.prisma.ride.count({ where: { status: 'COMPLETED', createdAt: { gte: from, lte: to } } }),
             this.prisma.ride.count({ where: { status: 'CANCELLED', createdAt: { gte: from, lte: to } } }),

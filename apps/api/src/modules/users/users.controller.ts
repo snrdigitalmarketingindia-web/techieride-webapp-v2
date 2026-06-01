@@ -8,6 +8,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddEmergencyContactDto } from './dto/emergency-contact.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AllowUnverified } from '../../common/decorators/allow-unverified.decorator';
+import { AllowDocsPending } from '../../common/decorators/allow-docs-pending.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -21,7 +22,7 @@ export class UsersController {
     return this.usersService.getProfile(userId);
   }
 
-  @AllowUnverified()
+  @AllowDocsPending()
   @Patch('me')
   updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(userId, dto);

@@ -11,17 +11,22 @@ datasource db {
 
 enum AccountStatus {
   DRAFT
-  EMAIL_PENDING
-  PROFILE_INCOMPLETE
-  DOCS_PENDING
-  UNDER_REVIEW
-  ACTIVE
-  UPGRADE_PENDING
-  COMPANY_CHANGE
+  EMAIL_VERIFICATION_PENDING
+  EXCEPTION_VERIFICATION_REQUESTED
+  DOCUMENT_VERIFICATION_PENDING
+  EMPLOYEE_VERIFIED
+  DRIVER_VERIFICATION_PENDING
+  DRIVER_VERIFIED
   SUSPENDED
   REJECTED
   DEACTIVATED
   BANNED
+}
+
+enum VerificationType {
+  EMPLOYEE
+  DRIVER
+  EXCEPTION
 }
 
 enum Gender {
@@ -133,7 +138,8 @@ model User {
   passwordResetToken        String?            @unique
   passwordResetExpiry       DateTime?
   isActive                  Boolean            @default(true)
-  accountStatus             AccountStatus      @default(EMAIL_PENDING)
+  accountStatus             AccountStatus      @default(EMAIL_VERIFICATION_PENDING)
+  verificationMethod        String?                       // EMAIL_VERIFIED | MANUAL_EXCEPTION
   fcmToken                  String?
   ecoPoints                 Int                @default(0)
   ecoLevel                  EcoLevel           @default(SEED)
@@ -144,7 +150,7 @@ model User {
   rideSeeker           RideSeeker?
   notifications        Notification[]
   gamificationPoints   GamificationPoint[]
-  verificationRequest  VerificationRequest?
+  verificationRequests VerificationRequest[]
   emergencyContacts    EmergencyContact[]
   ratingsGiven         RideRating[]       @relation("rater")
   ratingsReceived      RideRating[]       @relation("ratee")
@@ -173,10 +179,13 @@ model EmergencyContact {
 
 model VerificationRequest {
   id                  String             @id @default(uuid())
-  userId              String             @unique
+  userId              String
+  verificationType    VerificationType   @default(EMPLOYEE)
   employeeIdUrl       String?
+  profilePhotoUrl     String?
   drivingLicenseUrl   String?
   rcUrl               String?
+  exceptionReason     String?            // filled for EXCEPTION type
   status              VerificationStatus @default(PENDING)
   rejectionReason     String?
   reviewedBy          String?
@@ -186,7 +195,9 @@ model VerificationRequest {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, verificationType])
   @@index([status])
+  @@index([verificationType])
   @@map("verification_requests")
 }
 

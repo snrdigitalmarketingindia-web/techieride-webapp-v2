@@ -7,6 +7,7 @@ export declare class VehiclesController {
         id: string;
         isActive: boolean;
         createdAt: Date;
+        rcUrl: string | null;
         totalSeats: number;
         rideGiverId: string;
         make: string;
@@ -14,13 +15,13 @@ export declare class VehiclesController {
         year: number | null;
         color: string | null;
         plateNumber: string;
-        rcUrl: string | null;
         rcVerified: boolean;
     }>;
     findMine(userId: string): Promise<{
         id: string;
         isActive: boolean;
         createdAt: Date;
+        rcUrl: string | null;
         totalSeats: number;
         rideGiverId: string;
         make: string;
@@ -28,13 +29,13 @@ export declare class VehiclesController {
         year: number | null;
         color: string | null;
         plateNumber: string;
-        rcUrl: string | null;
         rcVerified: boolean;
     }[]>;
     updateRc(id: string, userId: string, rcUrl: string): Promise<{
         id: string;
         isActive: boolean;
         createdAt: Date;
+        rcUrl: string | null;
         totalSeats: number;
         rideGiverId: string;
         make: string;
@@ -42,13 +43,13 @@ export declare class VehiclesController {
         year: number | null;
         color: string | null;
         plateNumber: string;
-        rcUrl: string | null;
         rcVerified: boolean;
     }>;
     remove(id: string, userId: string): Promise<{
         id: string;
         isActive: boolean;
         createdAt: Date;
+        rcUrl: string | null;
         totalSeats: number;
         rideGiverId: string;
         make: string;
@@ -56,7 +57,6 @@ export declare class VehiclesController {
         year: number | null;
         color: string | null;
         plateNumber: string;
-        rcUrl: string | null;
         rcVerified: boolean;
     }>;
 }

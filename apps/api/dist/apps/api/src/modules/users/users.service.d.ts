@@ -6,31 +6,32 @@ export declare class UsersService {
     constructor(prisma: PrismaService);
     getProfile(userId: string): Promise<{
         rideGiver: {
-            totalRidesGiven: number;
             averageRating: number;
+            totalRidesGiven: number;
         } | null;
         rideSeeker: {
-            averageRating: number;
             totalRidesTaken: number;
+            averageRating: number;
         } | null;
         email: string;
         fullName: string;
-        gender: import(".prisma/client").$Enums.Gender | null;
         companyName: string | null;
         employeeId: string | null;
+        gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
         personalEmail: string | null;
-        role: import(".prisma/client").$Enums.UserRole;
         homeLocation: string | null;
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
         profilePhoto: string | null;
         trid: string | null;
+        role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        verificationMethod: string | null;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -39,12 +40,12 @@ export declare class UsersService {
     }>;
     getPublicProfile(userId: string): Promise<{
         rideGiver: {
-            totalRidesGiven: number;
             averageRating: number;
+            totalRidesGiven: number;
         } | null;
         rideSeeker: {
-            averageRating: number;
             totalRidesTaken: number;
+            averageRating: number;
         } | null;
         fullName: string;
         companyName: string | null;
@@ -55,12 +56,11 @@ export declare class UsersService {
     updateProfile(userId: string, dto: UpdateProfileDto): Promise<{
         email: string;
         fullName: string;
-        gender: import(".prisma/client").$Enums.Gender | null;
         companyName: string | null;
         employeeId: string | null;
+        gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
         personalEmail: string | null;
-        role: import(".prisma/client").$Enums.UserRole;
         homeLocation: string | null;
         officeLocation: string | null;
         bloodGroup: string | null;
@@ -68,6 +68,7 @@ export declare class UsersService {
         passwordHash: string;
         profilePhoto: string | null;
         trid: string | null;
+        role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
         emailVerificationToken: string | null;
@@ -76,6 +77,7 @@ export declare class UsersService {
         passwordResetExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        verificationMethod: string | null;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -85,12 +87,11 @@ export declare class UsersService {
     updateFcmToken(userId: string, fcmToken: string): Promise<{
         email: string;
         fullName: string;
-        gender: import(".prisma/client").$Enums.Gender | null;
         companyName: string | null;
         employeeId: string | null;
+        gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
         personalEmail: string | null;
-        role: import(".prisma/client").$Enums.UserRole;
         homeLocation: string | null;
         officeLocation: string | null;
         bloodGroup: string | null;
@@ -98,6 +99,7 @@ export declare class UsersService {
         passwordHash: string;
         profilePhoto: string | null;
         trid: string | null;
+        role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
         emailVerificationToken: string | null;
@@ -106,6 +108,7 @@ export declare class UsersService {
         passwordResetExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        verificationMethod: string | null;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;

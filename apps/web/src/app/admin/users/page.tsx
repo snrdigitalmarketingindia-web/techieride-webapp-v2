@@ -3,11 +3,38 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api';
 
+const ACCOUNT_STATUS_COLORS: Record<string, string> = {
+  DRIVER_VERIFIED: 'bg-green-100 text-green-700',
+  EMPLOYEE_VERIFIED: 'bg-blue-100 text-blue-700',
+  DRIVER_VERIFICATION_PENDING: 'bg-purple-100 text-purple-700',
+  DOCUMENT_VERIFICATION_PENDING: 'bg-yellow-100 text-yellow-700',
+  EXCEPTION_VERIFICATION_REQUESTED: 'bg-orange-100 text-orange-700',
+  EMAIL_VERIFICATION_PENDING: 'bg-gray-100 text-gray-600',
+  REJECTED: 'bg-red-100 text-red-700',
+  SUSPENDED: 'bg-red-100 text-red-700',
+  BANNED: 'bg-red-200 text-red-800',
+  DEACTIVATED: 'bg-gray-200 text-gray-600',
+};
+
+const ACCOUNT_STATUS_LABELS: Record<string, string> = {
+  DRIVER_VERIFIED: '✅ Driver Verified',
+  EMPLOYEE_VERIFIED: '✅ Employee Verified',
+  DRIVER_VERIFICATION_PENDING: '⏳ Driver Review',
+  DOCUMENT_VERIFICATION_PENDING: '⏳ Docs Pending',
+  EXCEPTION_VERIFICATION_REQUESTED: '🔍 Exception Review',
+  EMAIL_VERIFICATION_PENDING: '📧 Email Pending',
+  REJECTED: '❌ Rejected',
+  SUSPENDED: '🚫 Suspended',
+  BANNED: '🔴 Banned',
+  DEACTIVATED: '⛔ Deactivated',
+  DRAFT: '📝 Draft',
+};
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ verificationStatus: '', role: '' });
+  const [filter, setFilter] = useState({ accountStatus: '', role: '' });
 
   const load = () => {
     setLoading(true);
@@ -19,23 +46,22 @@ export default function AdminUsersPage() {
 
   useEffect(() => { load(); }, [filter]);
 
-  const STATUS_COLORS: Record<string, string> = {
-    APPROVED: 'bg-green-100 text-green-700',
-    REJECTED: 'bg-red-100 text-red-700',
-    PENDING: 'bg-yellow-100 text-yellow-700',
-  };
-
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-gray-900">Users ({total})</h1>
-        <div className="flex gap-2">
-          <select value={filter.verificationStatus} onChange={(e) => setFilter((f) => ({ ...f, verificationStatus: e.target.value }))}
+        <div className="flex gap-2 flex-wrap">
+          <select value={filter.accountStatus} onChange={(e) => setFilter((f) => ({ ...f, accountStatus: e.target.value }))}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
-            <option value="">All Status</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
+            <option value="">All Statuses</option>
+            <option value="EMAIL_VERIFICATION_PENDING">📧 Email Pending</option>
+            <option value="EXCEPTION_VERIFICATION_REQUESTED">🔍 Exception Requests</option>
+            <option value="DOCUMENT_VERIFICATION_PENDING">⏳ Docs Pending</option>
+            <option value="EMPLOYEE_VERIFIED">✅ Employee Verified</option>
+            <option value="DRIVER_VERIFICATION_PENDING">⏳ Driver Review</option>
+            <option value="DRIVER_VERIFIED">✅ Driver Verified</option>
+            <option value="REJECTED">❌ Rejected</option>
+            <option value="SUSPENDED">🚫 Suspended</option>
           </select>
           <select value={filter.role} onChange={(e) => setFilter((f) => ({ ...f, role: e.target.value }))}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
@@ -52,7 +78,7 @@ export default function AdminUsersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {['Name', 'Phone', 'Company', 'Role', 'Status', 'Actions'].map((h) => (
+                {['Name', 'TRID', 'Company', 'Role', 'Account Status', 'Actions'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -64,14 +90,14 @@ export default function AdminUsersPage() {
                     <p className="font-medium text-gray-900">{u.fullName}</p>
                     <p className="text-xs text-gray-400">{u.email}</p>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{u.phone}</td>
+                  <td className="px-4 py-3 text-gray-600 font-mono text-xs">{u.trid || '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{u.companyName || '—'}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">{u.role}</span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[u.verificationStatus]}`}>
-                      {u.verificationStatus}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ACCOUNT_STATUS_COLORS[u.accountStatus] || 'bg-gray-100 text-gray-600'}`}>
+                      {ACCOUNT_STATUS_LABELS[u.accountStatus] || u.accountStatus}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -85,6 +111,9 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
+              {users.length === 0 && (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No users found</td></tr>
+              )}
             </tbody>
           </table>
         </div>
