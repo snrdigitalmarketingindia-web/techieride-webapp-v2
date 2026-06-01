@@ -128,7 +128,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
-          <span className="inline-block mt-1 text-xs text-orange-400 font-medium">v2.0_Beta</span>
+          <span className="inline-block mt-1 text-xs text-orange-400 font-medium">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
         </div>
 
         {unverifiedEmail && (

@@ -8,7 +8,7 @@ export default function LandingPage() {
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
         <div className="flex items-center gap-2">
           <Image src="/logo.png" alt="TechieRide" width={130} height={44} className="object-contain" priority />
-          <span className="text-xs font-medium text-orange-400">v2.0_Beta</span>
+          <span className="text-xs font-medium text-orange-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
         </div>
         <div className="flex gap-4">
           <Link href="/login" className="text-sm text-gray-600 hover:text-brand-600 transition">
@@ -71,7 +71,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="text-center py-10 text-gray-400 text-sm border-t border-gray-100">
-        © 2026 Techieride v2.0_Beta · Built for Hyderabad IT professionals
+        © 2026 Techieride v{process.env.NEXT_PUBLIC_APP_VERSION} · Built for Hyderabad IT professionals
       </footer>
     </main>
   );

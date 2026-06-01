@@ -61,7 +61,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <Image src="/logo.png" alt="Techieride" width={120} height={40} className="object-contain" priority />
-          <span className="text-xs font-medium text-gray-400 hidden sm:inline">v2.0_Beta</span>
+          <span className="text-xs font-medium text-gray-400 hidden sm:inline">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
         </div>
         <div className="flex items-center gap-3">
           {user && (

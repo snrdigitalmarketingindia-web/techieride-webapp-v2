@@ -68,7 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="text-xl sm:hidden">🚗</span>
           <div className="hidden sm:flex items-center gap-1">
             <span className="text-xs text-gray-400">Admin Panel</span>
-            <span className="text-xs font-medium text-orange-400">v2.0_Beta</span>
+            <span className="text-xs font-medium text-orange-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
           </div>
         </div>
         <nav className="space-y-1 flex-1">
