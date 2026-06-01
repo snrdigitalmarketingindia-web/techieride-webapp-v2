@@ -660,24 +660,19 @@ async function run() {
     const reqId = reqR.data.requestId;
     await giver.client.patch(`/ride-requests/${reqId}/approve`);
 
-    // Verify hold metadata is present
-    await test('Approved request has holdExpiresAt timestamp', async () => {
+    // Verify approved request is in HOLD status (hold timer removed in v2.1.0)
+    await test('Approved request status is HOLD', async () => {
       const r = await giver.client.get('/ride-requests/incoming', { params: { rideId } });
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       const req = r.data.find((x: any) => x.id === reqId);
       assert(!!req, 'Request not found in incoming');
-      assert(!!req.holdExpiresAt, `Expected holdExpiresAt, got: ${JSON.stringify(req)}`);
+      assert(req.status === 'HOLD', `Expected HOLD status, got: ${req.status}`);
     });
 
-    await test('holdExpiresAt is ~15 minutes in future', async () => {
-      const r = await giver.client.get('/ride-requests/incoming', { params: { rideId } });
-      const req = r.data.find((x: any) => x.id === reqId);
-      if (req?.holdExpiresAt) {
-        const expiresIn = new Date(req.holdExpiresAt).getTime() - Date.now();
-        const minutesLeft = expiresIn / 1000 / 60;
-        assert(minutesLeft > 0 && minutesLeft <= 16,
-          `Expected hold to expire in ~15 min, got ${minutesLeft.toFixed(1)} min`);
-      }
+    await test('Seeker can confirm HOLD request at any time', async () => {
+      const r = await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(r.data.status === 'CONFIRMED', `Expected CONFIRMED, got ${r.data.status}`);
     });
   }
 
