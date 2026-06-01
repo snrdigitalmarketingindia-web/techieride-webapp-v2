@@ -83,9 +83,9 @@ test.describe('🔄 Ride Request Flow', () => {
     await page.goto('/requests');
     // Click incoming tab
     await page.getByText(/incoming/i).first().click();
-    // Seeker has no rides to select from
+    // v2.1.0: dropdown removed — shows "No active ride" message for non-givers
     await expect(
-      page.getByText(/no published rides|select a ride/i).first()
+      page.getByText(/no active ride|no requests for this ride|create and publish/i).first()
     ).toBeVisible({ timeout: 8_000 });
   });
 
