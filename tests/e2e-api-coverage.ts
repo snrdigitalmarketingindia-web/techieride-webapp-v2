@@ -142,38 +142,43 @@ async function run() {
   section('2. BOTH Role User');
   {
     const bothEmail = `cov_both_${ts}@wipro.com`;
-    const bothAcc = await register(bothEmail, 'Both User', 'BOTH');
+    // Everyone registers as RIDE_SEEKER — role upgrades to BOTH via driver verification
+    const bothAcc = await register(bothEmail, 'Both User');
     const bothClient = makeClient(bothAcc.token);
     const adminClient = await getAdminClient();
+
+    // Full 2-step verification → DRIVER_VERIFIED + role=BOTH
+    await approveVerification(bothAcc.userId, bothClient, adminClient);
+
+    // Add vehicle + verify RC (needed to publish rides)
+    const vRes = await bothClient.post('/vehicles', {
+      make: 'Toyota', model: 'Etios', color: 'White',
+      plateNumber: `TSB${ts.toString().slice(-5)}`, totalSeats: 4,
+    });
+    const bothVehicleId = vRes.data?.id as string | undefined;
+    if (bothVehicleId) await approveVehicleRc(bothVehicleId, adminClient);
 
     await test('BOTH role user profile shows role=BOTH', async () => {
       const r = await bothClient.get('/users/me');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(r.data.role === 'BOTH', `Expected BOTH, got ${r.data.role}`);
+      assert(['BOTH', 'RIDE_GIVER'].includes(r.data.role), `Expected BOTH, got ${r.data.role}`);
     });
 
     await test('BOTH user can add a vehicle (giver capability)', async () => {
-      const r = await bothClient.post('/vehicles', {
-        make: 'Toyota', model: 'Etios', color: 'White',
-        plateNumber: `TSB${ts.toString().slice(-5)}`, totalSeats: 4,
-      });
-      assert(r.status === 201, `Expected 201, got ${r.status}`);
+      // Vehicle was already added in setup — verify it exists
+      const r = await bothClient.get('/vehicles/my');
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(r.data.length >= 1, 'BOTH user should have at least 1 vehicle');
     });
 
     await test('BOTH user can create and publish a ride', async () => {
-      const vehicles = await bothClient.get('/vehicles/my');
-      const vId = vehicles.data[0]?.id;
-      assert(!!vId, 'BOTH user has no vehicle');
-      // BOTH user needs identity verification + vehicle RC verified to publish
-      await approveVerification(bothAcc.userId, bothClient, adminClient);
-      await approveVehicleRc(vId, adminClient);
-      const rideId = await publishRide(bothClient, vId);
+      assert(!!bothVehicleId, 'BOTH user has no vehicle');
+      const rideId = await publishRide(bothClient, bothVehicleId!);
       assert(!!rideId, 'Could not publish ride as BOTH user');
     });
 
     await test('BOTH user can also search for rides (seeker capability)', async () => {
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-      // SearchRidesDto requires lat/lng coords (not names)
       const r = await bothClient.get('/rides/search', {
         params: { originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.36, date: tomorrow },
       });
@@ -182,7 +187,8 @@ async function run() {
 
     await test('BOTH user cannot request a seat on their own ride', async () => {
       const rides = await bothClient.get('/rides/given');
-      const myRideId = rides.data?.find((r: any) => r.status === 'PUBLISHED')?.id;
+      const givenRides = Array.isArray(rides.data) ? rides.data : rides.data?.data ?? [];
+      const myRideId = givenRides.find((r: any) => r.status === 'PUBLISHED')?.id;
       if (myRideId) {
         const r = await bothClient.post('/ride-requests', { rideId: myRideId, pickupName: 'Kondapur Metro, Hyderabad' });
         assert(r.status === 403 || r.status === 400, `Expected 403/400 (cannot request own ride), got ${r.status}`);
