@@ -112,10 +112,10 @@ export default function DashboardPage() {
       {/* Quick actions — role-aware */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          isGiver  && { href: '/rides/create',     icon: '🚗', label: 'Offer Ride',     color: 'bg-brand-50 border-brand-200' },
-          isSeeker && { href: '/rides/board',       icon: '🗺️', label: 'Find Rides',     color: 'bg-blue-50 border-blue-200'   },
-                       { href: '/requests',         icon: '📋', label: 'Requests',       color: 'bg-purple-50 border-purple-200' },
-                       { href: '/rides/leaderboard',icon: '🏆', label: 'Leaderboard',    color: 'bg-yellow-50 border-yellow-200' },
+          isGiver  && { href: '/rides/create',      icon: '🚗', label: 'Offer Ride',  color: 'bg-brand-50 border-brand-200'   },
+          isSeeker && { href: '/rides/search',      icon: '🔍', label: 'Find Rides',  color: 'bg-blue-50 border-blue-200'     },
+                       { href: '/rides',             icon: '📋', label: 'My Rides',   color: 'bg-purple-50 border-purple-200' },
+                       { href: '/rides/leaderboard', icon: '🏆', label: 'Leaderboard',color: 'bg-yellow-50 border-yellow-200' },
         ].filter(Boolean).map((a: any) => (
           <Link key={a.href} href={a.href} className={`${a.color} border rounded-xl p-4 flex items-center gap-3 hover:opacity-80 transition`}>
             <span className="text-2xl">{a.icon}</span>
