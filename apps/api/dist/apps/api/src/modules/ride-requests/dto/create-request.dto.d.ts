@@ -1,9 +1,9 @@
 export declare class CreateRequestDto {
     rideId: string;
+    pickupName: string;
     pickupLat?: number;
     pickupLng?: number;
-    pickupName?: string;
+    dropName?: string;
     dropLat?: number;
     dropLng?: number;
-    dropName?: string;
 }

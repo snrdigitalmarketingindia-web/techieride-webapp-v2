@@ -19,6 +19,11 @@ __decorate([
     __metadata("design:type", String)
 ], CreateRequestDto.prototype, "rideId", void 0);
 __decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Please specify your boarding point' }),
+    __metadata("design:type", String)
+], CreateRequestDto.prototype, "pickupName", void 0);
+__decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
@@ -32,7 +37,7 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
-], CreateRequestDto.prototype, "pickupName", void 0);
+], CreateRequestDto.prototype, "dropName", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.IsOptional)(),
@@ -43,9 +48,4 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], CreateRequestDto.prototype, "dropLng", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], CreateRequestDto.prototype, "dropName", void 0);
 //# sourceMappingURL=create-request.dto.js.map
