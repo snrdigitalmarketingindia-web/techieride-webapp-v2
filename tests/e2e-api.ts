@@ -9,7 +9,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-const BASE = 'http://localhost:3001/api/v1';
+const BASE = process.env.API_BASE_URL ?? 'http://localhost:3001/api/v1';
 const API_LOG = '/tmp/techieride-api.log';
 const { execSync } = require('child_process');
 
@@ -83,6 +83,10 @@ async function registerAndLogin(
     gender: 'MALE', companyName: 'TestCorp',
     employeeId: 'N/A', role,
     phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',
   });
   if (reg.status === 201) {
     // Mark email as verified directly via seed-style approach
@@ -358,7 +362,7 @@ async function run() {
   });
 
   await test('Seeker cannot request the same ride twice', async () => {
-    const r = await seekerClient.post('/ride-requests', { rideId });
+    const r = await seekerClient.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     assert(r.status === 409, `Expected 409 Conflict, got ${r.status}`);
   });
 

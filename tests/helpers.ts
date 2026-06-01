@@ -10,7 +10,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-export const BASE = 'http://localhost:3001/api/v1';
+export const BASE = process.env.API_BASE_URL ?? 'http://localhost:3001/api/v1';
 
 export const SEED_PASSWORD = 'TechieRide@2024';
 
@@ -61,6 +61,10 @@ export async function register(
     employeeId: 'N/A',
     role,
     phone: phone ?? '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',
   });
   if (r.status !== 201 && r.status !== 409) {
     throw new Error(`Register failed for ${email}: ${JSON.stringify(r.data)}`);
@@ -185,7 +189,7 @@ export async function completeFullRide(seats = 1) {
   const seeker = await freshSeeker('lifecycle');
   const rideId = await publishRide(giver.client, giver.vehicleId, seats);
 
-  const reqR = await seeker.client.post('/ride-requests', { rideId });
+  const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
   if (reqR.status !== 201) throw new Error(`Request failed: ${JSON.stringify(reqR.data)}`);
   const reqId = reqR.data.requestId as string;
 

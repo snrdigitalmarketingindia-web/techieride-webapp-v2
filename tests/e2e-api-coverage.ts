@@ -118,7 +118,11 @@ async function run() {
         email: 'arjun@tcs.com', password: SEED_PASSWORD,
         fullName: 'Duplicate', gender: 'MALE', companyName: 'TCS',
         employeeId: 'N/A', role: 'RIDE_SEEKER',
-        phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
+        phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString()
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',,
       });
       assert(r.status === 409, `Expected 409, got ${r.status}`);
     });
@@ -186,7 +190,7 @@ async function run() {
       const rides = await bothClient.get('/rides/given');
       const myRideId = rides.data?.find((r: any) => r.status === 'PUBLISHED')?.id;
       if (myRideId) {
-        const r = await bothClient.post('/ride-requests', { rideId: myRideId });
+        const r = await bothClient.post('/ride-requests', { rideId: myRideId, pickupName: 'Kondapur Metro, Hyderabad' });
         assert(r.status === 403 || r.status === 400, `Expected 403/400 (cannot request own ride), got ${r.status}`);
       }
     });
@@ -244,7 +248,7 @@ async function run() {
     const rideId = await publishRide(giver.client, giver.vehicleId);
 
     // Seeker joins the ride
-    const reqR = await seeker.client.post('/ride-requests', { rideId });
+    const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     const reqId = reqR.data.requestId;
     await giver.client.patch(`/ride-requests/${reqId}/approve`);
     await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
@@ -609,7 +613,7 @@ async function run() {
     const rideId = await publishRide(giver.client, giver.vehicleId);
 
     // Seeker requests → should trigger notification to giver
-    const reqR = await seeker.client.post('/ride-requests', { rideId });
+    const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     const reqId = reqR.data.requestId;
 
     await test('Giver receives notification when seeker requests a seat', async () => {
@@ -652,7 +656,7 @@ async function run() {
     const seeker = await freshSeeker('hold');
     const rideId = await publishRide(giver.client, giver.vehicleId);
 
-    const reqR = await seeker.client.post('/ride-requests', { rideId });
+    const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     const reqId = reqR.data.requestId;
     await giver.client.patch(`/ride-requests/${reqId}/approve`);
 

@@ -7,7 +7,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-const BASE = 'http://localhost:3001/api/v1';
+const BASE = process.env.API_BASE_URL ?? 'http://localhost:3001/api/v1';
 const API_LOG = '/tmp/techieride-api.log';
 const { execSync } = require('child_process');
 
@@ -65,7 +65,11 @@ async function registerAndLogin(email: string, fullName: string, role: string): 
   const reg = await c1.post('/auth/register', {
     email, password: SEED_PASSWORD, fullName, gender: 'MALE',
     companyName: 'TestCorp', employeeId: 'N/A', role,
-    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
+    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString()
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',,
   });
   if (reg.status !== 201 && reg.status !== 409) throw new Error(`Register: ${JSON.stringify(reg.data)}`);
   const { token } = await loginAsWithId(email);
@@ -165,7 +169,7 @@ async function run() {
   let rejectedRequestId = '';
 
   await test('Seeker sends a request', async () => {
-    const r = await s1.post('/ride-requests', { rideId: rideSmall.id });
+    const r = await s1.post('/ride-requests', { rideId: rideSmall.id, pickupName: 'Kondapur Metro, Hyderabad' });
     assert(r.status === 201, `Got ${r.status}: ${JSON.stringify(r.data)}`);
     rejectedRequestId = r.data.requestId;
   });
@@ -184,7 +188,7 @@ async function run() {
   });
 
   await test('Rejected seeker can request again (new request)', async () => {
-    const r = await s1.post('/ride-requests', { rideId: rideSmall.id });
+    const r = await s1.post('/ride-requests', { rideId: rideSmall.id, pickupName: 'Kondapur Metro, Hyderabad' });
     assert([201, 409].includes(r.status), `Got ${r.status}`);
     // Cancel the re-request so s1 has no active PENDING for the race condition test.
     // (upsert returns 201 and resets to PENDING, which would block s1 from raceRide)
@@ -210,7 +214,7 @@ async function run() {
   let cancelRequestId = '';
 
   await test('Seeker requests + giver approves + seeker confirms', async () => {
-    const req = await s2.post('/ride-requests', { rideId: cancelRideId });
+    const req = await s2.post('/ride-requests', { rideId: cancelRideId, pickupName: 'Kondapur Metro, Hyderabad' });
     assert(req.status === 201, `Request: ${JSON.stringify(req.data)}`);
     cancelRequestId = req.data.requestId;
 
@@ -240,7 +244,7 @@ async function run() {
   });
 
   await test('Cannot book seats on a CANCELLED ride', async () => {
-    const r = await s2.post('/ride-requests', { rideId: cancelRideId });
+    const r = await s2.post('/ride-requests', { rideId: cancelRideId, pickupName: 'Kondapur Metro, Hyderabad' });
     assert(r.status === 400, `Expected 400 on cancelled ride, got ${r.status}`);
   });
 
@@ -265,8 +269,8 @@ async function run() {
     // s1 has no active requests (rejection flow left it with PENDING/REJECTED — OK)
     // s3 is fresh with no requests
     const [r1, r3] = await Promise.all([
-      s1.post('/ride-requests', { rideId: raceRideId }),
-      s3.post('/ride-requests', { rideId: raceRideId }),
+      s1.post('/ride-requests', { rideId: raceRideId, pickupName: 'Kondapur Metro, Hyderabad' }),
+      s3.post('/ride-requests', { rideId: raceRideId, pickupName: 'Kondapur Metro, Hyderabad' }),
     ]);
     assert([201, 409].includes(r1.status), `S1: ${r1.status}: ${JSON.stringify(r1.data)}`);
     assert([201, 409].includes(r3.status), `S3: ${r3.status}: ${JSON.stringify(r3.data)}`);
@@ -351,7 +355,11 @@ async function run() {
   await test('Register with personal email (gmail) → 403', async () => {
     const r = await makeClient().post('/auth/register', {
       email: 'test@gmail.com', password: SEED_PASSWORD,
-      fullName: 'Test', gender: 'MALE', phone: '9800000099',
+      fullName: 'Test', gender: 'MALE', phone: '9800000099'
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',,
       companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
     });
     assert(r.status === 403, `Expected 403, got ${r.status}`);
@@ -360,7 +368,11 @@ async function run() {
   await test('Register with missing fullName → 400', async () => {
     const r = await makeClient().post('/auth/register', {
       email: 'test@tcs.com', password: SEED_PASSWORD,
-      gender: 'MALE', phone: '9800000098',
+      gender: 'MALE', phone: '9800000098'
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',,
       companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
@@ -389,7 +401,11 @@ async function run() {
   await test('Cannot register same email twice → 409', async () => {
     const r = await makeClient().post('/auth/register', {
       email: 'arjun@tcs.com', password: SEED_PASSWORD,
-      fullName: 'Dup User', gender: 'MALE', phone: '9700000099',
+      fullName: 'Dup User', gender: 'MALE', phone: '9700000099'
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',,
       companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
     });
     assert(r.status === 409, `Expected 409, got ${r.status}`);
@@ -440,7 +456,7 @@ async function run() {
     departureTime: '12:00', totalSeats: 2,
   });
   await giverB.patch(`/rides/${sosRide.data.id}/publish`);
-  const s1Req = await sosSeeker.post('/ride-requests', { rideId: sosRide.data.id });
+  const s1Req = await sosSeeker.post('/ride-requests', { rideId: sosRide.data.id, pickupName: 'Kondapur Metro, Hyderabad' });
   await giverB.patch(`/ride-requests/${s1Req.data.requestId}/approve`);
   await sosSeeker.patch(`/ride-requests/${s1Req.data.requestId}/confirm`);
   await giverB.patch(`/rides/${sosRide.data.id}/start`);

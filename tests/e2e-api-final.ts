@@ -133,7 +133,7 @@ async function run() {
 
     // Complete a ride
     const rideId = await publishRide(giver.client, giver.vehicleId, 3);
-    const reqR = await seeker.client.post('/ride-requests', { rideId });
+    const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     const reqId = reqR.data.requestId as string;
     await giver.client.patch(`/ride-requests/${reqId}/approve`);
     await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
@@ -178,13 +178,13 @@ async function run() {
     const rideId = await publishRide(giver.client, giver.vehicleId, 1); // 1 seat only
 
     // Seeker 1 requests, gets approved + confirmed → seat is TAKEN
-    const req1 = await seeker1.client.post('/ride-requests', { rideId });
+    const req1 = await seeker1.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     const reqId1 = req1.data.requestId as string;
     await giver.client.patch(`/ride-requests/${reqId1}/approve`);
     await seeker1.client.patch(`/ride-requests/${reqId1}/confirm`);
 
     // Seeker 2 requests (should be accepted as PENDING)
-    const req2 = await seeker2.client.post('/ride-requests', { rideId });
+    const req2 = await seeker2.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     assert([201, 400, 409].includes(req2.status), `Expected 201/400/409, got ${req2.status}`);
 
     if (req2.status === 201) {
@@ -217,7 +217,7 @@ async function run() {
       const seeker = await freshSeeker('cancel_pend');
       const rideId = await publishRide(giver.client, giver.vehicleId);
 
-      const reqR = await seeker.client.post('/ride-requests', { rideId });
+      const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       const reqId = reqR.data.requestId as string;
 
       await test('Seeker can cancel a PENDING request', async () => {
@@ -233,7 +233,7 @@ async function run() {
       });
 
       await test('Cancelled seeker can request the same ride again', async () => {
-        const r = await seeker.client.post('/ride-requests', { rideId });
+        const r = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
         assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
       });
     }
@@ -244,7 +244,7 @@ async function run() {
       const seeker = await freshSeeker('cancel_hold');
       const rideId = await publishRide(giver.client, giver.vehicleId, 2);
 
-      const reqR = await seeker.client.post('/ride-requests', { rideId });
+      const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       const reqId = reqR.data.requestId as string;
       await giver.client.patch(`/ride-requests/${reqId}/approve`); // → HOLD
 
@@ -267,7 +267,7 @@ async function run() {
       const giverB = await freshGiver('cancel_guard2');
       const seeker  = await freshSeeker('cancel_guard');
       const rideId  = await publishRide(giverA.client, giverA.vehicleId);
-      const reqR    = await seeker.client.post('/ride-requests', { rideId });
+      const reqR    = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       const reqId   = reqR.data.requestId as string;
 
       await test('Another giver cannot cancel a ride request they do not own → 403/404', async () => {
@@ -412,7 +412,7 @@ async function run() {
     const rideId = await publishRide(giver.client, giver.vehicleId);
 
     // Trigger a notification to giver
-    await seeker.client.post('/ride-requests', { rideId });
+    await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
 
     await test('GET /notifications?unreadOnly=true returns only unread', async () => {
       const r = await giver.client.get('/notifications', { params: { unreadOnly: 'true' } });
@@ -462,7 +462,7 @@ async function run() {
     const rideId = await publishRide(giver.client, giver.vehicleId);
 
     // Seeker joins and confirms
-    const reqR = await seeker.client.post('/ride-requests', { rideId });
+    const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     const reqId = reqR.data.requestId as string;
     await giver.client.patch(`/ride-requests/${reqId}/approve`);
     await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
@@ -543,7 +543,7 @@ async function run() {
     await test('SOS with rideId (ongoing ride) also works', async () => {
       const giver = await freshGiver('sos_ride');
       const rideId = await publishRide(giver.client, giver.vehicleId);
-      const reqR = await seeker.client.post('/ride-requests', { rideId });
+      const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       const reqId = reqR.data.requestId as string;
       await giver.client.patch(`/ride-requests/${reqId}/approve`);
       await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
@@ -610,7 +610,7 @@ async function run() {
       const giver = await freshGiver('schema_req');
       const seeker = await freshSeeker('schema_req');
       const rideId = await publishRide(giver.client, giver.vehicleId);
-      const reqR = await seeker.client.post('/ride-requests', { rideId });
+      const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(reqR.status === 201, `Expected 201, got ${reqR.status}`);
       const req = reqR.data;
       assert(!!req.requestId || !!req.id, `Request response missing id/requestId: ${JSON.stringify(req)}`);
@@ -637,8 +637,8 @@ async function run() {
     const seekerB = await freshSeeker('race_final_b');
     const rideId = await publishRide(giver.client, giver.vehicleId, 1); // 1 seat
 
-    const reqA = await seekerA.client.post('/ride-requests', { rideId });
-    const reqB = await seekerB.client.post('/ride-requests', { rideId });
+    const reqA = await seekerA.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
+    const reqB = await seekerB.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
 
     // Only one of these will succeed, whichever runs first
     let reqIdA: string | null = reqA.status === 201 ? reqA.data.requestId : null;

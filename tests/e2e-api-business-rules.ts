@@ -40,7 +40,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 
-const BASE = 'http://localhost:3001/api/v1';
+const BASE = process.env.API_BASE_URL ?? 'http://localhost:3001/api/v1';
 
 const c = {
   reset: '\x1b[0m', green: '\x1b[32m', red: '\x1b[31m',
@@ -97,6 +97,10 @@ async function registerAndLogin(email: string, role: 'RIDE_GIVER' | 'RIDE_SEEKER
     email, password: SEED_PASSWORD,
     fullName: `Test ${role}`, phone,
     gender: 'MALE', companyName: 'TestCo', employeeId: 'N/A', role,
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',
   });
   return loginAs(email);
 }
@@ -238,13 +242,13 @@ async function run() {
     });
 
     await test('Seeker can request ride A (first request)', async () => {
-      const r = await seekerClient.post('/ride-requests', { rideId: rideA });
+      const r = await seekerClient.post('/ride-requests', { rideId: rideA, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
       requestId = r.data.requestId;
     });
 
     await test('Seeker CANNOT request ride B while PENDING on ride A → 409', async () => {
-      const r = await seekerClient.post('/ride-requests', { rideId: rideBId });
+      const r = await seekerClient.post('/ride-requests', { rideId: rideBId, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 409, `Expected 409, got ${r.status}: ${JSON.stringify(r.data)}`);
       assert(
         r.data.message?.toLowerCase().includes('active') ||
@@ -257,7 +261,7 @@ async function run() {
       const cancel = await seekerClient.patch(`/ride-requests/${requestId}/cancel`, { reason: 'Changed mind' });
       assert(cancel.status === 200, `Cancel failed: ${cancel.status}`);
 
-      const r = await seekerClient.post('/ride-requests', { rideId: rideBId });
+      const r = await seekerClient.post('/ride-requests', { rideId: rideBId, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
       requestId = r.data.requestId;
     });
@@ -269,7 +273,7 @@ async function run() {
     });
 
     await test('Seeker CANNOT request ride A while in HOLD on ride B → 409', async () => {
-      const r = await seekerClient.post('/ride-requests', { rideId: rideA });
+      const r = await seekerClient.post('/ride-requests', { rideId: rideA, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 409, `Expected 409, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
 
@@ -280,7 +284,7 @@ async function run() {
     });
 
     await test('Seeker CANNOT request ride A while CONFIRMED on ride B → 409', async () => {
-      const r = await seekerClient.post('/ride-requests', { rideId: rideA });
+      const r = await seekerClient.post('/ride-requests', { rideId: rideA, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 409, `Expected 409, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
   }
@@ -302,7 +306,7 @@ async function run() {
     });
 
     await test('Seeker requests ride A', async () => {
-      const r = await seekerClient.post('/ride-requests', { rideId: rideA });
+      const r = await seekerClient.post('/ride-requests', { rideId: rideA, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 201, `Expected 201, got ${r.status}`);
       reqId = r.data.requestId;
     });
@@ -314,7 +318,7 @@ async function run() {
     });
 
     await test('Seeker CAN request ride B after being REJECTED on ride A → 201', async () => {
-      const r = await seekerClient.post('/ride-requests', { rideId: rideBId });
+      const r = await seekerClient.post('/ride-requests', { rideId: rideBId, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
   }
@@ -340,7 +344,7 @@ async function run() {
     });
 
     await test('Seeker 1 requests and giver approves → seats decremented to 1 (HOLD reserves seat)', async () => {
-      const req = await seekerClient.post('/ride-requests', { rideId });
+      const req = await seekerClient.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       req1Id = req.data.requestId;
       await giverClient.patch(`/ride-requests/${req1Id}/approve`);
       const r = await giverClient.get(`/rides/${rideId}`);
@@ -361,7 +365,7 @@ async function run() {
     });
 
     await test('Seeker 2 requests → giver rejects → seats unchanged', async () => {
-      const req = await seeker2.post('/ride-requests', { rideId });
+      const req = await seeker2.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       req2Id = req.data.requestId;
       assert(req.status === 201, `Expected 201, got ${req.status}`);
       await giverClient.patch(`/ride-requests/${req2Id}/reject`, { reason: 'Full' });
@@ -371,7 +375,7 @@ async function run() {
 
     await test('Cannot book on a CANCELLED ride → 400', async () => {
       await giverClient.patch(`/rides/${rideId}/cancel`, { reason: 'Test' });
-      const r = await seekerClient.post('/ride-requests', { rideId });
+      const r = await seekerClient.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       assert(r.status === 400, `Expected 400, got ${r.status}`);
     });
   }
@@ -460,9 +464,9 @@ async function run() {
 
     await test('All 3 seekers can request (PENDING, no seat consumed yet)', async () => {
       const [r1, r2, r3] = await Promise.all([
-        s1.post('/ride-requests', { rideId }),
-        s2.post('/ride-requests', { rideId }),
-        s3.post('/ride-requests', { rideId }),
+        s1.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' }),
+        s2.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' }),
+        s3.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' }),
       ]);
       // All should get 201 — requests are PENDING, seat not yet allocated
       const statuses = [r1.status, r2.status, r3.status];

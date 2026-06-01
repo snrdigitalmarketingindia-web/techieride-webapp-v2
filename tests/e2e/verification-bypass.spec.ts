@@ -131,7 +131,15 @@ test.describe('🛡️ Verification Bypass — API enforces verification at publ
 
     // Register
     const regRes = await page.request.post(`${apiBase}/auth/register`, {
-      data: { email, password: 'TechieRide@2024', fullName: 'VB Test Giver', role: 'RIDE_GIVER' },
+      data: {
+        email, password: 'TechieRide@2024', fullName: 'VB Test Giver', role: 'RIDE_GIVER',
+        gender: 'MALE', companyName: 'Wipro',
+        phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
+        homeLocation: 'Kondapur, Hyderabad',
+        officeLocation: 'HITEC City, Madhapur, Hyderabad',
+        emergencyContactName: 'Test Emergency Contact',
+        emergencyContactPhone: '9000000001',
+      },
     });
     if (regRes.status() !== 201) {
       test.skip(true, `Registration failed (${regRes.status()}) — skipping VB-01`);

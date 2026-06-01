@@ -135,7 +135,7 @@ async function run() {
       departureTime: '09:00', totalSeats: 2,
     });
     await giver.patch(`/rides/${ride.data.id}/publish`);
-    const r = await giver.post('/ride-requests', { rideId: ride.data.id });
+    const r = await giver.post('/ride-requests', { rideId: ride.data.id, pickupName: 'Kondapur Metro, Hyderabad' });
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
 
@@ -252,7 +252,7 @@ async function run() {
   const singleSeatId = singleSeatRideRes.data.id;
   await giverD.patch(`/rides/${singleSeatId}/publish`);
 
-  const reqRes = await seekerB.post('/ride-requests', { rideId: singleSeatId });
+  const reqRes = await seekerB.post('/ride-requests', { rideId: singleSeatId, pickupName: 'Kondapur Metro, Hyderabad' });
   const requestId = reqRes.data.requestId ?? reqRes.data.id;
   assert(requestId, `Could not create request for state tests: ${JSON.stringify(reqRes.data)}`);
 
@@ -273,7 +273,7 @@ async function run() {
 
   await test('Cannot book a seat on a ride with 0 available seats → 400', async () => {
     const seeker2 = await registerAndLogin(`neg_seeker2_${ts}@wipro.com`, 'RIDE_SEEKER').then(s => makeClient(s.token));
-    const r = await seeker2.post('/ride-requests', { rideId: singleSeatId });
+    const r = await seeker2.post('/ride-requests', { rideId: singleSeatId, pickupName: 'Kondapur Metro, Hyderabad' });
     assert(r.status === 400, `Expected 400 (no seats), got ${r.status}`);
   });
 
@@ -368,7 +368,11 @@ async function run() {
 
   await test('Register with phone number < 10 digits → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '12345', fullName: 'Bad User', email: 'bad@wipro.com',
+      phone: '12345'
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',, fullName: 'Bad User', email: 'bad@wipro.com',
       gender: 'MALE', companyName: 'X', employeeId: 'X-1', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
@@ -376,7 +380,11 @@ async function run() {
 
   await test('Register with missing fullName → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '9700000099', email: 'nofull@wipro.com',
+      phone: '9700000099'
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',, email: 'nofull@wipro.com',
       gender: 'MALE', companyName: 'X', employeeId: 'X-2', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
@@ -408,7 +416,7 @@ async function run() {
       await giverClient.patch(`/rides/${testRideId}/publish`);
 
       // Seeker requests the ride
-      const reqR = await seekerClient.post('/ride-requests', { rideId: testRideId });
+      const reqR = await seekerClient.post('/ride-requests', { rideId: testRideId, pickupName: 'Kondapur Metro, Hyderabad' });
       assert([201, 409].includes(reqR.status), `Expected 201/409, got ${reqR.status}`);
 
       await test('Seeker can fetch own requests via GET /ride-requests/mine', async () => {
