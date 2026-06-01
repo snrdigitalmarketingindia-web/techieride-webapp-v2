@@ -3,13 +3,12 @@ import { loginUI } from './helpers';
 
 test.describe('🔄 Ride Request Flow', () => {
 
-  test('Giver: requests page loads and shows incoming tab', async ({ page }) => {
+  test('Giver: requests page loads and shows incoming requests', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/requests');
-    await expect(page.getByText(/incoming/i).first()).toBeVisible({ timeout: 8_000 });
-    // Page should not crash — either selector, empty state, or no-rides message
+    // Role-aware heading: giver sees "Incoming Requests"
+    await expect(page.getByRole('heading', { name: /incoming requests/i })).toBeVisible({ timeout: 8_000 });
     await expect(page).not.toHaveURL(/error/);
-    await expect(page.getByText(/ride requests/i)).toBeVisible({ timeout: 8_000 });
   });
 
   test('Giver: incoming tab shows ride selector or no-rides message', async ({ page }) => {
@@ -78,15 +77,13 @@ test.describe('🔄 Ride Request Flow', () => {
     }
   });
 
-  test('Seeker: cannot see incoming giver tab requests', async ({ page }) => {
+  test('Seeker: requests page shows seeker view only (no incoming tab)', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/requests');
-    // Click incoming tab
-    await page.getByText(/incoming/i).first().click();
-    // v2.1.0: dropdown removed — shows "No active ride" message for non-givers
-    await expect(
-      page.getByText(/no active ride|no requests for this ride|create and publish/i).first()
-    ).toBeVisible({ timeout: 8_000 });
+    // Role-aware redesign: seeker heading is "My Requests", no tabs
+    await expect(page.getByRole('heading', { name: /my requests/i })).toBeVisible({ timeout: 8_000 });
+    // No "incoming" tab rendered for pure seekers
+    await expect(page.getByRole('tab', { name: /incoming/i })).not.toBeVisible();
   });
 
   test('Request status colors render correctly', async ({ page }) => {
@@ -96,6 +93,6 @@ test.describe('🔄 Ride Request Flow', () => {
     await page.waitForTimeout(1500);
     // Page should not crash regardless of request state
     await expect(page).not.toHaveURL(/error/);
-    await expect(page.getByText(/ride requests/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /my requests/i })).toBeVisible();
   });
 });
