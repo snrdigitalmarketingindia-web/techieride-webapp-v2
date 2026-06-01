@@ -126,6 +126,8 @@ model User {
   companyName               String?
   employeeId                String?
   phone                     String?            @unique
+  countryCode               String             @default("+91")
+  isPhoneVerified           Boolean            @default(false)
   bloodGroup                String?                       // A+/A-/B+/B-/O+/O-/AB+/AB-
   homeLocation              String?                       // text description max 15 words
   officeLocation            String?                       // text description max 15 words
@@ -444,6 +446,22 @@ model GamificationPoint {
   @@index([userId])
   @@index([createdAt])
   @@map("gamification_points")
+}
+
+// ─── Call Log (audit) ─────────────────────────────────────────────────────
+
+model CallLog {
+  id         String   @id @default(uuid())
+  callerId   String
+  receiverId String
+  rideId     String?
+  event      String   @default("USER_CALL_INITIATED")
+  createdAt  DateTime @default(now())
+
+  @@index([callerId])
+  @@index([receiverId])
+  @@index([rideId])
+  @@map("call_logs")
 }
 
 // ─── SOS Event ────────────────────────────────────────────────────────────

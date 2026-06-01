@@ -40,6 +40,7 @@ export declare class AdminService {
         employeeId: string | null;
         gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
+        countryCode: string;
         personalEmail: string | null;
         homeLocation: string | null;
         officeLocation: string | null;
@@ -47,6 +48,7 @@ export declare class AdminService {
         id: string;
         passwordHash: string;
         profilePhoto: string | null;
+        isPhoneVerified: boolean;
         trid: string | null;
         role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
@@ -71,6 +73,7 @@ export declare class AdminService {
         employeeId: string | null;
         gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
+        countryCode: string;
         personalEmail: string | null;
         homeLocation: string | null;
         officeLocation: string | null;
@@ -78,6 +81,7 @@ export declare class AdminService {
         id: string;
         passwordHash: string;
         profilePhoto: string | null;
+        isPhoneVerified: boolean;
         trid: string | null;
         role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;

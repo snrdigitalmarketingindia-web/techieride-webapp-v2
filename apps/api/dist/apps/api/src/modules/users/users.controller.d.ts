@@ -19,12 +19,14 @@ export declare class UsersController {
         employeeId: string | null;
         gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
+        countryCode: string;
         personalEmail: string | null;
         homeLocation: string | null;
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
         profilePhoto: string | null;
+        isPhoneVerified: boolean;
         trid: string | null;
         role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
@@ -45,6 +47,7 @@ export declare class UsersController {
         employeeId: string | null;
         gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
+        countryCode: string;
         personalEmail: string | null;
         homeLocation: string | null;
         officeLocation: string | null;
@@ -52,6 +55,7 @@ export declare class UsersController {
         id: string;
         passwordHash: string;
         profilePhoto: string | null;
+        isPhoneVerified: boolean;
         trid: string | null;
         role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
@@ -80,6 +84,8 @@ export declare class UsersController {
         } | null;
         fullName: string;
         companyName: string | null;
+        phone: string | null;
+        countryCode: string;
         id: string;
         profilePhoto: string | null;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;

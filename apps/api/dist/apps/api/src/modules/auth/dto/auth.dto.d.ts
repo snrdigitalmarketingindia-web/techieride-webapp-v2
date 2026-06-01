@@ -6,7 +6,8 @@ export declare class RegisterDto {
     companyName: string;
     employeeId?: string;
     gender?: Gender;
-    phone?: string;
+    phone: string;
+    countryCode?: string;
     personalEmail?: string;
     homeLocation?: string;
     officeLocation?: string;

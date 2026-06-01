@@ -19,6 +19,10 @@ const redis_module_1 = require("../../config/redis.module");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const shared_1 = require("@techieride/shared");
+const USER_CONTACT_SELECT = {
+    id: true, fullName: true, profilePhoto: true,
+    companyName: true, phone: true, countryCode: true,
+};
 let RideRequestsService = class RideRequestsService {
     constructor(prisma, notifications, redis) {
         this.prisma = prisma;
@@ -31,7 +35,7 @@ let RideRequestsService = class RideRequestsService {
             throw new common_1.ForbiddenException('You must be a Ride Seeker to request rides');
         const ride = await this.prisma.ride.findUnique({
             where: { id: dto.rideId },
-            include: { rideGiver: { include: { user: true } } },
+            include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } },
         });
         if (!ride)
             throw new common_1.NotFoundException('Ride not found');
@@ -102,7 +106,7 @@ let RideRequestsService = class RideRequestsService {
             throw new common_1.NotFoundException('Ride not found or not yours');
         return this.prisma.rideRequest.findMany({
             where: { rideId },
-            include: { seeker: { include: { user: true } } },
+            include: { seeker: { include: { user: { select: USER_CONTACT_SELECT } } } },
             orderBy: { createdAt: 'asc' },
         });
     }
@@ -112,7 +116,7 @@ let RideRequestsService = class RideRequestsService {
             throw new common_1.ForbiddenException();
         return this.prisma.rideRequest.findMany({
             where: { seekerId: seeker.id },
-            include: { ride: { include: { rideGiver: { include: { user: true } } } } },
+            include: { ride: { include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } } } },
             orderBy: { createdAt: 'desc' },
         });
     }
@@ -178,7 +182,7 @@ let RideRequestsService = class RideRequestsService {
             throw new common_1.ForbiddenException();
         const request = await this.prisma.rideRequest.findUnique({
             where: { id: requestId },
-            include: { ride: { include: { rideGiver: { include: { user: true } } } } },
+            include: { ride: { include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } } } },
         });
         if (!request || request.seekerId !== seeker.id)
             throw new common_1.NotFoundException();

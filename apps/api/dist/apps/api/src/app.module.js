@@ -31,6 +31,7 @@ const admin_module_1 = require("./modules/admin/admin.module");
 const gamification_module_1 = require("./modules/gamification/gamification.module");
 const uploads_module_1 = require("./modules/uploads/uploads.module");
 const sos_module_1 = require("./modules/sos/sos.module");
+const calls_module_1 = require("./modules/calls/calls.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -55,6 +56,7 @@ exports.AppModule = AppModule = __decorate([
             gamification_module_1.GamificationModule,
             uploads_module_1.UploadsModule,
             sos_module_1.SosModule,
+            calls_module_1.CallsModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: jwt_auth_guard_1.JwtAuthGuard },

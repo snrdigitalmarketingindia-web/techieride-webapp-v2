@@ -8,6 +8,19 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { SearchRidesDto } from './dto/search-rides.dto';
 import { RideStatus, NotificationType } from '@techieride/shared';
+
+// ── Safe user select — includes phone for direct calling, excludes sensitive fields
+const GIVER_USER_SELECT = {
+  id: true, fullName: true, profilePhoto: true,
+  companyName: true, ecoLevel: true,
+  phone: true, countryCode: true,
+} as const;
+
+const SEEKER_USER_SELECT = {
+  id: true, fullName: true, profilePhoto: true,
+  companyName: true,
+  phone: true, countryCode: true,
+} as const;
 import { GamificationService } from '../gamification/gamification.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
@@ -505,7 +518,7 @@ export class RidesService {
         availableSeats: { gt: 0 },
       },
       include: {
-        rideGiver: { include: { user: true } },
+        rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
         vehicle: true,
       },
     });
@@ -531,9 +544,11 @@ export class RidesService {
     const ride = await this.prisma.ride.findUnique({
       where: { id: rideId },
       include: {
-        rideGiver: { include: { user: true } },
+        rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
         vehicle: true,
-        participants: { include: { seeker: { include: { user: { select: { fullName: true, profilePhoto: true } } } } } },
+        participants: {
+          include: { seeker: { include: { user: { select: SEEKER_USER_SELECT } } } },
+        },
       },
     });
     if (!ride) throw new NotFoundException('Ride not found');
@@ -580,7 +595,7 @@ export class RidesService {
         departureDate: { gte: fromDate, lte: toDate },
       },
       include: {
-        rideGiver: { include: { user: { select: { fullName: true, ecoLevel: true } } } },
+        rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
         vehicle:   { select: { make: true, model: true, color: true } },
         participants: { select: { boardingStatus: true } },
       },

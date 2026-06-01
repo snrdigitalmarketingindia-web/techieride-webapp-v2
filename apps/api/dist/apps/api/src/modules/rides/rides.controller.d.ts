@@ -9,35 +9,13 @@ export declare class RidesController {
         distanceFromDestinationM: number;
         rideGiver: {
             user: {
-                email: string;
                 fullName: string;
                 companyName: string | null;
-                employeeId: string | null;
-                gender: import(".prisma/client").$Enums.Gender | null;
                 phone: string | null;
-                personalEmail: string | null;
-                homeLocation: string | null;
-                officeLocation: string | null;
-                bloodGroup: string | null;
+                countryCode: string;
                 id: string;
-                passwordHash: string;
                 profilePhoto: string | null;
-                trid: string | null;
-                role: import(".prisma/client").$Enums.UserRole;
-                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
-                emailStatus: import(".prisma/client").$Enums.EmailStatus;
-                emailVerificationToken: string | null;
-                emailVerificationExpiry: Date | null;
-                passwordResetToken: string | null;
-                passwordResetExpiry: Date | null;
-                isActive: boolean;
-                accountStatus: import(".prisma/client").$Enums.AccountStatus;
-                verificationMethod: string | null;
-                fcmToken: string | null;
-                ecoPoints: number;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
-                createdAt: Date;
-                updatedAt: Date;
             };
         } & {
             id: string;
@@ -167,6 +145,7 @@ export declare class RidesController {
                 employeeId: string | null;
                 gender: import(".prisma/client").$Enums.Gender | null;
                 phone: string | null;
+                countryCode: string;
                 personalEmail: string | null;
                 homeLocation: string | null;
                 officeLocation: string | null;
@@ -174,6 +153,7 @@ export declare class RidesController {
                 id: string;
                 passwordHash: string;
                 profilePhoto: string | null;
+                isPhoneVerified: boolean;
                 trid: string | null;
                 role: import(".prisma/client").$Enums.UserRole;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
@@ -247,35 +227,13 @@ export declare class RidesController {
     findOne(id: string): Promise<{
         rideGiver: {
             user: {
-                email: string;
                 fullName: string;
                 companyName: string | null;
-                employeeId: string | null;
-                gender: import(".prisma/client").$Enums.Gender | null;
                 phone: string | null;
-                personalEmail: string | null;
-                homeLocation: string | null;
-                officeLocation: string | null;
-                bloodGroup: string | null;
+                countryCode: string;
                 id: string;
-                passwordHash: string;
                 profilePhoto: string | null;
-                trid: string | null;
-                role: import(".prisma/client").$Enums.UserRole;
-                verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
-                emailStatus: import(".prisma/client").$Enums.EmailStatus;
-                emailVerificationToken: string | null;
-                emailVerificationExpiry: Date | null;
-                passwordResetToken: string | null;
-                passwordResetExpiry: Date | null;
-                isActive: boolean;
-                accountStatus: import(".prisma/client").$Enums.AccountStatus;
-                verificationMethod: string | null;
-                fcmToken: string | null;
-                ecoPoints: number;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
-                createdAt: Date;
-                updatedAt: Date;
             };
         } & {
             id: string;
@@ -306,6 +264,10 @@ export declare class RidesController {
             seeker: {
                 user: {
                     fullName: string;
+                    companyName: string | null;
+                    phone: string | null;
+                    countryCode: string;
+                    id: string;
                     profilePhoto: string | null;
                 };
             } & {
@@ -365,6 +327,7 @@ export declare class RidesController {
                 employeeId: string | null;
                 gender: import(".prisma/client").$Enums.Gender | null;
                 phone: string | null;
+                countryCode: string;
                 personalEmail: string | null;
                 homeLocation: string | null;
                 officeLocation: string | null;
@@ -372,6 +335,7 @@ export declare class RidesController {
                 id: string;
                 passwordHash: string;
                 profilePhoto: string | null;
+                isPhoneVerified: boolean;
                 trid: string | null;
                 role: import(".prisma/client").$Enums.UserRole;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;

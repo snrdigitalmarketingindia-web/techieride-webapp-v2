@@ -16,6 +16,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
         employeeId: string | null;
         gender: import(".prisma/client").$Enums.Gender | null;
         phone: string | null;
+        countryCode: string;
         personalEmail: string | null;
         homeLocation: string | null;
         officeLocation: string | null;
@@ -23,6 +24,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
         id: string;
         passwordHash: string;
         profilePhoto: string | null;
+        isPhoneVerified: boolean;
         trid: string | null;
         role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;

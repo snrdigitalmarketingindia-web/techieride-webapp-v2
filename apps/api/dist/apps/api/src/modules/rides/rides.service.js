@@ -13,6 +13,16 @@ exports.RidesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const shared_1 = require("@techieride/shared");
+const GIVER_USER_SELECT = {
+    id: true, fullName: true, profilePhoto: true,
+    companyName: true, ecoLevel: true,
+    phone: true, countryCode: true,
+};
+const SEEKER_USER_SELECT = {
+    id: true, fullName: true, profilePhoto: true,
+    companyName: true,
+    phone: true, countryCode: true,
+};
 const gamification_service_1 = require("../gamification/gamification.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const email_service_1 = require("../email/email.service");
@@ -404,7 +414,7 @@ let RidesService = class RidesService {
                 availableSeats: { gt: 0 },
             },
             include: {
-                rideGiver: { include: { user: true } },
+                rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
                 vehicle: true,
             },
         });
@@ -422,9 +432,11 @@ let RidesService = class RidesService {
         const ride = await this.prisma.ride.findUnique({
             where: { id: rideId },
             include: {
-                rideGiver: { include: { user: true } },
+                rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
                 vehicle: true,
-                participants: { include: { seeker: { include: { user: { select: { fullName: true, profilePhoto: true } } } } } },
+                participants: {
+                    include: { seeker: { include: { user: { select: SEEKER_USER_SELECT } } } },
+                },
             },
         });
         if (!ride)
@@ -469,7 +481,7 @@ let RidesService = class RidesService {
                 departureDate: { gte: fromDate, lte: toDate },
             },
             include: {
-                rideGiver: { include: { user: { select: { fullName: true, ecoLevel: true } } } },
+                rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
                 vehicle: { select: { make: true, model: true, color: true } },
                 participants: { select: { boardingStatus: true } },
             },

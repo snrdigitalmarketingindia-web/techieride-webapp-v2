@@ -144,6 +144,12 @@ export const trackingApi = {
   getPosition: (rideId: string) => api.get(`/tracking/${rideId}/position`),
 };
 
+// ─── Calls (audit log) ────────────────────────────────
+export const callsApi = {
+  log: (receiverId: string, rideId?: string) =>
+    api.post('/calls/log', { receiverId, rideId }).catch(() => {}),
+};
+
 // ─── Admin ────────────────────────────────────────────
 export const adminApi = {
   listUsers: (params?: any) => api.get('/admin/users', { params }),

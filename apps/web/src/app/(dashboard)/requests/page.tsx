@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { requestsApi, ridesApi } from '@/lib/api';
+import { CallButton } from '@/components/ui/CallButton';
 import { useAuthStore } from '@/store/auth.store';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -124,6 +125,17 @@ function GiverView() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[req.status]}`}>
                       {STATUS_ICONS[req.status]} {req.status}
                     </span>
+                    {req.seeker?.user?.phone && (
+                      <CallButton
+                        phone={req.seeker.user.phone}
+                        countryCode={req.seeker.user.countryCode}
+                        receiverId={req.seeker.userId}
+                        rideId={ride.id}
+                        label="Call"
+                        size="sm"
+                        variant="ghost"
+                      />
+                    )}
                     {req.status === 'PENDING' && (
                       <div className="flex gap-1.5 shrink-0">
                         <button

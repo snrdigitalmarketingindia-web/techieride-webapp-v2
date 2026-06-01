@@ -50,6 +50,7 @@ let AuthService = class AuthService {
                 companyName: dto.companyName,
                 employeeId: dto.employeeId || null,
                 phone: dto.phone || null,
+                countryCode: dto.countryCode || '+91',
                 bloodGroup: dto.bloodGroup || null,
                 homeLocation: dto.homeLocation || null,
                 officeLocation: dto.officeLocation || null,

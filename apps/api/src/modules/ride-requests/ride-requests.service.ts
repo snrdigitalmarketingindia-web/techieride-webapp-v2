@@ -13,6 +13,11 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { NotificationType, REDIS_KEYS } from '@techieride/shared';
 
+const USER_CONTACT_SELECT = {
+  id: true, fullName: true, profilePhoto: true,
+  companyName: true, phone: true, countryCode: true,
+} as const;
+
 @Injectable()
 export class RideRequestsService {
   constructor(
@@ -27,7 +32,7 @@ export class RideRequestsService {
 
     const ride = await this.prisma.ride.findUnique({
       where: { id: dto.rideId },
-      include: { rideGiver: { include: { user: true } } },
+      include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } },
     });
     if (!ride) throw new NotFoundException('Ride not found');
     if (ride.status !== 'PUBLISHED') throw new BadRequestException('Ride is not available');
@@ -107,7 +112,7 @@ export class RideRequestsService {
 
     return this.prisma.rideRequest.findMany({
       where: { rideId },
-      include: { seeker: { include: { user: true } } },
+      include: { seeker: { include: { user: { select: USER_CONTACT_SELECT } } } },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -117,7 +122,7 @@ export class RideRequestsService {
     if (!seeker) throw new ForbiddenException();
     return this.prisma.rideRequest.findMany({
       where: { seekerId: seeker.id },
-      include: { ride: { include: { rideGiver: { include: { user: true } } } } },
+      include: { ride: { include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } } } },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -195,7 +200,7 @@ export class RideRequestsService {
 
     const request = await this.prisma.rideRequest.findUnique({
       where: { id: requestId },
-      include: { ride: { include: { rideGiver: { include: { user: true } } } } },
+      include: { ride: { include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } } } },
     });
     if (!request || request.seekerId !== seeker.id) throw new NotFoundException();
     if (request.status !== 'HOLD') throw new BadRequestException('Request is not in hold state');

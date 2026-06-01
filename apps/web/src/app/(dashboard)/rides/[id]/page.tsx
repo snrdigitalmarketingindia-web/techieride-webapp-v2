@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ContactCard } from '@/components/ui/ContactCard';
 import dynamic from 'next/dynamic';
 import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -182,6 +183,22 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
             {ride.status}
           </span>
         </div>
+
+        {/* Direct calling */}
+        {giverUser?.phone && !isMyRide && (
+          <ContactCard
+            userId={giver?.userId || ''}
+            name={giverUser.fullName}
+            company={giverUser.companyName}
+            phone={giverUser.phone}
+            countryCode={giverUser.countryCode}
+            rating={giver?.averageRating}
+            totalRides={giver?.totalRidesGiven}
+            role="RIDE_GIVER"
+            rideId={ride.id}
+            variant="compact"
+          />
+        )}
 
         {/* Vehicle */}
         <div className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 text-sm">

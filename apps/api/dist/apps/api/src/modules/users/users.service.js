@@ -38,6 +38,8 @@ let UsersService = class UsersService {
                 profilePhoto: true,
                 ecoLevel: true,
                 companyName: true,
+                phone: true,
+                countryCode: true,
                 rideGiver: { select: { averageRating: true, totalRidesGiven: true } },
                 rideSeeker: { select: { averageRating: true, totalRidesTaken: true } },
             },
@@ -50,11 +52,17 @@ let UsersService = class UsersService {
         return this.prisma.user.update({
             where: { id: userId },
             data: {
-                fullName: dto.fullName,
-                profilePhoto: dto.profilePhoto,
-                gender: dto.gender,
-                companyName: dto.companyName,
+                ...(dto.fullName !== undefined ? { fullName: dto.fullName } : {}),
+                ...(dto.profilePhoto !== undefined ? { profilePhoto: dto.profilePhoto } : {}),
+                ...(dto.gender !== undefined ? { gender: dto.gender } : {}),
+                ...(dto.companyName !== undefined ? { companyName: dto.companyName } : {}),
                 ...(dto.fcmToken !== undefined ? { fcmToken: dto.fcmToken } : {}),
+                ...(dto.homeLocation !== undefined ? { homeLocation: dto.homeLocation } : {}),
+                ...(dto.officeLocation !== undefined ? { officeLocation: dto.officeLocation } : {}),
+                ...(dto.personalEmail !== undefined ? { personalEmail: dto.personalEmail } : {}),
+                ...(dto.bloodGroup !== undefined ? { bloodGroup: dto.bloodGroup } : {}),
+                ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+                ...(dto.countryCode !== undefined ? { countryCode: dto.countryCode } : {}),
             },
         });
     }

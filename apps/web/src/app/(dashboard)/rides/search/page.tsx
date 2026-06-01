@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ridesApi, requestsApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
+import { CallButton } from '@/components/ui/CallButton';
 
 const RideMap = dynamic(() => import('@/components/maps/RideMap'), { ssr: false });
 const LocationPickerMap = dynamic(() => import('@/components/maps/LocationPickerMap'), { ssr: false });
@@ -339,8 +340,24 @@ export default function RideSearchPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{ride.rideGiver?.user?.fullName}</p>
-                      <p className="text-xs text-gray-500">⭐ {ride.rideGiver?.averageRating?.toFixed(1) || '—'}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-gray-500">⭐ {ride.rideGiver?.averageRating?.toFixed(1) || '—'}</p>
+                        {ride.rideGiver?.user?.companyName && (
+                          <p className="text-xs text-gray-400">{ride.rideGiver.user.companyName}</p>
+                        )}
+                      </div>
                     </div>
+                    {ride.rideGiver?.user?.phone && (
+                      <CallButton
+                        phone={ride.rideGiver.user.phone}
+                        countryCode={ride.rideGiver.user.countryCode}
+                        receiverId={ride.rideGiver.userId}
+                        rideId={ride.id}
+                        label="Call Giver"
+                        size="sm"
+                        variant="outline"
+                      />
+                    )}
                   </div>
                   <p className="text-sm text-gray-700 font-medium">{ride.originName} → {ride.destinationName}</p>
                   <p className="text-xs text-gray-500">
