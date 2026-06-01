@@ -2,17 +2,19 @@
 const { execSync } = require('child_process');
 const { version } = require('../../package.json');
 
-// Build number = total git commit count; falls back gracefully in CI/Vercel
-let buildNumber = '0';
-try {
-  buildNumber = execSync('git rev-list --count HEAD', { stdio: ['pipe', 'pipe', 'ignore'] })
-    .toString()
-    .trim();
-} catch {}
+// On Vercel use the short commit SHA; locally fall back to git commit count
+let buildSuffix = '0';
+if (process.env.VERCEL_GIT_COMMIT_SHA) {
+  buildSuffix = process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7);
+} else {
+  try {
+    buildSuffix = execSync('git rev-list --count HEAD', { stdio: ['pipe', 'pipe', 'ignore'] })
+      .toString().trim();
+  } catch {}
+}
 
-// Strip any existing 4th segment from package.json version, then append live build number
 const baseVersion = version.split('.').slice(0, 3).join('.');
-const fullVersion = `${baseVersion}.${buildNumber}`;
+const fullVersion = `${baseVersion}.${buildSuffix}`;
 
 const nextConfig = {
   env: {
