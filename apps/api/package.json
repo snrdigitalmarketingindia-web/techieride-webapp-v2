@@ -5,7 +5,7 @@
     "dev": "ts-node -r tsconfig-paths/register src/main.ts",
     "build": "nest build",
     "start": "node dist/main",
-    "start:prod": "npm run build && npx prisma db push --schema=../../prisma/schema.prisma && node dist/main",
+    "start:prod": "npm run build && npx prisma db push --schema=../../prisma/schema.prisma --accept-data-loss --skip-generate && node dist/main",
     "lint": "eslint \"{src,apps,libs}/**/*.ts\""
   },
   "dependencies": {
