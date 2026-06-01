@@ -145,7 +145,6 @@ export declare class RideRequestsController {
     })[]>;
     approve(id: string, userId: string): Promise<{
         status: string;
-        holdExpiresAt: string;
     }>;
     reject(id: string, userId: string, reason?: string): Promise<{
         id: string;

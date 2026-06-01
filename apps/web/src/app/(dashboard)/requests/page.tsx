@@ -20,29 +20,6 @@ const STATUS_ICONS: Record<string, string> = {
   CONFIRMED: '🎉', REJECTED: '❌', CANCELLED: '🚫', NO_SHOW: '👻',
 };
 
-function HoldTimer({ expiresAt }: { expiresAt: string }) {
-  const [secs, setSecs] = useState(0);
-
-  useEffect(() => {
-    const calc = () => {
-      const diff = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
-      setSecs(diff);
-    };
-    calc();
-    const t = setInterval(calc, 1000);
-    return () => clearInterval(t);
-  }, [expiresAt]);
-
-  const mins = Math.floor(secs / 60);
-  const s = secs % 60;
-  const urgent = secs < 120;
-
-  return (
-    <span className={`text-xs font-mono font-semibold ${urgent ? 'text-red-600 animate-pulse' : 'text-purple-700'}`}>
-      ⏱ {secs > 0 ? `${mins}:${String(s).padStart(2, '0')} left` : 'EXPIRED'}
-    </span>
-  );
-}
 
 export default function RequestsPage() {
   const searchParams = useSearchParams();
@@ -59,12 +36,7 @@ export default function RequestsPage() {
   // Load giver's rides for the selector
   useEffect(() => {
     ridesApi.getGiven('PUBLISHED').then(r => {
-      const rides = r.data || [];
-      setMyRides(rides);
-      if (rides.length === 1 && tab === 'incoming') {
-        setRideId(rides[0].id);
-        loadIncoming(rides[0].id);
-      }
+      setMyRides(r.data || []);
     });
   }, []);
 
@@ -198,7 +170,6 @@ export default function RequestsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {req.status === 'HOLD' && req.holdExpiresAt && <HoldTimer expiresAt={req.holdExpiresAt} />}
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[req.status]}`}>
                     {STATUS_ICONS[req.status]} {req.status}
                   </span>
@@ -254,7 +225,6 @@ export default function RequestsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {req.status === 'HOLD' && req.holdExpiresAt && <HoldTimer expiresAt={req.holdExpiresAt} />}
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
                     {STATUS_ICONS[req.status]} {req.status}
                   </span>

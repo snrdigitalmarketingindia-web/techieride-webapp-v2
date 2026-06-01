@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   BadRequestException,
   ConflictException,
-  GoneException,
   Inject,
 } from '@nestjs/common';
 import Redis from 'ioredis';
@@ -12,7 +11,7 @@ import { REDIS_CLIENT } from '../../config/redis.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRequestDto } from './dto/create-request.dto';
-import { NotificationType, REDIS_KEYS, SEAT_HOLD_TTL_SECONDS } from '@techieride/shared';
+import { NotificationType, REDIS_KEYS } from '@techieride/shared';
 
 @Injectable()
 export class RideRequestsService {
@@ -132,8 +131,6 @@ export class RideRequestsService {
     const ride = await this.prisma.ride.findUnique({ where: { id: request.rideId } });
     if (!ride) throw new NotFoundException('Ride not found');
 
-    const holdExpiresAt = new Date(Date.now() + SEAT_HOLD_TTL_SECONDS * 1000);
-
     // Atomic conditional decrement — only succeeds if availableSeats > 0 at write time.
     // This prevents the race condition where two concurrent approvals both read seats > 0
     // then both decrement, resulting in negative seat counts.
@@ -147,15 +144,8 @@ export class RideRequestsService {
 
     await this.prisma.rideRequest.update({
       where: { id: requestId },
-      data: { status: 'HOLD', holdExpiresAt },
+      data: { status: 'HOLD', holdExpiresAt: null },
     });
-
-    // Set Redis TTL for hold
-    await this.redis.setex(
-      REDIS_KEYS.SEAT_HOLD(ride.id, request.seekerId),
-      SEAT_HOLD_TTL_SECONDS,
-      requestId,
-    );
 
     // Notify seeker
     const seeker = await this.prisma.rideSeeker.findUnique({
@@ -165,13 +155,13 @@ export class RideRequestsService {
     if (seeker) {
       await this.notifications.create(seeker.userId, {
         type: NotificationType.REQUEST_APPROVED,
-        title: 'Seat approved! Confirm now',
-        body: 'You have 15 minutes to confirm your seat',
-        data: { requestId, holdExpiresAt: holdExpiresAt.toISOString() },
+        title: 'Seat approved!',
+        body: 'Your seat has been approved. Confirm your seat to lock it in.',
+        data: { requestId },
       });
     }
 
-    return { status: 'HOLD', holdExpiresAt: holdExpiresAt.toISOString() };
+    return { status: 'HOLD' };
   }
 
   async reject(requestId: string, userId: string, reason?: string) {
@@ -210,18 +200,6 @@ export class RideRequestsService {
     if (!request || request.seekerId !== seeker.id) throw new NotFoundException();
     if (request.status !== 'HOLD') throw new BadRequestException('Request is not in hold state');
 
-    // Check Redis hold still valid
-    const holdKey = REDIS_KEYS.SEAT_HOLD(request.rideId, seeker.id);
-    const holdValue = await this.redis.get(holdKey);
-    if (!holdValue) {
-      // Hold already expired — rollback in DB too
-      await this.prisma.rideRequest.update({
-        where: { id: requestId },
-        data: { status: 'CANCELLED', cancelReason: 'hold_expired' },
-      });
-      throw new GoneException('Hold expired. Please request again.');
-    }
-
     await this.prisma.$transaction([
       this.prisma.rideRequest.update({
         where: { id: requestId },
@@ -237,8 +215,6 @@ export class RideRequestsService {
         },
       }),
     ]);
-
-    await this.redis.del(holdKey);
 
     // Notify giver
     await this.notifications.create(request.ride.rideGiver.userId, {

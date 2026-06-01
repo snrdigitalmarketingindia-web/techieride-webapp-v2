@@ -149,7 +149,6 @@ export declare class RideRequestsService {
     })[]>;
     approve(requestId: string, userId: string): Promise<{
         status: string;
-        holdExpiresAt: string;
     }>;
     reject(requestId: string, userId: string, reason?: string): Promise<{
         id: string;

@@ -124,7 +124,6 @@ let RideRequestsService = class RideRequestsService {
         const ride = await this.prisma.ride.findUnique({ where: { id: request.rideId } });
         if (!ride)
             throw new common_1.NotFoundException('Ride not found');
-        const holdExpiresAt = new Date(Date.now() + shared_1.SEAT_HOLD_TTL_SECONDS * 1000);
         const seatUpdate = await this.prisma.ride.updateMany({
             where: { id: ride.id, availableSeats: { gt: 0 } },
             data: { availableSeats: { decrement: 1 } },
@@ -134,9 +133,8 @@ let RideRequestsService = class RideRequestsService {
         }
         await this.prisma.rideRequest.update({
             where: { id: requestId },
-            data: { status: 'HOLD', holdExpiresAt },
+            data: { status: 'HOLD', holdExpiresAt: null },
         });
-        await this.redis.setex(shared_1.REDIS_KEYS.SEAT_HOLD(ride.id, request.seekerId), shared_1.SEAT_HOLD_TTL_SECONDS, requestId);
         const seeker = await this.prisma.rideSeeker.findUnique({
             where: { id: request.seekerId },
             include: { user: true },
@@ -144,12 +142,12 @@ let RideRequestsService = class RideRequestsService {
         if (seeker) {
             await this.notifications.create(seeker.userId, {
                 type: shared_1.NotificationType.REQUEST_APPROVED,
-                title: 'Seat approved! Confirm now',
-                body: 'You have 15 minutes to confirm your seat',
-                data: { requestId, holdExpiresAt: holdExpiresAt.toISOString() },
+                title: 'Seat approved!',
+                body: 'Your seat has been approved. Confirm your seat to lock it in.',
+                data: { requestId },
             });
         }
-        return { status: 'HOLD', holdExpiresAt: holdExpiresAt.toISOString() };
+        return { status: 'HOLD' };
     }
     async reject(requestId, userId, reason) {
         const request = await this.getRequestForGiver(requestId, userId);
@@ -186,15 +184,6 @@ let RideRequestsService = class RideRequestsService {
             throw new common_1.NotFoundException();
         if (request.status !== 'HOLD')
             throw new common_1.BadRequestException('Request is not in hold state');
-        const holdKey = shared_1.REDIS_KEYS.SEAT_HOLD(request.rideId, seeker.id);
-        const holdValue = await this.redis.get(holdKey);
-        if (!holdValue) {
-            await this.prisma.rideRequest.update({
-                where: { id: requestId },
-                data: { status: 'CANCELLED', cancelReason: 'hold_expired' },
-            });
-            throw new common_1.GoneException('Hold expired. Please request again.');
-        }
         await this.prisma.$transaction([
             this.prisma.rideRequest.update({
                 where: { id: requestId },
@@ -210,7 +199,6 @@ let RideRequestsService = class RideRequestsService {
                 },
             }),
         ]);
-        await this.redis.del(holdKey);
         await this.notifications.create(request.ride.rideGiver.userId, {
             type: shared_1.NotificationType.RIDE_CONFIRMED,
             title: 'Seat confirmed!',
