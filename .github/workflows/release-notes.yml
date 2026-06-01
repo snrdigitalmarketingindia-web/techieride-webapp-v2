@@ -29,23 +29,20 @@ jobs:
           # Collect changed files (top 20)
           CHANGED=$(git diff-tree --no-commit-id -r --name-only "$SHA" | head -20 | sed 's/^/- /')
 
-          # Build the new entry
-          ENTRY="## Build $BUILD · $SHORT_SHA · $DATE
-
-**Commit:** $MSG
-**Author:** $AUTHOR
-
-**Files changed:**
-$CHANGED
-
----
-
-"
+          # Write entry to temp file (avoids ** YAML parsing issues in multiline strings)
+          {
+            printf '## Build %s · %s · %s\n\n' "$BUILD" "$SHORT_SHA" "$DATE"
+            printf 'Commit: %s\n' "$MSG"
+            printf 'Author: %s\n\n' "$AUTHOR"
+            printf 'Files changed:\n%s\n\n---\n\n' "$CHANGED"
+          } > /tmp/entry.md
 
           # Prepend after the header block (line 4 = first blank line after header)
           HEAD=$(head -4 RELEASE_NOTES.md)
           TAIL=$(tail -n +5 RELEASE_NOTES.md)
-          printf '%s\n%s\n%s' "$HEAD" "$ENTRY" "$TAIL" > RELEASE_NOTES.md
+          printf '%s\n' "$HEAD" > RELEASE_NOTES.md
+          cat /tmp/entry.md >> RELEASE_NOTES.md
+          printf '%s\n' "$TAIL" >> RELEASE_NOTES.md
 
       - name: Commit updated notes
         run: |
