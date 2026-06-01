@@ -75,24 +75,14 @@ async function loginAs(email: string): Promise<{ token: string; userId: string }
 async function registerAndLogin(
   email: string,
   fullName: string,
-  role: string,
+  _roleIgnored?: string,  // role removed from RegisterDto — everyone starts as RIDE_SEEKER
 ): Promise<string> {
   const c1 = makeClient();
   const reg = await c1.post('/auth/register', {
     email, password: SEED_PASSWORD, fullName,
-    gender: 'MALE', companyName: 'TestCorp',
-    employeeId: 'N/A', role,
-    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',
+    companyName: 'TestCorp',
+    employeeId: 'N/A',
   });
-  if (reg.status === 201) {
-    // Mark email as verified directly via seed-style approach
-    // In tests we bypass email verification by using seeded/pre-verified accounts
-  }
-  // 409 = already exists, just login
   if (reg.status !== 201 && reg.status !== 409) {
     throw new Error(`Register failed: ${JSON.stringify(reg.data)}`);
   }
@@ -177,24 +167,27 @@ async function run() {
   });
 
   await test('Admin submits verification docs for giver', async () => {
-    const giverClient = makeClient(giverToken);
-    const profile = await giverClient.get('/users/me');
-    giverUserId = profile.data.id;
+    // Use a fresh unverified account — seeded accounts are already verified
+    const ts = Date.now();
+    const tempEmail = `admin_test_giver_${ts}@wipro.com`;
+    const tempToken = await registerAndLogin(tempEmail, 'Temp Giver');
+    const tempClient = makeClient(tempToken);
+    const tempProfile = await tempClient.get('/users/me');
+    const tempUserId = tempProfile.data.id;
 
-    // Submit mock docs
-    const r = await giverClient.post('/verification/submit', {
+    const r = await tempClient.post('/verification/employee', {
       employeeIdUrl: 'mock://employee-id',
-      drivingLicenseUrl: 'mock://driving-license',
-      rcUrl: 'mock://rc',
     });
-    assert(r.status === 201, `Got ${r.status}: ${JSON.stringify(r.data)}`);
+    assert([200, 201].includes(r.status), `Got ${r.status}: ${JSON.stringify(r.data)}`);
+
+    // Store for next test
+    giverUserId = tempUserId;
   });
 
   await test('Admin approves giver verification', async () => {
-    // Get the verification request ID
     const queue = await adminClient.get('/admin/verification/pending');
-    const req = queue.data.find((v: any) => v.userId === giverUserId);
-    if (!req) return; // already approved in a previous run
+    const req = queue.data.find((v: any) => v.userId === giverUserId && v.verificationType === 'EMPLOYEE');
+    if (!req) return; // already approved or not found
 
     const r = await adminClient.patch(`/admin/verification/${req.id}/review`, {
       decision: 'APPROVED',
@@ -204,21 +197,20 @@ async function run() {
   });
 
   await test('Admin submits + approves seeker verification', async () => {
-    const seekerClient = makeClient(seekerToken);
-    const profile = await seekerClient.get('/users/me');
-    seekerUserId = profile.data.id;
+    const ts = Date.now();
+    const tempEmail = `admin_test_seeker_${ts}@tcs.com`;
+    const tempToken = await registerAndLogin(tempEmail, 'Temp Seeker');
+    const tempClient = makeClient(tempToken);
+    const tempProfile = await tempClient.get('/users/me');
+    const tempUserId = tempProfile.data.id;
 
-    await seekerClient.post('/verification/submit', {
-      employeeIdUrl: 'mock://employee-id-seeker',
-    });
+    await tempClient.post('/verification/employee', { employeeIdUrl: 'mock://employee-id-seeker' });
 
     const queue = await adminClient.get('/admin/verification/pending');
-    const req = queue.data.find((v: any) => v.userId === seekerUserId);
+    const req = queue.data.find((v: any) => v.userId === tempUserId && v.verificationType === 'EMPLOYEE');
     if (!req) return;
 
-    const r = await adminClient.patch(`/admin/verification/${req.id}/review`, {
-      decision: 'APPROVED',
-    });
+    const r = await adminClient.patch(`/admin/verification/${req.id}/review`, { decision: 'APPROVED' });
     assert(r.status === 200, `Status: ${r.data.status}`);
   });
 
@@ -246,24 +238,28 @@ async function run() {
   const freshGiverToken = await registerAndLogin(freshGiverEmail, 'Fresh Giver', 'RIDE_GIVER');
   const giverClient = makeClient(freshGiverToken);
 
-  // Fresh giver must be identity-verified before they can publish rides
+  // Fresh giver must be identity-verified (employee + driver) before they can publish rides
   {
     const profile = await giverClient.get('/users/me');
     const freshGiverId = profile.data.id;
-    await giverClient.post('/verification/submit', {
-      employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc',
-    });
-    const queue = await adminClient.get('/admin/verification/pending');
-    const entry = queue.data.find((v: any) => v.userId === freshGiverId);
-    if (entry) {
-      await adminClient.patch(`/admin/verification/${entry.id}/review`, { decision: 'APPROVED' });
-    }
+
+    // Step 1 — employee verification
+    await giverClient.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    const empQueue = await adminClient.get('/admin/verification/pending');
+    const empEntry = empQueue.data.find((v: any) => v.userId === freshGiverId && v.verificationType === 'EMPLOYEE');
+    if (empEntry) await adminClient.patch(`/admin/verification/${empEntry.id}/review`, { decision: 'APPROVED' });
+
+    // Step 2 — driver verification
+    await giverClient.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+    const drQueue = await adminClient.get('/admin/verification/pending');
+    const drEntry = drQueue.data.find((v: any) => v.userId === freshGiverId && v.verificationType === 'DRIVER');
+    if (drEntry) await adminClient.patch(`/admin/verification/${drEntry.id}/review`, { decision: 'APPROVED' });
   }
 
   await test('Giver can fetch own profile', async () => {
     const r = await giverClient.get('/users/me');
     assert(r.status === 200, `Got ${r.status}`);
-    assert(r.data.role === 'RIDE_GIVER', `Wrong role: ${r.data.role}`);
+    assert(['RIDE_GIVER', 'BOTH'].includes(r.data.role), `Wrong role: ${r.data.role}`);
   });
 
   await test('Giver can add a vehicle', async () => {

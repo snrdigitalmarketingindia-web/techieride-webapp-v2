@@ -90,17 +90,12 @@ async function loginAs(email: string) {
   return { token: r.data.accessToken, userId: payload.sub };
 }
 
-async function registerAndLogin(email: string, role: 'RIDE_GIVER' | 'RIDE_SEEKER') {
+async function registerAndLogin(email: string, _roleIgnored?: string) {
   const client = makeClient();
-  const phone = '9' + Math.floor(100000000 + Math.random() * 900000000).toString();
   await client.post('/auth/register', {
     email, password: SEED_PASSWORD,
-    fullName: `Test ${role}`, phone,
-    gender: 'MALE', companyName: 'TestCo', employeeId: 'N/A', role,
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',
+    fullName: 'Test User',
+    companyName: 'TestCo', employeeId: 'N/A',
   });
   return loginAs(email);
 }
@@ -138,10 +133,16 @@ async function setupFreshPair(suffix: string) {
   // Giver must be verified before they can publish
   const adminAcc = await loginAs('admin@techieride.in');
   const admin = makeClient(adminAcc.token);
-  await giverClient.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
-  const queue = await admin.get('/admin/verification/pending');
-  const verReq = queue.data.find((v: any) => v.userId === giver.userId);
-  if (verReq) await admin.patch(`/admin/verification/${verReq.id}/review`, { decision: 'APPROVED' });
+  // Employee verification
+  await giverClient.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+  const empQ = await admin.get('/admin/verification/pending');
+  const empReq = empQ.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
+  if (empReq) await admin.patch(`/admin/verification/${empReq.id}/review`, { decision: 'APPROVED' });
+  // Driver verification
+  await giverClient.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  const drQ = await admin.get('/admin/verification/pending');
+  const drReq = drQ.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'DRIVER');
+  if (drReq) await admin.patch(`/admin/verification/${drReq.id}/review`, { decision: 'APPROVED' });
 
   // Add vehicle for giver
   const v = await giverClient.post('/vehicles', {

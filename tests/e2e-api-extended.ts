@@ -60,16 +60,11 @@ async function loginAs(email: string): Promise<string> {
   return r.data.accessToken;
 }
 
-async function registerAndLogin(email: string, fullName: string, role: string): Promise<string> {
+async function registerAndLogin(email: string, fullName: string, _roleIgnored?: string): Promise<string> {
   const c1 = makeClient();
   const reg = await c1.post('/auth/register', {
-    email, password: SEED_PASSWORD, fullName, gender: 'MALE',
-    companyName: 'TestCorp', employeeId: 'N/A', role,
-    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',
+    email, password: SEED_PASSWORD, fullName,
+    companyName: 'TestCorp', employeeId: 'N/A',
   });
   if (reg.status !== 201 && reg.status !== 409) throw new Error(`Register: ${JSON.stringify(reg.data)}`);
   const { token } = await loginAsWithId(email);
@@ -91,10 +86,16 @@ async function createGiver(admin: AxiosInstance, suffix: string) {
   const client = makeClient(token);
   const profile = await client.get('/users/me');
   const giverId = profile.data.id;
-  await client.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
-  const queue = await admin.get('/admin/verification/pending');
-  const req = queue.data.find((v: any) => v.userId === giverId);
-  if (req) await admin.patch(`/admin/verification/${req.id}/review`, { decision: 'APPROVED' });
+  // Step 1: Employee verification
+  await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+  const empQueue = await admin.get('/admin/verification/pending');
+  const empReq = empQueue.data.find((v: any) => v.userId === giverId && v.verificationType === 'EMPLOYEE');
+  if (empReq) await admin.patch(`/admin/verification/${empReq.id}/review`, { decision: 'APPROVED' });
+  // Step 2: Driver verification
+  await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  const drQueue = await admin.get('/admin/verification/pending');
+  const drReq = drQueue.data.find((v: any) => v.userId === giverId && v.verificationType === 'DRIVER');
+  if (drReq) await admin.patch(`/admin/verification/${drReq.id}/review`, { decision: 'APPROVED' });
   const veh = await client.post('/vehicles', {
     make: 'Toyota', model: 'Innova', color: 'White',
     plateNumber: `TS${ts.toString().slice(-5)}`, totalSeats: 4,
@@ -325,10 +326,9 @@ async function run() {
   await test('Admin cannot be created via register endpoint → 400', async () => {
     const r = await makeClient().post('/auth/register', {
       email: `hacker.${Date.now()}@tcs.com`, password: SEED_PASSWORD,
-      fullName: 'Hacker', gender: 'MALE',
-      phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
+      fullName: 'Hacker',
       companyName: 'TCS', employeeId: 'N/A',
-      role: 'ADMIN',  // Must be rejected — ADMIN cannot self-register
+      role: 'ADMIN',  // Must be rejected — role field is forbidden (property should not exist)
     });
     assert(r.status === 400, `Expected 400 (ADMIN role blocked), got ${r.status}: ${JSON.stringify(r.data)}`);
   });
@@ -362,7 +362,7 @@ async function run() {
       officeLocation: 'HITEC City, Madhapur, Hyderabad',
       emergencyContactName: 'Test Emergency Contact',
       emergencyContactPhone: '9000000001',
-      companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
+      companyName: 'TCS', employeeId: 'N/A',
     });
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
@@ -375,7 +375,7 @@ async function run() {
       officeLocation: 'HITEC City, Madhapur, Hyderabad',
       emergencyContactName: 'Test Emergency Contact',
       emergencyContactPhone: '9000000001',
-      companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
+      companyName: 'TCS', employeeId: 'N/A',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
@@ -408,7 +408,7 @@ async function run() {
       officeLocation: 'HITEC City, Madhapur, Hyderabad',
       emergencyContactName: 'Test Emergency Contact',
       emergencyContactPhone: '9000000001',
-      companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
+      companyName: 'TCS', employeeId: 'N/A',
     });
     assert(r.status === 409, `Expected 409, got ${r.status}`);
   });

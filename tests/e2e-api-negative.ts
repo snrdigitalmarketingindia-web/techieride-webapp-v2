@@ -58,17 +58,12 @@ async function loginAs(email: string) {
   return { token: r.data.accessToken, refreshToken: r.data.refreshToken, userId: payload.sub };
 }
 
-async function registerAndLogin(email: string, role: 'RIDE_GIVER' | 'RIDE_SEEKER') {
+async function registerAndLogin(email: string, _roleIgnored?: string) {
   const c = makeClient();
-  const phone = '9' + Math.floor(100000000 + Math.random() * 900000000).toString();
   const r = await c.post('/auth/register', {
     email, password: SEED_PASSWORD,
-    fullName: `Test ${role}`, phone,
-    gender: 'MALE', companyName: 'TestCo', employeeId: 'N/A', role,
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',
+    fullName: 'Test User',
+    companyName: 'TestCo', employeeId: 'N/A',
   });
   if (r.status !== 201 && r.status !== 409) throw new Error(`Register failed for ${email}: ${JSON.stringify(r.data)}`);
   return loginAs(email);
@@ -92,10 +87,16 @@ async function run() {
   const seeker = makeClient(seekerAcc.token);
 
   // Giver must be verified (verificationStatus=APPROVED) to be able to publish
-  await giver.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
-  const verQueue = await admin.get('/admin/verification/pending');
-  const verEntry = verQueue.data.find((v: any) => v.userId === giverAcc.userId);
-  if (verEntry) await admin.patch(`/admin/verification/${verEntry.id}/review`, { decision: 'APPROVED' });
+  // Employee verification
+  await giver.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+  const empQueue = await admin.get('/admin/verification/pending');
+  const empEntry = empQueue.data.find((v: any) => v.userId === giverAcc.userId && v.verificationType === 'EMPLOYEE');
+  if (empEntry) await admin.patch(`/admin/verification/${empEntry.id}/review`, { decision: 'APPROVED' });
+  // Driver verification
+  await giver.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  const drQueue = await admin.get('/admin/verification/pending');
+  const drEntry = drQueue.data.find((v: any) => v.userId === giverAcc.userId && v.verificationType === 'DRIVER');
+  if (drEntry) await admin.patch(`/admin/verification/${drEntry.id}/review`, { decision: 'APPROVED' });
 
   // Add vehicle for fresh giver
   const vehRes = await giver.post('/vehicles', {
@@ -171,12 +172,18 @@ async function run() {
 
   // Helper: register + verify giver + add vehicle + verify RC
   async function freshVerifiedGiver(suffix: string, plate: string) {
-    const acc = await registerAndLogin(`neg_giver${suffix}_${ts}@wipro.com`, 'RIDE_GIVER');
+    const acc = await registerAndLogin(`neg_giver${suffix}_${ts}@wipro.com`);
     const client = makeClient(acc.token);
-    await client.post('/verification/submit', { employeeIdUrl: 'mock://emp', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
-    const q = await admin.get('/admin/verification/pending');
-    const e = q.data.find((v: any) => v.userId === acc.userId);
-    if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
+    // Employee verification
+    await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    const eq = await admin.get('/admin/verification/pending');
+    const ee = eq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'EMPLOYEE');
+    if (ee) await admin.patch(`/admin/verification/${ee.id}/review`, { decision: 'APPROVED' });
+    // Driver verification
+    await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+    const dq = await admin.get('/admin/verification/pending');
+    const de = dq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'DRIVER');
+    if (de) await admin.patch(`/admin/verification/${de.id}/review`, { decision: 'APPROVED' });
     const veh = await client.post('/vehicles', { make: 'Toyota', model: 'Etios', color: 'Grey', plateNumber: plate, totalSeats: 4 });
     if (veh.data.id) await admin.patch(`/admin/vehicles/${veh.data.id}/verify`);
     return { client, vehicleId: veh.data.id as string };
@@ -373,24 +380,18 @@ async function run() {
 
   await test('Register with phone number < 10 digits → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '12345',
-      homeLocation: 'Kondapur, Hyderabad',
-      officeLocation: 'HITEC City, Madhapur, Hyderabad',
-      emergencyContactName: 'Test Emergency Contact',
-      emergencyContactPhone: '9000000001', fullName: 'Bad User', email: 'bad@wipro.com',
-      gender: 'MALE', companyName: 'X', employeeId: 'X-1', role: 'RIDE_SEEKER',
+      fullName: 'Bad User', email: 'bad@wipro.com',
+      companyName: 'X', employeeId: 'X-1',
+      password: 'short',  // too short — triggers 400
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
   await test('Register with missing fullName → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '9700000099',
-      homeLocation: 'Kondapur, Hyderabad',
-      officeLocation: 'HITEC City, Madhapur, Hyderabad',
-      emergencyContactName: 'Test Emergency Contact',
-      emergencyContactPhone: '9000000001', email: 'nofull@wipro.com',
-      gender: 'MALE', companyName: 'X', employeeId: 'X-2', role: 'RIDE_SEEKER',
+      email: 'nofull@wipro.com', password: SEED_PASSWORD,
+      companyName: 'X', employeeId: 'X-2',
+      // missing fullName — triggers 400
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });

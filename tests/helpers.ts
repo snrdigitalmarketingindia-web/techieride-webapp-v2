@@ -1,22 +1,21 @@
 /**
  * Shared test helpers for all e2e-api-*.ts suites.
  *
- * freshGiver() now goes through the full verification flow:
- *   register → submit docs → admin approves → add vehicle → admin verifies RC
+ * Verification now has two separate tracks:
+ *   1. Employee verification  → POST /verification/employee → EMPLOYEE_VERIFIED
+ *   2. Driver verification    → POST /verification/driver  → DRIVER_VERIFIED (givers only)
  *
- * This mirrors the real production flow and ensures all tests exercise
- * the verification gate introduced in rides.service.ts publish().
+ * freshGiver()  → register → approveEmployee → approveDriver → add vehicle → verify RC
+ * freshSeeker() → register → approveEmployee
  */
 
 import axios, { AxiosInstance } from 'axios';
 
 export const BASE = process.env.API_BASE_URL ?? 'http://localhost:3001/api/v1';
-
 export const SEED_PASSWORD = 'TechieRide@2024';
-
 const ADMIN_EMAIL = 'admin@techieride.in';
 
-// ── Primitives ────────────────────────────────────────────────────────────────
+// ── Primitives ─────────────────────────────────────────────────────────────
 
 export function makeClient(token?: string): AxiosInstance {
   return axios.create({
@@ -43,28 +42,22 @@ export async function getAdminClient(): Promise<AxiosInstance> {
 }
 
 /**
- * Register a new account. Returns { token, refreshToken, userId }.
- * Safe to call repeatedly — if 409 (duplicate) it falls back to loginAs.
+ * Register a new account with minimal required fields.
+ * Role is no longer set at registration — everyone starts as RIDE_SEEKER.
+ * Returns { token, refreshToken, userId }.
+ * Safe to call repeatedly — 409 (duplicate) falls back to loginAs.
  */
 export async function register(
   email: string,
   fullName: string,
-  role: string,
-  phone?: string,
+  _roleIgnored?: string,  // kept for signature compatibility — ignored
 ): Promise<{ token: string; refreshToken: string; userId: string }> {
   const r = await makeClient().post('/auth/register', {
     email,
     password: SEED_PASSWORD,
     fullName,
-    gender: 'MALE',
     companyName: 'TestCorp',
     employeeId: 'N/A',
-    role,
-    phone: phone ?? '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',
   });
   if (r.status !== 201 && r.status !== 409) {
     throw new Error(`Register failed for ${email}: ${JSON.stringify(r.data)}`);
@@ -72,32 +65,71 @@ export async function register(
   return loginAs(email);
 }
 
-// ── Verification helpers ──────────────────────────────────────────────────────
+// ── Verification helpers ───────────────────────────────────────────────────
 
 /**
- * Submit mock verification docs then have admin approve them.
- * After this call, user.verificationStatus === 'APPROVED'.
+ * Submit employee docs and have admin approve → accountStatus: EMPLOYEE_VERIFIED
  */
-export async function approveVerification(userId: string, userClient: AxiosInstance, adminClient: AxiosInstance) {
-  // Submit docs
-  const submit = await userClient.post('/verification/submit', {
+export async function approveEmployeeVerification(
+  userId: string,
+  userClient: AxiosInstance,
+  adminClient: AxiosInstance,
+) {
+  const submit = await userClient.post('/verification/employee', {
     employeeIdUrl: 'https://mock.storage/emp-id.jpg',
+  });
+  if (![200, 201].includes(submit.status)) {
+    throw new Error(`Employee verification submit failed: ${JSON.stringify(submit.data)}`);
+  }
+
+  const queue = await adminClient.get('/admin/verification/pending');
+  if (queue.status !== 200) throw new Error(`Could not fetch verification queue: ${JSON.stringify(queue.data)}`);
+
+  const entry = queue.data.find((v: any) => v.userId === userId && v.verificationType === 'EMPLOYEE');
+  if (!entry) throw new Error(`Employee verification entry for userId ${userId} not found`);
+
+  const review = await adminClient.patch(`/admin/verification/${entry.id}/review`, { decision: 'APPROVED' });
+  if (review.status !== 200) throw new Error(`Employee verification approval failed: ${JSON.stringify(review.data)}`);
+}
+
+/**
+ * Submit driver docs and have admin approve → accountStatus: DRIVER_VERIFIED, role: BOTH
+ * Requires user to already be EMPLOYEE_VERIFIED.
+ */
+export async function approveDriverVerification(
+  userId: string,
+  userClient: AxiosInstance,
+  adminClient: AxiosInstance,
+) {
+  const submit = await userClient.post('/verification/driver', {
     drivingLicenseUrl: 'https://mock.storage/dl.jpg',
     rcUrl: 'https://mock.storage/rc.jpg',
   });
   if (![200, 201].includes(submit.status)) {
-    throw new Error(`Verification submit failed: ${JSON.stringify(submit.data)}`);
+    throw new Error(`Driver verification submit failed: ${JSON.stringify(submit.data)}`);
   }
 
-  // Admin finds + approves
   const queue = await adminClient.get('/admin/verification/pending');
   if (queue.status !== 200) throw new Error(`Could not fetch verification queue: ${JSON.stringify(queue.data)}`);
 
-  const entry = queue.data.find((v: any) => v.userId === userId);
-  if (!entry) throw new Error(`Verification entry for userId ${userId} not found in pending queue`);
+  const entry = queue.data.find((v: any) => v.userId === userId && v.verificationType === 'DRIVER');
+  if (!entry) throw new Error(`Driver verification entry for userId ${userId} not found`);
 
   const review = await adminClient.patch(`/admin/verification/${entry.id}/review`, { decision: 'APPROVED' });
-  if (review.status !== 200) throw new Error(`Verification approval failed: ${JSON.stringify(review.data)}`);
+  if (review.status !== 200) throw new Error(`Driver verification approval failed: ${JSON.stringify(review.data)}`);
+}
+
+/**
+ * Legacy alias — kept so old test code that calls approveVerification() still compiles.
+ * Runs the full 2-step flow (employee + driver).
+ */
+export async function approveVerification(
+  userId: string,
+  userClient: AxiosInstance,
+  adminClient: AxiosInstance,
+) {
+  await approveEmployeeVerification(userId, userClient, adminClient);
+  await approveDriverVerification(userId, userClient, adminClient);
 }
 
 /**
@@ -108,29 +140,28 @@ export async function approveVehicleRc(vehicleId: string, adminClient: AxiosInst
   if (r.status !== 200) throw new Error(`Vehicle RC verify failed: ${JSON.stringify(r.data)}`);
 }
 
-// ── Fresh account factories ───────────────────────────────────────────────────
+// ── Fresh account factories ────────────────────────────────────────────────
 
 /**
  * Create a fully verified giver ready to publish rides.
  *
- * Steps:
- *  1. Register as RIDE_GIVER
- *  2. Submit verification docs → admin approves (verificationStatus = APPROVED)
- *  3. Add a vehicle
- *  4. Admin verifies vehicle RC (rcVerified = true)
+ * 1. Register (starts as RIDE_SEEKER)
+ * 2. Employee verification → EMPLOYEE_VERIFIED
+ * 3. Driver verification   → DRIVER_VERIFIED, role → BOTH
+ * 4. Add vehicle
+ * 5. Admin verifies vehicle RC
  */
 export async function freshGiver(suffix: string) {
   const ts = Date.now();
   const email = `h_giver_${suffix}_${ts}@wipro.com`;
 
-  const acc = await register(email, `Giver ${suffix}`, 'RIDE_GIVER');
+  const acc = await register(email, `Giver ${suffix}`);
   const client = makeClient(acc.token);
   const adminClient = await getAdminClient();
 
-  // Full verification flow
-  await approveVerification(acc.userId, client, adminClient);
+  await approveEmployeeVerification(acc.userId, client, adminClient);
+  await approveDriverVerification(acc.userId, client, adminClient);
 
-  // Add vehicle
   const veh = await client.post('/vehicles', {
     make: 'Honda',
     model: 'City',
@@ -141,20 +172,26 @@ export async function freshGiver(suffix: string) {
   if (veh.status !== 201) throw new Error(`Vehicle creation failed: ${JSON.stringify(veh.data)}`);
   const vehicleId = veh.data.id as string;
 
-  // Admin verifies RC
   await approveVehicleRc(vehicleId, adminClient);
 
   return { client, token: acc.token, userId: acc.userId, vehicleId, refreshToken: acc.refreshToken };
 }
 
 /**
- * Create a fresh seeker (seekers don't need verification to request rides).
+ * Create a fresh verified seeker (EMPLOYEE_VERIFIED).
+ * Seekers need EMPLOYEE_VERIFIED to search and book rides.
  */
 export async function freshSeeker(suffix: string) {
   const ts = Date.now();
   const email = `h_seeker_${suffix}_${ts}@tcs.com`;
-  const acc = await register(email, `Seeker ${suffix}`, 'RIDE_SEEKER');
-  return { client: makeClient(acc.token), token: acc.token, userId: acc.userId, refreshToken: acc.refreshToken };
+
+  const acc = await register(email, `Seeker ${suffix}`);
+  const client = makeClient(acc.token);
+  const adminClient = await getAdminClient();
+
+  await approveEmployeeVerification(acc.userId, client, adminClient);
+
+  return { client, token: acc.token, userId: acc.userId, refreshToken: acc.refreshToken };
 }
 
 /**
@@ -181,8 +218,7 @@ export async function publishRide(giverClient: AxiosInstance, vehicleId: string,
 }
 
 /**
- * Run a full ride lifecycle: publish → request → approve → confirm → start → complete.
- * Returns all actors and IDs for assertions.
+ * Run a full ride lifecycle: publish → request → approve → confirm → start → board → deboard → complete.
  */
 export async function completeFullRide(seats = 1) {
   const giver  = await freshGiver('lifecycle');

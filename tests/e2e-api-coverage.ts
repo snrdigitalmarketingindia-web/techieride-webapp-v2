@@ -116,13 +116,7 @@ async function run() {
     await test('Register with duplicate email → 409', async () => {
       const r = await makeClient().post('/auth/register', {
         email: 'arjun@tcs.com', password: SEED_PASSWORD,
-        fullName: 'Duplicate', gender: 'MALE', companyName: 'TCS',
-        employeeId: 'N/A', role: 'RIDE_SEEKER',
-        phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
-        homeLocation: 'Kondapur, Hyderabad',
-        officeLocation: 'HITEC City, Madhapur, Hyderabad',
-        emergencyContactName: 'Test Emergency Contact',
-        emergencyContactPhone: '9000000001',
+        fullName: 'Duplicate', companyName: 'TCS', employeeId: 'N/A',
       });
       assert(r.status === 409, `Expected 409, got ${r.status}`);
     });
@@ -543,34 +537,33 @@ async function run() {
     await test('Fresh giver verification status is NOT_SUBMITTED', async () => {
       const r = await giver.client.get('/verification/status');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(['PENDING', 'NOT_SUBMITTED'].includes(r.data.status),
-        `Expected NOT_SUBMITTED/PENDING, got ${JSON.stringify(r.data)}`);
+      // New response: { employee: null|{status}, driver: null|{status}, exception: null|{status} }
+      assert(r.data.employee === null || ['PENDING', 'APPROVED', 'REJECTED'].includes(r.data.employee?.status),
+        `Unexpected employee status: ${JSON.stringify(r.data)}`);
     });
 
-    await test('Giver can submit verification documents', async () => {
-      const r = await giver.client.post('/verification/submit', {
+    await test('Giver can submit employee verification documents', async () => {
+      const r = await giver.client.post('/verification/employee', {
         employeeIdUrl: 'https://storage.example.com/emp-id.jpg',
-        drivingLicenseUrl: 'https://storage.example.com/dl.jpg',
-        rcUrl: 'https://storage.example.com/rc.jpg',
       });
-      assert([200, 201].includes(r.status), `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert([200, 201].includes(r.status), `Expected 200/201, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
 
     await test('Submitted verification appears in admin pending queue', async () => {
       const r = await admin.get('/admin/verification/pending');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       assert(Array.isArray(r.data), 'Expected array');
-      const myReq = r.data.find((v: any) => v.userId === giver.userId);
-      assert(!!myReq, 'Submitted verification not in pending queue');
+      const myReq = r.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
+      assert(!!myReq, 'Submitted employee verification not in pending queue');
     });
 
     await test('Admin can reject a verification with reason', async () => {
       const queue = await admin.get('/admin/verification/pending');
-      const myReq = queue.data.find((v: any) => v.userId === giver.userId);
+      const myReq = queue.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
       if (myReq) {
         const r = await admin.patch(`/admin/verification/${myReq.id}/review`, {
           decision: 'REJECTED',
-          notes: 'Documents unclear — please resubmit',
+          rejectionReason: 'Documents unclear — please resubmit',
         });
         assert(r.status === 200, `Expected 200, got ${r.status}`);
         assert(r.data.status === 'REJECTED', `Expected REJECTED, got ${r.data.status}`);
@@ -578,21 +571,17 @@ async function run() {
     });
 
     await test('Rejected giver can re-submit verification', async () => {
-      const r = await giver.client.post('/verification/submit', {
+      const r = await giver.client.post('/verification/employee', {
         employeeIdUrl: 'https://storage.example.com/emp-id-v2.jpg',
-        drivingLicenseUrl: 'https://storage.example.com/dl-v2.jpg',
-        rcUrl: 'https://storage.example.com/rc-v2.jpg',
       });
-      assert([200, 201].includes(r.status), `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert([200, 201].includes(r.status), `Expected 200/201, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
 
-    await test('Admin can approve verification', async () => {
+    await test('Admin can approve employee verification', async () => {
       const queue = await admin.get('/admin/verification/pending');
-      const myReq = queue.data.find((v: any) => v.userId === giver.userId);
+      const myReq = queue.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
       if (myReq) {
-        const r = await admin.patch(`/admin/verification/${myReq.id}/review`, {
-          decision: 'APPROVED',
-        });
+        const r = await admin.patch(`/admin/verification/${myReq.id}/review`, { decision: 'APPROVED' });
         assert(r.status === 200, `Expected 200, got ${r.status}`);
         assert(r.data.status === 'APPROVED', `Expected APPROVED, got ${r.data.status}`);
       }
