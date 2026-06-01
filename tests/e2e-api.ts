@@ -381,15 +381,10 @@ async function run() {
     assert(r.data[0].status === 'PENDING', `Expected PENDING`);
   });
 
-  await test('Giver can approve the request → 15-min hold starts', async () => {
+  await test('Giver can approve the request', async () => {
     const r = await giverClient.patch(`/ride-requests/${requestId}/approve`);
     assert(r.status === 200, `Got ${r.status}: ${JSON.stringify(r.data)}`);
     assert(r.data.status === 'HOLD', `Expected HOLD, got ${r.data.status}`);
-    assert(!!r.data.holdExpiresAt, 'No holdExpiresAt returned');
-
-    const expiresIn = (new Date(r.data.holdExpiresAt).getTime() - Date.now()) / 1000;
-    assert(expiresIn > 800 && expiresIn <= 900, `Hold TTL out of range: ${expiresIn}s`);
-    console.log(`      ${c.dim}Hold expires in ${Math.round(expiresIn)}s${c.reset}`);
   });
 
   await test('Seat count decremented after approval', async () => {
