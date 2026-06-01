@@ -155,6 +155,12 @@ async function setupFreshPair(suffix: string) {
   // Admin verifies vehicle RC so publish() is not blocked
   if (vehicleId) await admin.patch(`/admin/vehicles/${vehicleId}/verify`);
 
+  // Seeker employee verification — required before seeker can access ride routes
+  await seekerClient.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+  const seekerEmpQ = await admin.get('/admin/verification/pending');
+  const seekerEmpReq = seekerEmpQ.data.find((v: any) => v.userId === seeker.userId && v.verificationType === 'EMPLOYEE');
+  if (seekerEmpReq) await admin.patch(`/admin/verification/${seekerEmpReq.id}/review`, { decision: 'APPROVED' });
+
   return { giverClient, seekerClient, vehicleId, giverEmail, seekerEmail };
 }
 
