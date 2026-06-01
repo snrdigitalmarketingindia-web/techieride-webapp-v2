@@ -118,11 +118,11 @@ async function run() {
         email: 'arjun@tcs.com', password: SEED_PASSWORD,
         fullName: 'Duplicate', gender: 'MALE', companyName: 'TCS',
         employeeId: 'N/A', role: 'RIDE_SEEKER',
-        phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString()
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',,
+        phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
+        homeLocation: 'Kondapur, Hyderabad',
+        officeLocation: 'HITEC City, Madhapur, Hyderabad',
+        emergencyContactName: 'Test Emergency Contact',
+        emergencyContactPhone: '9000000001',
       });
       assert(r.status === 409, `Expected 409, got ${r.status}`);
     });

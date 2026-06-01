@@ -368,11 +368,11 @@ async function run() {
 
   await test('Register with phone number < 10 digits → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '12345'
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',, fullName: 'Bad User', email: 'bad@wipro.com',
+      phone: '12345',
+      homeLocation: 'Kondapur, Hyderabad',
+      officeLocation: 'HITEC City, Madhapur, Hyderabad',
+      emergencyContactName: 'Test Emergency Contact',
+      emergencyContactPhone: '9000000001', fullName: 'Bad User', email: 'bad@wipro.com',
       gender: 'MALE', companyName: 'X', employeeId: 'X-1', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
@@ -380,11 +380,11 @@ async function run() {
 
   await test('Register with missing fullName → 400', async () => {
     const r = await makeClient().post('/auth/register', {
-      phone: '9700000099'
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',, email: 'nofull@wipro.com',
+      phone: '9700000099',
+      homeLocation: 'Kondapur, Hyderabad',
+      officeLocation: 'HITEC City, Madhapur, Hyderabad',
+      emergencyContactName: 'Test Emergency Contact',
+      emergencyContactPhone: '9000000001', email: 'nofull@wipro.com',
       gender: 'MALE', companyName: 'X', employeeId: 'X-2', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);

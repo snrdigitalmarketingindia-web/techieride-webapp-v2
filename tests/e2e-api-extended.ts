@@ -65,11 +65,11 @@ async function registerAndLogin(email: string, fullName: string, role: string): 
   const reg = await c1.post('/auth/register', {
     email, password: SEED_PASSWORD, fullName, gender: 'MALE',
     companyName: 'TestCorp', employeeId: 'N/A', role,
-    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString()
+    phone: '9' + Math.floor(100000000 + Math.random() * 900000000).toString(),
     homeLocation: 'Kondapur, Hyderabad',
     officeLocation: 'HITEC City, Madhapur, Hyderabad',
     emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',,
+    emergencyContactPhone: '9000000001',
   });
   if (reg.status !== 201 && reg.status !== 409) throw new Error(`Register: ${JSON.stringify(reg.data)}`);
   const { token } = await loginAsWithId(email);
@@ -355,11 +355,11 @@ async function run() {
   await test('Register with personal email (gmail) → 403', async () => {
     const r = await makeClient().post('/auth/register', {
       email: 'test@gmail.com', password: SEED_PASSWORD,
-      fullName: 'Test', gender: 'MALE', phone: '9800000099'
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',,
+      fullName: 'Test', gender: 'MALE', phone: '9800000099',
+      homeLocation: 'Kondapur, Hyderabad',
+      officeLocation: 'HITEC City, Madhapur, Hyderabad',
+      emergencyContactName: 'Test Emergency Contact',
+      emergencyContactPhone: '9000000001',
       companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
     });
     assert(r.status === 403, `Expected 403, got ${r.status}`);
@@ -368,11 +368,11 @@ async function run() {
   await test('Register with missing fullName → 400', async () => {
     const r = await makeClient().post('/auth/register', {
       email: 'test@tcs.com', password: SEED_PASSWORD,
-      gender: 'MALE', phone: '9800000098'
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',,
+      gender: 'MALE', phone: '9800000098',
+      homeLocation: 'Kondapur, Hyderabad',
+      officeLocation: 'HITEC City, Madhapur, Hyderabad',
+      emergencyContactName: 'Test Emergency Contact',
+      emergencyContactPhone: '9000000001',
       companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
     });
     assert(r.status === 400, `Expected 400, got ${r.status}`);
@@ -401,11 +401,11 @@ async function run() {
   await test('Cannot register same email twice → 409', async () => {
     const r = await makeClient().post('/auth/register', {
       email: 'arjun@tcs.com', password: SEED_PASSWORD,
-      fullName: 'Dup User', gender: 'MALE', phone: '9700000099'
-    homeLocation: 'Kondapur, Hyderabad',
-    officeLocation: 'HITEC City, Madhapur, Hyderabad',
-    emergencyContactName: 'Test Emergency Contact',
-    emergencyContactPhone: '9000000001',,
+      fullName: 'Dup User', gender: 'MALE', phone: '9700000099',
+      homeLocation: 'Kondapur, Hyderabad',
+      officeLocation: 'HITEC City, Madhapur, Hyderabad',
+      emergencyContactName: 'Test Emergency Contact',
+      emergencyContactPhone: '9000000001',
       companyName: 'TCS', employeeId: 'N/A', role: 'RIDE_SEEKER',
     });
     assert(r.status === 409, `Expected 409, got ${r.status}`);
