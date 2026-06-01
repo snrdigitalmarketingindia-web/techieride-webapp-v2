@@ -113,7 +113,7 @@ jobs:
           path: /tmp/techieride-api.log
 
   playwright-tests:
-    name: Playwright E2E Tests (42 tests)
+    name: Playwright E2E Tests (~80 tests)
     runs-on: ubuntu-latest
     needs: api-tests
 

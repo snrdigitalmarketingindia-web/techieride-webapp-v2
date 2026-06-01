@@ -6,7 +6,9 @@ export const SEED_PASSWORD = 'TechieRide@2024';
 export const ACCOUNTS = {
   admin:  { email: 'admin@techieride.in',  password: SEED_PASSWORD },
   giver:  { email: 'priya@infosys.com',    password: SEED_PASSWORD },
+  giver2: { email: 'raju@raju.com',        password: SEED_PASSWORD },
   seeker: { email: 'arjun@tcs.com',        password: SEED_PASSWORD },
+  both:   { email: 'ravi@wipro.com',       password: SEED_PASSWORD },
 };
 
 // Keep PHONES for any legacy references
