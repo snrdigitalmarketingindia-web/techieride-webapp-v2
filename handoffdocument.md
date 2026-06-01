@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `6022d79`) — **v2.1.0.122**
+> **Last updated:** 2026-06-01 (latest: `ef233f5`) — **v2.1.0.122**
 
 ---
 
@@ -9,6 +9,7 @@
 - **Local:** `/Users/apple/Documents/TechieRide/techieride-webapp-v2`
 - **Stack:** NestJS API (Render) + Next.js 14 (Vercel) + Neon PostgreSQL + Upstash Redis
 - **Version:** `2.1.0.122` (Major.Minor.Patch.Build)
+- **Identity Specs:** `docs/identity/` — 9 production-grade design documents
 
 ---
 
@@ -33,8 +34,6 @@
 | raghu@raghu.com | Ride Seeker | |
 | ravi@wipro.com | Both | APPROVED · vehicle TS07VK5678 rcVerified ✅ |
 
-> ⚠️ New signup now requires: `homeLocation`, `officeLocation`, `emergencyContactName`, `emergencyContactPhone`. Re-seed if tests fail on registration.
-
 ---
 
 ## Infrastructure
@@ -49,144 +48,254 @@
 
 ## Session History — What Was Done
 
-### Sessions 1 & 2 — Core Build
-- [x] Vercel + Render deployed and live
-- [x] Business rules: one active ride per giver, one active request per seeker
-- [x] All 4 original test suites (37 + 30 + 30+ + 44 tests)
-- [x] GitHub Actions CI pipeline with Playwright E2E (50 tests)
+### Sessions 1–5 — Core Build through v2.1.0 Architecture
+See version history table below for summary.
 
-### Session 3 — QA Audit, Security Fixes & Full Test Coverage
-- [x] 15 API bugs fixed (unverified publish, RC check, race condition, etc.)
-- [x] 6 test suites, 320 automated checks — all green
-- [x] `ci-autofix.yml` — auto-creates/closes GitHub Issues on CI failure
-
-### Session 4 — Playwright P0 Security Tests + Email Delivery
-- [x] `permission-leaks.spec.ts` (24 tests) + `verification-bypass.spec.ts` (6 tests)
-- [x] `PLAYWRIGHT_BASE_URL` env var support in `playwright.config.ts`
-- [x] Resend email delivery live — verified end-to-end (register → email → verify → login)
-- [x] `gh` CLI authenticated
-- [x] `gmail.com` whitelisted temporarily for testing (marked TEST ONLY)
-
-### Session 5 — v2.1.0 Architecture Release
-
-#### Schema Changes
-| Field | Model | Notes |
-|---|---|---|
-| `trid` | User | `TR2000+` — assigned on admin approval |
-| `personalEmail` | User | App notifications (any domain) |
-| `bloodGroup` | User | Optional — A+/A-/B+/etc. |
-| `homeLocation` | User | Text, max 15 words |
-| `officeLocation` | User | Text, max 15 words |
-| `boardingStatus` | RideParticipant | WAITING/BOARDED/DEBOARDED/NO_SHOW |
-
-#### TRID System
-- Format: `TR2000`, `TR2001`... (sequential, 4-digit after TR)
-- **Macro:** `TRID_START = 2000` in `packages/shared/src/constants.ts` — change to continue from your existing DB
-- Auto-assigned on admin approval of verification
-- Welcome email sent with TRID (to personalEmail if set, else official)
-- Shown as branded member card on profile page
-
-#### Signup (4 steps)
-1. Account — full name, office email, password, gender
-2. Work & Contact — company, phone, personal email (optional), blood group (optional)
-3. Location & Emergency — home location, office location, emergency contact name + phone
-4. Role — Ride Giver / Seeker / Both
-
-#### Document Rules (enforced at API)
-| Document | Giver | Seeker |
-|---|---|---|
-| Company ID | ✅ Mandatory | ✅ Mandatory |
-| Driving License | ✅ Mandatory | Optional |
-| RC | ✅ Mandatory | Optional |
-
-#### Dual Email Routing
-| Type | Sent to |
-|---|---|
-| Verification, password reset, OTP | `email` (official) |
-| Ride notifications, TRID welcome | `personalEmail` if set, else `email` |
-
-#### Ride Lifecycle Changes
-- **15-min hold timer removed** — seeker can confirm at any time
-- **Ride start:** giver manual OR all seekers board → auto-start
-- **Board:** `PATCH /rides/:id/board` — seeker marks themselves boarded
-- **Deboard:** `PATCH /rides/:id/deboard` — seeker marks themselves deboarded
-- **Complete:** giver only — blocked until ALL participants DEBOARDED or NO_SHOW
-- **No-show:** `PATCH /rides/:id/no-show/:seekerId` — giver marks absent seeker
-  - Restores seat, deducts 10 ECO points, sends email + in-app notification
-- **Edit ride:** `PATCH /rides/:id/edit` — only PUBLISHED, >30 min before, no active seekers
-- **Cancel ride:** must be >1 hour before departure, emails all HOLD/CONFIRMED seekers
-
-#### Seeker Boarding Point
-- `pickupName` now **required** when requesting a ride
-- Modal on "Request Seat" with two input modes:
-  - Text: type boarding point manually
-  - Map: tap on OpenStreetMap → drop pin → drag to adjust → "Use this location"
-  - Nominatim reverse geocodes pin to readable address
-  - Coordinates stored alongside text
-
-#### Incoming Requests (Giver)
-- Dropdown removed — auto-loads single active ride (business rule: one active at a time)
-- Shows ride info banner instead of selector
-
-### Session 6 — CI Fix + Frontend Boarding UI
+### Session 6 — CI Fix + Frontend Features
 
 #### CI Root Causes Fixed
-| Bug | Root Cause | Fix |
-|---|---|---|
-| All suites failing — complete() blocked | `board + deboard` missing before `complete()` in test lifecycle | Added to `helpers.ts`, `e2e-api.ts`, `e2e-api-final.ts` |
-| TRID generates as `TR0NaN` → unique constraint crash | `TRID_START` missing from `packages/shared/src/constants.js` (stale build) | Added `exports.TRID_START = 2000` |
-| board/deboard endpoints 500 | `SEEKER_BOARDED`, `SEEKER_DEBOARDED`, `SEEKER_NO_SHOW` missing from `enums.js` (stale build) | Added 3 NotificationType values |
-| `BoardingStatus` enum undefined at runtime | `BoardingStatus` enum entirely absent from `enums.js` (stale build) | Added full enum to JS + d.ts |
-| Stale test assertion | `holdExpiresAt` checked in test but hold timer removed in v2.1.0 | Removed assertion |
+| Bug | Fix |
+|---|---|
+| All suites failing — complete() blocked | board+deboard added to test lifecycle helpers |
+| TRID generates as TR0NaN | `TRID_START` missing from `packages/shared/src/constants.js` (stale build) |
+| board/deboard 500 errors | `SEEKER_BOARDED/DEBOARDED/NO_SHOW` + `BoardingStatus` missing from `enums.js` |
+| holdExpiresAt assertion failures | Hold timer removed in v2.1.0 — stale test assertions removed |
+| Negative test runner crash | `registerAndLogin()` missing required fields |
 
-> ⚠️ **Key gotcha for future sessions:** `packages/shared/src/*.js` and `*.d.ts` are the COMPILED outputs used at runtime. Any new constants or enum values added to `.ts` files MUST also be manually added to the corresponding `.js` and `.d.ts` files until a proper build step is set up.
+> ⚠️ **Critical gotcha:** `packages/shared/src/*.js` and `*.d.ts` are hand-compiled. Any new TS enum values or constants MUST also be added to the `.js`/`.d.ts` files manually.
 
-#### Frontend Boarding UI (delivered)
-- **Giver ONGOING view** (`/rides/[id]`):
-  - Participant list with boardingStatus badges (WAITING / BOARDED / DEBOARDED / NO_SHOW)
-  - "No Show" button per WAITING seeker
-  - "Complete Ride" button disabled (🔒) until all participants are DEBOARDED or NO_SHOW
-- **Seeker ONGOING view:**
-  - "🚗 I've Boarded" button when WAITING
-  - "✅ I've Arrived" (deboard) button when BOARDED
-  - Read-only status chip when DEBOARDED or NO_SHOW
-- Added `board`, `deboard`, `markNoShow` to `ridesApi` in `apps/web/src/lib/api.ts`
-
-#### Business Rule Confirmed (no change needed)
-- Seeker cannot request a full ride (0 seats): enforced at `ride-requests.service.ts:34` → 400
-- Frontend already shows disabled "No seats available" button at `rides/[id]/page.tsx:252`
-- Test coverage at `e2e-api-negative.ts:274`
+#### Frontend Delivered
+- **Boarding UI** (`/rides/[id]`): participant boardingStatus badges, No Show button, locked Complete Ride until all resolved
+- **Requests page redesigned**: no tabs — role-aware, requests as inline sub-tree under each ride for givers
+- **My Rides tabs**: role-aware — pure seekers/givers see no tab; BOTH sees switcher
+- **Ride Seat count badge** on request page ride headers
+- **Commute Board** (`/rides/board`): date range presets, fill rate bars, route pattern analytics, `GET /rides/community` endpoint
+- **Role-gated UI**: seekers cannot see Offer Ride, Add Vehicle, /rides/create redirects them
+- **Request button**: pre-disabled if seeker already has active request; inline errors instead of alert()
+- **Version string**: wired to `package.json` via `NEXT_PUBLIC_APP_VERSION` — no more hardcoded v2.0_Beta
 
 ---
 
-## 🟡 Current CI Status — Fix in progress (session 6)
+## 🔴 Identity Architecture — Implementation Backlog
+> Full specs in `docs/identity/` — 9 documents, 1357 lines
 
-> Last push: `6022d79` — CI running
+### Priority 1 — Critical (Security & Access Control)
 
-| Suite | Tests | Status |
-|---|---|---|
-| Base lifecycle | 37 | 🔄 Running |
-| Extended | 30 | 🔄 Running |
-| Negative/boundary | 33 | 🔄 Running |
-| Business rules | 44 | 🔄 Running |
-| Production coverage | 69 | 🔄 Running |
-| Final gap-closing | 57 | 🔄 Running |
-| Playwright E2E | ~80 | ⚠️ Unknown |
+#### 1.1 Email Verification Gate (CRITICAL)
+**Spec:** `docs/identity/EMAIL_VERIFICATION_POLICY.md`
+**Problem:** Users with `emailStatus=PENDING` can currently access ALL features including ride booking. This must be gated.
+**Fix needed:**
+- Add NestJS middleware/guard that checks `emailStatus` on every protected route
+- Return 403 with redirect to `/verify-email` if not verified
+- Allowed without verification: `/profile`, `/verify-email`, `/logout` only
+
+**Files:**
+- `apps/api/src/common/guards/` — add `EmailVerifiedGuard`
+- `apps/api/src/modules/auth/` — apply guard globally, exclude allowed routes
+- `apps/web/src/middleware.ts` or layout — show verification banner persistently
 
 ---
 
-## Pending / Next Steps (Priority Order)
+#### 1.2 Account Status Model (CRITICAL)
+**Spec:** `docs/identity/ACCOUNT_STATUS_MODEL.md`
+**Problem:** Only `verificationStatus` (3 values) and `emailStatus` (2 values) exist. Need 11-state `accountStatus` field.
+**New states:** `DRAFT`, `EMAIL_PENDING`, `PROFILE_INCOMPLETE`, `DOCS_PENDING`, `UNDER_REVIEW`, `ACTIVE`, `UPGRADE_PENDING`, `COMPANY_CHANGE`, `SUSPENDED`, `REJECTED`, `DEACTIVATED`, `BANNED`
 
-### 🟢 Features
-1. **Write unit tests** — 0 unit tests exist. Start with `gamification.service.ts` + `roles.guard.ts`
-2. **Notifications bell** — bell icon in nav with unread count + drawer
-3. **GPS tracking UI** — real-time map view during active ride
-4. **RC upload UI** — upload page for givers + RC status indicator in vehicle list
+**Schema change needed:**
+```prisma
+model User {
+  accountStatus AccountStatus @default(EMAIL_PENDING)
+}
 
-### 🟡 Before production launch
-5. **Set TRID_START** — change `TRID_START = 2000` in `packages/shared/src/constants.ts` AND `constants.js` to your current highest member number
-6. **Verify `techieride.in` domain** in Resend → switch `EMAIL_FROM` to `noreply@techieride.in`
-7. **Remove `gmail.com`** from `apps/api/src/config/allowed-domains.ts`
+enum AccountStatus {
+  DRAFT EMAIL_PENDING PROFILE_INCOMPLETE DOCS_PENDING UNDER_REVIEW
+  ACTIVE UPGRADE_PENDING COMPANY_CHANGE SUSPENDED REJECTED DEACTIVATED BANNED
+}
+```
+
+**Files:**
+- `prisma/schema.prisma` — add `AccountStatus` enum + field
+- `apps/api/src/modules/auth/auth.service.ts` — set on register
+- `apps/api/src/modules/verification/verification.service.ts` — update on approval/rejection
+- Seed: update all APPROVED users to `ACTIVE`
+
+---
+
+### Priority 2 — High (Role Switching)
+
+#### 2.1 Role Upgrade Flow (SEEKER → GIVER → BOTH)
+**Spec:** `docs/identity/ROLE_SWITCHING_WORKFLOW.md`
+**New API endpoints:**
+```
+POST   /users/me/role-upgrade        { targetRole: 'RIDE_GIVER' | 'BOTH' }
+POST   /users/me/role-downgrade      { targetRole: 'RIDE_SEEKER' | 'RIDE_GIVER' }
+GET    /users/me/role-history
+```
+**Rules:**
+- Upgrade requires missing docs (DL+RC for giver features)
+- Downgrade blocked if active rides exist
+- GIVER→BOTH is auto-approved (docs already on file)
+- TRID never changes on role change
+- During upgrade review, user retains current role capabilities
+
+**Files:**
+- `apps/api/src/modules/users/users.controller.ts` — new endpoints
+- `apps/api/src/modules/users/users.service.ts` — upgrade/downgrade logic
+- `apps/api/src/modules/verification/` — role upgrade enters same queue with flag
+- `prisma/schema.prisma` — `RoleHistory` model
+- `apps/web` — Role upgrade wizard UI (3-step: docs → vehicle → review)
+
+---
+
+#### 2.2 Company Email Change Workflow
+**Spec:** `docs/identity/COMPANY_CHANGE_WORKFLOW.md`
+**New API endpoints:**
+```
+POST   /users/me/change-email        { newEmail }
+POST   /users/me/verify-new-email    { token }
+GET    /users/me/email-change-status
+DELETE /users/me/cancel-email-change
+```
+**Rules:**
+- New email must be on whitelist
+- Old email remains active during transition
+- After new email verified → docs re-verification triggered
+- Access read-only during re-verification
+- TRID and history preserved
+
+**Files:**
+- `apps/api/src/modules/users/` — new email change endpoints
+- `apps/api/src/modules/email/email.service.ts` — new email templates
+- `prisma/schema.prisma` — `pendingEmail`, `pendingEmailToken`, `pendingEmailExpiresAt` fields on User
+- `apps/web` — Company Change form UI
+
+---
+
+### Priority 3 — High (Profile & Documents)
+
+#### 3.1 Profile Management Completion
+**Spec:** `docs/identity/PROFILE_MANAGEMENT_SPEC.md`
+**Missing:**
+- Inline field editing (currently full form submit)
+- Profile photo upload (MinIO)
+- Mobile number change with OTP
+- Ride preferences (music, AC, conversation, pet, luggage)
+- Notification preferences (per-channel toggles)
+- Emergency contact editable post-signup
+- Profile completeness score (0–100%)
+
+**Files:**
+- `apps/web/src/app/(dashboard)/profile/page.tsx` — redesign to tabs + inline editing
+- `apps/api/src/modules/users/users.service.ts` — add updatePreferences, updatePhoto
+- `apps/api/src/modules/users/dto/` — new preference DTOs
+- New profile tabs: Personal, Company, Vehicles, Documents, Preferences, Security
+
+---
+
+#### 3.2 Document Verification Enhancements
+**Spec:** `docs/identity/DOCUMENT_VERIFICATION_RULES.md`
+**Missing:**
+- DL expiry date capture + validation (must be ≥6 months from submission)
+- RC expiry date capture + validation (must be ≥3 months)
+- Expiry alert system (30/15/7/0 days before expiry)
+- Individual document approve/reject by admin
+- Document re-upload after initial submission
+- Document version history
+
+**Schema changes:**
+```prisma
+model VerificationRequest {
+  dlExpiryDate DateTime?
+  rcExpiryDate DateTime?
+  dlNumber     String?
+  rcNumber     String?
+}
+model Vehicle {
+  rcExpiryDate DateTime?
+}
+```
+
+---
+
+### Priority 4 — Medium (Admin & Audit)
+
+#### 4.1 Admin Dashboard Enhancements
+**Spec:** `docs/identity/ADMIN_VISIBILITY_REQUIREMENTS.md`
+**Missing admin capabilities (11 items):**
+- Per-user tabs: Identity, Verification, Company, Vehicles, Rides, Violations, Audit Log
+- Role history view
+- Email change history
+- Document history (all versions)
+- Individual document approve/reject
+- Expiring DL/RC alert list (`GET /admin/verification/expiring?daysAhead=30`)
+- Suspension management (suspend/unsuspend/ban)
+- No-show strike tracking
+- Verification queue filters (NEW_USER vs UPGRADE vs COMPANY_CHANGE)
+- SLA indicator on verification queue (warn after 24h)
+- Enhanced analytics dashboard
+
+**New API endpoints:**
+```
+GET  /admin/users/:id/role-history
+GET  /admin/users/:id/email-history
+GET  /admin/users/:id/document-history
+GET  /admin/users/:id/audit-log
+GET  /admin/users/:id/violations
+PATCH /admin/verification/:id/review-document  { documentType, decision, reason }
+GET  /admin/verification/expiring              ?daysAhead=30
+POST /admin/users/:id/suspend                  { reason, durationDays }
+POST /admin/users/:id/unsuspend
+POST /admin/users/:id/ban                      { reason }
+```
+
+---
+
+#### 4.2 No-Show Strike System
+**Spec:** `docs/identity/ACCOUNT_STATUS_MODEL.md`
+**Rules:**
+- 1st no-show: -10 ECO points, warning
+- 2nd no-show (within 30 days): 48h suspension
+- 3rd no-show (within 30 days): 7-day suspension
+- Strike resets after 30 days clean
+- 3 strikes of different types → permanent review
+
+**Files:**
+- `apps/api/src/modules/rides/rides.service.ts` — `markNoShow()` already exists, add strike logic
+- `prisma/schema.prisma` — `NoShowStrike` model
+- New scheduled job: auto-lift suspensions when duration expires
+
+---
+
+### Priority 5 — Medium (UX Screens)
+
+**Spec:** `docs/identity/UI_UX_RECOMMENDATIONS.md`
+
+| Screen | Route | Status |
+|---|---|---|
+| Role Upgrade Wizard | `/profile/upgrade` | ❌ Not built |
+| Company Change Form | `/profile/company-change` | ❌ Not built |
+| Document Renewal | `/profile/documents` | ❌ Not built |
+| Notification Preferences | `/profile/notifications` | ❌ Not built |
+| Ride Preferences | `/profile/preferences` | ❌ Not built |
+| Account Deactivation | `/profile/deactivate` | ❌ Not built |
+| Suspension Notice | `/suspended` | ❌ Not built |
+| Verification Banner | All pages | ⚠️ Partial |
+| Profile Tabs | `/profile` | ❌ Redesign needed |
+
+---
+
+## Pending / Carry-Forward (Non-Identity)
+
+| Task | Note |
+|---|---|
+| Rides sorted descending | Sort by departureDate DESC in `getGivenRides()` and `getTakenRides()` |
+| Unit tests | 0 unit tests exist — start with `gamification.service.ts` + `roles.guard.ts` |
+| Notifications bell | Bell icon in nav with unread count + drawer |
+| GPS tracking UI | Real-time map view during active ride |
+| RC upload UI | Upload page for givers + RC status indicator |
+| Verify techieride.in domain | Switch `EMAIL_FROM` to `noreply@techieride.in` in Resend |
+| Remove gmail.com | Remove from `allowed-domains.ts` before production launch |
+| Set TRID_START | Update in both `constants.ts` AND `constants.js` |
 
 ---
 
@@ -201,29 +310,17 @@
 | Cannot delete vehicle in active ride | `vehicles.service.ts → remove()` | 409 |
 | Duplicate plate | `vehicles.service.ts → create()` | Prisma P2002 → 409 |
 | Ride cancel > 1 hour before (non-admin) | `rides.service.ts → cancel()` | 400 |
-| Ride edit: >30 min, no active seekers | `rides.service.ts → edit()` | 400 |
 | Complete: all DEBOARDED or NO_SHOW | `rides.service.ts → complete()` | 400 |
 | No seats available | `ride-requests.service.ts → create()` | availableSeats ≤ 0 → 400 |
 | No-show: ride ONGOING, seeker WAITING | `rides.service.ts → markNoShow()` | -10 ECO pts + email |
-| Giver mandatory docs: DL + RC + CompanyID | `verification.service.ts → submitDocuments()` | 400 |
-| Seeker mandatory docs: CompanyID only | `verification.service.ts → submitDocuments()` | 400 |
+| Giver mandatory docs: DL + RC + CompanyID | `verification.service.ts` | 400 |
+| Seeker mandatory docs: CompanyID only | `verification.service.ts` | 400 |
 | Pickup name required on seat request | `create-request.dto.ts` | 400 |
 
 ---
 
-## Key API Endpoints (New in v2.1.0)
-| Method | Endpoint | Who | Notes |
-|---|---|---|---|
-| `PATCH` | `/rides/:id/board` | Seeker | Mark self as boarded; auto-starts when all boarded |
-| `PATCH` | `/rides/:id/deboard` | Seeker | Mark self as deboarded |
-| `PATCH` | `/rides/:id/no-show/:seekerId` | Giver | Mark absent seeker; -10 ECO pts |
-| `PATCH` | `/rides/:id/edit` | Giver | Edit PUBLISHED ride (>30 min, no seekers) |
-| `PATCH` | `/rides/:id/start` | Giver OR confirmed Seeker | Manual start override |
-
----
-
 ## Key Gotchas / Notes
-- **COMPILED PACKAGE FILES** — `packages/shared/src/*.js` and `*.d.ts` are runtime. Any new TS enum values or constants MUST be manually added to the `.js` and `.d.ts` until a proper build pipeline is added. This caused `TRID_START=NaN` and `SEEKER_BOARDED=undefined` bugs in session 6.
+- **COMPILED PACKAGE FILES** — `packages/shared/src/*.js` and `*.d.ts` are runtime. Any new TS enum values or constants MUST also be added to the `.js` and `.d.ts` files manually.
 - **TRID_START macro** — change in BOTH `constants.ts` AND `constants.js` before production
 - **`pickupName` is now required** in `POST /ride-requests`
 - **BoardingStatus enum:** `WAITING → BOARDED → DEBOARDED` or `WAITING → NO_SHOW`
@@ -239,7 +336,7 @@
 ## Version History
 | Version | Build | Date | Highlights |
 |---|---|---|---|
-| 2.1.0 | 122 | 2026-06-01 | Session 6: CI fixed (stale compiled package, TRID NaN, enum gaps), boarding UI |
+| 2.1.0 | 122 | 2026-06-01 | Session 6: CI fixed, boarding UI, commute board, role-gated UI, identity specs |
 | 2.1.0 | 115 | 2026-06-01 | Full architecture: TRID, boarding lifecycle, dual email, no-show, map picker |
 | 2.0.4 | 112 | 2026-06-01 | Playwright P0 tests, email delivery, gh CLI, version tracking |
 | 2.0.3 | 95 | 2026-06-01 | QA audit, 15 bug fixes, 320 automated checks |
@@ -258,10 +355,9 @@ DATABASE_URL="postgresql://neondb_owner:npg_NwfcX04UrRDj@ep-sparkling-wildflower
 ## Change TRID Start Number
 ```ts
 // packages/shared/src/constants.ts
-export const TRID_START = 2000; // ← set to your current highest TRID number
+export const TRID_START = 2000;
 ```
 Also update `packages/shared/src/constants.js`:
 ```js
-exports.TRID_START = 2000; // ← keep in sync with constants.ts
+exports.TRID_START = 2000;
 ```
-Then rebuild: `npm run build --workspace=apps/api && git add apps/api/dist/ && git commit`
