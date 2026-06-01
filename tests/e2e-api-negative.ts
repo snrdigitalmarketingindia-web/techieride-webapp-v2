@@ -61,11 +61,16 @@ async function loginAs(email: string) {
 async function registerAndLogin(email: string, role: 'RIDE_GIVER' | 'RIDE_SEEKER') {
   const c = makeClient();
   const phone = '9' + Math.floor(100000000 + Math.random() * 900000000).toString();
-  await c.post('/auth/register', {
+  const r = await c.post('/auth/register', {
     email, password: SEED_PASSWORD,
     fullName: `Test ${role}`, phone,
     gender: 'MALE', companyName: 'TestCo', employeeId: 'N/A', role,
+    homeLocation: 'Kondapur, Hyderabad',
+    officeLocation: 'HITEC City, Madhapur, Hyderabad',
+    emergencyContactName: 'Test Emergency Contact',
+    emergencyContactPhone: '9000000001',
   });
+  if (r.status !== 201 && r.status !== 409) throw new Error(`Register failed for ${email}: ${JSON.stringify(r.data)}`);
   return loginAs(email);
 }
 
