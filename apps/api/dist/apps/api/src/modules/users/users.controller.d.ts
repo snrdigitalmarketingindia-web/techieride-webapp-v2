@@ -31,6 +31,9 @@ export declare class UsersController {
         role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
+        pendingEmail: string | null;
+        pendingEmailToken: string | null;
+        pendingEmailExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         verificationMethod: string | null;
@@ -64,6 +67,9 @@ export declare class UsersController {
         emailVerificationExpiry: Date | null;
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
+        pendingEmail: string | null;
+        pendingEmailToken: string | null;
+        pendingEmailExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         verificationMethod: string | null;
@@ -84,8 +90,6 @@ export declare class UsersController {
         } | null;
         fullName: string;
         companyName: string | null;
-        phone: string | null;
-        countryCode: string;
         id: string;
         profilePhoto: string | null;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -105,4 +109,16 @@ export declare class UsersController {
         relationship: string;
     }>;
     removeEmergencyContact(userId: string, contactId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
+    requestEmailChange(userId: string, newEmail: string): Promise<{
+        message: string;
+    }>;
+    confirmEmailChange(token: string): Promise<{
+        message: string;
+    }>;
+    requestPersonalEmailChange(userId: string, newEmail: string): Promise<{
+        message: string;
+    }>;
+    confirmPersonalEmailChange(token: string): Promise<{
+        message: string;
+    }>;
 }

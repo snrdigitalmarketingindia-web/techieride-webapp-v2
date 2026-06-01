@@ -36,6 +36,9 @@ export declare class RidesService {
                 emailVerificationExpiry: Date | null;
                 passwordResetToken: string | null;
                 passwordResetExpiry: Date | null;
+                pendingEmail: string | null;
+                pendingEmailToken: string | null;
+                pendingEmailExpiry: Date | null;
                 isActive: boolean;
                 accountStatus: import(".prisma/client").$Enums.AccountStatus;
                 verificationMethod: string | null;
@@ -430,6 +433,36 @@ export declare class RidesService {
             plateNumber: string;
             rcVerified: boolean;
         };
+        participants: ({
+            seeker: {
+                user: {
+                    fullName: string;
+                    companyName: string | null;
+                    phone: string | null;
+                    countryCode: string;
+                    id: string;
+                    profilePhoto: string | null;
+                };
+            } & {
+                id: string;
+                createdAt: Date;
+                userId: string;
+                totalRidesTaken: number;
+                averageRating: number;
+                preferredGender: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            rideId: string;
+            seekerId: string;
+            requestId: string;
+            pickupName: string | null;
+            dropName: string | null;
+            boardingStatus: import(".prisma/client").$Enums.BoardingStatus;
+            boardedAt: Date | null;
+            deboaredAt: Date | null;
+        })[];
     } & {
         id: string;
         createdAt: Date;
@@ -484,6 +517,9 @@ export declare class RidesService {
                 emailVerificationExpiry: Date | null;
                 passwordResetToken: string | null;
                 passwordResetExpiry: Date | null;
+                pendingEmail: string | null;
+                pendingEmailToken: string | null;
+                pendingEmailExpiry: Date | null;
                 isActive: boolean;
                 accountStatus: import(".prisma/client").$Enums.AccountStatus;
                 verificationMethod: string | null;

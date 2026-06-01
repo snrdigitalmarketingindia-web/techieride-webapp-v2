@@ -178,16 +178,19 @@ export default function RideSearchPage() {
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
 
   // Pre-load seeker's active requests so buttons are disabled immediately
+  // Also auto-search today's rides on mount
   useEffect(() => {
     requestsApi.getMine().then((r) => {
       const active: Record<string, 'pending'> = {};
       for (const req of r.data ?? []) {
-        if (['PENDING', 'HOLD', 'CONFIRMED'].includes(req.status)) {
+        if (['PENDING', 'CONFIRMED'].includes(req.status)) {
           active[req.ride?.id] = 'pending';
         }
       }
       setRequestedMap(active);
     }).catch(() => {});
+
+    search();
   }, []);
 
   const search = async () => {

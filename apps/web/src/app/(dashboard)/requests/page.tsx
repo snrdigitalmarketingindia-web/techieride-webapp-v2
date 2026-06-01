@@ -153,20 +153,38 @@ function GiverView() {
                   </div>
                 ))}
                 {/* Non-pending (dimmed) */}
-                {others.map((req) => (
-                  <div key={req.id} className="px-4 py-3 flex items-center gap-3 opacity-60">
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-500 shrink-0">
-                      {req.seeker?.user?.fullName?.[0] || '?'}
+                {others.map((req) => {
+                  const name = req.seeker?.user?.fullName;
+                  const company = req.seeker?.user?.companyName;
+                  const isTerminal = ['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(req.status);
+                  return (
+                    <div key={req.id} className={`px-4 py-3 flex items-center gap-3 ${isTerminal ? 'opacity-40' : 'opacity-70'}`}>
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-400 shrink-0">
+                        {name?.[0] ?? '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-600 truncate">{name ?? 'Unknown'}</p>
+                        {company && <p className="text-xs text-gray-400 truncate">{company}</p>}
+                        {req.pickupName && !isTerminal && <p className="text-xs text-gray-400 truncate">📍 {req.pickupName}</p>}
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[req.status] ?? 'bg-gray-100 text-gray-400'}`}>
+                        {STATUS_ICONS[req.status]} {req.status}
+                      </span>
+                      {/* Call only for CONFIRMED — not for cancelled/rejected */}
+                      {!isTerminal && req.seeker?.user?.phone && (
+                        <CallButton
+                          phone={req.seeker.user.phone}
+                          countryCode={req.seeker.user.countryCode}
+                          receiverId={req.seeker.userId}
+                          rideId={ride.id}
+                          label="Call"
+                          size="sm"
+                          variant="ghost"
+                        />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-700 truncate">{req.seeker?.user?.fullName || 'Unknown'}</p>
-                      <p className="text-xs text-gray-400 truncate">{req.seeker?.user?.companyName || '—'}</p>
-                    </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[req.status]}`}>
-                      {STATUS_ICONS[req.status]} {req.status}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -210,46 +228,57 @@ function SeekerView() {
 
   return (
     <div className="space-y-3">
-      {requests.map((req) => (
-        <div key={req.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
-                {req.ride?.originName} → {req.ride?.destinationName}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {req.ride?.rideGiver?.user?.fullName || 'Giver'} · {' '}
-                {req.ride?.departureDate ? new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''} {req.ride?.departureTime}
-              </p>
-              {req.pickupName && <p className="text-xs text-gray-400 mt-0.5">📍 {req.pickupName}</p>}
+      {requests.map((req) => {
+        const isTerminal = ['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(req.status);
+        const route = req.ride?.originName && req.ride?.destinationName
+          ? `${req.ride.originName} → ${req.ride.destinationName}`
+          : 'Unknown Route';
+        const giverName = req.ride?.rideGiver?.user?.fullName ?? 'Giver';
+        const dateStr = req.ride?.departureDate
+          ? new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+          : '';
+
+        return (
+          <div key={req.id} className={`bg-white rounded-xl border border-gray-200 p-4 space-y-3 transition ${isTerminal ? 'opacity-40' : ''}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">{route}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {giverName}{dateStr ? ` · ${dateStr}` : ''}{req.ride?.departureTime ? ` ${req.ride.departureTime}` : ''}
+                </p>
+                {req.pickupName && !isTerminal && <p className="text-xs text-gray-400 mt-0.5">📍 {req.pickupName}</p>}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {/* Call giver only on CONFIRMED — hidden once cancelled/rejected */}
+                {!isTerminal && req.ride?.rideGiver?.user?.phone && req.status === 'CONFIRMED' && (
+                  <CallButton
+                    phone={req.ride.rideGiver.user.phone}
+                    countryCode={req.ride.rideGiver.user.countryCode}
+                    receiverId={req.ride.rideGiver.userId}
+                    rideId={req.ride.id}
+                    label="Call Giver"
+                    size="sm"
+                    variant="ghost"
+                  />
+                )}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
+                  {STATUS_ICONS[req.status]} {req.status}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {req.ride?.rideGiver?.user?.phone && req.status === 'CONFIRMED' && (
-                <CallButton
-                  phone={req.ride.rideGiver.user.phone}
-                  countryCode={req.ride.rideGiver.user.countryCode}
-                  receiverId={req.ride.rideGiver.userId}
-                  rideId={req.ride.id}
-                  label="Call Giver"
-                  size="sm"
-                  variant="ghost"
-                />
-              )}
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[req.status] || 'bg-gray-100 text-gray-500'}`}>
-                {STATUS_ICONS[req.status]} {req.status}
-              </span>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {['CONFIRMED', 'PENDING'].includes(req.status) && (
-              <button onClick={() => cancel(req.id)} disabled={processing === req.id}
-                className="flex-1 border border-gray-200 text-gray-500 py-2 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 transition">
-                Cancel
-              </button>
+            {!isTerminal && (
+              <div className="flex gap-2">
+                {['CONFIRMED', 'PENDING'].includes(req.status) && (
+                  <button onClick={() => cancel(req.id)} disabled={processing === req.id}
+                    className="flex-1 border border-gray-200 text-gray-500 py-2 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50 transition">
+                    Cancel
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

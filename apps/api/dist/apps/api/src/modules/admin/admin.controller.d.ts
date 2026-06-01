@@ -46,6 +46,9 @@ export declare class AdminController {
         emailVerificationExpiry: Date | null;
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
+        pendingEmail: string | null;
+        pendingEmailToken: string | null;
+        pendingEmailExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         verificationMethod: string | null;
@@ -79,6 +82,9 @@ export declare class AdminController {
         emailVerificationExpiry: Date | null;
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
+        pendingEmail: string | null;
+        pendingEmailToken: string | null;
+        pendingEmailExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         verificationMethod: string | null;

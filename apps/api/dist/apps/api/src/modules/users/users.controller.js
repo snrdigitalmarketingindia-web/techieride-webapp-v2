@@ -43,6 +43,18 @@ let UsersController = class UsersController {
     removeEmergencyContact(userId, contactId) {
         return this.usersService.removeEmergencyContact(userId, contactId);
     }
+    requestEmailChange(userId, newEmail) {
+        return this.usersService.requestEmailChange(userId, newEmail);
+    }
+    confirmEmailChange(token) {
+        return this.usersService.confirmEmailChange(token);
+    }
+    requestPersonalEmailChange(userId, newEmail) {
+        return this.usersService.requestPersonalEmailChange(userId, newEmail);
+    }
+    confirmPersonalEmailChange(token) {
+        return this.usersService.confirmPersonalEmailChange(token);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -92,6 +104,40 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "removeEmergencyContact", null);
+__decorate([
+    (0, allow_docs_pending_decorator_1.AllowDocsPending)(),
+    (0, common_1.Post)('me/request-email-change'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(1, (0, common_1.Body)('newEmail')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "requestEmailChange", null);
+__decorate([
+    (0, allow_unverified_decorator_1.AllowUnverified)(),
+    (0, common_1.Post)('confirm-email-change'),
+    __param(0, (0, common_1.Body)('token')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "confirmEmailChange", null);
+__decorate([
+    (0, allow_docs_pending_decorator_1.AllowDocsPending)(),
+    (0, common_1.Post)('me/request-personal-email-change'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(1, (0, common_1.Body)('newEmail')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "requestPersonalEmailChange", null);
+__decorate([
+    (0, allow_unverified_decorator_1.AllowUnverified)(),
+    (0, common_1.Post)('confirm-personal-email-change'),
+    __param(0, (0, common_1.Body)('token')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "confirmPersonalEmailChange", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, swagger_1.ApiBearerAuth)(),

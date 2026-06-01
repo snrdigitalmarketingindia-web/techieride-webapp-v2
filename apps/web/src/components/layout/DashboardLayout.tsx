@@ -20,7 +20,6 @@ const navLinks = [
   { href: '/dashboard',     label: 'Home',      icon: '🏠' },
   { href: '/rides',         label: 'My Rides',  icon: '🚗' },
   { href: '/rides/search',  label: 'Find Ride', icon: '🔍' },
-  { href: '/requests',      label: 'Requests',  icon: '📥' },
   { href: '/profile',       label: 'Profile',   icon: '👤' },
 ];
 
@@ -65,12 +64,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <div className="flex items-center gap-3">
           {user && (
-            <div className="flex items-center gap-2">
+            <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition">
               <span className="text-sm font-medium text-gray-700">{user.fullName?.split(' ')[0]}</span>
               <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">
                 {ECO_BADGES[user.ecoLevel as EcoLevel]} {user.ecoPoints} pts
               </span>
-            </div>
+            </Link>
           )}
           <NotificationDrawer />
           <button

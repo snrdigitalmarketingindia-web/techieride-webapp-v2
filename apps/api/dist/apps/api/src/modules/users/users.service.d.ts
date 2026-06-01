@@ -1,9 +1,11 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddEmergencyContactDto } from './dto/emergency-contact.dto';
+import { EmailService } from '../email/email.service';
 export declare class UsersService {
     private prisma;
-    constructor(prisma: PrismaService);
+    private email;
+    constructor(prisma: PrismaService, email: EmailService);
     getProfile(userId: string): Promise<{
         rideGiver: {
             averageRating: number;
@@ -31,6 +33,9 @@ export declare class UsersService {
         role: import(".prisma/client").$Enums.UserRole;
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
+        pendingEmail: string | null;
+        pendingEmailToken: string | null;
+        pendingEmailExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         verificationMethod: string | null;
@@ -51,8 +56,6 @@ export declare class UsersService {
         } | null;
         fullName: string;
         companyName: string | null;
-        phone: string | null;
-        countryCode: string;
         id: string;
         profilePhoto: string | null;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -81,6 +84,9 @@ export declare class UsersService {
         emailVerificationExpiry: Date | null;
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
+        pendingEmail: string | null;
+        pendingEmailToken: string | null;
+        pendingEmailExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         verificationMethod: string | null;
@@ -114,6 +120,9 @@ export declare class UsersService {
         emailVerificationExpiry: Date | null;
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
+        pendingEmail: string | null;
+        pendingEmailToken: string | null;
+        pendingEmailExpiry: Date | null;
         isActive: boolean;
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         verificationMethod: string | null;
@@ -136,6 +145,18 @@ export declare class UsersService {
         id: string;
         userId: string;
         relationship: string;
+    }>;
+    requestEmailChange(userId: string, newEmail: string): Promise<{
+        message: string;
+    }>;
+    confirmEmailChange(token: string): Promise<{
+        message: string;
+    }>;
+    requestPersonalEmailChange(userId: string, newEmail: string): Promise<{
+        message: string;
+    }>;
+    confirmPersonalEmailChange(token: string): Promise<{
+        message: string;
     }>;
     removeEmergencyContact(userId: string, contactId: string): Promise<import(".prisma/client").Prisma.BatchPayload>;
 }

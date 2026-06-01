@@ -9,6 +9,7 @@ export declare class EmailService {
     constructor(config: ConfigService);
     sendVerificationEmail(email: string, fullName: string, token: string): Promise<void>;
     sendPasswordResetEmail(email: string, fullName: string, token: string): Promise<void>;
+    sendEmailChangeVerification(newEmail: string, fullName: string, token: string, isPersonal?: boolean): Promise<void>;
     sendWelcomeApprovedEmail(email: string, fullName: string, trid: string): Promise<void>;
     sendWelcomeEmail(email: string, fullName: string): Promise<void>;
     sendNotification(officialEmail: string, personalEmail: string | null | undefined, subject: string, html: string): Promise<void>;

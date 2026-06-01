@@ -281,11 +281,11 @@ let RidesService = class RidesService {
             }
         }
         const confirmedParticipants = await this.prisma.rideRequest.findMany({
-            where: { rideId, status: { in: ['HOLD', 'CONFIRMED'] } },
+            where: { rideId, status: { in: ['CONFIRMED'] } },
             include: { seeker: { include: { user: { select: { email: true, personalEmail: true, fullName: true } } } } },
         });
         await this.prisma.rideRequest.updateMany({
-            where: { rideId, status: { in: ['PENDING', 'APPROVED', 'HOLD', 'CONFIRMED'] } },
+            where: { rideId, status: { in: ['PENDING', 'CONFIRMED'] } },
             data: { status: 'CANCELLED', cancelReason: 'Ride cancelled' },
         });
         const updated = await this.prisma.ride.update({
@@ -386,7 +386,7 @@ let RidesService = class RidesService {
             throw new common_1.BadRequestException('Rides can only be edited up to 30 minutes before departure');
         }
         const activeSeekersCount = await this.prisma.rideRequest.count({
-            where: { rideId, status: { in: ['PENDING', 'HOLD', 'CONFIRMED'] } },
+            where: { rideId, status: { in: ['PENDING', 'CONFIRMED'] } },
         });
         if (activeSeekersCount > 0) {
             throw new common_1.BadRequestException('Cannot edit a ride that has pending or confirmed seat requests');
@@ -452,7 +452,13 @@ let RidesService = class RidesService {
                 rideGiverId: giver.id,
                 ...(status ? { status: status } : {}),
             },
-            include: { vehicle: true },
+            include: {
+                vehicle: true,
+                participants: {
+                    include: { seeker: { include: { user: { select: SEEKER_USER_SELECT } } } },
+                    orderBy: { createdAt: 'asc' },
+                },
+            },
             orderBy: { departureDate: 'desc' },
         });
     }

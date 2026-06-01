@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
-import { vehiclesApi, verificationApi, api } from '@/lib/api';
+import { vehiclesApi, verificationApi, api, usersApi } from '@/lib/api';
 
 const ECO_BADGES: Record<string, { icon: string; label: string; color: string }> = {
   SEED:   { icon: '🌱', label: 'Seed',   color: 'bg-gray-100 text-gray-700' },
@@ -29,6 +29,82 @@ export default function ProfilePage() {
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocs>({});
   const [minioAvailable, setMinioAvailable] = useState<boolean | null>(null);
   const [submitMsg, setSubmitMsg] = useState('');
+
+  // Edit profile state
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    fullName: '', phone: '', companyName: '',
+    homeLocation: '', officeLocation: '', bloodGroup: '',
+  });
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMsg, setEditMsg] = useState('');
+
+  // Email change state (official)
+  const [emailChangeMode, setEmailChangeMode] = useState(false);
+  const [newOfficialEmail, setNewOfficialEmail] = useState('');
+  const [emailChangeSending, setEmailChangeSending] = useState(false);
+  const [emailChangeMsg, setEmailChangeMsg] = useState('');
+
+  // Personal email change state
+  const [personalEmailMode, setPersonalEmailMode] = useState(false);
+  const [newPersonalEmail, setNewPersonalEmail] = useState('');
+  const [personalEmailSending, setPersonalEmailSending] = useState(false);
+  const [personalEmailMsg, setPersonalEmailMsg] = useState('');
+
+  const openEdit = () => {
+    setEditForm({
+      fullName:       user?.fullName                ?? '',
+      phone:          (user as any)?.phone          ?? '',
+      companyName:    user?.companyName             ?? '',
+      homeLocation:   (user as any)?.homeLocation   ?? '',
+      officeLocation: (user as any)?.officeLocation ?? '',
+      bloodGroup:     (user as any)?.bloodGroup     ?? '',
+    });
+    setEditMsg('');
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    setEditSaving(true);
+    setEditMsg('');
+    try {
+      await usersApi.updateProfile(editForm);
+      await fetchProfile();
+      setEditing(false);
+    } catch (e: any) {
+      setEditMsg(e.response?.data?.message?.[0] ?? e.response?.data?.message ?? 'Save failed');
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const sendOfficialEmailChange = async () => {
+    setEmailChangeSending(true);
+    setEmailChangeMsg('');
+    try {
+      await usersApi.requestEmailChange(newOfficialEmail);
+      setEmailChangeMsg(`✅ Verification link sent to ${newOfficialEmail}. Check your inbox and click the link to confirm.`);
+      setNewOfficialEmail('');
+    } catch (e: any) {
+      setEmailChangeMsg(e.response?.data?.message ?? 'Failed to send verification email');
+    } finally {
+      setEmailChangeSending(false);
+    }
+  };
+
+  const sendPersonalEmailChange = async () => {
+    setPersonalEmailSending(true);
+    setPersonalEmailMsg('');
+    try {
+      await usersApi.requestPersonalEmailChange(newPersonalEmail);
+      setPersonalEmailMsg(`✅ Confirmation link sent to ${newPersonalEmail}. Check your inbox.`);
+      setNewPersonalEmail('');
+    } catch (e: any) {
+      setPersonalEmailMsg(e.response?.data?.message ?? 'Failed to send confirmation email');
+    } finally {
+      setPersonalEmailSending(false);
+    }
+  };
 
   useEffect(() => {
     vehiclesApi.getMine().then((r) => setVehicles(r.data));
@@ -118,14 +194,55 @@ export default function ProfilePage() {
           <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center text-2xl font-bold text-brand-700">
             {user?.fullName?.[0]}
           </div>
-          <div>
+          <div className="flex-1">
             <p className="font-semibold text-gray-900">{user?.fullName}</p>
             <p className="text-sm text-gray-500">{user?.email}</p>
             <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium mt-1 ${eco.color}`}>
               {eco.icon} {eco.label} · {user?.ecoPoints} pts
             </span>
           </div>
+          <button onClick={openEdit}
+            className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition shrink-0">
+            ✏️ Edit
+          </button>
         </div>
+
+        {/* Inline edit form */}
+        {editing && (
+          <div className="border-t border-gray-100 pt-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Edit Profile</p>
+            {[
+              { label: 'Full Name',   key: 'fullName',       type: 'text' },
+              { label: 'Phone',       key: 'phone',          type: 'tel' },
+              { label: 'Company',     key: 'companyName',    type: 'text' },
+              { label: 'Home Area',   key: 'homeLocation',   type: 'text' },
+              { label: 'Office Area', key: 'officeLocation', type: 'text' },
+              { label: 'Blood Group', key: 'bloodGroup',     type: 'text' },
+            ].map(({ label, key, type }) => (
+              <div key={key}>
+                <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+                <input
+                  type={type}
+                  value={(editForm as any)[key]}
+                  onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+                />
+              </div>
+            ))}
+            {editMsg && <p className="text-xs text-red-600">{editMsg}</p>}
+            <div className="flex gap-2 pt-1">
+              <button onClick={saveEdit} disabled={editSaving}
+                className="flex-1 bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
+                {editSaving ? 'Saving…' : 'Save Changes'}
+              </button>
+              <button onClick={() => setEditing(false)}
+                className="flex-1 border border-gray-200 text-gray-500 py-2 rounded-lg text-sm hover:bg-gray-50 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* TRID Member Card */}
         {(user as any)?.trid && (
           <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-xl p-4 text-white text-center mb-1">
@@ -158,6 +275,64 @@ export default function ProfilePage() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Change Official Email */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Official Email</p>
+            <p className="text-sm text-gray-500">{user?.email}</p>
+          </div>
+          <button onClick={() => { setEmailChangeMode(!emailChangeMode); setEmailChangeMsg(''); }}
+            className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
+            {emailChangeMode ? 'Cancel' : '✏️ Change'}
+          </button>
+        </div>
+        {emailChangeMode && (
+          <div className="space-y-2 pt-1">
+            <p className="text-xs text-gray-500">Enter your new corporate email. A verification link will be sent there — your current email stays active until confirmed.</p>
+            <input type="email" value={newOfficialEmail} onChange={(e) => setNewOfficialEmail(e.target.value)}
+              placeholder="new@company.com"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400" />
+            {emailChangeMsg && (
+              <p className={`text-xs ${emailChangeMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>{emailChangeMsg}</p>
+            )}
+            <button onClick={sendOfficialEmailChange} disabled={emailChangeSending || !newOfficialEmail.trim()}
+              className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
+              {emailChangeSending ? 'Sending…' : 'Send Verification Email'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Change Personal Email */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Personal Email</p>
+            <p className="text-sm text-gray-500">{(user as any)?.personalEmail || 'Not set'}</p>
+          </div>
+          <button onClick={() => { setPersonalEmailMode(!personalEmailMode); setPersonalEmailMsg(''); }}
+            className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
+            {personalEmailMode ? 'Cancel' : (user as any)?.personalEmail ? '✏️ Change' : '+ Add'}
+          </button>
+        </div>
+        {personalEmailMode && (
+          <div className="space-y-2 pt-1">
+            <p className="text-xs text-gray-500">A confirmation link will be sent to this address before it's saved.</p>
+            <input type="email" value={newPersonalEmail} onChange={(e) => setNewPersonalEmail(e.target.value)}
+              placeholder="you@gmail.com"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400" />
+            {personalEmailMsg && (
+              <p className={`text-xs ${personalEmailMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>{personalEmailMsg}</p>
+            )}
+            <button onClick={sendPersonalEmailChange} disabled={personalEmailSending || !newPersonalEmail.trim()}
+              className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
+              {personalEmailSending ? 'Sending…' : 'Send Confirmation Email'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Become a Giver CTA */}

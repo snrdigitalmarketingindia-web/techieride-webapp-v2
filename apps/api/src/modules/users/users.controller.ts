@@ -1,6 +1,6 @@
 import {
   Controller, Get, Patch, Post, Delete,
-  Body, Param, UseGuards,
+  Body, Param, Query,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
@@ -52,5 +52,36 @@ export class UsersController {
     @Param('id') contactId: string,
   ) {
     return this.usersService.removeEmergencyContact(userId, contactId);
+  }
+
+  // ── Email change ────────────────────────────────────────────────────────
+  @AllowDocsPending()
+  @Post('me/request-email-change')
+  requestEmailChange(
+    @CurrentUser('id') userId: string,
+    @Body('newEmail') newEmail: string,
+  ) {
+    return this.usersService.requestEmailChange(userId, newEmail);
+  }
+
+  @AllowUnverified()
+  @Post('confirm-email-change')
+  confirmEmailChange(@Body('token') token: string) {
+    return this.usersService.confirmEmailChange(token);
+  }
+
+  @AllowDocsPending()
+  @Post('me/request-personal-email-change')
+  requestPersonalEmailChange(
+    @CurrentUser('id') userId: string,
+    @Body('newEmail') newEmail: string,
+  ) {
+    return this.usersService.requestPersonalEmailChange(userId, newEmail);
+  }
+
+  @AllowUnverified()
+  @Post('confirm-personal-email-change')
+  confirmPersonalEmailChange(@Body('token') token: string) {
+    return this.usersService.confirmPersonalEmailChange(token);
   }
 }

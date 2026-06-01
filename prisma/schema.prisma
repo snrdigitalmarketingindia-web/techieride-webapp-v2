@@ -139,6 +139,9 @@ model User {
   emailVerificationExpiry   DateTime?
   passwordResetToken        String?            @unique
   passwordResetExpiry       DateTime?
+  pendingEmail              String?                       // new email awaiting verification
+  pendingEmailToken         String?            @unique    // token sent to new email
+  pendingEmailExpiry        DateTime?
   isActive                  Boolean            @default(true)
   accountStatus             AccountStatus      @default(EMAIL_VERIFICATION_PENDING)
   verificationMethod        String?                       // EMAIL_VERIFIED | MANUAL_EXCEPTION

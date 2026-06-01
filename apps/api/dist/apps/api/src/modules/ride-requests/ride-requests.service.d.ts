@@ -137,7 +137,7 @@ export declare class RideRequestsService {
         confirmedAt: Date | null;
     }>;
     confirm(requestId: string, userId: string): Promise<{
-        status: string;
+        status: import(".prisma/client").$Enums.RequestStatus;
     }>;
     cancel(requestId: string, userId: string, reason?: string): Promise<{
         id: string;

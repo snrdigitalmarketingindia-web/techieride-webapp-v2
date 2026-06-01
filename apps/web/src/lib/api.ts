@@ -70,6 +70,10 @@ export const usersApi = {
   getPublicProfile: (id: string) => api.get(`/users/${id}/public`),
   getEmergencyContacts: () => api.get('/users/me/emergency-contacts'),
   addEmergencyContact: (data: any) => api.post('/users/me/emergency-contacts', data),
+  requestEmailChange: (newEmail: string) => api.post('/users/me/request-email-change', { newEmail }),
+  confirmEmailChange: (token: string) => api.post('/users/confirm-email-change', { token }),
+  requestPersonalEmailChange: (newEmail: string) => api.post('/users/me/request-personal-email-change', { newEmail }),
+  confirmPersonalEmailChange: (token: string) => api.post('/users/confirm-personal-email-change', { token }),
 };
 
 // ─── Rides ────────────────────────────────────────────

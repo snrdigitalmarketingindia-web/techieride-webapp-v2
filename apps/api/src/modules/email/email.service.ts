@@ -70,6 +70,34 @@ export class EmailService {
     this.logger.log(`Password reset email → ${email}`);
   }
 
+  // ── Email change verification ────────────────────────────────────────────
+  async sendEmailChangeVerification(newEmail: string, fullName: string, token: string, isPersonal = false) {
+    const route = isPersonal ? '/profile/confirm-personal-email' : '/profile/confirm-email-change';
+    const link = `${this.appUrl}${route}?token=${token}`;
+    const subject = isPersonal ? 'Confirm your personal email — TechieRide' : 'Confirm your new office email — TechieRide';
+    const heading = isPersonal ? 'Confirm your personal email' : 'Confirm your new office email';
+    const body = isPersonal
+      ? 'Click below to confirm this address as your personal notification email.'
+      : 'Click below to confirm this address as your new TechieRide login email. Your current email remains active until confirmed.';
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">${heading}, ${fullName.split(' ')[0]}!</h2>
+        <p style="color:#374151">${body}</p>
+        <a href="${link}"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Confirm Email
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+          This link expires in 24 hours. If you didn't request this, ignore this email.
+        </p>
+      </div>`;
+
+    await this.send(newEmail, subject, html);
+    this.logger.log(`Email change verification → ${newEmail} | link: ${link}`);
+  }
+
   // ── Welcome email after admin approval (includes TRID) ──────────────────
   async sendWelcomeApprovedEmail(email: string, fullName: string, trid: string) {
     const html = `
