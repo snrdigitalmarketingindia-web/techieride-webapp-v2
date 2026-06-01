@@ -1,10 +1,7 @@
 /** @type {import('next').NextConfig} */
-const { version: pkgVersion } = require('../../package.json');
-// On Vercel: use short SHA so the displayed version is always accurate regardless of
-// which commit Vercel picked up. Falls back to package.json version in local dev.
-const sha = process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7);
-const base = pkgVersion.split('.').slice(0, 3).join('.');
-const fullVersion = sha ? `${base}-${sha}` : pkgVersion;
+// Version is stamped into root package.json by the release-notes GitHub Action on every push.
+// Format: 2.1.0.{commit-count} — Vercel deploys the stamped commit so the number is always current.
+const { version: fullVersion } = require('../../package.json');
 
 const nextConfig = {
   env: {
