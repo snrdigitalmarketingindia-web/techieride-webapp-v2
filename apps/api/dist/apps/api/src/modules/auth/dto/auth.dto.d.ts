@@ -11,8 +11,14 @@ export declare class RegisterDto {
     gender: Gender;
     companyName: string;
     employeeId?: string;
+    phone: string;
+    personalEmail?: string;
     role: RegisterableRole;
-    phone?: string;
+    homeLocation: string;
+    officeLocation: string;
+    emergencyContactName: string;
+    emergencyContactPhone: string;
+    bloodGroup?: string;
 }
 export declare class LoginDto {
     email: string;

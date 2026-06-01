@@ -43,12 +43,16 @@ let AuthService = class AuthService {
         const user = await this.prisma.user.create({
             data: {
                 email: emailLower,
+                personalEmail: dto.personalEmail?.toLowerCase().trim() || null,
                 passwordHash,
                 fullName: dto.fullName,
                 gender: dto.gender,
                 companyName: dto.companyName,
                 employeeId: dto.employeeId,
                 phone: dto.phone,
+                bloodGroup: dto.bloodGroup || null,
+                homeLocation: dto.homeLocation,
+                officeLocation: dto.officeLocation,
                 role: dto.role,
                 emailVerificationToken,
                 emailVerificationExpiry,
@@ -61,6 +65,14 @@ let AuthService = class AuthService {
         if (dto.role === 'RIDE_SEEKER' || dto.role === 'BOTH') {
             await this.prisma.rideSeeker.create({ data: { userId: user.id } });
         }
+        await this.prisma.emergencyContact.create({
+            data: {
+                userId: user.id,
+                name: dto.emergencyContactName,
+                phone: dto.emergencyContactPhone,
+                relationship: 'Emergency Contact',
+            },
+        });
         const isDev = this.config.get('NODE_ENV') === 'development';
         if (isDev) {
             await this.prisma.user.update({

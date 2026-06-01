@@ -51,17 +51,48 @@ __decorate([
     __metadata("design:type", String)
 ], RegisterDto.prototype, "employeeId", void 0);
 __decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^[6-9]\d{9}$/, { message: 'Invalid Indian mobile number' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "personalEmail", void 0);
+__decorate([
     (0, class_validator_1.IsEnum)(RegisterableRole, {
         message: 'Role must be RIDE_GIVER, RIDE_SEEKER, or BOTH. ADMIN cannot be self-registered.',
     }),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "role", void 0);
 __decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MaxLength)(100),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "homeLocation", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.MaxLength)(100),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "officeLocation", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "emergencyContactName", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^[6-9]\d{9}$/, { message: 'Invalid emergency contact number' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "emergencyContactPhone", void 0);
+__decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.Matches)(/^[6-9]\d{9}$/, { message: 'Invalid Indian mobile number' }),
     __metadata("design:type", String)
-], RegisterDto.prototype, "phone", void 0);
+], RegisterDto.prototype, "bloodGroup", void 0);
 class LoginDto {
 }
 exports.LoginDto = LoginDto;

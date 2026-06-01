@@ -54,12 +54,16 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         email: emailLower,
+        personalEmail: dto.personalEmail?.toLowerCase().trim() || null,
         passwordHash,
         fullName: dto.fullName,
         gender: dto.gender,
         companyName: dto.companyName,
         employeeId: dto.employeeId,
         phone: dto.phone,
+        bloodGroup: dto.bloodGroup || null,
+        homeLocation: dto.homeLocation,
+        officeLocation: dto.officeLocation,
         role: dto.role as unknown as UserRole,
         emailVerificationToken,
         emailVerificationExpiry,
@@ -75,7 +79,17 @@ export class AuthService {
       await this.prisma.rideSeeker.create({ data: { userId: user.id } });
     }
 
-    // 7. In dev mode, auto-verify so tests work without email delivery
+    // 7. Save emergency contact
+    await this.prisma.emergencyContact.create({
+      data: {
+        userId: user.id,
+        name: dto.emergencyContactName,
+        phone: dto.emergencyContactPhone,
+        relationship: 'Emergency Contact',
+      },
+    });
+
+    // 8. In dev mode, auto-verify so tests work without email delivery
     const isDev = this.config.get('NODE_ENV') === 'development';
     if (isDev) {
       await this.prisma.user.update({

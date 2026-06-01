@@ -1,6 +1,6 @@
 import {
   IsEmail, IsString, MinLength, MaxLength,
-  IsEnum, IsOptional, Matches,
+  IsEnum, IsOptional, Matches, IsNotEmpty,
 } from 'class-validator';
 import { Gender } from '@techieride/shared';
 
@@ -12,14 +12,16 @@ export enum RegisterableRole {
 }
 
 export class RegisterDto {
+  // ── Auth ────────────────────────────────────────────────────────────────
   @IsEmail()
-  email: string;
+  email: string; // official/company email — verification & auth only
 
   @IsString()
   @MinLength(8, { message: 'Password must be at least 8 characters' })
   @MaxLength(64)
   password: string;
 
+  // ── Profile ──────────────────────────────────────────────────────────────
   @IsString()
   @MinLength(2)
   @MaxLength(100)
@@ -35,15 +37,43 @@ export class RegisterDto {
   @IsString()
   employeeId?: string;
 
+  @IsString()
+  @Matches(/^[6-9]\d{9}$/, { message: 'Invalid Indian mobile number' })
+  phone: string;
+
+  @IsOptional()
+  @IsEmail()
+  personalEmail?: string; // personal email — app notifications (any domain)
+
   @IsEnum(RegisterableRole, {
     message: 'Role must be RIDE_GIVER, RIDE_SEEKER, or BOTH. ADMIN cannot be self-registered.',
   })
   role: RegisterableRole;
 
+  // ── Location ─────────────────────────────────────────────────────────────
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  homeLocation: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  officeLocation: string;
+
+  // ── Emergency Contact ────────────────────────────────────────────────────
+  @IsString()
+  @IsNotEmpty()
+  emergencyContactName: string;
+
+  @IsString()
+  @Matches(/^[6-9]\d{9}$/, { message: 'Invalid emergency contact number' })
+  emergencyContactPhone: string;
+
+  // ── Optional ─────────────────────────────────────────────────────────────
   @IsOptional()
   @IsString()
-  @Matches(/^[6-9]\d{9}$/, { message: 'Invalid Indian mobile number' })
-  phone?: string;
+  bloodGroup?: string; // A+/A-/B+/B-/O+/O-/AB+/AB-
 }
 
 export class LoginDto {
