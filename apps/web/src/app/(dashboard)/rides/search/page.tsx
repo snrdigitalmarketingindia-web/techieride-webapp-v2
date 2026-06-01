@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ridesApi, requestsApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
 
@@ -16,7 +16,7 @@ function BoardingModal({
   onClose,
 }: {
   ride: any;
-  onConfirm: (data: { pickupName: string; pickupLat?: number; pickupLng?: number; dropName: string }) => void;
+  onConfirm: (data: { pickupName: string; pickupLat?: number; pickupLng?: number; dropName: string }) => Promise<void>;
   onClose: () => void;
 }) {
   const [pickupName, setPickupName] = useState('');
@@ -35,11 +35,16 @@ function BoardingModal({
     setError('');
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!pickupName.trim()) { setError('Please enter or pin your boarding point'); return; }
     if (!dropName.trim()) { setError('Please enter your drop point'); return; }
     setSubmitting(true);
-    onConfirm({ pickupName: pickupName.trim(), pickupLat, pickupLng, dropName: dropName.trim() });
+    try {
+      await onConfirm({ pickupName: pickupName.trim(), pickupLat, pickupLng, dropName: dropName.trim() });
+    } catch (e: any) {
+      setError(e.message || 'Failed to send request');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -166,9 +171,23 @@ export default function RideSearchPage() {
   });
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [requested, setRequested] = useState<Set<string>>(new Set());
+  // rideId → 'pending' (awaiting giver) | 'sent' (just sent this session)
+  const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'sent'>>({});
   const [view, setView] = useState<'list' | 'map'>('list');
-  const [boardingRide, setBoardingRide] = useState<any | null>(null); // ride waiting for boarding input
+  const [boardingRide, setBoardingRide] = useState<any | null>(null);
+
+  // Pre-load seeker's active requests so buttons are disabled immediately
+  useEffect(() => {
+    requestsApi.getMine().then((r) => {
+      const active: Record<string, 'pending'> = {};
+      for (const req of r.data ?? []) {
+        if (['PENDING', 'HOLD', 'CONFIRMED'].includes(req.status)) {
+          active[req.ride?.id] = 'pending';
+        }
+      }
+      setRequestedMap(active);
+    }).catch(() => {});
+  }, []);
 
   const search = async () => {
     setLoading(true);
@@ -197,7 +216,7 @@ export default function RideSearchPage() {
     pickupLat?: number;
     pickupLng?: number;
     dropName: string;
-  }) => {
+  }): Promise<void> => {
     if (!boardingRide) return;
     try {
       await requestsApi.create({
@@ -207,12 +226,18 @@ export default function RideSearchPage() {
         ...(data.pickupLng !== undefined && { pickupLng: data.pickupLng }),
         dropName: data.dropName,
       });
-      setRequested((prev) => new Set(prev).add(boardingRide.id));
+      setRequestedMap((prev) => ({ ...prev, [boardingRide.id]: 'sent' }));
       setBoardingRide(null);
     } catch (e: any) {
       const msg = e.response?.data?.message;
-      alert(Array.isArray(msg) ? msg.join(', ') : msg || 'Failed to send request');
-      setBoardingRide(null);
+      const text = Array.isArray(msg) ? msg.join(', ') : msg || 'Failed to send request';
+      // 409 = already have active request — close modal, mark as pending
+      if (e.response?.status === 409) {
+        setRequestedMap((prev) => ({ ...prev, [boardingRide.id]: 'pending' }));
+        setBoardingRide(null);
+        return;
+      }
+      throw new Error(text); // bubble up to modal's inline error
     }
   };
 
@@ -333,23 +358,33 @@ export default function RideSearchPage() {
                 <span className="bg-gray-100 px-2 py-0.5 rounded">{ride.vehicle?.color}</span>
               </div>
 
-              <button
-                onClick={() => openBoardingModal(ride)}
-                disabled={requested.has(ride.id) || ride.availableSeats === 0}
-                className={`w-full py-2 rounded-lg text-sm font-medium transition ${
-                  requested.has(ride.id)
-                    ? 'bg-gray-100 text-gray-500'
-                    : ride.availableSeats === 0
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-brand-600 text-white hover:bg-brand-700'
-                }`}
-              >
-                {requested.has(ride.id)
-                  ? '✅ Request Sent'
-                  : ride.availableSeats === 0
-                  ? 'No seats'
-                  : '📍 Request Seat'}
-              </button>
+              {(() => {
+                const reqStatus = requestedMap[ride.id];
+                const full = ride.availableSeats === 0;
+                if (reqStatus === 'pending') return (
+                  <div className="w-full py-2.5 rounded-lg text-sm font-medium text-center bg-amber-50 text-amber-700 border border-amber-200">
+                    ⏳ Awaiting giver's response
+                  </div>
+                );
+                if (reqStatus === 'sent') return (
+                  <div className="w-full py-2.5 rounded-lg text-sm font-medium text-center bg-green-50 text-green-700 border border-green-200">
+                    ✅ Request Sent — awaiting approval
+                  </div>
+                );
+                return (
+                  <button
+                    onClick={() => openBoardingModal(ride)}
+                    disabled={full}
+                    className={`w-full py-2 rounded-lg text-sm font-medium transition ${
+                      full
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-brand-600 text-white hover:bg-brand-700'
+                    }`}
+                  >
+                    {full ? 'No seats available' : '📍 Request Seat'}
+                  </button>
+                );
+              })()}
             </div>
           ))}
         </div>
