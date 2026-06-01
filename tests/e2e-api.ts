@@ -331,10 +331,20 @@ async function run() {
 
   agent('Ride Seeker Agent');
 
-  // Use a fresh seeker account to avoid interference from existing active requests
+  // Use a fresh seeker account — must go through employee verification
+  // (accountStatus must be EMPLOYEE_VERIFIED to access ride routes)
   const freshSeekerEmail = `fresh_seeker_${ts}@tcs.com`;
-  const freshSeekerToken = await registerAndLogin(freshSeekerEmail, 'Fresh Seeker', 'RIDE_SEEKER');
+  const freshSeekerToken = await registerAndLogin(freshSeekerEmail, 'Fresh Seeker');
   const seekerClient = makeClient(freshSeekerToken);
+  {
+    // Employee verification — required before ride access
+    const profile = await seekerClient.get('/users/me');
+    const freshSeekerId = profile.data.id;
+    await seekerClient.post('/verification/employee', { employeeIdUrl: 'mock://seeker-emp' });
+    const empQ = await adminClient.get('/admin/verification/pending');
+    const empE = empQ.data.find((v: any) => v.userId === freshSeekerId && v.verificationType === 'EMPLOYEE');
+    if (empE) await adminClient.patch(`/admin/verification/${empE.id}/review`, { decision: 'APPROVED' });
+  }
 
   await test('Seeker can fetch own profile', async () => {
     const r = await seekerClient.get('/users/me');
