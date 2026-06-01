@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ridesApi, requestsApi } from '@/lib/api';
+import { ridesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -15,15 +15,18 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function MyRidesPage() {
   const { user } = useAuthStore();
-  const [tab, setTab] = useState<'given' | 'taken'>('given');
+  const role = user?.role;
+  const isGiver  = role === 'RIDE_GIVER' || role === 'BOTH';
+  const isSeeker = role === 'RIDE_SEEKER' || role === 'BOTH';
+
+  const [tab, setTab] = useState<'given' | 'taken'>(isGiver ? 'given' : 'taken');
   const [rides, setRides] = useState<any[]>([]);
-  const [pendingRequests, setPendingRequests] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     const fetch = tab === 'given' ? ridesApi.getGiven() : ridesApi.getTaken();
-    fetch.then((r) => setRides(r.data)).finally(() => setLoading(false));
+    fetch.then((r) => setRides(r.data ?? [])).finally(() => setLoading(false));
   }, [tab]);
 
   const handleStart = async (rideId: string) => {
@@ -45,14 +48,17 @@ export default function MyRidesPage() {
         </Link>
       </div>
 
-      <div className="flex bg-gray-100 rounded-lg p-1">
-        {(['given', 'taken'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${tab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
-            {t === 'given' ? '🚗 Rides Given' : '🧳 Rides Taken'}
-          </button>
-        ))}
-      </div>
+      {/* Only show tabs for BOTH role — pure giver or seeker sees no tab */}
+      {isGiver && isSeeker && (
+        <div className="flex bg-gray-100 rounded-lg p-1">
+          {(['given', 'taken'] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${tab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
+              {t === 'given' ? '🚗 Rides Given' : '🧳 Rides Taken'}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-10 text-gray-400">Loading...</div>
