@@ -17,11 +17,11 @@ const ECO_BADGES: Record<EcoLevel, string> = {
 };
 
 const navLinks = [
-  { href: '/dashboard', label: 'Home', icon: '🏠' },
-  { href: '/rides', label: 'My Rides', icon: '🚗' },
-  { href: '/rides/search', label: 'Find Ride', icon: '🔍' },
-  { href: '/requests', label: 'Requests', icon: '📥' },
-  { href: '/profile', label: 'Profile', icon: '👤' },
+  { href: '/dashboard',    label: 'Home',     icon: '🏠' },
+  { href: '/rides',        label: 'My Rides', icon: '🚗' },
+  { href: '/rides/board',  label: 'Board',    icon: '🗺️' },
+  { href: '/requests',     label: 'Requests', icon: '📥' },
+  { href: '/profile',      label: 'Profile',  icon: '👤' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
