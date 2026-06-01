@@ -2,6 +2,22 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 182 · ff45c2b · 2026-06-01 20:01 UTC
+
+Commit: fix: revert next.config.js to read version from package.json
+
+SHA-based versioning was wrong. The release-notes workflow correctly stamps
+2.1.0.{commit-count} into package.json on every push — Vercel deploys that
+stamped commit so the build number is always accurate.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/next.config.js
+
+---
+
 ## Build 180 · 0ca3620 · 2026-06-01 19:57 UTC
 
 Commit: fix: use VERCEL_GIT_COMMIT_SHA as build identifier in next.config.js
