@@ -8,6 +8,23 @@ Version format: **Major.Minor.Patch.Build**
 
 ---
 
+## [2.0.4.106] — 2026-06-01
+### Added
+- Real email delivery via Resend — verification + password reset emails now reach inbox
+- `gmail.com` whitelisted temporarily for testing (marked TEST ONLY)
+- `APP_URL`, `EMAIL_FROM`, `NODE_ENV=production`, `RESEND_API_KEY` all set on Render
+- `gh` CLI authenticated (`snrdigitalmarketingindia-web`)
+
+### Verified
+- Registration → email → verify → login flow tested end to end ✅
+- Email delivered from `onboarding@resend.dev` to `snrdigitalmarketingindia@gmail.com`
+
+### Pending
+- Verify `techieride.in` domain in Resend → switch `EMAIL_FROM` back to `noreply@techieride.in`
+- Remove `gmail.com` from allowed domains before production launch
+
+---
+
 ## [2.0.4.104] — 2026-06-01
 ### Added
 - `permission-leaks.spec.ts` — 24 Playwright tests (PERM-01 to PERM-10): seeker/giver role guards, admin access redirects, unauthenticated route protection, token isolation, BOTH role UI
