@@ -1,6 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WsEvents = exports.BoardingStatus = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = void 0;
+exports.WsEvents = exports.BoardingStatus = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = exports.AccountStatus = void 0;
+var AccountStatus;
+(function (AccountStatus) {
+    AccountStatus["DRAFT"] = "DRAFT";
+    AccountStatus["EMAIL_PENDING"] = "EMAIL_PENDING";
+    AccountStatus["PROFILE_INCOMPLETE"] = "PROFILE_INCOMPLETE";
+    AccountStatus["DOCS_PENDING"] = "DOCS_PENDING";
+    AccountStatus["UNDER_REVIEW"] = "UNDER_REVIEW";
+    AccountStatus["ACTIVE"] = "ACTIVE";
+    AccountStatus["UPGRADE_PENDING"] = "UPGRADE_PENDING";
+    AccountStatus["COMPANY_CHANGE"] = "COMPANY_CHANGE";
+    AccountStatus["SUSPENDED"] = "SUSPENDED";
+    AccountStatus["REJECTED"] = "REJECTED";
+    AccountStatus["DEACTIVATED"] = "DEACTIVATED";
+    AccountStatus["BANNED"] = "BANNED";
+})(AccountStatus || (exports.AccountStatus = AccountStatus = {}));
 var Gender;
 (function (Gender) {
     Gender["MALE"] = "MALE";

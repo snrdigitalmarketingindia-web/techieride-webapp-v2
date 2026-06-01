@@ -1,4 +1,4 @@
-import { PrismaClient, Gender, UserRole, VerificationStatus, EcoLevel } from '@prisma/client';
+import { PrismaClient, Gender, UserRole, VerificationStatus, EcoLevel, AccountStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -17,7 +17,7 @@ async function main() {
   // ── Admin ──────────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@techieride.in' },
-    update: {},
+    update: { accountStatus: AccountStatus.ACTIVE, emailStatus: 'VERIFIED' },
     create: {
       email: 'admin@techieride.in',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -25,6 +25,7 @@ async function main() {
       role: UserRole.ADMIN,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
+      accountStatus: AccountStatus.ACTIVE,
       isActive: true,
     },
   });
@@ -33,7 +34,7 @@ async function main() {
   // ── Ride Seeker: Arjun ─────────────────────────────────────────────────
   const arjun = await prisma.user.upsert({
     where: { email: 'arjun@tcs.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED' },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.ACTIVE },
     create: {
       email: 'arjun@tcs.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -47,6 +48,7 @@ async function main() {
       role: UserRole.RIDE_SEEKER,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
+      accountStatus: AccountStatus.ACTIVE,
       ecoPoints: 60,
       ecoLevel: EcoLevel.SEED,
     },
@@ -66,7 +68,7 @@ async function main() {
   // ── Ride Giver: Priya ──────────────────────────────────────────────────
   const priya = await prisma.user.upsert({
     where: { email: 'priya@infosys.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED' },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.ACTIVE },
     create: {
       email: 'priya@infosys.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -80,6 +82,7 @@ async function main() {
       role: UserRole.RIDE_GIVER,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
+      accountStatus: AccountStatus.ACTIVE,
       ecoPoints: 180,
       ecoLevel: EcoLevel.SPROUT,
     },
@@ -104,7 +107,7 @@ async function main() {
   // ── Both: Ravi ─────────────────────────────────────────────────────────
   const ravi = await prisma.user.upsert({
     where: { email: 'ravi@wipro.com' },
-    update: {},
+    update: { accountStatus: AccountStatus.ACTIVE, emailStatus: 'VERIFIED' },
     create: {
       email: 'ravi@wipro.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -118,6 +121,7 @@ async function main() {
       role: UserRole.BOTH,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
+      accountStatus: AccountStatus.ACTIVE,
       ecoPoints: 340,
       ecoLevel: EcoLevel.LEAF,
     },
@@ -137,7 +141,7 @@ async function main() {
   for (const acc of testAccounts) {
     const u = await prisma.user.upsert({
       where: { email: acc.email },
-      update: {},
+      update: { accountStatus: AccountStatus.ACTIVE, emailStatus: 'VERIFIED' },
       create: {
         email: acc.email,
         passwordHash: await hashPw(SEED_PASSWORD),
@@ -145,6 +149,7 @@ async function main() {
         role: acc.role,
         verificationStatus: VerificationStatus.APPROVED,
         emailStatus: 'VERIFIED',
+        accountStatus: AccountStatus.ACTIVE,
         isActive: true,
         companyName: 'Test',
         employeeId: `TEST-${acc.fullName.toUpperCase().slice(0, 4)}`,

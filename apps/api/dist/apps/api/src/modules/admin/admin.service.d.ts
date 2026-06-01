@@ -46,6 +46,7 @@ export declare class AdminService {
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
         isActive: boolean;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -75,6 +76,7 @@ export declare class AdminService {
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
         isActive: boolean;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;

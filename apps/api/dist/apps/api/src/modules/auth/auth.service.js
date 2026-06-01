@@ -57,6 +57,7 @@ let AuthService = class AuthService {
                 emailVerificationToken,
                 emailVerificationExpiry,
                 emailStatus: 'PENDING',
+                accountStatus: 'EMAIL_PENDING',
             },
         });
         if (dto.role === 'RIDE_GIVER' || dto.role === 'BOTH') {
@@ -77,7 +78,7 @@ let AuthService = class AuthService {
         if (isDev) {
             await this.prisma.user.update({
                 where: { id: user.id },
-                data: { emailStatus: 'VERIFIED', emailVerificationToken: null, emailVerificationExpiry: null },
+                data: { emailStatus: 'VERIFIED', accountStatus: 'DOCS_PENDING', emailVerificationToken: null, emailVerificationExpiry: null },
             });
         }
         else {
@@ -106,6 +107,7 @@ let AuthService = class AuthService {
             where: { id: user.id },
             data: {
                 emailStatus: 'VERIFIED',
+                accountStatus: 'DOCS_PENDING',
                 emailVerificationToken: null,
                 emailVerificationExpiry: null,
             },
@@ -137,13 +139,16 @@ let AuthService = class AuthService {
         const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
         if (!passwordMatch)
             throw new common_1.UnauthorizedException('Invalid email or password');
+        if (user.accountStatus === 'BANNED') {
+            throw new common_1.UnauthorizedException('ACCOUNT_BANNED');
+        }
+        if (user.accountStatus === 'DEACTIVATED') {
+            throw new common_1.UnauthorizedException('ACCOUNT_DEACTIVATED');
+        }
         if (!user.isActive)
             throw new common_1.UnauthorizedException('Account suspended. Contact admin.');
         if (user.emailStatus === 'BOUNCED') {
             throw new common_1.UnauthorizedException('EMAIL_BOUNCED');
-        }
-        if (user.emailStatus !== 'VERIFIED') {
-            throw new common_1.UnauthorizedException('EMAIL_NOT_VERIFIED');
         }
         return this.generateTokens(user);
     }

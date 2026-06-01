@@ -24,7 +24,7 @@ export declare class VerificationService {
         submittedAt: Date;
     }>;
     review(requestId: string, adminId: string, decision: 'APPROVED' | 'REJECTED', rejectionReason?: string): Promise<{
-        status: "APPROVED" | "REJECTED";
+        status: "REJECTED" | "APPROVED";
         trid: string | undefined;
     }>;
     getPendingQueue(): Promise<({

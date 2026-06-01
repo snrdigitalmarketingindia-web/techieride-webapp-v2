@@ -68,6 +68,7 @@ export class AuthService {
         emailVerificationToken,
         emailVerificationExpiry,
         emailStatus: 'PENDING',
+        accountStatus: 'EMAIL_PENDING',
       },
     });
 
@@ -94,7 +95,7 @@ export class AuthService {
     if (isDev) {
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { emailStatus: 'VERIFIED', emailVerificationToken: null, emailVerificationExpiry: null },
+        data: { emailStatus: 'VERIFIED', accountStatus: 'DOCS_PENDING', emailVerificationToken: null, emailVerificationExpiry: null },
       });
     } else {
       await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
@@ -126,6 +127,7 @@ export class AuthService {
       where: { id: user.id },
       data: {
         emailStatus: 'VERIFIED',
+        accountStatus: 'DOCS_PENDING',
         emailVerificationToken: null,
         emailVerificationExpiry: null,
       },
@@ -171,16 +173,16 @@ export class AuthService {
     const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatch) throw new UnauthorizedException('Invalid email or password');
 
+    if (user.accountStatus === 'BANNED') {
+      throw new UnauthorizedException('ACCOUNT_BANNED');
+    }
+    if (user.accountStatus === 'DEACTIVATED') {
+      throw new UnauthorizedException('ACCOUNT_DEACTIVATED');
+    }
     if (!user.isActive) throw new UnauthorizedException('Account suspended. Contact admin.');
 
     if (user.emailStatus === 'BOUNCED') {
-      throw new UnauthorizedException(
-        'EMAIL_BOUNCED'
-      );
-    }
-
-    if (user.emailStatus !== 'VERIFIED') {
-      throw new UnauthorizedException('EMAIL_NOT_VERIFIED');
+      throw new UnauthorizedException('EMAIL_BOUNCED');
     }
 
     return this.generateTokens(user);

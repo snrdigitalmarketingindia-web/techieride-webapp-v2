@@ -30,6 +30,7 @@ export declare class UsersService {
         verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
         emailStatus: import(".prisma/client").$Enums.EmailStatus;
         isActive: boolean;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -74,6 +75,7 @@ export declare class UsersService {
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
         isActive: boolean;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
@@ -103,6 +105,7 @@ export declare class UsersService {
         passwordResetToken: string | null;
         passwordResetExpiry: Date | null;
         isActive: boolean;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;

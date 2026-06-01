@@ -9,6 +9,21 @@ datasource db {
 
 // ─── Enums ─────────────────────────────────────────────────────────────────
 
+enum AccountStatus {
+  DRAFT
+  EMAIL_PENDING
+  PROFILE_INCOMPLETE
+  DOCS_PENDING
+  UNDER_REVIEW
+  ACTIVE
+  UPGRADE_PENDING
+  COMPANY_CHANGE
+  SUSPENDED
+  REJECTED
+  DEACTIVATED
+  BANNED
+}
+
 enum Gender {
   MALE
   FEMALE
@@ -118,6 +133,7 @@ model User {
   passwordResetToken        String?            @unique
   passwordResetExpiry       DateTime?
   isActive                  Boolean            @default(true)
+  accountStatus             AccountStatus      @default(EMAIL_PENDING)
   fcmToken                  String?
   ecoPoints                 Int                @default(0)
   ecoLevel                  EcoLevel           @default(SEED)

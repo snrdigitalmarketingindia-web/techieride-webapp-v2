@@ -7,6 +7,7 @@ import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddEmergencyContactDto } from './dto/emergency-contact.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AllowUnverified } from '../../common/decorators/allow-unverified.decorator';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -14,11 +15,13 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
+  @AllowUnverified()
   @Get('me')
   getMyProfile(@CurrentUser('id') userId: string) {
     return this.usersService.getProfile(userId);
   }
 
+  @AllowUnverified()
   @Patch('me')
   updateProfile(@CurrentUser('id') userId: string, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(userId, dto);

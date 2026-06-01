@@ -14,6 +14,7 @@ const throttler_1 = require("@nestjs/throttler");
 const schedule_1 = require("@nestjs/schedule");
 const jwt_auth_guard_1 = require("./common/guards/jwt-auth.guard");
 const roles_guard_1 = require("./common/guards/roles.guard");
+const email_verified_guard_1 = require("./common/guards/email-verified.guard");
 const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 const prisma_module_1 = require("./prisma/prisma.module");
 const redis_module_1 = require("./config/redis.module");
@@ -57,6 +58,7 @@ exports.AppModule = AppModule = __decorate([
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: jwt_auth_guard_1.JwtAuthGuard },
+            { provide: core_1.APP_GUARD, useClass: email_verified_guard_1.EmailVerifiedGuard },
             { provide: core_1.APP_GUARD, useClass: roles_guard_1.RolesGuard },
             { provide: core_1.APP_FILTER, useClass: http_exception_filter_1.AllExceptionsFilter },
         ],
