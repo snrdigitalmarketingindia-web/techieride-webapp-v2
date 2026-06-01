@@ -1,6 +1,35 @@
 # TechieRide Release Notes
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
+## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+
+Commit: feat: shared RideCard component — consistent participants + status + call everywhere
+
+- New RideCard component (components/ui/RideCard.tsx) with 3 modes:
+  giver: participants list with boarding status badge + call per passenger
+  seeker: giver contact + all fellow passengers with status + call
+  browse: giver name + joined count only (search results)
+- Dashboard: replaced bespoke ride card with RideCard
+- My Rides: replaced bespoke ride card with RideCard + actions slot
+  (pending requests inline, Start/Complete/Track buttons)
+- getTakenRides API: now includes ride.participants (seeker contact info)
+  so fellow carpoolers are visible to confirmed seekers
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/rides/rides.controller.d.ts
+- apps/api/dist/apps/api/src/modules/rides/rides.service.d.ts
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/rides/rides.service.ts
+- apps/web/src/app/(dashboard)/dashboard/page.tsx
+- apps/web/src/app/(dashboard)/rides/page.tsx
+- apps/web/src/components/ui/RideCard.tsx
+
+---
 
 ---
 
