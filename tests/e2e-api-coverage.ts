@@ -117,6 +117,7 @@ async function run() {
       const r = await makeClient().post('/auth/register', {
         email: 'arjun@tcs.com', password: SEED_PASSWORD,
         fullName: 'Duplicate', companyName: 'TCS', employeeId: 'N/A',
+        phone: '9876543210',
       });
       assert(r.status === 409, `Expected 409, got ${r.status}`);
     });

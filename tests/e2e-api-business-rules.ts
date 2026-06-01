@@ -92,10 +92,12 @@ async function loginAs(email: string) {
 
 async function registerAndLogin(email: string, _roleIgnored?: string) {
   const client = makeClient();
+  const phone = `9${String(Date.now()).slice(-9)}`;
   await client.post('/auth/register', {
     email, password: SEED_PASSWORD,
     fullName: 'Test User',
     companyName: 'TestCo', employeeId: 'N/A',
+    phone,
   });
   return loginAs(email);
 }

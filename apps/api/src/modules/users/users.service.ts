@@ -31,8 +31,6 @@ export class UsersService {
         profilePhoto: true,
         ecoLevel: true,
         companyName: true,
-        phone: true,
-        countryCode: true,
         rideGiver: { select: { averageRating: true, totalRidesGiven: true } },
         rideSeeker: { select: { averageRating: true, totalRidesTaken: true } },
       },

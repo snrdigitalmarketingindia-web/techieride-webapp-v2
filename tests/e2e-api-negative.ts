@@ -60,10 +60,12 @@ async function loginAs(email: string) {
 
 async function registerAndLogin(email: string, _roleIgnored?: string) {
   const c = makeClient();
+  const phone = `9${String(Date.now()).slice(-9)}`;
   const r = await c.post('/auth/register', {
     email, password: SEED_PASSWORD,
     fullName: 'Test User',
     companyName: 'TestCo', employeeId: 'N/A',
+    phone,
   });
   if (r.status !== 201 && r.status !== 409) throw new Error(`Register failed for ${email}: ${JSON.stringify(r.data)}`);
   return loginAs(email);

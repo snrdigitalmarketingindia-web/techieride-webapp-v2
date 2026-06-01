@@ -62,9 +62,11 @@ async function loginAs(email: string): Promise<string> {
 
 async function registerAndLogin(email: string, fullName: string, _roleIgnored?: string): Promise<string> {
   const c1 = makeClient();
+  const phone = `9${String(Date.now()).slice(-9)}`;
   const reg = await c1.post('/auth/register', {
     email, password: SEED_PASSWORD, fullName,
     companyName: 'TestCorp', employeeId: 'N/A',
+    phone,
   });
   if (reg.status !== 201 && reg.status !== 409) throw new Error(`Register: ${JSON.stringify(reg.data)}`);
   const { token } = await loginAsWithId(email);
@@ -340,7 +342,7 @@ async function run() {
   await test('Admin cannot be created via register endpoint → 400', async () => {
     const r = await makeClient().post('/auth/register', {
       email: `hacker.${Date.now()}@tcs.com`, password: SEED_PASSWORD,
-      fullName: 'Hacker',
+      fullName: 'Hacker', phone: '9800000001',
       companyName: 'TCS', employeeId: 'N/A',
       role: 'ADMIN',  // Must be rejected — role field is forbidden (property should not exist)
     });

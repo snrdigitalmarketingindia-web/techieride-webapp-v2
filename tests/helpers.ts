@@ -52,12 +52,14 @@ export async function register(
   fullName: string,
   _roleIgnored?: string,  // kept for signature compatibility — ignored
 ): Promise<{ token: string; refreshToken: string; userId: string }> {
+  const phone = `9${String(Date.now()).slice(-9)}`;
   const r = await makeClient().post('/auth/register', {
     email,
     password: SEED_PASSWORD,
     fullName,
     companyName: 'TestCorp',
     employeeId: 'N/A',
+    phone,
   });
   if (r.status !== 201 && r.status !== 409) {
     throw new Error(`Register failed for ${email}: ${JSON.stringify(r.data)}`);
