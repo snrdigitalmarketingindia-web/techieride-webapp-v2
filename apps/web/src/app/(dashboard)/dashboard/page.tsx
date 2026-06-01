@@ -55,12 +55,18 @@ export default function DashboardPage() {
 
       {/* Account status banners */}
       {user?.accountStatus === 'EMAIL_VERIFICATION_PENDING' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-amber-800 text-sm font-medium">📧 Verify your email</p>
-            <p className="text-amber-700 text-sm">Check your office inbox for the verification link.</p>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-amber-800 text-sm font-medium">📧 Verify your email</p>
+              <p className="text-amber-700 text-sm">Check your office inbox for the verification link.</p>
+            </div>
+            <Link href="/verify-email" className="shrink-0 text-sm text-amber-700 font-medium underline">Resend</Link>
           </div>
-          <Link href="/verify-email" className="text-sm text-amber-700 font-medium underline">Resend</Link>
+          <p className="text-xs text-amber-600">
+            Can't access your company email?{' '}
+            <Link href="/exception-verification" className="underline font-medium">Request a manual exception →</Link>
+          </p>
         </div>
       )}
       {user?.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED' && (

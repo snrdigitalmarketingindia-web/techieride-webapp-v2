@@ -55,6 +55,12 @@ export const authApi = {
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
   resetPassword: (token: string, newPassword: string) => api.post('/auth/reset-password', { token, newPassword }),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
+  requestExceptionVerification: (data: {
+    personalEmail: string;
+    companyIdCardUrl: string;
+    employeeId: string;
+    reason: string;
+  }) => api.post('/auth/exception-verification', data),
 };
 
 // ─── Users ────────────────────────────────────────────
