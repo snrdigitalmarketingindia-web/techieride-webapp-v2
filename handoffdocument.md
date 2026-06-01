@@ -1,6 +1,6 @@
 # TechieRide 2.0 — Handoff Document
 > Auto-updated after every significant change in this session.
-> **Last updated:** 2026-06-01 (latest: `aa985e1`) — **v2.1.0.115**
+> **Last updated:** 2026-06-01 (latest: `cc86988`) — **v2.1.0.117**
 
 ---
 
@@ -130,32 +130,67 @@
 
 ---
 
-## ✅ Current CI Status
+## 🔴 Current CI Status — FAILING (v2.1.0 breakage, fix in progress)
 
 | Suite | Tests | Status |
 |---|---|---|
-| Base lifecycle | 37 | ✅ Green |
-| Extended | 30 | ✅ Green |
-| Negative/boundary | 33 | ✅ Green |
-| Business rules | 44 | ✅ Green |
-| Production coverage | 69 | ✅ Green |
-| Final gap-closing | 57 | ✅ Green |
-| Playwright E2E | ~80 | ✅ Green |
+| Base lifecycle | 37 | ❌ Failing |
+| Extended | 30 | ❌ Failing |
+| Negative/boundary | 33 | ❌ Failing |
+| Business rules | 44 | ❌ Failing |
+| Production coverage | 69 | ❌ Failing |
+| Final gap-closing | 57 | ❌ Failing |
+| Playwright E2E | ~80 | ⚠️ Unknown |
 
-**Total: 350 automated checks — 349 passing, 1 expected skip**
+**Root cause:** `complete()` now requires ALL participants to be DEBOARDED or NO_SHOW before completing.
+The test lifecycle runs: publish → request → approve → confirm → start → **complete** — but never boards/deboards the seeker first.
+All tests that call `complete()` fail with: `"Cannot complete ride — 1 passenger(s) have not deboarded yet"`.
 
-> ⚠️ API tests use old `RegisterDto` shape (no `homeLocation` etc.) — tests will need updating to pass new required fields. See Pending below.
+**Fix needed (Session 6 Priority #1):**
+Add board + deboard calls to the test lifecycle before `complete()`:
+```typescript
+// After start:
+await seeker.client.patch(`/rides/${rideId}/board`);   // seeker boards
+await seeker.client.patch(`/rides/${rideId}/deboard`); // seeker deboards
+// Then complete() will succeed
+```
+This must be added to: `helpers.ts completeFullRide()`, `e2e-api.ts`, `e2e-api-extended.ts`, `e2e-api-coverage.ts`, `e2e-api-final.ts`
+
+**Already fixed in commit `cc86988`:**
+- ✅ `register()` — new required fields added (`homeLocation`, `officeLocation`, `emergencyContactName`, `emergencyContactPhone`)
+- ✅ `POST /ride-requests` — `pickupName` added to all test calls
+- ✅ `BASE` URL reads from `API_BASE_URL` env var in all test files
+- ✅ `prisma/seed.ts` — new location fields added
 
 ---
 
 ## Pending / Next Steps (Priority Order)
 
-1. **Update API test suites** — `register()` in `tests/helpers.ts` and all test files need new required fields: `homeLocation`, `officeLocation`, `emergencyContactName`, `emergencyContactPhone`
-2. **Verify `techieride.in` domain in Resend** → switch `EMAIL_FROM` from `onboarding@resend.dev` to `noreply@techieride.in`
-3. **Remove `gmail.com`** from allowed domains before production launch (`apps/api/src/config/allowed-domains.ts`)
-4. **Update TRID_START** — change `TRID_START = 2000` in `packages/shared/src/constants.ts` to continue from your existing member DB number
-5. **Write unit tests** — 0 unit tests exist. Start with `gamification.service.ts` + `roles.guard.ts`
-6. **Frontend boarding UI** — giver's ride view during ONGOING: show participant list with boarding status + "Mark No Show" button per WAITING seeker + "Complete Ride" enabled only when all resolved
+### 🔴 Urgent — Fix CI (do first)
+1. **Add board/deboard to test lifecycle** — all test suites call `complete()` without boarding the seeker first. Fix `helpers.ts completeFullRide()` and every test that runs a full ride lifecycle:
+   ```typescript
+   await seeker.client.patch(`/rides/${rideId}/board`);
+   await seeker.client.patch(`/rides/${rideId}/deboard`);
+   // then complete()
+   ```
+   Affects: `helpers.ts`, `e2e-api.ts`, `e2e-api-extended.ts`, `e2e-api-coverage.ts`, `e2e-api-final.ts`
+
+### ✅ Already done (session 5)
+- ~~Update API test helpers~~ ✅ `register()` + `POST /ride-requests` fixed in `cc86988`
+- ~~Update seed script~~ ✅ `prisma/seed.ts` patched with new fields
+- ~~`BASE` URL hardcoded~~ ✅ All test files now read `API_BASE_URL` env var
+
+### 🟡 Before production launch
+2. **Set TRID_START** — change `TRID_START = 2000` in `packages/shared/src/constants.ts` to your current highest member number
+3. **Verify `techieride.in` domain** in Resend → switch `EMAIL_FROM` to `noreply@techieride.in`
+4. **Remove `gmail.com`** from `apps/api/src/config/allowed-domains.ts`
+
+### 🟢 Features
+5. **Frontend boarding UI** — giver's ONGOING ride view:
+   - Participant list showing each seeker's boardingStatus (WAITING/BOARDED/DEBOARDED/NO_SHOW)
+   - "Mark No Show" button per WAITING seeker
+   - "Complete Ride" button greyed out until all resolved
+6. **Write unit tests** — 0 unit tests exist. Start with `gamification.service.ts` + `roles.guard.ts`
 7. **Notifications bell** — bell icon in nav with unread count + drawer
 8. **GPS tracking UI** — real-time map view during active ride
 9. **RC upload UI** — upload page for givers + RC status indicator in vehicle list
