@@ -110,6 +110,18 @@ export class EmailService {
     await this.send(email, 'Welcome to TechieRide! 🌿', html);
   }
 
+  // ── Notification email (uses personalEmail if available) ────────────────
+  // Call this for ride/request notifications, not for auth emails
+  async sendNotification(
+    officialEmail: string,
+    personalEmail: string | null | undefined,
+    subject: string,
+    html: string,
+  ) {
+    const to = personalEmail || officialEmail;
+    await this.send(to, subject, html);
+  }
+
   // ── Internal send ───────────────────────────────────────────────────────
   private async send(to: string, subject: string, html: string) {
     if (!this.resend || this.isDev) {

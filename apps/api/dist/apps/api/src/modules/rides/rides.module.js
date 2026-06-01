@@ -12,12 +12,13 @@ const rides_controller_1 = require("./rides.controller");
 const rides_service_1 = require("./rides.service");
 const gamification_module_1 = require("../gamification/gamification.module");
 const notifications_module_1 = require("../notifications/notifications.module");
+const email_module_1 = require("../email/email.module");
 let RidesModule = class RidesModule {
 };
 exports.RidesModule = RidesModule;
 exports.RidesModule = RidesModule = __decorate([
     (0, common_1.Module)({
-        imports: [gamification_module_1.GamificationModule, notifications_module_1.NotificationsModule],
+        imports: [gamification_module_1.GamificationModule, notifications_module_1.NotificationsModule, email_module_1.EmailModule],
         controllers: [rides_controller_1.RidesController],
         providers: [rides_service_1.RidesService],
         exports: [rides_service_1.RidesService],

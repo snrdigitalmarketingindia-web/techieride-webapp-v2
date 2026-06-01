@@ -103,6 +103,10 @@ let EmailService = EmailService_1 = class EmailService {
       </div>`;
         await this.send(email, 'Welcome to TechieRide! 🌿', html);
     }
+    async sendNotification(officialEmail, personalEmail, subject, html) {
+        const to = personalEmail || officialEmail;
+        await this.send(to, subject, html);
+    }
     async send(to, subject, html) {
         if (!this.resend || this.isDev) {
             this.logger.debug(`\n📧 EMAIL (dev)\nTo: ${to}\nSubject: ${subject}\n`);

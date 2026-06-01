@@ -3,11 +3,13 @@ import { CreateRideDto } from './dto/create-ride.dto';
 import { SearchRidesDto } from './dto/search-rides.dto';
 import { GamificationService } from '../gamification/gamification.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
 export declare class RidesService {
     private prisma;
     private gamification;
     private notifications;
-    constructor(prisma: PrismaService, gamification: GamificationService, notifications: NotificationsService);
+    private email;
+    constructor(prisma: PrismaService, gamification: GamificationService, notifications: NotificationsService, email: EmailService);
     create(userId: string, dto: CreateRideDto): Promise<{
         rideGiver: {
             user: {
@@ -148,6 +150,13 @@ export declare class RidesService {
         cancelledAt: Date | null;
         cancelReason: string | null;
     }>;
+    board(rideId: string, userId: string): Promise<{
+        boardingStatus: string;
+        rideAutoStarted: boolean;
+    }>;
+    deboard(rideId: string, userId: string): Promise<{
+        boardingStatus: string;
+    }>;
     complete(rideId: string, userId: string): Promise<{
         id: string;
         createdAt: Date;
@@ -177,6 +186,41 @@ export declare class RidesService {
         cancelReason: string | null;
     }>;
     cancel(rideId: string, userId: string, reason: string): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        vehicleId: string;
+        originName: string;
+        originLat: number;
+        originLng: number;
+        destinationName: string;
+        destinationLat: number;
+        destinationLng: number;
+        departureDate: Date;
+        departureTime: string;
+        totalSeats: number;
+        notes: string | null;
+        rideGiverId: string;
+        templateId: string | null;
+        routePolyline: import("@prisma/client/runtime/library").JsonValue | null;
+        estimatedDistanceKm: number | null;
+        estimatedDurationMin: number | null;
+        estimatedArrivalTime: string | null;
+        availableSeats: number;
+        status: import(".prisma/client").$Enums.RideStatus;
+        startedAt: Date | null;
+        completedAt: Date | null;
+        cancelledAt: Date | null;
+        cancelReason: string | null;
+    }>;
+    edit(rideId: string, userId: string, updates: {
+        originName?: string;
+        destinationName?: string;
+        departureDate?: string;
+        departureTime?: string;
+        totalSeats?: number;
+        notes?: string;
+    }): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;

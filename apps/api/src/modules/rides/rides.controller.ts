@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Body, Param, Query, UseGuards,
+  Controller, Get, Post, Patch, Body, Param, Query,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { RidesService } from './rides.service';
@@ -53,6 +53,21 @@ export class RidesController {
   @Patch(':id/complete')
   complete(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.ridesService.complete(id, userId);
+  }
+
+  @Patch(':id/edit')
+  edit(@Param('id') id: string, @CurrentUser('id') userId: string, @Body() body: any) {
+    return this.ridesService.edit(id, userId, body);
+  }
+
+  @Patch(':id/board')
+  board(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.ridesService.board(id, userId);
+  }
+
+  @Patch(':id/deboard')
+  deboard(@Param('id') id: string, @CurrentUser('id') userId: string) {
+    return this.ridesService.deboard(id, userId);
   }
 
   @Patch(':id/cancel')

@@ -48,6 +48,15 @@ let RidesController = class RidesController {
     complete(id, userId) {
         return this.ridesService.complete(id, userId);
     }
+    edit(id, userId, body) {
+        return this.ridesService.edit(id, userId, body);
+    }
+    board(id, userId) {
+        return this.ridesService.board(id, userId);
+    }
+    deboard(id, userId) {
+        return this.ridesService.deboard(id, userId);
+    }
     cancel(id, userId, reason) {
         return this.ridesService.cancel(id, userId, reason);
     }
@@ -115,6 +124,31 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], RidesController.prototype, "complete", null);
+__decorate([
+    (0, common_1.Patch)(':id/edit'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], RidesController.prototype, "edit", null);
+__decorate([
+    (0, common_1.Patch)(':id/board'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], RidesController.prototype, "board", null);
+__decorate([
+    (0, common_1.Patch)(':id/deboard'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], RidesController.prototype, "deboard", null);
 __decorate([
     (0, common_1.Patch)(':id/cancel'),
     __param(0, (0, common_1.Param)('id')),

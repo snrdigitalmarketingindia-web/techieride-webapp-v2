@@ -22,6 +22,22 @@ let VerificationService = class VerificationService {
         this.email = email;
     }
     async submitDocuments(userId, docs) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new common_1.NotFoundException('User not found');
+        const role = user.role;
+        const missing = [];
+        if (!docs.employeeIdUrl)
+            missing.push('Company ID');
+        if ((role === 'RIDE_GIVER' || role === 'BOTH')) {
+            if (!docs.drivingLicenseUrl)
+                missing.push('Driving License (mandatory for Ride Givers)');
+            if (!docs.rcUrl)
+                missing.push('RC / Vehicle Registration (mandatory for Ride Givers)');
+        }
+        if (missing.length > 0) {
+            throw new common_1.BadRequestException(`Missing required documents: ${missing.join(', ')}`);
+        }
         const request = await this.prisma.verificationRequest.upsert({
             where: { userId },
             create: {

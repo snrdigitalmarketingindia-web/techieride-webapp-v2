@@ -494,6 +494,41 @@ export declare class RidesController {
         cancelledAt: Date | null;
         cancelReason: string | null;
     }>;
+    edit(id: string, userId: string, body: any): Promise<{
+        id: string;
+        createdAt: Date;
+        updatedAt: Date;
+        vehicleId: string;
+        originName: string;
+        originLat: number;
+        originLng: number;
+        destinationName: string;
+        destinationLat: number;
+        destinationLng: number;
+        departureDate: Date;
+        departureTime: string;
+        totalSeats: number;
+        notes: string | null;
+        rideGiverId: string;
+        templateId: string | null;
+        routePolyline: import("@prisma/client/runtime/library").JsonValue | null;
+        estimatedDistanceKm: number | null;
+        estimatedDurationMin: number | null;
+        estimatedArrivalTime: string | null;
+        availableSeats: number;
+        status: import(".prisma/client").$Enums.RideStatus;
+        startedAt: Date | null;
+        completedAt: Date | null;
+        cancelledAt: Date | null;
+        cancelReason: string | null;
+    }>;
+    board(id: string, userId: string): Promise<{
+        boardingStatus: string;
+        rideAutoStarted: boolean;
+    }>;
+    deboard(id: string, userId: string): Promise<{
+        boardingStatus: string;
+    }>;
     cancel(id: string, userId: string, reason: string): Promise<{
         id: string;
         createdAt: Date;

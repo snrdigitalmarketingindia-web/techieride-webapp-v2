@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
@@ -16,6 +16,24 @@ export class VerificationService {
     userId: string,
     docs: { employeeIdUrl?: string; drivingLicenseUrl?: string; rcUrl?: string },
   ) {
+    // Enforce mandatory documents by role
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const role = user.role;
+    const missing: string[] = [];
+
+    if (!docs.employeeIdUrl) missing.push('Company ID');
+
+    if ((role === 'RIDE_GIVER' || role === 'BOTH')) {
+      if (!docs.drivingLicenseUrl) missing.push('Driving License (mandatory for Ride Givers)');
+      if (!docs.rcUrl) missing.push('RC / Vehicle Registration (mandatory for Ride Givers)');
+    }
+
+    if (missing.length > 0) {
+      throw new BadRequestException(`Missing required documents: ${missing.join(', ')}`);
+    }
+
     const request = await this.prisma.verificationRequest.upsert({
       where: { userId },
       create: {

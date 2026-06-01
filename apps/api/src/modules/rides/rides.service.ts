@@ -10,6 +10,7 @@ import { SearchRidesDto } from './dto/search-rides.dto';
 import { RideStatus, NotificationType } from '@techieride/shared';
 import { GamificationService } from '../gamification/gamification.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -29,6 +30,7 @@ export class RidesService {
     private prisma: PrismaService,
     private gamification: GamificationService,
     private notifications: NotificationsService,
+    private email: EmailService,
   ) {}
 
   async create(userId: string, dto: CreateRideDto) {
@@ -105,10 +107,25 @@ export class RidesService {
   }
 
   async start(rideId: string, userId: string) {
-    const ride = await this.findRideForGiver(rideId, userId);
+    // Allow giver (manual override) OR confirmed seeker to start the ride
+    const ride = await this.prisma.ride.findUnique({ where: { id: rideId } });
+    if (!ride) throw new NotFoundException('Ride not found');
     if (ride.status !== RideStatus.PUBLISHED) {
       throw new BadRequestException('Only PUBLISHED rides can be started');
     }
+
+    // Verify caller is giver or confirmed participant
+    const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
+    const isGiver = giver && ride.rideGiverId === giver.id;
+
+    if (!isGiver) {
+      const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+      const isParticipant = seeker && await this.prisma.rideParticipant.findUnique({
+        where: { rideId_seekerId: { rideId, seekerId: seeker.id } },
+      });
+      if (!isParticipant) throw new ForbiddenException('Only the giver or a confirmed seeker can start this ride');
+    }
+
     const updated = await this.prisma.ride.update({
       where: { id: rideId },
       data: { status: RideStatus.ONGOING, startedAt: new Date() },
@@ -122,7 +139,7 @@ export class RidesService {
     for (const p of participants) {
       await this.notifications.create(p.seeker.userId, {
         type: NotificationType.RIDE_STARTED,
-        title: 'Your ride has started!',
+        title: 'Your ride has started! 🚗',
         body: `${ride.originName} → ${ride.destinationName}`,
         data: { rideId },
       });
@@ -130,10 +147,121 @@ export class RidesService {
     return updated;
   }
 
+  async board(rideId: string, userId: string) {
+    const ride = await this.prisma.ride.findUnique({ where: { id: rideId } });
+    if (!ride) throw new NotFoundException('Ride not found');
+    if (ride.status !== RideStatus.PUBLISHED && ride.status !== RideStatus.ONGOING) {
+      throw new BadRequestException('Ride is not active');
+    }
+
+    const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+    if (!seeker) throw new ForbiddenException('Only seekers can board');
+
+    const participant = await this.prisma.rideParticipant.findUnique({
+      where: { rideId_seekerId: { rideId, seekerId: seeker.id } },
+    });
+    if (!participant) throw new ForbiddenException('You are not a confirmed participant of this ride');
+    if (participant.boardingStatus === 'BOARDED') throw new BadRequestException('You have already boarded');
+    if (participant.boardingStatus === 'DEBOARDED') throw new BadRequestException('You have already deboarded');
+
+    await this.prisma.rideParticipant.update({
+      where: { id: participant.id },
+      data: { boardingStatus: 'BOARDED', boardedAt: new Date() },
+    });
+
+    // Notify giver
+    const giverUser = await this.prisma.rideGiver.findUnique({
+      where: { id: ride.rideGiverId },
+    });
+    if (giverUser) {
+      const seekerUser = await this.prisma.user.findUnique({ where: { id: userId } });
+      await this.notifications.create(giverUser.userId, {
+        type: NotificationType.SEEKER_BOARDED,
+        title: `${seekerUser?.fullName?.split(' ')[0]} has boarded 🚗`,
+        body: 'Check if all passengers are on board',
+        data: { rideId },
+      });
+    }
+
+    // Check if ALL participants have boarded → auto-start ride
+    const allParticipants = await this.prisma.rideParticipant.findMany({ where: { rideId } });
+    const allBoarded = allParticipants.every(p =>
+      p.id === participant.id ? true : p.boardingStatus === 'BOARDED' || p.boardingStatus === 'DEBOARDED'
+    );
+
+    if (allBoarded && ride.status === RideStatus.PUBLISHED) {
+      await this.prisma.ride.update({
+        where: { id: rideId },
+        data: { status: RideStatus.ONGOING, startedAt: new Date() },
+      });
+      // Notify all that ride has auto-started
+      const allWithUsers = await this.prisma.rideParticipant.findMany({
+        where: { rideId },
+        include: { seeker: { include: { user: true } } },
+      });
+      for (const p of allWithUsers) {
+        await this.notifications.create(p.seeker.userId, {
+          type: NotificationType.RIDE_STARTED,
+          title: 'All aboard! Ride has started 🚗',
+          body: `${ride.originName} → ${ride.destinationName}`,
+          data: { rideId },
+        });
+      }
+      return { boardingStatus: 'BOARDED', rideAutoStarted: true };
+    }
+
+    return { boardingStatus: 'BOARDED', rideAutoStarted: false };
+  }
+
+  async deboard(rideId: string, userId: string) {
+    const ride = await this.prisma.ride.findUnique({ where: { id: rideId } });
+    if (!ride) throw new NotFoundException('Ride not found');
+    if (ride.status !== RideStatus.ONGOING) {
+      throw new BadRequestException('Ride is not ongoing');
+    }
+
+    const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+    if (!seeker) throw new ForbiddenException('Only seekers can deboard');
+
+    const participant = await this.prisma.rideParticipant.findUnique({
+      where: { rideId_seekerId: { rideId, seekerId: seeker.id } },
+    });
+    if (!participant) throw new ForbiddenException('You are not a participant of this ride');
+    if (participant.boardingStatus !== 'BOARDED') throw new BadRequestException('You must be boarded to deboard');
+
+    await this.prisma.rideParticipant.update({
+      where: { id: participant.id },
+      data: { boardingStatus: 'DEBOARDED', deboaredAt: new Date() },
+    });
+
+    // Notify giver
+    const giverUser = await this.prisma.rideGiver.findUnique({ where: { id: ride.rideGiverId } });
+    if (giverUser) {
+      const seekerUser = await this.prisma.user.findUnique({ where: { id: userId } });
+      await this.notifications.create(giverUser.userId, {
+        type: NotificationType.SEEKER_DEBOARDED,
+        title: `${seekerUser?.fullName?.split(' ')[0]} has deboarded ✅`,
+        body: 'You can complete the ride once all passengers have deboarded',
+        data: { rideId },
+      });
+    }
+
+    return { boardingStatus: 'DEBOARDED' };
+  }
+
   async complete(rideId: string, userId: string) {
     const ride = await this.findRideForGiver(rideId, userId);
     if (ride.status !== RideStatus.ONGOING) {
       throw new BadRequestException('Only ONGOING rides can be completed');
+    }
+
+    // Block completion until ALL participants have deboarded
+    const boardingCheck = await this.prisma.rideParticipant.findMany({ where: { rideId } });
+    const notYetDeboarded = boardingCheck.filter(p => p.boardingStatus !== 'DEBOARDED');
+    if (notYetDeboarded.length > 0) {
+      throw new BadRequestException(
+        `Cannot complete ride — ${notYetDeboarded.length} passenger(s) have not deboarded yet`
+      );
     }
 
     const updated = await this.prisma.ride.update({
@@ -189,10 +317,19 @@ export class RidesService {
       throw new BadRequestException(`Cannot cancel a ${ride.status} ride`);
     }
 
+    // Enforce: must cancel at least 1 hour before departure (admin can override)
+    if (!isAdmin) {
+      const departureDateTime = new Date(`${ride.departureDate.toISOString().split('T')[0]}T${ride.departureTime}:00`);
+      const oneHourBefore = new Date(departureDateTime.getTime() - 60 * 60 * 1000);
+      if (new Date() > oneHourBefore) {
+        throw new BadRequestException('Rides can only be cancelled at least 1 hour before departure');
+      }
+    }
+
     // Find confirmed participants before cancelling so we can notify them
     const confirmedParticipants = await this.prisma.rideRequest.findMany({
       where: { rideId, status: { in: ['HOLD', 'CONFIRMED'] } },
-      include: { seeker: { include: { user: true } } },
+      include: { seeker: { include: { user: { select: { email: true, personalEmail: true, fullName: true } } } } },
     });
 
     // Cancel all active requests
@@ -206,17 +343,72 @@ export class RidesService {
       data: { status: RideStatus.CANCELLED, cancelledAt: new Date(), cancelReason: reason },
     });
 
-    // Notify all participants whose seat was cancelled
+    // Notify all participants — in-app + email
     for (const req of confirmedParticipants) {
+      const seekerUser = req.seeker.user;
       await this.notifications.create(req.seeker.userId, {
         type: NotificationType.RIDE_CANCELLED,
         title: 'Your ride has been cancelled',
         body: `${ride.originName} → ${ride.destinationName} was cancelled${reason ? `: ${reason}` : ''}`,
         data: { rideId },
       });
+      // Send email notification
+      const html = `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+          <h2 style="color:#dc2626">Ride Cancelled 🚫</h2>
+          <p>Hi ${seekerUser.fullName?.split(' ')[0]},</p>
+          <p>Unfortunately your booked ride has been cancelled.</p>
+          <p><strong>${ride.originName} → ${ride.destinationName}</strong></p>
+          ${reason ? `<p>Reason: ${reason}</p>` : ''}
+          <p>Please book another ride from the app.</p>
+        </div>`;
+      await this.email.sendNotification(seekerUser.email, seekerUser.personalEmail, 'Your TechieRide ride was cancelled', html);
     }
 
     return updated;
+  }
+
+  async edit(
+    rideId: string,
+    userId: string,
+    updates: {
+      originName?: string; destinationName?: string;
+      departureDate?: string; departureTime?: string;
+      totalSeats?: number; notes?: string;
+    },
+  ) {
+    const ride = await this.findRideForGiver(rideId, userId);
+
+    if (ride.status !== RideStatus.PUBLISHED) {
+      throw new BadRequestException('Only PUBLISHED rides can be edited');
+    }
+
+    // Must be more than 30 minutes before departure
+    const departureDateTime = new Date(`${ride.departureDate.toISOString().split('T')[0]}T${ride.departureTime}:00`);
+    const thirtyMinBefore = new Date(departureDateTime.getTime() - 30 * 60 * 1000);
+    if (new Date() > thirtyMinBefore) {
+      throw new BadRequestException('Rides can only be edited up to 30 minutes before departure');
+    }
+
+    // No active seekers allowed
+    const activeSeekersCount = await this.prisma.rideRequest.count({
+      where: { rideId, status: { in: ['PENDING', 'HOLD', 'CONFIRMED'] } },
+    });
+    if (activeSeekersCount > 0) {
+      throw new BadRequestException('Cannot edit a ride that has pending or confirmed seat requests');
+    }
+
+    return this.prisma.ride.update({
+      where: { id: rideId },
+      data: {
+        ...(updates.originName && { originName: updates.originName }),
+        ...(updates.destinationName && { destinationName: updates.destinationName }),
+        ...(updates.departureDate && { departureDate: new Date(updates.departureDate) }),
+        ...(updates.departureTime && { departureTime: updates.departureTime }),
+        ...(updates.totalSeats && { totalSeats: updates.totalSeats }),
+        ...(updates.notes !== undefined && { notes: updates.notes }),
+      },
+    });
   }
 
   async search(dto: SearchRidesDto) {
