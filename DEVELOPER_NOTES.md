@@ -4,6 +4,199 @@
 
 ---
 
+## v2.1.0 — Build 163 · 2026-06-02 · Session 8
+
+### HOLD state removed — approve() goes directly to CONFIRMED
+The two-step HOLD→CONFIRMED flow required a seeker to manually confirm after a giver approved. This was confusing and unnecessary — removed entirely.
+
+**What changed:**
+
+| Layer | Change |
+|---|---|
+| `ride-requests.service.ts` `approve()` | Status now jumps straight from `PENDING` → `CONFIRMED`. Creates `RideParticipant` in the same transaction. Notification text updated. |
+| `ride-requests.service.ts` `confirm()` | Kept as a silent no-op (returns current status) so old API clients don't 404 |
+| `ride-requests.service.ts` `cancel()` | Removed HOLD branch — only CONFIRMED triggers seat restore + participant delete |
+| `rides.service.ts` | All status filters `['HOLD','CONFIRMED']` → `['CONFIRMED']`; `['PENDING','HOLD','CONFIRMED']` → `['PENDING','CONFIRMED']` |
+| `requests/page.tsx` `SeekerView` | Removed "Confirm Seat" button; removed `confirm()` call entirely |
+| All 5 test suites | `status === 'HOLD'` assertions → `'CONFIRMED'`; test names updated |
+
+**Why:** Reduces friction in the ride request UX. Seekers don't need an extra step — giver approval is the final word.
+
+---
+
+### Call buttons added to all ride/request screens
+Previously CallButton/ContactCard was only on ride detail, search results, and tracking. Now covers every place users can see each other.
+
+| Screen | Who is callable |
+|---|---|
+| `requests/page.tsx` SeekerView | Giver — shown when request status = CONFIRMED |
+| `requests/page.tsx` GiverView | Each seeker (pending requests) — already existed ✅ |
+| `rides/page.tsx` taken tab | Giver — always visible |
+| `rides/page.tsx` given tab | Each confirmed passenger listed with name + Call button |
+| Ride detail page | Giver ContactCard ✅ |
+| Tracking page | ContactCards ✅ |
+| Search results | CallButton ✅ |
+
+**API change:** `getGivenRides()` now includes `participants` (with `seeker.user` contact: phone, countryCode) so the giver's My Rides page can render the passenger list.
+
+---
+
+### Vercel build fixes (production deployment)
+Several issues that caused the Vercel deployment to fail or behave incorrectly:
+
+| Issue | Root cause | Fix |
+|---|---|---|
+| Build failed — TS type error | `[...new Set()]` spread not allowed at TS target | Changed to `Array.from(new Set(...))` in `rides/board/page.tsx` |
+| Login hangs indefinitely | `NEXT_PUBLIC_API_URL` not set on Vercel — defaulted to `localhost:3001` | Added `apps/web/.env.production` with Render API URL |
+| Version shows `v2.1.0.10` | Vercel shallow clone made `git rev-list --count` return ~10 | Added `git fetch --unshallow` to Vercel `buildCommand` in `vercel.json` |
+| Version shows commit SHA | Previous workaround used `VERCEL_GIT_COMMIT_SHA` | Reverted — `--unshallow` gives correct commit count now |
+
+---
+
+### Render startup crash fix
+The Render API (`render-start.sh`) was crashing on every deploy because `prisma db push` exits non-zero when it detects a unique constraint warning — killing the `&&` chain before `node dist/main`.
+
+**Root cause:** `verification_requests` had duplicate `(userId, verificationType)` pairs from old data, which caused `prisma db push` to fail even with `--accept-data-loss` because P2002 is an error (not a warning).
+
+**Fix:** Added a deduplication SQL step in `render-start.sh` before `prisma db push`:
+```sql
+DELETE FROM verification_requests WHERE id NOT IN (
+  SELECT DISTINCT ON ("userId", "verificationType") id FROM verification_requests
+  ORDER BY "userId", "verificationType", id DESC
+);
+```
+This is a safe no-op if the table is already clean.
+
+---
+
+### Neon DB schema sync (Session 7 columns were never applied)
+Session 7 added `countryCode`, `isPhoneVerified`, `accountStatus`, `verificationMethod` to `User`, `verificationType` to `VerificationRequest`, and the `CallLog` model. These were never applied to the production Neon DB because `prisma db execute` was silently hitting a different compute endpoint than the running API.
+
+**Root cause:** Neon's `.c-8.` endpoint is a connection-pooler compute that spins up/down. DDL changes made via one connection may not be visible to a different compute that wakes up later.
+
+**Fix:** Applied schema changes directly via `psql` (bypasses pooler), deduped `verification_requests`, re-seeded test accounts with correct `accountStatus` values.
+
+> ⚠️ **Rule going forward:** Always use `psql` for DDL against Neon, never `prisma db execute`. `prisma db execute` appears to succeed but may hit a stale compute.
+
+---
+
+### Phone field required at registration (Session 7 follow-up)
+`RegisterDto` made `phone` required in Session 7, but 5 test files still called `register()` without it. All helpers updated:
+
+- `tests/helpers.ts` — `register()`
+- `tests/e2e-api.ts` — `registerAndLogin()`
+- `tests/e2e-api-extended.ts` — `registerAndLogin()` + inline admin-role test
+- `tests/e2e-api-negative.ts` — `registerAndLogin()`
+- `tests/e2e-api-business-rules.ts` — `registerAndLogin()`
+- `tests/e2e-api-coverage.ts` — inline duplicate-email test
+
+Phone generated as `9${Date.now().toString().slice(-9)}` — timestamp-based to guarantee uniqueness against the `phone @unique` constraint. Earlier hash-based approach collided with seeded accounts (`9876543210` etc.).
+
+---
+
+### Security fix — phone removed from public profile
+`getPublicProfile()` was exposing `phone` and `countryCode` from Session 7's calling feature addition. Phone should only be visible in ride/request context (users who are actively connected), not on a public profile page.
+
+**Fix:** Removed `phone: true` and `countryCode: true` from the `select` in `users.service.ts getPublicProfile()`. Coverage test `Public profile does not expose sensitive fields` now passes.
+
+---
+
+## v2.1.0 — Build 122 · 2026-06-01 · Session 7
+
+### Direct calling feature
+Ride givers and seekers can call each other via the app once connected on a ride.
+
+**Schema additions:**
+- `User.phone` (required at registration), `User.countryCode` (default `+91`), `User.isPhoneVerified`
+- `CallLog` model — audit-only, fire-and-forget, never blocks the caller
+
+**API:**
+- `GIVER_USER_SELECT` and `USER_CONTACT_SELECT` now include `phone` + `countryCode`
+- `POST /calls/log` — fire-and-forget audit endpoint
+
+**Frontend:**
+- `CallButton` component — `tel:` link, configurable size/variant
+- `ContactCard` component — full + compact variants with role badge
+- Wired into: ride search results, ride detail, requests page (giver view), tracking page
+
+---
+
+### Full identity redesign
+Complete rewrite of the account status and verification system.
+
+**Status model** (`AccountStatus` enum replacing old `verificationStatus`/`emailStatus`):
+```
+EMAIL_VERIFICATION_PENDING → DOCUMENT_VERIFICATION_PENDING → EMPLOYEE_VERIFIED
+                                                            → DRIVER_VERIFICATION_PENDING → DRIVER_VERIFIED
+Exception path: → EXCEPTION_VERIFICATION_REQUESTED → EMPLOYEE_VERIFIED
+```
+
+**Registration simplified:** 4 required fields only (email, password, fullName, phone). Role removed — everyone starts as `RIDE_SEEKER`.
+
+**Two-track verification:**
+- Employee track: `POST /verification/employee` → submit docs → admin approves → `EMPLOYEE_VERIFIED` + TRID
+- Driver track: `POST /verification/driver` → submit docs → admin approves → `DRIVER_VERIFIED` + `role = BOTH`
+
+**Exception path:** `/exception-verification` page for users who can't verify via company email.
+
+**New pages:** `/exception-verification`, `/become-giver` (wizard)
+
+**Admin:** 4-queue verification dashboard (email-pending, exception-requests, document-pending, driver-pending)
+
+**Access guard:** `EmailVerifiedGuard` with 3 tiers — unverified, doc-pending, full-access. `@AllowDocsPending()` decorator for upload routes.
+
+---
+
+### Ride publish gate hardened
+`publish()` now checks `accountStatus === 'DRIVER_VERIFIED'` (not the old `verificationStatus`). A giver must complete both employee + driver verification before offering rides.
+
+---
+
+## v2.1.0 — Build 122 · 2026-06-01 · Session 6
+
+### CI fixes — stale compiled shared package (critical)
+`packages/shared/src/*.js` and `*.d.ts` are **hand-maintained compiled outputs**. The TypeScript source (`*.ts`) is the truth, but Node.js loads the `.js` at runtime. Session 5 added new constants and enums to the `.ts` files but never rebuilt the `.js`, causing silent `undefined` at runtime.
+
+**What broke and how:**
+
+| File | Missing export | Runtime symptom |
+|---|---|---|
+| `constants.js` | `TRID_START` | `2000 + undefined = NaN` → every TRID = `TR0NaN` → unique constraint crash on second approval |
+| `enums.js` | `NotificationType.SEEKER_BOARDED` | board endpoint → `notification.create()` → `Argument 'type' is missing` → 500 |
+| `enums.js` | `NotificationType.SEEKER_DEBOARDED` | deboard endpoint → same 500 |
+| `enums.js` | `NotificationType.SEEKER_NO_SHOW` | no-show endpoint → same 500 |
+| `enums.js` | `BoardingStatus` enum entirely | Any code importing `BoardingStatus` gets `undefined` |
+
+**Fix:** Manually added missing exports to `constants.js`, `constants.d.ts`, `enums.js`, `enums.d.ts`.
+
+> ⚠️ **Rule going forward:** Any time you add a constant or enum value to `packages/shared/src/*.ts`, you MUST also add it to the corresponding `.js` and `.d.ts` in the same commit. The build script (`"build": "echo 'shared already compiled'"`) is a stub — it does nothing. Until a real tsc build is wired up, this is manual.
+
+---
+
+### CI fixes — test lifecycle (board/deboard)
+The `complete()` API now requires ALL participants to be `DEBOARDED` or `NO_SHOW` before completing. Test suites called `complete()` after `start()` without boarding/deboarding the seeker first.
+
+**Files changed:**
+- `tests/helpers.ts` — `completeFullRide()`: added `seeker.board → seeker.deboard` before `giver.complete`
+- `tests/e2e-api.ts` — PHASE 7: added "Seeker can board" + "Seeker can deboard" tests before "Giver can complete"
+- `tests/e2e-api-final.ts` — inline gamification lifecycle: added board + deboard calls
+
+**Not changed (intentional):** negative/state-machine tests that call `complete()` on DRAFT or PUBLISHED rides — those tests expect 400 for different reasons and have no confirmed seekers.
+
+---
+
+### CI fixes — stale test assertion
+The hold timer (15-min HOLD expiry) was removed in v2.1.0. The `approve` endpoint no longer returns `holdExpiresAt`. The e2e-api.ts test was still asserting `!!r.data.holdExpiresAt`.
+
+**Fix:** Removed the `holdExpiresAt` assertion from "Giver can approve the request" test in `e2e-api.ts`.
+
+---
+
+### CI fixes — syntax errors in test files
+When v2.1.0 required fields (`homeLocation`, `officeLocation`, `emergencyContactName`, `emergencyContactPhone`) were inserted into register calls, the preceding `phone:` line was left without a trailing comma, and `emergencyContactPhone` got a double `,,`.
+
+**Files fixed:** `e2e-api-extended.ts` (4 places), `e2e-api-negative.ts` (2 places), `e2e-api-coverage.ts` (1 place).
+
 ## v2.1.0 — Build 122 · 2026-06-01 · Session 6
 
 ### CI fixes — stale compiled shared package (critical)
