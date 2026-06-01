@@ -312,7 +312,8 @@ async function run() {
   });
 
   await test('Seeker cannot start someone else\'s ride', async () => {
-    const r = await s1.patch(`/rides/${raceRideId}/start`);
+    // s2 has no connection to raceRideId — s1 is a confirmed participant and can start in v2.1.0
+    const r = await s2.patch(`/rides/${raceRideId}/start`);
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });
 
