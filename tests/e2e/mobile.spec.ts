@@ -73,10 +73,10 @@ test.describe('📱 Mobile Navigation', () => {
     await expect(page.getByRole('heading', { name: /find a ride/i })).toBeVisible();
   });
 
-  test('bottom nav navigates to Requests', async ({ page }) => {
-    await page.locator('nav a[href="/requests"]').last().click();
-    await expect(page).toHaveURL(/\/requests/);
-    await expect(page.getByRole('heading', { name: /requests/i })).toBeVisible({ timeout: 8_000 });
+  test('bottom nav navigates to My Rides', async ({ page }) => {
+    await page.locator('nav a[href="/rides"]').last().click();
+    await expect(page).toHaveURL(/\/rides/);
+    await expect(page.getByRole('heading', { name: /my rides/i })).toBeVisible({ timeout: 8_000 });
   });
 
   test('bottom nav navigates to Profile', async ({ page }) => {
@@ -85,11 +85,6 @@ test.describe('📱 Mobile Navigation', () => {
     await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
   });
 
-  test('bottom nav navigates to My Rides', async ({ page }) => {
-    await page.locator('nav a[href="/rides"]').last().click();
-    await expect(page).toHaveURL(/\/rides/);
-    await expect(page.getByRole('heading', { name: /my rides/i })).toBeVisible({ timeout: 8_000 });
-  });
 });
 
 // ── Key Flows ─────────────────────────────────────────────────────

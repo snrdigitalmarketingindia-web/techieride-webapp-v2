@@ -65,7 +65,7 @@ test.describe('🔒 Permission Leaks — Seeker accessing Giver routes', () => {
     await expect(page.getByText(/good (morning|afternoon|evening)/i)).toBeVisible({ timeout: 10_000 });
     // Seeker-specific links must be present
     await expect(page.getByRole('link', { name: /find ride/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /requests/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /my rides/i })).toBeVisible();
   });
 
   // PERM-06: Seeker cannot access /admin/users
