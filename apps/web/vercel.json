@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "cd ../.. && npm run build --workspace=apps/web",
+  "buildCommand": "git fetch --unshallow 2>/dev/null || true && cd ../.. && npm run build --workspace=apps/web",
   "outputDirectory": ".next",
   "installCommand": "cd ../.. && npm ci"
 }
