@@ -18,6 +18,18 @@ fi
 
 echo "🗄️  Running Prisma migrations..."
 npx prisma generate --schema=../../prisma/schema.prisma
+
+# Dedup verification_requests before adding unique constraint (safe no-op if already clean)
+echo "🧹 Deduplicating verification_requests..."
+npx prisma db execute --schema=../../prisma/schema.prisma --stdin <<'DEDUP_SQL'
+DELETE FROM verification_requests
+WHERE id NOT IN (
+  SELECT DISTINCT ON ("userId", "verificationType") id
+  FROM verification_requests
+  ORDER BY "userId", "verificationType", id DESC
+);
+DEDUP_SQL
+
 npx prisma db push --schema=../../prisma/schema.prisma --accept-data-loss
 
 echo "🚀 Starting API server..."
