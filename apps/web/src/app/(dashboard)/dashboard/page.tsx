@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { ridesApi, gamificationApi } from '@/lib/api';
+import { CallButton } from '@/components/ui/CallButton';
 import { RideStatus, EcoLevel } from '@techieride/shared';
 
 const ECO_BADGES: Record<string, string> = {
@@ -16,6 +17,13 @@ const STATUS_COLORS: Record<string, string> = {
   COMPLETED: 'bg-gray-100 text-gray-600',
   CANCELLED: 'bg-red-100 text-red-600',
   DRAFT: 'bg-yellow-100 text-yellow-700',
+};
+
+const BOARDING_BADGE: Record<string, { label: string; cls: string }> = {
+  WAITING:   { label: '⏳ Waiting',   cls: 'bg-yellow-100 text-yellow-700' },
+  BOARDED:   { label: '✅ Boarded',   cls: 'bg-green-100 text-green-700'   },
+  DEBOARDED: { label: '🏁 Deboarded', cls: 'bg-gray-100 text-gray-500'     },
+  NO_SHOW:   { label: '👻 No-show',   cls: 'bg-red-100 text-red-500'       },
 };
 
 export default function DashboardPage() {
@@ -149,20 +157,62 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-3">
             {upcomingRides.map((ride) => (
-              <Link key={ride.id} href={`/rides/${ride.id}`}
-                className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4 hover:border-brand-300 transition"
-              >
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900 text-sm">{ride.originName} → {ride.destinationName}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {new Date(ride.departureDate).toLocaleDateString()} · {ride.departureTime}
-                  </p>
+              <div key={ride.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+                {/* Ride header */}
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 text-sm truncate">{ride.originName} → {ride.destinationName}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {new Date(ride.departureDate).toLocaleDateString()} · {ride.departureTime}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {isGiver && ride.totalSeats && (
+                      <span className="text-xs text-gray-400">{ride.availableSeats}/{ride.totalSeats} seats</span>
+                    )}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ride.status]}`}>{ride.status}</span>
+                    <Link href={`/rides/${ride.id}`} className="text-xs text-brand-600 font-medium hover:underline">View →</Link>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">{ride.availableSeats}/{ride.totalSeats} seats</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ride.status]}`}>{ride.status}</span>
-                </div>
-              </Link>
+
+                {/* Giver view: participants with boarding status + call */}
+                {isGiver && ride.participants?.length > 0 && (
+                  <div className="border-t border-gray-100 pt-2 space-y-1.5">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">👥 Passengers</p>
+                    {ride.participants.map((p: any) => (
+                      <div key={p.id} className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0">
+                          {p.seeker?.user?.fullName?.[0] ?? '?'}
+                        </div>
+                        <p className="text-xs text-gray-800 flex-1 truncate">{p.seeker?.user?.fullName ?? 'Seeker'}</p>
+                        {p.boardingStatus && BOARDING_BADGE[p.boardingStatus] && (
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${BOARDING_BADGE[p.boardingStatus].cls}`}>
+                            {BOARDING_BADGE[p.boardingStatus].label}
+                          </span>
+                        )}
+                        {p.seeker?.user?.phone && p.boardingStatus !== 'NO_SHOW' && (
+                          <CallButton phone={p.seeker.user.phone} countryCode={p.seeker.user.countryCode}
+                            receiverId={p.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Seeker view: giver contact + call */}
+                {isSeeker && !isGiver && ride.rideGiver?.user && (
+                  <div className="border-t border-gray-100 pt-2 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">
+                      {ride.rideGiver.user.fullName?.[0] ?? '?'}
+                    </div>
+                    <p className="text-xs text-gray-700 flex-1 truncate">{ride.rideGiver.user.fullName}</p>
+                    {ride.rideGiver.user.phone && (
+                      <CallButton phone={ride.rideGiver.user.phone} countryCode={ride.rideGiver.user.countryCode}
+                        receiverId={ride.rideGiver.userId} rideId={ride.id} label="Call Giver" size="sm" variant="ghost" />
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         )}
