@@ -1,4 +1,5 @@
 export declare const SEAT_HOLD_TTL_SECONDS = 900;
+export declare const TRID_START = 2000;
 export declare const OTP_TTL_SECONDS = 300;
 export declare const OTP_MAX_ATTEMPTS = 3;
 export declare const GPS_TTL_SECONDS = 86400;

@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.REDIS_KEYS = exports.MATCH_TIME_WINDOW_MINUTES = exports.MATCH_PICKUP_RADIUS_METERS = exports.CO2_PER_KM_PER_PERSON_GRAMS = exports.ECO_LEVEL_THRESHOLDS = exports.ECO_POINTS = exports.RATE_LIMIT_MAX = exports.RATE_LIMIT_WINDOW_MS = exports.LEADERBOARD_CACHE_TTL = exports.GPS_TTL_SECONDS = exports.OTP_MAX_ATTEMPTS = exports.OTP_TTL_SECONDS = exports.SEAT_HOLD_TTL_SECONDS = void 0;
+exports.REDIS_KEYS = exports.MATCH_TIME_WINDOW_MINUTES = exports.MATCH_PICKUP_RADIUS_METERS = exports.CO2_PER_KM_PER_PERSON_GRAMS = exports.ECO_LEVEL_THRESHOLDS = exports.ECO_POINTS = exports.RATE_LIMIT_MAX = exports.RATE_LIMIT_WINDOW_MS = exports.LEADERBOARD_CACHE_TTL = exports.GPS_TTL_SECONDS = exports.OTP_MAX_ATTEMPTS = exports.OTP_TTL_SECONDS = exports.TRID_START = exports.SEAT_HOLD_TTL_SECONDS = void 0;
 exports.SEAT_HOLD_TTL_SECONDS = 900;
+exports.TRID_START = 2000;
 exports.OTP_TTL_SECONDS = 300;
 exports.OTP_MAX_ATTEMPTS = 3;
 exports.GPS_TTL_SECONDS = 86400;
