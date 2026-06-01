@@ -33,10 +33,16 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
 
-  // Load giver's rides for the selector
+  // Auto-load incoming requests for the giver's single active ride
+  // (business rule: only one PUBLISHED ride allowed at a time — no selector needed)
   useEffect(() => {
     ridesApi.getGiven('PUBLISHED').then(r => {
-      setMyRides(r.data || []);
+      const rides = r.data || [];
+      setMyRides(rides);
+      if (rides.length > 0) {
+        setRideId(rides[0].id);
+        loadIncoming(rides[0].id);
+      }
     });
   }, []);
 
@@ -119,26 +125,16 @@ export default function RequestsPage() {
         </button>
       </div>
 
-      {/* Incoming: ride selector */}
-      {tab === 'incoming' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <label className="text-sm font-medium text-gray-700 block mb-2">Select Ride</label>
-          {myRides.length === 0 ? (
-            <p className="text-sm text-gray-400">No published rides found. Create and publish a ride first.</p>
-          ) : (
-            <select
-              value={rideId}
-              onChange={e => { setRideId(e.target.value); loadIncoming(e.target.value); }}
-              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-            >
-              <option value="">— Select a ride —</option>
-              {myRides.map(r => (
-                <option key={r.id} value={r.id}>
-                  {r.originName} → {r.destinationName} | {new Date(r.departureDate).toLocaleDateString()} {r.departureTime}
-                </option>
-              ))}
-            </select>
-          )}
+      {/* Incoming: show active ride info */}
+      {tab === 'incoming' && myRides.length > 0 && (
+        <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-800">
+          🚗 <strong>{myRides[0].originName} → {myRides[0].destinationName}</strong>
+          &nbsp;· {new Date(myRides[0].departureDate).toLocaleDateString()} {myRides[0].departureTime}
+        </div>
+      )}
+      {tab === 'incoming' && myRides.length === 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 text-center text-sm text-gray-400">
+          No active ride. <a href="/rides/create" className="text-brand-600 font-medium underline">Create and publish a ride</a> to see incoming requests.
         </div>
       )}
 
@@ -149,9 +145,7 @@ export default function RequestsPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
           <div className="text-4xl mb-2">{tab === 'incoming' ? '📥' : '🧳'}</div>
           <p className="text-gray-500 text-sm">
-            {tab === 'incoming'
-              ? rideId ? 'No requests for this ride yet' : 'Select a ride to see requests'
-              : 'You have no seat requests yet'}
+            {tab === 'incoming' ? 'No requests for this ride yet' : 'You have no seat requests yet'}
           </p>
         </div>
       ) : (
