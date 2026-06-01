@@ -17,8 +17,13 @@ export declare class RidesController {
                 role: import(".prisma/client").$Enums.UserRole;
                 phone: string | null;
                 id: string;
+                personalEmail: string | null;
                 passwordHash: string;
                 profilePhoto: string | null;
+                bloodGroup: string | null;
+                homeLocation: string | null;
+                officeLocation: string | null;
+                trid: string | null;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 emailStatus: import(".prisma/client").$Enums.EmailStatus;
                 emailVerificationToken: string | null;
@@ -138,8 +143,13 @@ export declare class RidesController {
                 role: import(".prisma/client").$Enums.UserRole;
                 phone: string | null;
                 id: string;
+                personalEmail: string | null;
                 passwordHash: string;
                 profilePhoto: string | null;
+                bloodGroup: string | null;
+                homeLocation: string | null;
+                officeLocation: string | null;
+                trid: string | null;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 emailStatus: import(".prisma/client").$Enums.EmailStatus;
                 emailVerificationToken: string | null;
@@ -217,8 +227,13 @@ export declare class RidesController {
                 role: import(".prisma/client").$Enums.UserRole;
                 phone: string | null;
                 id: string;
+                personalEmail: string | null;
                 passwordHash: string;
                 profilePhoto: string | null;
+                bloodGroup: string | null;
+                homeLocation: string | null;
+                officeLocation: string | null;
+                trid: string | null;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 emailStatus: import(".prisma/client").$Enums.EmailStatus;
                 emailVerificationToken: string | null;
@@ -279,8 +294,9 @@ export declare class RidesController {
             requestId: string;
             pickupName: string | null;
             dropName: string | null;
+            boardingStatus: import(".prisma/client").$Enums.BoardingStatus;
             boardedAt: Date | null;
-            alightedAt: Date | null;
+            deboaredAt: Date | null;
         })[];
     } & {
         id: string;
@@ -321,8 +337,13 @@ export declare class RidesController {
                 role: import(".prisma/client").$Enums.UserRole;
                 phone: string | null;
                 id: string;
+                personalEmail: string | null;
                 passwordHash: string;
                 profilePhoto: string | null;
+                bloodGroup: string | null;
+                homeLocation: string | null;
+                officeLocation: string | null;
+                trid: string | null;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 emailStatus: import(".prisma/client").$Enums.EmailStatus;
                 emailVerificationToken: string | null;

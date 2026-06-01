@@ -1,4 +1,8 @@
-export const SEAT_HOLD_TTL_SECONDS = 900; // 15 minutes
+export const SEAT_HOLD_TTL_SECONDS = 900; // 15 minutes (legacy — hold timer removed)
+
+// ── TRID ──────────────────────────────────────────────────────────────────
+// Change TRID_START to continue from your existing member database number
+export const TRID_START = 2000;
 export const OTP_TTL_SECONDS = 300; // 5 minutes
 export const OTP_MAX_ATTEMPTS = 3;
 export const GPS_TTL_SECONDS = 86400; // 24 hours

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WsEvents = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = void 0;
+exports.WsEvents = exports.BoardingStatus = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = void 0;
 var Gender;
 (function (Gender) {
     Gender["MALE"] = "MALE";
@@ -60,9 +60,17 @@ var NotificationType;
     NotificationType["HOLD_EXPIRED"] = "HOLD_EXPIRED";
     NotificationType["VERIFICATION_APPROVED"] = "VERIFICATION_APPROVED";
     NotificationType["VERIFICATION_REJECTED"] = "VERIFICATION_REJECTED";
+    NotificationType["SEEKER_BOARDED"] = "SEEKER_BOARDED";
+    NotificationType["SEEKER_DEBOARDED"] = "SEEKER_DEBOARDED";
     NotificationType["SOS_ALERT"] = "SOS_ALERT";
     NotificationType["GENERIC"] = "GENERIC";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
+var BoardingStatus;
+(function (BoardingStatus) {
+    BoardingStatus["WAITING"] = "WAITING";
+    BoardingStatus["BOARDED"] = "BOARDED";
+    BoardingStatus["DEBOARDED"] = "DEBOARDED";
+})(BoardingStatus || (exports.BoardingStatus = BoardingStatus = {}));
 var WsEvents;
 (function (WsEvents) {
     WsEvents["GPS_UPDATE"] = "gps:update";

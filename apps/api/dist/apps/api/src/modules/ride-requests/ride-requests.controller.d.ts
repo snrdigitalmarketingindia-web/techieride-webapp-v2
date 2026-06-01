@@ -18,8 +18,13 @@ export declare class RideRequestsController {
                 role: import(".prisma/client").$Enums.UserRole;
                 phone: string | null;
                 id: string;
+                personalEmail: string | null;
                 passwordHash: string;
                 profilePhoto: string | null;
+                bloodGroup: string | null;
+                homeLocation: string | null;
+                officeLocation: string | null;
+                trid: string | null;
                 verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                 emailStatus: import(".prisma/client").$Enums.EmailStatus;
                 emailVerificationToken: string | null;
@@ -71,8 +76,13 @@ export declare class RideRequestsController {
                     role: import(".prisma/client").$Enums.UserRole;
                     phone: string | null;
                     id: string;
+                    personalEmail: string | null;
                     passwordHash: string;
                     profilePhoto: string | null;
+                    bloodGroup: string | null;
+                    homeLocation: string | null;
+                    officeLocation: string | null;
+                    trid: string | null;
                     verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
                     emailStatus: import(".prisma/client").$Enums.EmailStatus;
                     emailVerificationToken: string | null;

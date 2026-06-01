@@ -50,8 +50,15 @@ export declare enum NotificationType {
     HOLD_EXPIRED = "HOLD_EXPIRED",
     VERIFICATION_APPROVED = "VERIFICATION_APPROVED",
     VERIFICATION_REJECTED = "VERIFICATION_REJECTED",
+    SEEKER_BOARDED = "SEEKER_BOARDED",
+    SEEKER_DEBOARDED = "SEEKER_DEBOARDED",
     SOS_ALERT = "SOS_ALERT",
     GENERIC = "GENERIC"
+}
+export declare enum BoardingStatus {
+    WAITING = "WAITING",
+    BOARDED = "BOARDED",
+    DEBOARDED = "DEBOARDED"
 }
 export declare enum WsEvents {
     GPS_UPDATE = "gps:update",
