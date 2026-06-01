@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
-import { ridesApi, gamificationApi } from '@/lib/api';
+import { ridesApi, gamificationApi, requestsApi } from '@/lib/api';
 import { RideCard } from '@/components/ui/RideCard';
 import { RideStatus, EcoLevel } from '@techieride/shared';
 
@@ -21,13 +21,24 @@ export default function DashboardPage() {
   const [upcomingRides, setUpcomingRides] = useState<any[]>([]);
   const [ecoSummary, setEcoSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     const ridesFetch = isGiver
       ? ridesApi.getGiven().then((r) => r.data.slice(0, 3))
       : ridesApi.getTaken().then((r) => r.data.slice(0, 3));
     Promise.all([
-      ridesFetch.then(setUpcomingRides),
+      ridesFetch.then((rides) => {
+        setUpcomingRides(rides);
+        if (isGiver) {
+          rides.filter((r: any) => r.status === 'PUBLISHED').forEach((r: any) => {
+            requestsApi.getIncoming(r.id).then((res) => {
+              const pending = (res.data ?? []).filter((req: any) => req.status === 'PENDING');
+              if (pending.length > 0) setPendingMap((prev) => ({ ...prev, [r.id]: pending }));
+            }).catch(() => {});
+          });
+        }
+      }),
       gamificationApi.getSummary().then((r) => setEcoSummary(r.data)),
     ]).finally(() => setLoading(false));
   }, []);
@@ -142,9 +153,16 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {upcomingRides.map((ride) => (
-              <RideCard key={ride.id} ride={ride} viewAs={isGiver ? 'giver' : 'seeker'} />
-            ))}
+            {upcomingRides.map((ride) => {
+              const pending = pendingMap[ride.id] ?? [];
+              const actions = pending.length > 0 ? (
+                <Link href="/rides" className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                  <span className="bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">📥 {pending.length} pending request{pending.length > 1 ? 's' : ''}</span>
+                  <span className="text-brand-600 hover:underline">Manage →</span>
+                </Link>
+              ) : undefined;
+              return <RideCard key={ride.id} ride={ride} viewAs={isGiver ? 'giver' : 'seeker'} actions={actions} />;
+            })}
           </div>
         )}
       </div>

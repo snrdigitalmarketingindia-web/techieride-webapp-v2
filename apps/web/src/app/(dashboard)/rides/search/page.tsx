@@ -160,7 +160,7 @@ function BoardingModal({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function RideSearchPage() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   const [form, setForm] = useState({
     originName: '',
     originLat: 17.4401,

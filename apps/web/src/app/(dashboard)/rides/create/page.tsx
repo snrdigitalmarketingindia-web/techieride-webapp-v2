@@ -24,7 +24,7 @@ export default function CreateRidePage() {
     destinationName: '',
     destinationLat: 17.4489,
     destinationLng: 78.3696,
-    departureDate: new Date().toISOString().split('T')[0],
+    departureDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
     departureTime: '09:00',
     totalSeats: 2,
     notes: '',
