@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 307 · 173458f · 2026-06-02 16:06 UTC
+
+Commit: fix: rides/[id] — replace bare 'role' with user?.role on isSeeker
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/rides/[id]/page.tsx
+
+---
+
 ## Build 305 · d966b87 · 2026-06-02 16:03 UTC
 
 Commit: fix: edge-case tests — use /ride-requests/mine instead of missing :id endpoint, fix notifications response key
