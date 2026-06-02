@@ -15,20 +15,21 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} flex flex-col min-h-screen`}>
-        <div className="flex-1">{children}</div>
-        <Toaster />
-        <footer className="text-center py-3 text-gray-400 text-xs border-t border-gray-100 bg-white">
+      <body className={inter.className}>
+        {/* Floating designer credit — top right, always visible */}
+        <div className="fixed top-2 right-3 z-50 text-[10px] text-gray-400 pointer-events-none select-none">
           Designed by{' '}
           <a
             href="https://www.snrdigitalmarketing.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-700 transition"
+            className="text-blue-500 hover:text-blue-700 transition pointer-events-auto"
           >
             SNR Digital Marketing
           </a>
-        </footer>
+        </div>
+        {children}
+        <Toaster />
       </body>
     </html>
   );
