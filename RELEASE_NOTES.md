@@ -2,6 +2,27 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 219 · 2a8a685 · 2026-06-02 03:32 UTC
+
+Commit: docs: update handoff document for Session 9 end / Session 10 start
+
+Complete rewrite — reflects all Session 9 work:
+- CI all green (215 API + 46 security + 78 Playwright + 20 security E2E)
+- Bug fixes: auth hydration, wrong rides, IST dates, favicon
+- New: Show/Hide History, PENDING expiry (4h), departure timeout (1h)
+- QA framework: security tests, k6, 18 business spec files
+- Session 10 roadmap: women-only, complaints, trust score
+- Pre-launch checklist (gmail, Resend, TRID, MinIO)
+- All cron jobs, API routes, gotchas documented
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- handoffdocument.md
+
+---
+
 ## Build 217 · fa29b32 · 2026-06-02 03:22 UTC
 
 Commit: fix: increase departure timeout from 30 min to 1 hour
