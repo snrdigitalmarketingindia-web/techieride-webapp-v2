@@ -38,8 +38,8 @@ test.describe('🔐 Auth Security', () => {
 
   test('SEC-UI-05: login with wrong password shows error, not crash', async ({ page }) => {
     await page.goto('/login');
-    await page.getByPlaceholder(/email/i).fill(ACCOUNTS.seeker.email);
-    await page.getByPlaceholder(/password/i).fill('WrongPassword123!');
+    await page.getByPlaceholder('you@company.com').fill(ACCOUNTS.seeker.email);
+    await page.getByPlaceholder('••••••••').fill('WrongPassword123!');
     await page.getByRole('button', { name: /sign in/i }).click();
     await expect(page.getByText(/invalid|incorrect|wrong|failed/i)).toBeVisible({ timeout: 8_000 });
     await expect(page).toHaveURL(/\/login/);
@@ -56,8 +56,8 @@ test.describe('🔐 Auth Security', () => {
   test('SEC-UI-07: XSS in login email field does not execute', async ({ page }) => {
     await page.goto('/login');
     const xss = '<script>window.__xss=1</script>';
-    await page.getByPlaceholder(/email/i).fill(xss);
-    await page.getByPlaceholder(/password/i).fill('anything');
+    await page.getByPlaceholder('you@company.com').fill(xss);
+    await page.getByPlaceholder('••••••••').fill('anything');
     await page.getByRole('button', { name: /sign in/i }).click();
     const xssRan = await page.evaluate(() => (window as any).__xss);
     expect(xssRan).toBeFalsy();
