@@ -37,7 +37,7 @@ let UploadsController = class UploadsController {
     }
     async getStatus() {
         const available = await this.uploads.isAvailable();
-        return { available, message: available ? 'MinIO storage ready' : 'Storage not available' };
+        return { available, message: available ? 'Cloudinary storage ready' : 'Storage not available' };
     }
 };
 exports.UploadsController = UploadsController;

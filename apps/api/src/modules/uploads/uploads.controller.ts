@@ -48,6 +48,6 @@ export class UploadsController {
   @Get('status')
   async getStatus() {
     const available = await this.uploads.isAvailable();
-    return { available, message: available ? 'MinIO storage ready' : 'Storage not available' };
+    return { available, message: available ? 'Cloudinary storage ready' : 'Storage not available' };
   }
 }

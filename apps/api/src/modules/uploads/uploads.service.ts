@@ -1,52 +1,26 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as Minio from 'minio';
+import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
-export class UploadsService implements OnModuleInit {
+export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
-  private client: Minio.Client;
-  private readonly bucketDocuments: string;
-  private readonly bucketPhotos: string;
-  private readonly endpoint: string;
-  private readonly port: number;
-  private readonly useSSL: boolean;
+  private readonly configured: boolean;
 
   constructor(private config: ConfigService) {
-    this.endpoint = config.get('MINIO_ENDPOINT', 'localhost');
-    this.port = parseInt(config.get('MINIO_PORT', '9000'), 10);
-    this.useSSL = config.get('MINIO_USE_SSL', 'false') === 'true';
-    this.bucketDocuments = config.get('MINIO_BUCKET_DOCUMENTS', 'user-documents');
-    this.bucketPhotos = config.get('MINIO_BUCKET_PHOTOS', 'profile-photos');
+    const cloudName  = config.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey     = config.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret  = config.get<string>('CLOUDINARY_API_SECRET');
 
-    this.client = new Minio.Client({
-      endPoint: this.endpoint,
-      port: this.port,
-      useSSL: this.useSSL,
-      accessKey: config.get('MINIO_ACCESS_KEY', 'minioadmin'),
-      secretKey: config.get('MINIO_SECRET_KEY', 'minioadmin'),
-    });
-  }
-
-  async onModuleInit() {
-    await this.ensureBuckets();
-  }
-
-  private async ensureBuckets() {
-    for (const bucket of [this.bucketDocuments, this.bucketPhotos]) {
-      try {
-        const exists = await this.client.bucketExists(bucket);
-        if (!exists) {
-          await this.client.makeBucket(bucket, 'ap-south-1');
-          this.logger.log(`Created bucket: ${bucket}`);
-        }
-      } catch (err) {
-        this.logger.warn(`MinIO not available: ${err.message}. Document uploads will be disabled.`);
-        return;
-      }
+    if (cloudName && apiKey && apiSecret) {
+      cloudinary.config({ cloud_name: cloudName, api_key: apiKey, api_secret: apiSecret });
+      this.configured = true;
+      this.logger.log('✅ Cloudinary storage ready');
+    } else {
+      this.configured = false;
+      this.logger.warn('Cloudinary credentials missing — uploads disabled');
     }
-    this.logger.log('✅ MinIO buckets ready');
   }
 
   async uploadDocument(
@@ -54,34 +28,28 @@ export class UploadsService implements OnModuleInit {
     userId: string,
     docType: 'employee_id' | 'driving_license' | 'rc' | 'profile_photo',
   ): Promise<string> {
-    const bucket = docType === 'profile_photo' ? this.bucketPhotos : this.bucketDocuments;
-    const ext = file.originalname.split('.').pop() || 'jpg';
-    const objectName = `${userId}/${docType}/${uuidv4()}.${ext}`;
+    const folder = `techieride/${docType}/${userId}`;
+    const publicId = `${folder}/${uuidv4()}`;
 
-    await this.client.putObject(
-      bucket,
-      objectName,
-      file.buffer,
-      file.size,
-      { 'Content-Type': file.mimetype },
-    );
+    const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          folder,
+          public_id: uuidv4(),
+          resource_type: 'auto',
+          format: file.mimetype === 'application/pdf' ? 'pdf' : undefined,
+        },
+        (error, result) => {
+          if (error || !result) return reject(error ?? new Error('Upload failed'));
+          resolve(result);
+        },
+      ).end(file.buffer);
+    });
 
-    return `${this.useSSL ? 'https' : 'http'}://${this.endpoint}:${this.port}/${bucket}/${objectName}`;
-  }
-
-  async getPresignedUrl(objectPath: string, expirySeconds = 900): Promise<string> {
-    // objectPath format: "bucket/objectName"
-    const [bucket, ...rest] = objectPath.replace(/^https?:\/\/[^/]+\//, '').split('/');
-    const objectName = rest.join('/');
-    return this.client.presignedGetObject(bucket, objectName, expirySeconds);
+    return result.secure_url;
   }
 
   async isAvailable(): Promise<boolean> {
-    try {
-      await this.client.listBuckets();
-      return true;
-    } catch {
-      return false;
-    }
+    return this.configured;
   }
 }
