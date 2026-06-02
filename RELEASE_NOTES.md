@@ -2,6 +2,17 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 309 · f2894e6 · 2026-06-02 16:08 UTC
+
+Commit: fix: replace remaining bare 'role' refs with user?.role in board + create pages
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/rides/board/page.tsx
+- apps/web/src/app/(dashboard)/rides/create/page.tsx
+
+---
+
 ## Build 307 · 173458f · 2026-06-02 16:06 UTC
 
 Commit: fix: rides/[id] — replace bare 'role' with user?.role on isSeeker
