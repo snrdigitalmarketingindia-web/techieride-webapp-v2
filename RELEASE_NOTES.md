@@ -2,6 +2,21 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 255 · 7fdaaef · 2026-06-02 07:51 UTC
+
+Commit: Poll seeker's request status every 15s so approval shows without refresh
+
+When the giver approves, the seeker's taken tab auto-updates within 15s:
+pending requests list clears and ride cards reflect the new CONFIRMED status.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/rides/page.tsx
+
+---
+
 ## Build 253 · fc8b7f7 · 2026-06-02 07:50 UTC
 
 Commit: Add global designer footer + inline pending requests on dashboard + 15s polling
