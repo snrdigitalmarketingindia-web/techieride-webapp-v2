@@ -2,6 +2,40 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 239 · a6dfe00 · 2026-06-02 06:25 UTC
+
+Commit: ci: persist all test output as downloadable artifacts (always)
+
+Problem: test runner output (which tests passed/failed, error details)
+only appeared in the live GitHub Actions log. Once a run expired or
+scrolled off, the information was lost.
+
+Changes:
+- Each job creates /tmp/tr-logs/ at startup
+- API server log → /tmp/tr-logs/api-server.log
+- Each test suite piped through tee → numbered log files:
+    01-base.log  02-extended.log  03-negative.log  04-rules.log
+    05-coverage.log  06-final.log  07-ratings-sos.log
+    08-notifications.log  09-audit-trail.log  10-complaints.log
+    security.log  (security job)
+- Playwright HTML report + server logs also included
+- All artifacts uploaded with if: always() — not just on failure
+- retention-days: 30
+
+Where to find them:
+  GitHub → Actions → [run] → Artifacts section (bottom of summary)
+  api-test-logs/       — all 10 API suite logs + api-server.log
+  security-test-logs/  — security suite log + api-server.log
+  playwright-logs/     — Playwright HTML report + server logs
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+
+---
+
 ## Build 236 · 09be1f5 · 2026-06-02 06:21 UTC
 
 Commit: fix(tests): give each SOS sub-test a fresh user to avoid 60s cooldown
