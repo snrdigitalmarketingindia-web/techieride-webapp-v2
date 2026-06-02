@@ -2,6 +2,31 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 263 · 3205a56 · 2026-06-02 08:25 UTC
+
+Commit: Add seeker Board/Deboard buttons + 3 more boarding test cases
+
+UI:
+- /rides taken tab: ONGOING + boardingStatus=WAITING shows 'I've Boarded' button;
+  BOARDED shows 'I've Deboarded' button; Track Live always shown
+- Dashboard seeker view: same Board/Deboard buttons for ONGOING booked rides
+
+Tests (e2e-api-boarding.ts — now 11 cases):
+- BOARD-09: seeker deboard after board → 200, DEBOARDED
+- BOARD-10: seeker boards twice → 400
+- BOARD-11: seeker deboard without boarding → 400
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+- apps/web/src/app/(dashboard)/dashboard/page.tsx
+- apps/web/src/app/(dashboard)/rides/page.tsx
+- tests/e2e-api-boarding.ts
+
+---
+
 ## Build 255 · 7fdaaef · 2026-06-02 07:51 UTC
 
 Commit: Poll seeker's request status every 15s so approval shows without refresh
