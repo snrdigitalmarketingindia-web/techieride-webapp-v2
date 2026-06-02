@@ -2,6 +2,25 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 289 · db0928c · 2026-06-02 13:22 UTC
+
+Commit: feat: Landing page — improved contrast, social links, origin story
+
+- Hero & impact sections: switched from green-on-green to dark charcoal
+  (gray-900) with white/gray-300 text — readable at all sizes
+- 'shared transportation' → 'carpooling'
+- Origin story banner: started with <10 people, now ~2,000 members network
+- Social media icons: Instagram, Facebook, YouTube, X above footer
+  (grey default, brand colour on hover)
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/page.tsx
+
+---
+
 ## Build 283 · d8d025f · 2026-06-02 12:51 UTC
 
 Commit: feat: Admin user detail page + search on users & rides
