@@ -2,6 +2,64 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 229 · 98a96d9 · 2026-06-02 04:12 UTC
+
+Commit: feat: complaint system + notifications/audit/complaint P0 test suites
+
+Complaint system (new):
+- Schema: Complaint model with ComplaintReason + ComplaintStatus enums;
+  relations on User (reporter/reported) and Ride; pushed to Neon
+- API module apps/api/src/modules/complaints/:
+  POST   /complaints           — file complaint; guards: no self, no admin,
+    participant-check if rideId, duplicate block, invalid reason → 400/403/404/409
+  GET    /complaints/my        — reporter sees own complaints with ride context
+  GET    /complaints/admin     — admin only; filterable by status + reportedId
+  PATCH  /complaints/admin/:id — admin review/resolve/dismiss; terminal state lock
+- Admin receives COMPLAINT_FILED notification on every new complaint
+- Shared enums: ComplaintReason, ComplaintStatus, NotificationType.COMPLAINT_FILED
+  added to .ts, .js, .d.ts
+
+Test suites (3 new files):
+- tests/e2e-api-complaints.ts  — 27 P0 tests:
+    happy path (CMP-01 to CMP-10), negative/guards (CMP-11 to CMP-23),
+    data integrity + regression (CMP-24 to CMP-27)
+- tests/e2e-api-notifications.ts — 18 P0 tests:
+    ride lifecycle, SOS admin alert, rating/no-show, verification,
+    security/isolation, CRUD/persistence
+- tests/e2e-api-audit-trail.ts — 25 tests (20 exec + 5 skipped):
+    ride/request/boarding/SOS/admin state verification + immutability +
+    timestamp regression; [REQUIRES_AUDIT_API] cases clearly labelled
+
+npm scripts: test:api:complaints, test:api:notifications, test:api:audit-trail
+All 3 wired into CI Stage 1 and test:ci
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+- apps/api/dist/apps/api/src/app.module.js
+- apps/api/dist/apps/api/src/app.module.js.map
+- apps/api/dist/apps/api/src/modules/complaints/complaints.controller.d.ts
+- apps/api/dist/apps/api/src/modules/complaints/complaints.controller.js
+- apps/api/dist/apps/api/src/modules/complaints/complaints.controller.js.map
+- apps/api/dist/apps/api/src/modules/complaints/complaints.module.d.ts
+- apps/api/dist/apps/api/src/modules/complaints/complaints.module.js
+- apps/api/dist/apps/api/src/modules/complaints/complaints.module.js.map
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.d.ts
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.js
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.js.map
+- apps/api/dist/packages/shared/src/enums.d.ts
+- apps/api/dist/packages/shared/src/enums.js
+- apps/api/dist/packages/shared/src/enums.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/app.module.ts
+- apps/api/src/modules/complaints/complaints.controller.ts
+- apps/api/src/modules/complaints/complaints.module.ts
+- apps/api/src/modules/complaints/complaints.service.ts
+
+---
+
 ## Build 227 · 17eb2a0 · 2026-06-02 04:06 UTC
 
 Commit: test(p0): add notifications + audit trail automated test suites
