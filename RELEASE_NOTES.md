@@ -2,6 +2,27 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 193 · e7536cd · 2026-06-02 01:59 UTC
+
+Commit: fix: rides not loading on navigation — wait for auth hydration before fetch
+
+Root cause: auth store persists only the token, not the user object.
+On mount user=null so isGiver=false, tab defaults to 'taken' and wrong
+rides are fetched. When profile hydrates the effect doesn't re-run.
+
+My Rides: add role-correction useEffect; guard fetch until user known;
+add user?.role to fetch dependency.
+Dashboard: guard fetch until user known; add user?.role dependency.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/dashboard/page.tsx
+- apps/web/src/app/(dashboard)/rides/page.tsx
+
+---
+
 ## Build 191 · b5e59be · 2026-06-02 01:56 UTC
 
 Commit: fix(ci): remove invalid YAML anchor x-services — GitHub Actions does not support YAML anchors
