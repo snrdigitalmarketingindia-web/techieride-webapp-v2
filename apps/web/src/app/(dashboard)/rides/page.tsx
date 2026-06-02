@@ -50,15 +50,17 @@ export default function MyRidesPage() {
     setLoading(true);
     const fetch = tab === 'given' ? ridesApi.getGiven() : ridesApi.getTaken();
     fetch.then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; }).finally(() => setLoading(false));
-    if (tab === 'taken' && isSeeker) {
-      requestsApi.getMine().then((r) => {
-        const pending = (r.data ?? []).filter((req: any) =>
-          ['PENDING'].includes(req.status)
-        );
-        setMyRequests(pending);
-      }).catch(() => {});
-    }
+    if (tab === 'taken' && isSeeker) reloadMyRequests();
   }, [tab]); // tab is only updated after role is known — no need for user?.role here
+
+  const reloadMyRequests = () => {
+    requestsApi.getMine().then((r) => {
+      const pending = (r.data ?? []).filter((req: any) => req.status === 'PENDING');
+      setMyRequests(pending);
+      // also refresh taken rides so status badges update (PENDING→CONFIRMED)
+      ridesApi.getTaken().then((res) => { setRides(res.data ?? []); ridesRef.current = res.data ?? []; }).catch(() => {});
+    }).catch(() => {});
+  };
 
   const reloadPending = async (rideId: string) => {
     const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));
@@ -71,14 +73,17 @@ export default function MyRidesPage() {
     rides.filter((r) => r.status === 'PUBLISHED').forEach((r) => reloadPending(r.id));
   }, [rides, tab]);
 
-  // Poll every 15s so new ride requests appear without manual refresh
+  // Poll every 15s — giver sees new requests, seeker sees approval status updates
   useEffect(() => {
-    if (tab !== 'given') return;
     const id = setInterval(() => {
-      ridesRef.current.filter((r) => r.status === 'PUBLISHED').forEach((r) => reloadPending(r.id));
+      if (tab === 'given') {
+        ridesRef.current.filter((r) => r.status === 'PUBLISHED').forEach((r) => reloadPending(r.id));
+      } else if (tab === 'taken' && isSeeker) {
+        reloadMyRequests();
+      }
     }, 15000);
     return () => clearInterval(id);
-  }, [tab]);
+  }, [tab, isSeeker]);
 
   const handleApprove = async (reqId: string, rideId: string) => {
     setProcessing(reqId);
