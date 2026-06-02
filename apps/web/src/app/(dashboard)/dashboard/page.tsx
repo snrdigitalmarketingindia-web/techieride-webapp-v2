@@ -65,6 +65,20 @@ export default function DashboardPage() {
     return () => clearInterval(id);
   }, [isGiver]);
 
+  const handleBoard = async (rideId: string) => {
+    setProcessing(rideId);
+    await ridesApi.board(rideId).catch(() => {});
+    ridesApi.getTaken().then((r) => { setUpcomingRides((r.data ?? []).slice(0, 3)); ridesRef.current = (r.data ?? []).slice(0, 3); });
+    setProcessing(null);
+  };
+
+  const handleDeboard = async (rideId: string) => {
+    setProcessing(rideId);
+    await ridesApi.deboard(rideId).catch(() => {});
+    ridesApi.getTaken().then((r) => { setUpcomingRides((r.data ?? []).slice(0, 3)); ridesRef.current = (r.data ?? []).slice(0, 3); });
+    setProcessing(null);
+  };
+
   const handleApprove = async (reqId: string, rideId: string) => {
     setProcessing(reqId);
     await requestsApi.approve(reqId).catch(() => {});
@@ -208,6 +222,35 @@ export default function DashboardPage() {
           <div className="space-y-3">
             {upcomingRides.map((ride) => {
               const pendingReqs = (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING');
+
+              // Seeker board/deboard actions
+              if (!isGiver && ride.status === 'ONGOING') {
+                const myParticipant = (ride.participants ?? []).find(
+                  (p: any) => p.seeker?.userId === user?.id
+                );
+                const bs = myParticipant?.boardingStatus;
+                const seekerActions = (
+                  <div className="flex gap-2 flex-wrap">
+                    {bs === 'WAITING' && (
+                      <button onClick={() => handleBoard(ride.id)} disabled={processing === ride.id}
+                        className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition">
+                        ✅ I've Boarded
+                      </button>
+                    )}
+                    {bs === 'BOARDED' && (
+                      <button onClick={() => handleDeboard(ride.id)} disabled={processing === ride.id}
+                        className="text-xs bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition">
+                        🏁 I've Deboarded
+                      </button>
+                    )}
+                    <Link href={`/tracking/${ride.id}`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+                      📍 Track Live
+                    </Link>
+                  </div>
+                );
+                return <RideCard key={ride.id} ride={ride} viewAs="seeker" actions={seekerActions} />;
+              }
+
               const actions = pendingReqs.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">📥 Pending ({pendingReqs.length})</p>

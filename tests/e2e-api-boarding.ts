@@ -148,6 +148,33 @@ export async function runBoardingTests() {
     const r = await seeker.client.patch(`/rides/${rideId}/board`);
     assert(r.status === 400, `Expected 400 (ride not ONGOING), got ${r.status}`);
   });
+
+  // BOARD-09: Seeker deboard → 200, boardingStatus = DEBOARDED
+  await test('BOARD-09: Seeker deboard after boarding → 200, boardingStatus = DEBOARDED', async () => {
+    const { giver, seeker, rideId } = await setupOngoingRide('09');
+    await giver.client.patch(`/rides/${rideId}/start`);
+    await seeker.client.patch(`/rides/${rideId}/board`);
+    const r = await seeker.client.patch(`/rides/${rideId}/deboard`);
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(r.data.boardingStatus === 'DEBOARDED', `Expected DEBOARDED, got ${r.data.boardingStatus}`);
+  });
+
+  // BOARD-10: Seeker cannot board twice
+  await test('BOARD-10: Seeker boards twice → 400 on second attempt', async () => {
+    const { giver, seeker, rideId } = await setupOngoingRide('10');
+    await giver.client.patch(`/rides/${rideId}/start`);
+    await seeker.client.patch(`/rides/${rideId}/board`);
+    const r = await seeker.client.patch(`/rides/${rideId}/board`);
+    assert(r.status === 400, `Expected 400 on double board, got ${r.status}`);
+  });
+
+  // BOARD-11: Seeker cannot deboard without boarding first
+  await test('BOARD-11: Seeker deboard without boarding → 400', async () => {
+    const { giver, seeker, rideId } = await setupOngoingRide('11');
+    await giver.client.patch(`/rides/${rideId}/start`);
+    const r = await seeker.client.patch(`/rides/${rideId}/deboard`);
+    assert(r.status === 400, `Expected 400 (not boarded yet), got ${r.status}`);
+  });
 }
 
 // ── Runner ────────────────────────────────────────────────────────────────────

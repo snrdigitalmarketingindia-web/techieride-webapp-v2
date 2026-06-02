@@ -33,7 +33,7 @@ jobs:
 
   # ── Stage 1: API Tests ──────────────────────────────────────────────────────
   api-tests:
-    name: 🧪 API Tests (215 + Ratings/SOS P0)
+    name: 🧪 API Tests (11 suites)
     runs-on: ubuntu-latest
 
     services:

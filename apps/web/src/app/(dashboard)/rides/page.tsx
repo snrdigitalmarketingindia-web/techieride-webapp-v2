@@ -87,6 +87,20 @@ export default function MyRidesPage() {
     return () => clearInterval(id);
   }, [tab, isSeeker]);
 
+  const handleBoard = async (rideId: string) => {
+    setProcessing(rideId);
+    await ridesApi.board(rideId).catch(() => {});
+    reloadMyRequests();
+    setProcessing(null);
+  };
+
+  const handleDeboard = async (rideId: string) => {
+    setProcessing(rideId);
+    await ridesApi.deboard(rideId).catch(() => {});
+    reloadMyRequests();
+    setProcessing(null);
+  };
+
   const handleNoShow = async (rideId: string, seekerProfileId: string) => {
     setProcessing(seekerProfileId);
     await ridesApi.markNoShow(rideId, seekerProfileId).catch(() => {});
@@ -341,9 +355,35 @@ export default function MyRidesPage() {
                             <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📡 Share Location</Link>
                           </>
                         )}
-                        {tab === 'taken' && ride.status === 'ONGOING' && (
-                          <Link href={`/tracking/${ride.id}`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📍 Track Live</Link>
-                        )}
+                        {tab === 'taken' && ride.status === 'ONGOING' && (() => {
+                          const myParticipant = (ride.participants ?? []).find(
+                            (p: any) => p.seeker?.userId === user?.id
+                          );
+                          const bs = myParticipant?.boardingStatus;
+                          return (
+                            <>
+                              {bs === 'WAITING' && (
+                                <button
+                                  onClick={() => handleBoard(ride.id)}
+                                  disabled={processing === ride.id}
+                                  className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+                                >
+                                  ✅ I've Boarded
+                                </button>
+                              )}
+                              {bs === 'BOARDED' && (
+                                <button
+                                  onClick={() => handleDeboard(ride.id)}
+                                  disabled={processing === ride.id}
+                                  className="text-xs bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition"
+                                >
+                                  🏁 I've Deboarded
+                                </button>
+                              )}
+                              <Link href={`/tracking/${ride.id}`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📍 Track Live</Link>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
