@@ -6,6 +6,31 @@ import Link from 'next/link';
 import { ridesApi, vehiclesApi, templatesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
+const PREFS_KEY = 'tr_ride_prefs';
+
+const loadPrefs = () => {
+  try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch { return {}; }
+};
+const savePrefs = (prefs: object) => {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {}
+};
+
+// Returns now+1h rounded up to the nearest 15 min as "HH:MM"
+const defaultDepartureTime = () => {
+  const d = new Date();
+  d.setHours(d.getHours() + 1);
+  const m = Math.ceil(d.getMinutes() / 15) * 15;
+  if (m >= 60) { d.setHours(d.getHours() + 1); d.setMinutes(0); }
+  else { d.setMinutes(m); }
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
+// Returns true if selected date+time is at least 1 hour from now
+const isAtLeastOneHourAhead = (date: string, time: string) => {
+  const departure = new Date(`${date}T${time}:00`);
+  return departure.getTime() - Date.now() >= 60 * 60 * 1000;
+};
+
 export default function CreateRidePage() {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -14,22 +39,26 @@ export default function CreateRidePage() {
   useEffect(() => {
     if (user && !isGiver) router.replace('/dashboard');
   }, [user]);
+
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [activeRide, setActiveRide] = useState<any>(null);
-  const [form, setForm] = useState({
-    vehicleId: '',
-    originName: '',
-    originLat: 17.4401,
-    originLng: 78.3489,
-    destinationName: '',
-    destinationLat: 17.4489,
-    destinationLng: 78.3696,
-    departureDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
-    departureTime: '09:00',
-    totalSeats: 2,
-    notes: '',
-    saveAsTemplate: false,
-    departureDays: [1, 2, 3, 4, 5],
+  const [form, setForm] = useState(() => {
+    const prefs = typeof window !== 'undefined' ? loadPrefs() : {};
+    return {
+      vehicleId: '',
+      originName: prefs.originName ?? '',
+      originLat: prefs.originLat ?? 17.4401,
+      originLng: prefs.originLng ?? 78.3489,
+      destinationName: prefs.destinationName ?? '',
+      destinationLat: prefs.destinationLat ?? 17.4489,
+      destinationLng: prefs.destinationLng ?? 78.3696,
+      departureDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
+      departureTime: prefs.departureTime ?? defaultDepartureTime(),
+      totalSeats: 2,
+      notes: '',
+      saveAsTemplate: false,
+      departureDays: [1, 2, 3, 4, 5],
+    };
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,6 +81,9 @@ export default function CreateRidePage() {
   const submit = async () => {
     if (!form.vehicleId) { setError('Please select a vehicle'); return; }
     if (!form.originName || !form.destinationName) { setError('Please fill in origin and destination'); return; }
+    if (!isAtLeastOneHourAhead(form.departureDate, form.departureTime)) {
+      setError('Departure time must be at least 1 hour from now'); return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -74,6 +106,18 @@ export default function CreateRidePage() {
       }
 
       await ridesApi.publish(ride.id);
+
+      // Save last-used values so they pre-fill next time
+      savePrefs({
+        originName: form.originName,
+        originLat: form.originLat,
+        originLng: form.originLng,
+        destinationName: form.destinationName,
+        destinationLat: form.destinationLat,
+        destinationLng: form.destinationLng,
+        departureTime: form.departureTime,
+      });
+
       router.push('/rides');
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to create ride');
@@ -135,6 +179,9 @@ export default function CreateRidePage() {
           <div>
             <label className="text-sm font-medium text-gray-700">🕐 Departure Time</label>
             <input type="time" value={form.departureTime} onChange={(e) => update('departureTime', e.target.value)} className={`${inputCls} mt-1`} />
+            {!isAtLeastOneHourAhead(form.departureDate, form.departureTime) && (
+              <p className="text-xs text-red-500 mt-1">⚠️ Must be at least 1 hour from now</p>
+            )}
           </div>
         </div>
 
