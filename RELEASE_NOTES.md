@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 297 · ee9dee6 · 2026-06-02 13:34 UTC
+
+Commit: fix: profile page isGiver — replace bare 'role' with user?.role
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/profile/page.tsx
+
+---
+
 ## Build 295 · 11fa491 · 2026-06-02 13:31 UTC
 
 Commit: feat: Verification page — unified flat list, no tabs
