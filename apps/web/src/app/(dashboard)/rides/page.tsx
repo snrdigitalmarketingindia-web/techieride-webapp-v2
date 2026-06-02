@@ -41,7 +41,8 @@ export default function MyRidesPage() {
     }).catch(() => {});
   }, [isGiver]);
 
-  // Fetch rides — wait until user is hydrated so tab is correct
+  // Fetch rides when tab changes — tab is only set after user hydrates (see effect above)
+  // so this naturally waits for the correct role before fetching.
   useEffect(() => {
     if (!user) return;
     setLoading(true);
@@ -55,7 +56,7 @@ export default function MyRidesPage() {
         setMyRequests(pending);
       }).catch(() => {});
     }
-  }, [tab, user?.role]);
+  }, [tab]); // tab is only updated after role is known — no need for user?.role here
 
   const reloadPending = async (rideId: string) => {
     const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));
