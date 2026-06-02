@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 191 · b5e59be · 2026-06-02 01:56 UTC
+
+Commit: fix(ci): remove invalid YAML anchor x-services — GitHub Actions does not support YAML anchors
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+
+---
+
 ## Build 189 · 482329e · 2026-06-02 01:51 UTC
 
 Commit: docs(qa): complete business validation framework — 18 functional test specs
