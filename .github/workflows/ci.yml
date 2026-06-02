@@ -29,31 +29,6 @@ env:
   NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
   NEXT_PUBLIC_WS_URL: http://localhost:3001
 
-# ── Shared service definitions ────────────────────────────────────────────────
-x-services: &services
-  postgres:
-    image: postgres:15-alpine
-    env:
-      POSTGRES_USER: techieride
-      POSTGRES_PASSWORD: techieride
-      POSTGRES_DB: techieride
-    ports:
-      - 5432:5432
-    options: >-
-      --health-cmd "pg_isready -U techieride"
-      --health-interval 10s
-      --health-timeout 5s
-      --health-retries 5
-  redis:
-    image: redis:7-alpine
-    ports:
-      - 6379:6379
-    options: >-
-      --health-cmd "redis-cli ping"
-      --health-interval 10s
-      --health-timeout 5s
-      --health-retries 5
-
 jobs:
 
   # ── Stage 1: Lint ───────────────────────────────────────────────────────────
@@ -192,7 +167,6 @@ jobs:
             sleep 2
           done
 
-      # Quality gate: any security failure = build fails
       - name: Run API security tests
         run: npm run test:api:security
 
@@ -291,7 +265,7 @@ jobs:
             /tmp/techieride-api.log
             /tmp/techieride-web.log
 
-  # ── Stage 5: Quality Gate Summary ──────────────────────────────────────────
+  # ── Stage 5: Quality Gate ───────────────────────────────────────────────────
   quality-gate:
     name: ✅ Quality Gate
     runs-on: ubuntu-latest
@@ -305,13 +279,12 @@ jobs:
           echo "Security     : ${{ needs.security-tests.result }}"
           echo "Playwright   : ${{ needs.playwright-tests.result }}"
 
-          if [[ "${{ needs.lint.result }}"          != "success" ]] || \
-             [[ "${{ needs.api-tests.result }}"     != "success" ]] || \
+          if [[ "${{ needs.lint.result }}"           != "success" ]] || \
+             [[ "${{ needs.api-tests.result }}"      != "success" ]] || \
              [[ "${{ needs.security-tests.result }}" != "success" ]] || \
              [[ "${{ needs.playwright-tests.result }}" != "success" ]]; then
             echo ""
             echo "❌ QUALITY GATE FAILED — one or more stages did not pass."
-            echo "   Build is NOT eligible for deployment."
             exit 1
           fi
 
