@@ -196,22 +196,38 @@ jobs:
           for log in /tmp/tr-logs/0*.log /tmp/tr-logs/1*.log; do
             [ -f "$log" ] || continue
             suite=$(basename "$log" .log)
+            marker="/tmp/tr-logs/FAILED_${suite}"
+
+            # A suite is failed if its marker file exists OR if it has ❌ FAIL lines
             fails=$(grep "❌ FAIL" "$log" 2>/dev/null || true)
-            if [ -n "$fails" ]; then
+            crashed=$([ -f "$marker" ] && [ -z "$fails" ] && echo "yes" || echo "")
+
+            if [ -n "$fails" ] || [ -f "$marker" ]; then
               found=1
-              write "### $suite"
+              write "### ❌ $suite"
               write ""
-              write '```'
-              echo "$fails" | tee -a "$FILE" >> "$OUT"
-              write '```'
-              write ""
-              results=$(grep -E "passed|failed" "$log" | tail -3 || true)
-              if [ -n "$results" ]; then
+
+              if [ -n "$crashed" ]; then
+                # Suite crashed before printing any test results — show last 20 lines
+                write "_Suite crashed or exited before tests ran. Last output:_"
+                write ""
                 write '```'
-                echo "$results" | tee -a "$FILE" >> "$OUT"
+                tail -20 "$log" | tee -a "$FILE" >> "$OUT"
+                write '```'
+              else
+                # Normal test failures — show ❌ FAIL lines
+                write '```'
+                echo "$fails" | tee -a "$FILE" >> "$OUT"
                 write '```'
                 write ""
+                results=$(grep -E "Passed:|Failed:|passed|failed" "$log" | tail -5 || true)
+                if [ -n "$results" ]; then
+                  write '```'
+                  echo "$results" | tee -a "$FILE" >> "$OUT"
+                  write '```'
+                fi
               fi
+              write ""
             fi
           done
 
