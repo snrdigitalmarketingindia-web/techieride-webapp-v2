@@ -2,6 +2,24 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 295 · 11fa491 · 2026-06-02 13:31 UTC
+
+Commit: feat: Verification page — unified flat list, no tabs
+
+All pending requests (Employee, Driver, Exception) shown in one table.
+Each row: user name/email/company + account status badge, verification type
+badge, document links, submitted date, and inline Approve/Reject actions.
+Reject expands inline reason textarea before confirming.
+'View Full Profile →' links to /admin/users/:id for the full checklist.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/admin/verification/page.tsx
+
+---
+
 ## Build 293 · 961e344 · 2026-06-02 13:29 UTC
 
 Commit: feat: Contextual admin actions — suspend with reason, reject with reason, deactivate, reinstate
