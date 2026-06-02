@@ -147,8 +147,8 @@ let RidesService = RidesService_1 = class RidesService {
         const ride = await this.prisma.ride.findUnique({ where: { id: rideId } });
         if (!ride)
             throw new common_1.NotFoundException('Ride not found');
-        if (ride.status !== shared_1.RideStatus.PUBLISHED && ride.status !== shared_1.RideStatus.ONGOING) {
-            throw new common_1.BadRequestException('Ride is not active');
+        if (ride.status !== shared_1.RideStatus.ONGOING) {
+            throw new common_1.BadRequestException('You can only board an ongoing ride');
         }
         const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
         if (!seeker)
@@ -180,7 +180,7 @@ let RidesService = RidesService_1 = class RidesService {
         }
         const allParticipants = await this.prisma.rideParticipant.findMany({ where: { rideId } });
         const allBoarded = allParticipants.every(p => p.id === participant.id ? true : p.boardingStatus === 'BOARDED' || p.boardingStatus === 'DEBOARDED');
-        if (allBoarded && ride.status === shared_1.RideStatus.PUBLISHED) {
+        if (allBoarded && ride.status === shared_1.RideStatus.ONGOING) {
             await this.prisma.ride.update({
                 where: { id: rideId },
                 data: { status: shared_1.RideStatus.ONGOING, startedAt: new Date() },

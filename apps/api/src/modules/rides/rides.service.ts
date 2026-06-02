@@ -170,8 +170,8 @@ export class RidesService {
   async board(rideId: string, userId: string) {
     const ride = await this.prisma.ride.findUnique({ where: { id: rideId } });
     if (!ride) throw new NotFoundException('Ride not found');
-    if (ride.status !== RideStatus.PUBLISHED && ride.status !== RideStatus.ONGOING) {
-      throw new BadRequestException('Ride is not active');
+    if (ride.status !== RideStatus.ONGOING) {
+      throw new BadRequestException('You can only board an ongoing ride');
     }
 
     const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
@@ -209,7 +209,7 @@ export class RidesService {
       p.id === participant.id ? true : p.boardingStatus === 'BOARDED' || p.boardingStatus === 'DEBOARDED'
     );
 
-    if (allBoarded && ride.status === RideStatus.PUBLISHED) {
+    if (allBoarded && ride.status === RideStatus.ONGOING) {
       await this.prisma.ride.update({
         where: { id: rideId },
         data: { status: RideStatus.ONGOING, startedAt: new Date() },
