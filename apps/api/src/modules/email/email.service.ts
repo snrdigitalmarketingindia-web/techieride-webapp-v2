@@ -12,7 +12,8 @@ export class EmailService {
 
   constructor(private config: ConfigService) {
     const apiKey = config.get<string>('RESEND_API_KEY');
-    this.from = config.get<string>('EMAIL_FROM', 'noreply@techieride.in');
+    const fromEmail = config.get<string>('EMAIL_FROM', 'noreply@techieride.in');
+    this.from = `TechieRide <${fromEmail}>`;
     this.appUrl = config.get<string>('APP_URL', 'http://localhost:3000');
     this.isDev = config.get<string>('NODE_ENV', 'development') === 'development';
 
