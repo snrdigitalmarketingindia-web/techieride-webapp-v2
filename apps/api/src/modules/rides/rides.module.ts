@@ -4,9 +4,10 @@ import { RidesService } from './rides.service';
 import { GamificationModule } from '../gamification/gamification.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
+import { TrustScoreModule } from '../trust-score/trust-score.module';
 
 @Module({
-  imports: [GamificationModule, NotificationsModule, EmailModule],
+  imports: [GamificationModule, NotificationsModule, EmailModule, TrustScoreModule],
   controllers: [RidesController],
   providers: [RidesService],
   exports: [RidesService],

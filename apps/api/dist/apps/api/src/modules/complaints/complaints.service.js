@@ -13,11 +13,13 @@ exports.ComplaintsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const trust_score_service_1 = require("../trust-score/trust-score.service");
 const shared_1 = require("@techieride/shared");
 let ComplaintsService = class ComplaintsService {
-    constructor(prisma, notifications) {
+    constructor(prisma, notifications, trustScore) {
         this.prisma = prisma;
         this.notifications = notifications;
+        this.trustScore = trustScore;
     }
     async fileComplaint(reporterId, dto) {
         const { reportedId, rideId, reason, description } = dto;
@@ -123,7 +125,7 @@ let ComplaintsService = class ComplaintsService {
         if (isTerminal) {
             throw new common_1.BadRequestException(`Complaint is already ${complaint.status} and cannot be updated`);
         }
-        return this.prisma.complaint.update({
+        const updated = await this.prisma.complaint.update({
             where: { id: complaintId },
             data: {
                 status: dto.status,
@@ -132,12 +134,17 @@ let ComplaintsService = class ComplaintsService {
                 resolvedAt: ['RESOLVED', 'DISMISSED'].includes(dto.status) ? new Date() : undefined,
             },
         });
+        if (dto.status === 'RESOLVED') {
+            await this.trustScore.onComplaintVerified(complaint.reportedId, complaintId);
+        }
+        return updated;
     }
 };
 exports.ComplaintsService = ComplaintsService;
 exports.ComplaintsService = ComplaintsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        trust_score_service_1.TrustScoreService])
 ], ComplaintsService);
 //# sourceMappingURL=complaints.service.js.map

@@ -42,6 +42,8 @@ export declare class JwtStrategy extends JwtStrategy_base {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;

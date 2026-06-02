@@ -17,14 +17,16 @@ const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const admin_service_1 = require("./admin.service");
 const verification_service_1 = require("../verification/verification.service");
+const trust_score_service_1 = require("../trust-score/trust-score.service");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const roles_guard_1 = require("../../common/guards/roles.guard");
 const shared_1 = require("@techieride/shared");
 let AdminController = class AdminController {
-    constructor(adminService, verificationService) {
+    constructor(adminService, verificationService, trustScoreService) {
         this.adminService = adminService;
         this.verificationService = verificationService;
+        this.trustScoreService = trustScoreService;
     }
     listUsers(accountStatus, role, page = 1, limit = 20) {
         return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
@@ -73,6 +75,18 @@ let AdminController = class AdminController {
     }
     resolveSos(id, adminId, notes) {
         return this.adminService.resolveSos(id, adminId, notes);
+    }
+    getTrustScore(id) {
+        return this.trustScoreService.getScore(id);
+    }
+    getTrustHistory(id) {
+        return this.trustScoreService.getHistory(id);
+    }
+    adjustTrustScore(id, adminId, delta, reason) {
+        return this.trustScoreService.adminAdjust(id, delta, reason, adminId);
+    }
+    reinstateUser(id, adminId) {
+        return this.trustScoreService.adminReinstate(id, adminId);
     }
 };
 exports.AdminController = AdminController;
@@ -193,6 +207,38 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "resolveSos", null);
+__decorate([
+    (0, common_1.Get)('users/:id/trust-score'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getTrustScore", null);
+__decorate([
+    (0, common_1.Get)('users/:id/trust-score/history'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getTrustHistory", null);
+__decorate([
+    (0, common_1.Patch)('users/:id/trust-score'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(2, (0, common_1.Body)('delta')),
+    __param(3, (0, common_1.Body)('reason')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Number, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "adjustTrustScore", null);
+__decorate([
+    (0, common_1.Patch)('users/:id/reinstate'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "reinstateUser", null);
 exports.AdminController = AdminController = __decorate([
     (0, swagger_1.ApiTags)('Admin'),
     (0, swagger_1.ApiBearerAuth)(),
@@ -200,6 +246,7 @@ exports.AdminController = AdminController = __decorate([
     (0, roles_decorator_1.Roles)(shared_1.UserRole.ADMIN),
     (0, common_1.Controller)('admin'),
     __metadata("design:paramtypes", [admin_service_1.AdminService,
-        verification_service_1.VerificationService])
+        verification_service_1.VerificationService,
+        trust_score_service_1.TrustScoreService])
 ], AdminController);
 //# sourceMappingURL=admin.controller.js.map

@@ -116,3 +116,11 @@ export enum WsEvents {
   JOIN_RIDE = 'ride:join',
   LEAVE_RIDE = 'ride:leave',
 }
+
+export enum TrustBand {
+  NEW      = 'NEW',
+  BRONZE   = 'BRONZE',
+  SILVER   = 'SILVER',
+  GOLD     = 'GOLD',
+  PLATINUM = 'PLATINUM',
+}

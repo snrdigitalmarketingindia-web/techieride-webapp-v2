@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 import { NotificationType } from '@techieride/shared';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class ComplaintsService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private trustScore: TrustScoreService,
   ) {}
 
   async fileComplaint(
@@ -152,7 +154,7 @@ export class ComplaintsService {
       throw new BadRequestException(`Complaint is already ${complaint.status} and cannot be updated`);
     }
 
-    return this.prisma.complaint.update({
+    const updated = await this.prisma.complaint.update({
       where: { id: complaintId },
       data: {
         status: dto.status as any,
@@ -161,5 +163,12 @@ export class ComplaintsService {
         resolvedAt: ['RESOLVED', 'DISMISSED'].includes(dto.status) ? new Date() : undefined,
       },
     });
+
+    // Deduct trust score when complaint is resolved (verified) against the reported user
+    if (dto.status === 'RESOLVED') {
+      await this.trustScore.onComplaintVerified(complaint.reportedId, complaintId);
+    }
+
+    return updated;
   }
 }

@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 import { NotificationType } from '@techieride/shared';
 
 @Injectable()
@@ -14,6 +15,7 @@ export class RatingsService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private trustScore: TrustScoreService,
   ) {}
 
   async submitRating(
@@ -92,6 +94,9 @@ export class RatingsService {
       body: `${rater?.fullName ?? 'Someone'} gave you ${score} star${score !== 1 ? 's' : ''}`,
       data: { ratingId: rating.id, rideId, score },
     });
+
+    // Adjust trust score based on rating received
+    await this.trustScore.onRatingReceived(rateeId, score, rating.id);
 
     return { ratingId: rating.id, message: 'Rating submitted successfully' };
   }

@@ -42,6 +42,8 @@ export declare class UsersService {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -59,6 +61,8 @@ export declare class UsersService {
         id: string;
         profilePhoto: string | null;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
     }>;
     updateProfile(userId: string, dto: UpdateProfileDto): Promise<{
         email: string;
@@ -93,6 +97,8 @@ export declare class UsersService {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -129,6 +135,8 @@ export declare class UsersService {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;

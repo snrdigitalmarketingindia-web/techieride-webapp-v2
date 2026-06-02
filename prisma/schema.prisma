@@ -131,6 +131,14 @@ enum BoardingStatus {
   NO_SHOW
 }
 
+enum TrustBand {
+  NEW
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
 // ─── User ──────────────────────────────────────────────────────────────────
 
 model User {
@@ -166,6 +174,8 @@ model User {
   fcmToken                  String?
   ecoPoints                 Int                @default(0)
   ecoLevel                  EcoLevel           @default(SEED)
+  trustScore                Int                @default(10)
+  trustBand                 TrustBand          @default(NEW)
   createdAt                 DateTime           @default(now())
   updatedAt                 DateTime           @updatedAt
 
@@ -180,6 +190,7 @@ model User {
   sosEvents            SosEvent[]
   complaintsReported   Complaint[]        @relation("complaintsReported")
   complaintsReceived   Complaint[]        @relation("complaintsReceived")
+  trustScoreEvents     TrustScoreEvent[]
 
   @@index([email])
   @@index([emailStatus])
@@ -470,6 +481,27 @@ model GamificationPoint {
   @@index([userId])
   @@index([createdAt])
   @@map("gamification_points")
+}
+
+// ─── Trust Score ──────────────────────────────────────────────────────────
+
+model TrustScoreEvent {
+  id          String   @id @default(uuid())
+  userId      String
+  delta       Int                         // positive or negative
+  eventType   String                      // RIDE_COMPLETED_GIVER, NO_SHOW, COMPLAINT, etc.
+  reason      String?                     // human-readable note
+  referenceId String?                     // rideId, complaintId, etc. for idempotency
+  scoreAfter  Int                         // score snapshot after this event
+  adminId     String?                     // set when admin manually adjusts
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventType, referenceId])  // idempotency guard
+  @@index([userId])
+  @@index([createdAt])
+  @@map("trust_score_events")
 }
 
 // ─── Call Log (audit) ─────────────────────────────────────────────────────

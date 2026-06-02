@@ -1,9 +1,11 @@
 import { UsersService } from './users.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddEmergencyContactDto } from './dto/emergency-contact.dto';
 export declare class UsersController {
     private usersService;
-    constructor(usersService: UsersService);
+    private trustScoreService;
+    constructor(usersService: UsersService, trustScoreService: TrustScoreService);
     getMyProfile(userId: string): Promise<{
         rideGiver: {
             averageRating: number;
@@ -40,6 +42,8 @@ export declare class UsersController {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -76,6 +80,8 @@ export declare class UsersController {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -93,6 +99,8 @@ export declare class UsersController {
         id: string;
         profilePhoto: string | null;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
     }>;
     getEmergencyContacts(userId: string): Promise<{
         name: string;
@@ -121,4 +129,19 @@ export declare class UsersController {
     confirmPersonalEmailChange(token: string): Promise<{
         message: string;
     }>;
+    getMyTrustScore(userId: string): Promise<{
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
+    } | null>;
+    getMyTrustHistory(userId: string): Promise<{
+        reason: string | null;
+        id: string;
+        createdAt: Date;
+        userId: string;
+        delta: number;
+        eventType: string;
+        referenceId: string | null;
+        scoreAfter: number;
+        adminId: string | null;
+    }[]>;
 }

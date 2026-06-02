@@ -1,9 +1,11 @@
 import { AdminService } from './admin.service';
 import { VerificationService } from '../verification/verification.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 export declare class AdminController {
     private adminService;
     private verificationService;
-    constructor(adminService: AdminService, verificationService: VerificationService);
+    private trustScoreService;
+    constructor(adminService: AdminService, verificationService: VerificationService, trustScoreService: TrustScoreService);
     listUsers(accountStatus?: string, role?: string, page?: number, limit?: number): Promise<{
         data: {
             email: string;
@@ -55,6 +57,8 @@ export declare class AdminController {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -91,6 +95,8 @@ export declare class AdminController {
         fcmToken: string | null;
         ecoPoints: number;
         ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
         createdAt: Date;
         updatedAt: Date;
     }>;
@@ -229,8 +235,8 @@ export declare class AdminController {
         isActive: boolean;
         createdAt: Date;
         rcUrl: string | null;
-        totalSeats: number;
         rideGiverId: string;
+        totalSeats: number;
         make: string;
         model: string;
         year: number | null;
@@ -243,8 +249,8 @@ export declare class AdminController {
         isActive: boolean;
         createdAt: Date;
         rcUrl: string | null;
-        totalSeats: number;
         rideGiverId: string;
+        totalSeats: number;
         make: string;
         model: string;
         year: number | null;
@@ -257,8 +263,8 @@ export declare class AdminController {
         isActive: boolean;
         createdAt: Date;
         rcUrl: string | null;
-        totalSeats: number;
         rideGiverId: string;
+        totalSeats: number;
         make: string;
         model: string;
         year: number | null;
@@ -288,8 +294,8 @@ export declare class AdminController {
                 isActive: boolean;
                 createdAt: Date;
                 rcUrl: string | null;
-                totalSeats: number;
                 rideGiverId: string;
+                totalSeats: number;
                 make: string;
                 model: string;
                 year: number | null;
@@ -302,24 +308,24 @@ export declare class AdminController {
             createdAt: Date;
             updatedAt: Date;
             status: import(".prisma/client").$Enums.RideStatus;
+            rideGiverId: string;
             vehicleId: string;
+            templateId: string | null;
             originName: string;
             originLat: number;
             originLng: number;
             destinationName: string;
             destinationLat: number;
             destinationLng: number;
-            departureDate: Date;
-            departureTime: string;
-            totalSeats: number;
-            notes: string | null;
-            rideGiverId: string;
-            templateId: string | null;
             routePolyline: import("@prisma/client/runtime/library").JsonValue | null;
             estimatedDistanceKm: number | null;
             estimatedDurationMin: number | null;
+            departureDate: Date;
+            departureTime: string;
             estimatedArrivalTime: string | null;
+            totalSeats: number;
             availableSeats: number;
+            notes: string | null;
             startedAt: Date | null;
             completedAt: Date | null;
             cancelledAt: Date | null;
@@ -348,24 +354,24 @@ export declare class AdminController {
             createdAt: Date;
             updatedAt: Date;
             status: import(".prisma/client").$Enums.RideStatus;
+            rideGiverId: string;
             vehicleId: string;
+            templateId: string | null;
             originName: string;
             originLat: number;
             originLng: number;
             destinationName: string;
             destinationLat: number;
             destinationLng: number;
-            departureDate: Date;
-            departureTime: string;
-            totalSeats: number;
-            notes: string | null;
-            rideGiverId: string;
-            templateId: string | null;
             routePolyline: import("@prisma/client/runtime/library").JsonValue | null;
             estimatedDistanceKm: number | null;
             estimatedDurationMin: number | null;
+            departureDate: Date;
+            departureTime: string;
             estimatedArrivalTime: string | null;
+            totalSeats: number;
             availableSeats: number;
+            notes: string | null;
             startedAt: Date | null;
             completedAt: Date | null;
             cancelledAt: Date | null;
@@ -395,4 +401,21 @@ export declare class AdminController {
         triggeredAt: Date;
         resolvedAt: Date | null;
     }>;
+    getTrustScore(id: string): Promise<{
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
+    } | null>;
+    getTrustHistory(id: string): Promise<{
+        reason: string | null;
+        id: string;
+        createdAt: Date;
+        userId: string;
+        delta: number;
+        eventType: string;
+        referenceId: string | null;
+        scoreAfter: number;
+        adminId: string | null;
+    }[]>;
+    adjustTrustScore(id: string, adminId: string, delta: number, reason: string): Promise<number>;
+    reinstateUser(id: string, adminId: string): Promise<void>;
 }

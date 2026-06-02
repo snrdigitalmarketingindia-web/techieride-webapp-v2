@@ -26,6 +26,7 @@ const SEEKER_USER_SELECT = {
 import { GamificationService } from '../gamification/gamification.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -51,6 +52,7 @@ export class RidesService {
     private gamification: GamificationService,
     private notifications: NotificationsService,
     private email: EmailService,
+    private trustScore: TrustScoreService,
   ) {}
 
   async create(userId: string, dto: CreateRideDto) {
@@ -292,7 +294,7 @@ export class RidesService {
       data: { status: RideStatus.COMPLETED, completedAt: new Date() },
     });
 
-    // Award ECO points
+    // Award ECO + Trust points
     const participants = await this.prisma.rideParticipant.findMany({
       where: { rideId },
       include: { seeker: { include: { user: true } } },
@@ -305,6 +307,7 @@ export class RidesService {
       ride.estimatedDistanceKm || 0,
       participants.length,
     );
+    await this.trustScore.onRideCompletedGiver(ride.rideGiverId, rideId);
 
     for (const p of participants) {
       await this.gamification.awardRideCompletion(
@@ -314,6 +317,7 @@ export class RidesService {
         ride.estimatedDistanceKm || 0,
         1,
       );
+      await this.trustScore.onRideCompletedSeeker(p.seekerId, rideId);
       await this.notifications.create(p.seeker.userId, {
         type: NotificationType.RIDE_COMPLETED,
         title: 'Ride completed! Rate your experience',
@@ -457,6 +461,11 @@ export class RidesService {
       await this.email.sendNotification(seekerUser.email, seekerUser.personalEmail, 'Your TechieRide ride was cancelled', html);
     }
 
+    // Deduct trust score when giver cancels a PUBLISHED ride
+    if (isOwner && ride.status === RideStatus.PUBLISHED) {
+      await this.trustScore.onGiverCancelledRide(userId, rideId);
+    }
+
     return updated;
   }
 
@@ -508,6 +517,7 @@ export class RidesService {
 
     // Deduct ECO points penalty from seeker
     await this.gamification.addPoints(seeker.userId, -10, 'NO_SHOW', rideId, 0);
+    await this.trustScore.onNoShowSeeker(seeker.userId, rideId);
 
     // Notify seeker
     const seekerUser = await this.prisma.user.findUnique({ where: { id: seeker.userId } });

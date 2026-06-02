@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WsEvents = exports.BoardingStatus = exports.ComplaintStatus = exports.ComplaintReason = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = exports.VerificationType = exports.AccountStatus = void 0;
+exports.TrustBand = exports.WsEvents = exports.BoardingStatus = exports.ComplaintStatus = exports.ComplaintReason = exports.NotificationType = exports.RequestStatus = exports.RideStatus = exports.EcoLevel = exports.VerificationStatus = exports.UserRole = exports.Gender = exports.VerificationType = exports.AccountStatus = void 0;
 var AccountStatus;
 (function (AccountStatus) {
     AccountStatus["DRAFT"] = "DRAFT";
@@ -120,4 +120,12 @@ var WsEvents;
     WsEvents["JOIN_RIDE"] = "ride:join";
     WsEvents["LEAVE_RIDE"] = "ride:leave";
 })(WsEvents || (exports.WsEvents = WsEvents = {}));
+var TrustBand;
+(function (TrustBand) {
+    TrustBand["NEW"] = "NEW";
+    TrustBand["BRONZE"] = "BRONZE";
+    TrustBand["SILVER"] = "SILVER";
+    TrustBand["GOLD"] = "GOLD";
+    TrustBand["PLATINUM"] = "PLATINUM";
+})(TrustBand || (exports.TrustBand = TrustBand = {}));
 //# sourceMappingURL=enums.js.map

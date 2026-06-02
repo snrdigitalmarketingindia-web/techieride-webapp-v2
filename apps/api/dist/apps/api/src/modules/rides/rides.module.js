@@ -13,12 +13,13 @@ const rides_service_1 = require("./rides.service");
 const gamification_module_1 = require("../gamification/gamification.module");
 const notifications_module_1 = require("../notifications/notifications.module");
 const email_module_1 = require("../email/email.module");
+const trust_score_module_1 = require("../trust-score/trust-score.module");
 let RidesModule = class RidesModule {
 };
 exports.RidesModule = RidesModule;
 exports.RidesModule = RidesModule = __decorate([
     (0, common_1.Module)({
-        imports: [gamification_module_1.GamificationModule, notifications_module_1.NotificationsModule, email_module_1.EmailModule],
+        imports: [gamification_module_1.GamificationModule, notifications_module_1.NotificationsModule, email_module_1.EmailModule, trust_score_module_1.TrustScoreModule],
         controllers: [rides_controller_1.RidesController],
         providers: [rides_service_1.RidesService],
         exports: [rides_service_1.RidesService],

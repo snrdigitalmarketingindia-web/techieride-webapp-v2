@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddEmergencyContactDto } from './dto/emergency-contact.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -14,7 +15,10 @@ import { AllowDocsPending } from '../../common/decorators/allow-docs-pending.dec
 @ApiBearerAuth()
 @Controller('users')
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private trustScoreService: TrustScoreService,
+  ) {}
 
   @AllowUnverified()
   @Get('me')
@@ -83,5 +87,15 @@ export class UsersController {
   @Post('confirm-personal-email-change')
   confirmPersonalEmailChange(@Body('token') token: string) {
     return this.usersService.confirmPersonalEmailChange(token);
+  }
+
+  @Get('me/trust-score')
+  getMyTrustScore(@CurrentUser('id') userId: string) {
+    return this.trustScoreService.getScore(userId);
+  }
+
+  @Get('me/trust-score/history')
+  getMyTrustHistory(@CurrentUser('id') userId: string) {
+    return this.trustScoreService.getHistory(userId);
   }
 }

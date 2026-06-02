@@ -11,12 +11,13 @@ const common_1 = require("@nestjs/common");
 const ratings_controller_1 = require("./ratings.controller");
 const ratings_service_1 = require("./ratings.service");
 const notifications_module_1 = require("../notifications/notifications.module");
+const trust_score_module_1 = require("../trust-score/trust-score.module");
 let RatingsModule = class RatingsModule {
 };
 exports.RatingsModule = RatingsModule;
 exports.RatingsModule = RatingsModule = __decorate([
     (0, common_1.Module)({
-        imports: [notifications_module_1.NotificationsModule],
+        imports: [notifications_module_1.NotificationsModule, trust_score_module_1.TrustScoreModule],
         controllers: [ratings_controller_1.RatingsController],
         providers: [ratings_service_1.RatingsService],
         exports: [ratings_service_1.RatingsService],

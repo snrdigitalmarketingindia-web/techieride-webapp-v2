@@ -28,6 +28,7 @@ const SEEKER_USER_SELECT = {
 const gamification_service_1 = require("../gamification/gamification.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const email_service_1 = require("../email/email.service");
+const trust_score_service_1 = require("../trust-score/trust-score.service");
 function haversineMeters(lat1, lng1, lat2, lng2) {
     const R = 6371000;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -40,11 +41,12 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
 }
 const DEPARTURE_TIMEOUT_MINUTES = 60;
 let RidesService = RidesService_1 = class RidesService {
-    constructor(prisma, gamification, notifications, email) {
+    constructor(prisma, gamification, notifications, email, trustScore) {
         this.prisma = prisma;
         this.gamification = gamification;
         this.notifications = notifications;
         this.email = email;
+        this.trustScore = trustScore;
         this.logger = new common_1.Logger(RidesService_1.name);
     }
     async create(userId, dto) {
@@ -253,8 +255,10 @@ let RidesService = RidesService_1 = class RidesService {
             include: { seeker: { include: { user: true } } },
         });
         await this.gamification.awardRideCompletion(ride.rideGiverId, rideId, 'giver', ride.estimatedDistanceKm || 0, participants.length);
+        await this.trustScore.onRideCompletedGiver(ride.rideGiverId, rideId);
         for (const p of participants) {
             await this.gamification.awardRideCompletion(p.seekerId, rideId, 'seeker', ride.estimatedDistanceKm || 0, 1);
+            await this.trustScore.onRideCompletedSeeker(p.seekerId, rideId);
             await this.notifications.create(p.seeker.userId, {
                 type: shared_1.NotificationType.RIDE_COMPLETED,
                 title: 'Ride completed! Rate your experience',
@@ -370,6 +374,9 @@ let RidesService = RidesService_1 = class RidesService {
         </div>`;
             await this.email.sendNotification(seekerUser.email, seekerUser.personalEmail, 'Your TechieRide ride was cancelled', html);
         }
+        if (isOwner && ride.status === shared_1.RideStatus.PUBLISHED) {
+            await this.trustScore.onGiverCancelledRide(userId, rideId);
+        }
         return updated;
     }
     async markNoShow(rideId, seekerId, giverId) {
@@ -413,6 +420,7 @@ let RidesService = RidesService_1 = class RidesService {
             }),
         ]);
         await this.gamification.addPoints(seeker.userId, -10, 'NO_SHOW', rideId, 0);
+        await this.trustScore.onNoShowSeeker(seeker.userId, rideId);
         const seekerUser = await this.prisma.user.findUnique({ where: { id: seeker.userId } });
         await this.notifications.create(seeker.userId, {
             type: shared_1.NotificationType.SEEKER_NO_SHOW,
@@ -604,6 +612,7 @@ exports.RidesService = RidesService = RidesService_1 = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         gamification_service_1.GamificationService,
         notifications_service_1.NotificationsService,
-        email_service_1.EmailService])
+        email_service_1.EmailService,
+        trust_score_service_1.TrustScoreService])
 ], RidesService);
 //# sourceMappingURL=rides.service.js.map

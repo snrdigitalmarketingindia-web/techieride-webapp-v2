@@ -6,20 +6,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AdminModule = void 0;
+exports.TrustScoreModule = void 0;
 const common_1 = require("@nestjs/common");
-const admin_controller_1 = require("./admin.controller");
-const admin_service_1 = require("./admin.service");
-const verification_module_1 = require("../verification/verification.module");
-const trust_score_module_1 = require("../trust-score/trust-score.module");
-let AdminModule = class AdminModule {
+const trust_score_service_1 = require("./trust-score.service");
+const prisma_service_1 = require("../../prisma/prisma.service");
+const notifications_module_1 = require("../notifications/notifications.module");
+let TrustScoreModule = class TrustScoreModule {
 };
-exports.AdminModule = AdminModule;
-exports.AdminModule = AdminModule = __decorate([
+exports.TrustScoreModule = TrustScoreModule;
+exports.TrustScoreModule = TrustScoreModule = __decorate([
     (0, common_1.Module)({
-        imports: [verification_module_1.VerificationModule, trust_score_module_1.TrustScoreModule],
-        controllers: [admin_controller_1.AdminController],
-        providers: [admin_service_1.AdminService],
+        imports: [notifications_module_1.NotificationsModule],
+        providers: [trust_score_service_1.TrustScoreService, prisma_service_1.PrismaService],
+        exports: [trust_score_service_1.TrustScoreService],
     })
-], AdminModule);
-//# sourceMappingURL=admin.module.js.map
+], TrustScoreModule);
+//# sourceMappingURL=trust-score.module.js.map

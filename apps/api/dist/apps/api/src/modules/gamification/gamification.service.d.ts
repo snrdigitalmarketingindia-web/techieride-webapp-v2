@@ -16,8 +16,8 @@ export declare class GamificationService {
             createdAt: Date;
             userId: string;
             eventType: string;
-            points: number;
             rideId: string | null;
+            points: number;
             co2SavedG: number;
         }[];
     }>;

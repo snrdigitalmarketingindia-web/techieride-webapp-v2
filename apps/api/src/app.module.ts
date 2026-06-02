@@ -25,6 +25,7 @@ import { SosModule } from './modules/sos/sos.module';
 import { CallsModule } from './modules/calls/calls.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
 import { ComplaintsModule } from './modules/complaints/complaints.module';
+import { TrustScoreModule } from './modules/trust-score/trust-score.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ComplaintsModule } from './modules/complaints/complaints.module';
     CallsModule,
     RatingsModule,
     ComplaintsModule,
+    TrustScoreModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

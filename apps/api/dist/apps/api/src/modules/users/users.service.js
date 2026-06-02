@@ -42,6 +42,8 @@ let UsersService = class UsersService {
                 profilePhoto: true,
                 ecoLevel: true,
                 companyName: true,
+                trustScore: true,
+                trustBand: true,
                 rideGiver: { select: { averageRating: true, totalRidesGiven: true } },
                 rideSeeker: { select: { averageRating: true, totalRidesTaken: true } },
             },

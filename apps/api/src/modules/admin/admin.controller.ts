@@ -2,6 +2,7 @@ import { Controller, Get, Patch, Body, Param, Query, UseGuards } from '@nestjs/c
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { VerificationService } from '../verification/verification.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -16,6 +17,7 @@ export class AdminController {
   constructor(
     private adminService: AdminService,
     private verificationService: VerificationService,
+    private trustScoreService: TrustScoreService,
   ) {}
 
   @Get('users')
@@ -117,5 +119,35 @@ export class AdminController {
     @Body('notes') notes: string,
   ) {
     return this.adminService.resolveSos(id, adminId, notes);
+  }
+
+  // ── Trust Score ────────────────────────────────────────────────────────
+
+  @Get('users/:id/trust-score')
+  getTrustScore(@Param('id') id: string) {
+    return this.trustScoreService.getScore(id);
+  }
+
+  @Get('users/:id/trust-score/history')
+  getTrustHistory(@Param('id') id: string) {
+    return this.trustScoreService.getHistory(id);
+  }
+
+  @Patch('users/:id/trust-score')
+  adjustTrustScore(
+    @Param('id') id: string,
+    @CurrentUser('id') adminId: string,
+    @Body('delta') delta: number,
+    @Body('reason') reason: string,
+  ) {
+    return this.trustScoreService.adminAdjust(id, delta, reason, adminId);
+  }
+
+  @Patch('users/:id/reinstate')
+  reinstateUser(
+    @Param('id') id: string,
+    @CurrentUser('id') adminId: string,
+  ) {
+    return this.trustScoreService.adminReinstate(id, adminId);
   }
 }

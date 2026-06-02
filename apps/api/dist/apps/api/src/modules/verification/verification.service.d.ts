@@ -1,11 +1,13 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 export declare class VerificationService {
     private prisma;
     private notifications;
     private email;
-    constructor(prisma: PrismaService, notifications: NotificationsService, email: EmailService);
+    private trustScore;
+    constructor(prisma: PrismaService, notifications: NotificationsService, email: EmailService, trustScore: TrustScoreService);
     submitEmployeeDocs(userId: string, docs: {
         employeeIdUrl: string;
         profilePhotoUrl?: string;

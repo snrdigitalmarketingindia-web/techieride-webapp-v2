@@ -15,12 +15,14 @@ const client_1 = require("@prisma/client");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const email_service_1 = require("../email/email.service");
+const trust_score_service_1 = require("../trust-score/trust-score.service");
 const shared_1 = require("@techieride/shared");
 let VerificationService = class VerificationService {
-    constructor(prisma, notifications, email) {
+    constructor(prisma, notifications, email, trustScore) {
         this.prisma = prisma;
         this.notifications = notifications;
         this.email = email;
+        this.trustScore = trustScore;
     }
     async submitEmployeeDocs(userId, docs) {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -148,6 +150,10 @@ let VerificationService = class VerificationService {
                 data: { accountStatus: newAccountStatus, verificationStatus: 'REJECTED' },
             });
         }
+        if (decision === 'APPROVED') {
+            const type = (req.verificationType === 'EMPLOYEE' || req.verificationType === 'EXCEPTION') ? 'EMPLOYEE' : 'DRIVER';
+            await this.trustScore.onVerificationApproved(req.userId, type);
+        }
         await this.notifications.create(req.userId, {
             type: decision === 'APPROVED' ? shared_1.NotificationType.VERIFICATION_APPROVED : shared_1.NotificationType.VERIFICATION_REJECTED,
             title: decision === 'APPROVED'
@@ -189,6 +195,7 @@ exports.VerificationService = VerificationService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         notifications_service_1.NotificationsService,
-        email_service_1.EmailService])
+        email_service_1.EmailService,
+        trust_score_service_1.TrustScoreService])
 ], VerificationService);
 //# sourceMappingURL=verification.service.js.map

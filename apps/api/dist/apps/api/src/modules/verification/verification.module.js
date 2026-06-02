@@ -12,12 +12,13 @@ const verification_controller_1 = require("./verification.controller");
 const verification_service_1 = require("./verification.service");
 const notifications_module_1 = require("../notifications/notifications.module");
 const email_module_1 = require("../email/email.module");
+const trust_score_module_1 = require("../trust-score/trust-score.module");
 let VerificationModule = class VerificationModule {
 };
 exports.VerificationModule = VerificationModule;
 exports.VerificationModule = VerificationModule = __decorate([
     (0, common_1.Module)({
-        imports: [notifications_module_1.NotificationsModule, email_module_1.EmailModule],
+        imports: [notifications_module_1.NotificationsModule, email_module_1.EmailModule, trust_score_module_1.TrustScoreModule],
         controllers: [verification_controller_1.VerificationController],
         providers: [verification_service_1.VerificationService],
         exports: [verification_service_1.VerificationService],

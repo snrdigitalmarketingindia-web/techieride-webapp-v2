@@ -2,9 +2,10 @@ import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { VerificationModule } from '../verification/verification.module';
+import { TrustScoreModule } from '../trust-score/trust-score.module';
 
 @Module({
-  imports: [VerificationModule],
+  imports: [VerificationModule, TrustScoreModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

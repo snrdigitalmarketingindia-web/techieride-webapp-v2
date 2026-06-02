@@ -8,6 +8,7 @@ export declare class CommuteTemplatesController {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
+        rideGiverId: string;
         vehicleId: string;
         originName: string;
         originLat: number;
@@ -17,7 +18,6 @@ export declare class CommuteTemplatesController {
         destinationLng: number;
         departureTime: string;
         totalSeats: number;
-        rideGiverId: string;
         departureDays: number[];
         lastPublishedDate: Date | null;
     }>;
@@ -27,8 +27,8 @@ export declare class CommuteTemplatesController {
             isActive: boolean;
             createdAt: Date;
             rcUrl: string | null;
-            totalSeats: number;
             rideGiverId: string;
+            totalSeats: number;
             make: string;
             model: string;
             year: number | null;
@@ -41,6 +41,7 @@ export declare class CommuteTemplatesController {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
+        rideGiverId: string;
         vehicleId: string;
         originName: string;
         originLat: number;
@@ -50,7 +51,6 @@ export declare class CommuteTemplatesController {
         destinationLng: number;
         departureTime: string;
         totalSeats: number;
-        rideGiverId: string;
         departureDays: number[];
         lastPublishedDate: Date | null;
     })[]>;
@@ -59,6 +59,7 @@ export declare class CommuteTemplatesController {
         isActive: boolean;
         createdAt: Date;
         updatedAt: Date;
+        rideGiverId: string;
         vehicleId: string;
         originName: string;
         originLat: number;
@@ -68,7 +69,6 @@ export declare class CommuteTemplatesController {
         destinationLng: number;
         departureTime: string;
         totalSeats: number;
-        rideGiverId: string;
         departureDays: number[];
         lastPublishedDate: Date | null;
     }>;

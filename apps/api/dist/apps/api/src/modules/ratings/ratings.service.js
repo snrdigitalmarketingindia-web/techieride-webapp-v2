@@ -13,11 +13,13 @@ exports.RatingsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
+const trust_score_service_1 = require("../trust-score/trust-score.service");
 const shared_1 = require("@techieride/shared");
 let RatingsService = class RatingsService {
-    constructor(prisma, notifications) {
+    constructor(prisma, notifications, trustScore) {
         this.prisma = prisma;
         this.notifications = notifications;
+        this.trustScore = trustScore;
     }
     async submitRating(raterId, dto) {
         const { rideId, rateeId, score, comment } = dto;
@@ -73,6 +75,7 @@ let RatingsService = class RatingsService {
             body: `${rater?.fullName ?? 'Someone'} gave you ${score} star${score !== 1 ? 's' : ''}`,
             data: { ratingId: rating.id, rideId, score },
         });
+        await this.trustScore.onRatingReceived(rateeId, score, rating.id);
         return { ratingId: rating.id, message: 'Rating submitted successfully' };
     }
     async getRideRatings(rideId) {
@@ -105,6 +108,7 @@ exports.RatingsService = RatingsService;
 exports.RatingsService = RatingsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        notifications_service_1.NotificationsService])
+        notifications_service_1.NotificationsService,
+        trust_score_service_1.TrustScoreService])
 ], RatingsService);
 //# sourceMappingURL=ratings.service.js.map

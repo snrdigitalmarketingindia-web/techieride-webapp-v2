@@ -30,6 +30,38 @@ export declare const ECO_LEVEL_THRESHOLDS: {
 export declare const CO2_PER_KM_PER_PERSON_GRAMS = 120;
 export declare const MATCH_PICKUP_RADIUS_METERS = 500;
 export declare const MATCH_TIME_WINDOW_MINUTES = 30;
+export declare const TRUST_SCORE: {
+    readonly INITIAL: 10;
+    readonly EMPLOYEE_VERIFIED: 5;
+    readonly DRIVER_VERIFIED: 5;
+    readonly RIDE_COMPLETED_GIVER: 5;
+    readonly RIDE_COMPLETED_SEEKER: 2;
+    readonly RATING_5_STAR: 3;
+    readonly RATING_4_STAR: 2;
+    readonly RATING_3_STAR: 1;
+    readonly RATING_2_STAR: -1;
+    readonly RATING_1_STAR: -3;
+    readonly NO_SHOW_SEEKER: -3;
+    readonly NO_SHOW_GIVER: -10;
+    readonly GIVER_CANCELLED_RIDE: -2;
+    readonly COMPLAINT_VERIFIED: -5;
+    readonly MILESTONE_10_RIDES: 10;
+    readonly MILESTONE_50_RIDES: 15;
+    readonly SUSPENSION_THRESHOLD: 5;
+    readonly WARNING_THRESHOLD: 10;
+    readonly MIN_SCORE: 0;
+    readonly DECAY_30_DAYS: -2;
+    readonly DECAY_60_DAYS: -5;
+    readonly DECAY_90_DAYS: -10;
+    readonly DECAY_FLOOR: 10;
+};
+export declare const TRUST_BAND_THRESHOLDS: {
+    readonly NEW: 0;
+    readonly BRONZE: 21;
+    readonly SILVER: 41;
+    readonly GOLD: 61;
+    readonly PLATINUM: 81;
+};
 export declare const REDIS_KEYS: {
     readonly SEAT_HOLD: (rideId: string, seekerId: string) => string;
     readonly GPS: (rideId: string) => string;

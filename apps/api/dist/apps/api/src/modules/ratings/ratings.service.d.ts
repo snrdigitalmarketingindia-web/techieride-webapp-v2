@@ -1,9 +1,11 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 export declare class RatingsService {
     private prisma;
     private notifications;
-    constructor(prisma: PrismaService, notifications: NotificationsService);
+    private trustScore;
+    constructor(prisma: PrismaService, notifications: NotificationsService, trustScore: TrustScoreService);
     submitRating(raterId: string, dto: {
         rideId: string;
         rateeId: string;

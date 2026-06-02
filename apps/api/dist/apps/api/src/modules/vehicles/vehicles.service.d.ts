@@ -8,8 +8,8 @@ export declare class VehiclesService {
         isActive: boolean;
         createdAt: Date;
         rcUrl: string | null;
-        totalSeats: number;
         rideGiverId: string;
+        totalSeats: number;
         make: string;
         model: string;
         year: number | null;
@@ -22,8 +22,8 @@ export declare class VehiclesService {
         isActive: boolean;
         createdAt: Date;
         rcUrl: string | null;
-        totalSeats: number;
         rideGiverId: string;
+        totalSeats: number;
         make: string;
         model: string;
         year: number | null;
@@ -36,8 +36,8 @@ export declare class VehiclesService {
         isActive: boolean;
         createdAt: Date;
         rcUrl: string | null;
-        totalSeats: number;
         rideGiverId: string;
+        totalSeats: number;
         make: string;
         model: string;
         year: number | null;
@@ -50,8 +50,8 @@ export declare class VehiclesService {
         isActive: boolean;
         createdAt: Date;
         rcUrl: string | null;
-        totalSeats: number;
         rideGiverId: string;
+        totalSeats: number;
         make: string;
         model: string;
         year: number | null;

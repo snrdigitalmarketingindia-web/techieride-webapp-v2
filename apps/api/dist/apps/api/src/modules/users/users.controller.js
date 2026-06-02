@@ -16,14 +16,16 @@ exports.UsersController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const users_service_1 = require("./users.service");
+const trust_score_service_1 = require("../trust-score/trust-score.service");
 const update_profile_dto_1 = require("./dto/update-profile.dto");
 const emergency_contact_dto_1 = require("./dto/emergency-contact.dto");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const allow_unverified_decorator_1 = require("../../common/decorators/allow-unverified.decorator");
 const allow_docs_pending_decorator_1 = require("../../common/decorators/allow-docs-pending.decorator");
 let UsersController = class UsersController {
-    constructor(usersService) {
+    constructor(usersService, trustScoreService) {
         this.usersService = usersService;
+        this.trustScoreService = trustScoreService;
     }
     getMyProfile(userId) {
         return this.usersService.getProfile(userId);
@@ -54,6 +56,12 @@ let UsersController = class UsersController {
     }
     confirmPersonalEmailChange(token) {
         return this.usersService.confirmPersonalEmailChange(token);
+    }
+    getMyTrustScore(userId) {
+        return this.trustScoreService.getScore(userId);
+    }
+    getMyTrustHistory(userId) {
+        return this.trustScoreService.getHistory(userId);
     }
 };
 exports.UsersController = UsersController;
@@ -138,10 +146,25 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "confirmPersonalEmailChange", null);
+__decorate([
+    (0, common_1.Get)('me/trust-score'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getMyTrustScore", null);
+__decorate([
+    (0, common_1.Get)('me/trust-score/history'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "getMyTrustHistory", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('Users'),
     (0, swagger_1.ApiBearerAuth)(),
     (0, common_1.Controller)('users'),
-    __metadata("design:paramtypes", [users_service_1.UsersService])
+    __metadata("design:paramtypes", [users_service_1.UsersService,
+        trust_score_service_1.TrustScoreService])
 ], UsersController);
 //# sourceMappingURL=users.controller.js.map

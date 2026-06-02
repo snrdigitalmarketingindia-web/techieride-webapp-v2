@@ -38,6 +38,41 @@ export const CO2_PER_KM_PER_PERSON_GRAMS = 120;
 export const MATCH_PICKUP_RADIUS_METERS = 500;
 export const MATCH_TIME_WINDOW_MINUTES = 30;
 
+// ── Trust Score ───────────────────────────────────────────────────────────
+export const TRUST_SCORE = {
+  INITIAL: 10,
+  EMPLOYEE_VERIFIED: 5,
+  DRIVER_VERIFIED: 5,
+  RIDE_COMPLETED_GIVER: 5,
+  RIDE_COMPLETED_SEEKER: 2,
+  RATING_5_STAR: 3,
+  RATING_4_STAR: 2,
+  RATING_3_STAR: 1,
+  RATING_2_STAR: -1,
+  RATING_1_STAR: -3,
+  NO_SHOW_SEEKER: -3,
+  NO_SHOW_GIVER: -10,
+  GIVER_CANCELLED_RIDE: -2,
+  COMPLAINT_VERIFIED: -5,
+  MILESTONE_10_RIDES: 10,
+  MILESTONE_50_RIDES: 15,
+  SUSPENSION_THRESHOLD: 5,
+  WARNING_THRESHOLD: 10,
+  MIN_SCORE: 0,
+  DECAY_30_DAYS: -2,
+  DECAY_60_DAYS: -5,
+  DECAY_90_DAYS: -10,
+  DECAY_FLOOR: 10,
+} as const;
+
+export const TRUST_BAND_THRESHOLDS = {
+  NEW:      0,
+  BRONZE:   21,
+  SILVER:   41,
+  GOLD:     61,
+  PLATINUM: 81,
+} as const;
+
 export const REDIS_KEYS = {
   SEAT_HOLD: (rideId: string, seekerId: string) => `hold:${rideId}:${seekerId}`,
   GPS: (rideId: string) => `gps:${rideId}`,

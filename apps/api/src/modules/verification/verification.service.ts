@@ -3,6 +3,7 @@ import { AccountStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
+import { TrustScoreService } from '../trust-score/trust-score.service';
 import { NotificationType, TRID_START } from '@techieride/shared';
 
 @Injectable()
@@ -11,6 +12,7 @@ export class VerificationService {
     private prisma: PrismaService,
     private notifications: NotificationsService,
     private email: EmailService,
+    private trustScore: TrustScoreService,
   ) {}
 
   // ── Employee verification (Queue 3) ───────────────────────────────────────
@@ -162,6 +164,12 @@ export class VerificationService {
         where: { id: req.userId },
         data: { accountStatus: newAccountStatus, verificationStatus: 'REJECTED' },
       });
+    }
+
+    // Award trust score on approval
+    if (decision === 'APPROVED') {
+      const type = (req.verificationType === 'EMPLOYEE' || req.verificationType === 'EXCEPTION') ? 'EMPLOYEE' : 'DRIVER';
+      await this.trustScore.onVerificationApproved(req.userId, type);
     }
 
     // In-app notification
