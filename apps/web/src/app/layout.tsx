@@ -15,9 +15,20 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {children}
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
+        <div className="flex-1">{children}</div>
         <Toaster />
+        <footer className="text-center py-3 text-gray-400 text-xs border-t border-gray-100 bg-white">
+          Designed by{' '}
+          <a
+            href="https://www.snrdigitalmarketing.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-700 transition"
+          >
+            SNR Digital Marketing
+          </a>
+        </footer>
       </body>
     </html>
   );

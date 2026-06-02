@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -22,6 +22,7 @@ export default function MyRidesPage() {
   // Giver: pending requests per ride  { rideId: req[] }
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [processing, setProcessing] = useState<string | null>(null);
+  const ridesRef = useRef<any[]>([]);
   // Seeker: pending/active requests not yet confirmed
   const [myRequests, setMyRequests] = useState<any[]>([]);
 
@@ -48,7 +49,7 @@ export default function MyRidesPage() {
     if (!user) return;
     setLoading(true);
     const fetch = tab === 'given' ? ridesApi.getGiven() : ridesApi.getTaken();
-    fetch.then((r) => setRides(r.data ?? [])).finally(() => setLoading(false));
+    fetch.then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; }).finally(() => setLoading(false));
     if (tab === 'taken' && isSeeker) {
       requestsApi.getMine().then((r) => {
         const pending = (r.data ?? []).filter((req: any) =>
@@ -69,6 +70,15 @@ export default function MyRidesPage() {
     if (tab !== 'given') return;
     rides.filter((r) => r.status === 'PUBLISHED').forEach((r) => reloadPending(r.id));
   }, [rides, tab]);
+
+  // Poll every 15s so new ride requests appear without manual refresh
+  useEffect(() => {
+    if (tab !== 'given') return;
+    const id = setInterval(() => {
+      ridesRef.current.filter((r) => r.status === 'PUBLISHED').forEach((r) => reloadPending(r.id));
+    }, 15000);
+    return () => clearInterval(id);
+  }, [tab]);
 
   const handleApprove = async (reqId: string, rideId: string) => {
     setProcessing(reqId);

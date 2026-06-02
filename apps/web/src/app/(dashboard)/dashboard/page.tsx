@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { ridesApi, gamificationApi, requestsApi } from '@/lib/api';
 import { RideCard } from '@/components/ui/RideCard';
+import { CallButton } from '@/components/ui/CallButton';
 import { RideStatus, EcoLevel } from '@techieride/shared';
 
 const ECO_BADGES: Record<string, string> = {
@@ -22,27 +23,54 @@ export default function DashboardPage() {
   const [ecoSummary, setEcoSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
+  const [processing, setProcessing] = useState<string | null>(null);
+  const ridesRef = useRef<any[]>([]);
+
+  const reloadPending = (rides: any[]) => {
+    rides.filter((r: any) => r.status === 'PUBLISHED').forEach((r: any) => {
+      requestsApi.getIncoming(r.id).then((res) => {
+        setPendingMap((prev) => ({ ...prev, [r.id]: res.data ?? [] }));
+      }).catch(() => {});
+    });
+  };
 
   useEffect(() => {
-    if (!user) return; // wait for auth hydration so role is correct
+    if (!user) return;
     const ridesFetch = isGiver
       ? ridesApi.getGiven().then((r) => r.data.slice(0, 3))
       : ridesApi.getTaken().then((r) => r.data.slice(0, 3));
     Promise.all([
       ridesFetch.then((rides) => {
         setUpcomingRides(rides);
-        if (isGiver) {
-          rides.filter((r: any) => r.status === 'PUBLISHED').forEach((r: any) => {
-            requestsApi.getIncoming(r.id).then((res) => {
-              const pending = (res.data ?? []).filter((req: any) => req.status === 'PENDING');
-              if (pending.length > 0) setPendingMap((prev) => ({ ...prev, [r.id]: pending }));
-            }).catch(() => {});
-          });
-        }
+        ridesRef.current = rides;
+        if (isGiver) reloadPending(rides);
       }),
       gamificationApi.getSummary().then((r) => setEcoSummary(r.data)),
     ]).finally(() => setLoading(false));
   }, [user?.role]);
+
+  // Poll every 15s so new ride requests appear without manual refresh
+  useEffect(() => {
+    if (!isGiver) return;
+    const id = setInterval(() => reloadPending(ridesRef.current), 15000);
+    return () => clearInterval(id);
+  }, [isGiver]);
+
+  const handleApprove = async (reqId: string, rideId: string) => {
+    setProcessing(reqId);
+    await requestsApi.approve(reqId).catch(() => {});
+    const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));
+    setPendingMap((prev) => ({ ...prev, [rideId]: res.data ?? [] }));
+    setProcessing(null);
+  };
+
+  const handleReject = async (reqId: string, rideId: string) => {
+    setProcessing(reqId);
+    await requestsApi.reject(reqId).catch(() => {});
+    const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));
+    setPendingMap((prev) => ({ ...prev, [rideId]: res.data ?? [] }));
+    setProcessing(null);
+  };
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -155,12 +183,27 @@ export default function DashboardPage() {
         ) : (
           <div className="space-y-3">
             {upcomingRides.map((ride) => {
-              const pending = pendingMap[ride.id] ?? [];
-              const actions = pending.length > 0 ? (
-                <Link href="/rides" className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
-                  <span className="bg-amber-100 text-amber-700 rounded-full px-2 py-0.5">📥 {pending.length} pending request{pending.length > 1 ? 's' : ''}</span>
-                  <span className="text-brand-600 hover:underline">Manage →</span>
-                </Link>
+              const pendingReqs = (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING');
+              const actions = pendingReqs.length > 0 ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">📥 Pending ({pendingReqs.length})</p>
+                  {pendingReqs.map((req: any) => (
+                    <div key={req.id} className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0">
+                        {req.seeker?.user?.fullName?.[0] ?? '?'}
+                      </div>
+                      <p className="text-xs font-medium text-gray-800 flex-1 truncate">{req.seeker?.user?.fullName ?? 'Seeker'}</p>
+                      {req.seeker?.user?.phone && (
+                        <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
+                          receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
+                      )}
+                      <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
+                        className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">✅ Approve</button>
+                      <button onClick={() => handleReject(req.id, ride.id)} disabled={processing === req.id}
+                        className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0">❌ Reject</button>
+                    </div>
+                  ))}
+                </div>
               ) : undefined;
               return <RideCard key={ride.id} ride={ride} viewAs={isGiver ? 'giver' : 'seeker'} actions={actions} />;
             })}
