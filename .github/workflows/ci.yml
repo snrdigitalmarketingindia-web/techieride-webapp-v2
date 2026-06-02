@@ -93,6 +93,10 @@ jobs:
         run: npm run test:api:final
       - name: Run ratings & SOS P0 tests
         run: npm run test:api:ratings-sos
+      - name: Run notifications P0 tests
+        run: npm run test:api:notifications
+      - name: Run audit trail observable tests
+        run: npm run test:api:audit-trail
 
       - name: Upload API log on failure
         if: failure()
