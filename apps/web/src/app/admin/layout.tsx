@@ -17,7 +17,7 @@ const links = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, _hasHydrated, fetchProfile } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated, fetchProfile, logout } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
@@ -114,9 +114,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           ))}
         </nav>
-        <div className="px-3 space-y-1">
-          <p className="text-xs font-medium text-gray-700">{user?.fullName}</p>
-          <p className="text-xs text-gray-400">{user?.email}</p>
+        <div className="px-3 space-y-2">
+          <p className="text-xs font-medium text-gray-700 hidden sm:block">{user?.fullName}</p>
+          <p className="text-xs text-gray-400 hidden sm:block">{user?.email}</p>
+          <button
+            onClick={() => { logout(); router.push('/'); }}
+            className="flex items-center gap-2 text-xs text-red-500 hover:text-red-700 transition w-full mt-1"
+          >
+            <span>🚪</span>
+            <span className="hidden sm:inline">Logout</span>
+          </button>
         </div>
       </aside>
       <main className="ml-14 sm:ml-56 flex-1 p-4 sm:p-8 min-w-0">{children}</main>
