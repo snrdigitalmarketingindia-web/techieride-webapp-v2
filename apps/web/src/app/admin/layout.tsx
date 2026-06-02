@@ -70,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Image src="/logo.png" alt="Techieride" width={80} height={80} className="object-contain animate-pulse mb-3" />
+          <Image src="/TR_Logo_black.png" alt="Techieride" width={80} height={80} className="object-contain animate-pulse mb-3" />
           <p className="text-gray-400 text-sm">Loading admin panel...</p>
         </div>
       </div>
@@ -81,7 +81,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="w-14 sm:w-56 bg-white border-r border-gray-200 flex flex-col py-6 px-2 sm:px-4 fixed h-full overflow-hidden">
         <div className="flex flex-col items-center gap-1 mb-8">
-          <Image src="/logo.png" alt="Techieride" width={48} height={48} className="object-contain hidden sm:block" />
+          <Image src="/TR_Logo_black.png" alt="Techieride" width={48} height={48} className="object-contain hidden sm:block" />
           <span className="text-xl sm:hidden">🚗</span>
           <div className="hidden sm:flex items-center gap-1">
             <span className="text-xs text-gray-400">Admin Panel</span>

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: `TechieRide v${process.env.NEXT_PUBLIC_APP_VERSION} — Verified IT Employee Carpooling`,
   description: 'Safe, verified carpooling for Hyderabad IT professionals',
   manifest: '/manifest.json',
-  icons: { icon: '/logo.png', apple: '/logo.png' },
+  icons: { icon: '/TR_Logo_black.png', apple: '/TR_Logo_black.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

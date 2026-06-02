@@ -22,7 +22,7 @@ function ConfirmPersonalEmailContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-md p-8 max-w-sm w-full text-center space-y-4">
-        <Image src="/logo.png" alt="TechieRide" width={72} height={72} className="mx-auto object-contain" />
+        <Image src="/TR_Logo_black.png" alt="TechieRide" width={72} height={72} className="mx-auto object-contain" />
         {status === 'loading' && <p className="text-gray-500 text-sm">Confirming your personal email…</p>}
         {status === 'success' && (
           <>

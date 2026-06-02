@@ -34,7 +34,7 @@ function VerifyEmailContent() {
     <div className="min-h-screen bg-gradient-to-b from-brand-50 to-white flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm text-center">
         <div className="flex justify-center mb-6">
-          <Image src="/logo.png" alt="TechieRide" width={80} height={80} className="object-contain" priority />
+          <Image src="/TR_Logo_black.png" alt="TechieRide" width={80} height={80} className="object-contain" priority />
         </div>
 
         {status === 'loading' && (

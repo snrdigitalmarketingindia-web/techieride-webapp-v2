@@ -37,7 +37,7 @@ function ResetPasswordForm() {
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
         <div className="text-center mb-6">
           <div className="flex justify-center mb-3">
-            <Image src="/logo.png" alt="TechieRide" width={80} height={80} className="object-contain" priority />
+            <Image src="/TR_Logo_black.png" alt="TechieRide" width={80} height={80} className="object-contain" priority />
           </div>
           <h2 className="text-xl font-bold text-gray-900">Set new password</h2>
           <p className="text-sm text-gray-500 mt-1">Choose a strong password for your account</p>
