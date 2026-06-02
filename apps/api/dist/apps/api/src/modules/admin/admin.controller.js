@@ -30,8 +30,8 @@ let AdminController = class AdminController {
         this.trustScoreService = trustScoreService;
         this.auditLogService = auditLogService;
     }
-    listUsers(accountStatus, role, page = 1, limit = 20) {
-        return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
+    listUsers(accountStatus, role, search, page = 1, limit = 20) {
+        return this.adminService.listUsers({ accountStatus, role, search, page: +page, limit: +limit });
     }
     getUserDetail(id) {
         return this.adminService.getUserDetail(id);
@@ -69,8 +69,8 @@ let AdminController = class AdminController {
     rejectVehicle(id, reason) {
         return this.adminService.rejectVehicle(id, reason);
     }
-    listRides(status, page = 1, limit = 20) {
-        return this.adminService.listAllRides(status, +page, +limit);
+    listRides(status, search, page = 1, limit = 20) {
+        return this.adminService.listAllRides({ status, search, page: +page, limit: +limit });
     }
     getAnalytics(from, to) {
         return this.adminService.getAnalytics(from ? new Date(from) : new Date(Date.now() - 30 * 86400000), to ? new Date(to) : new Date());
@@ -108,10 +108,11 @@ __decorate([
     (0, common_1.Get)('users'),
     __param(0, (0, common_1.Query)('accountStatus')),
     __param(1, (0, common_1.Query)('role')),
-    __param(2, (0, common_1.Query)('page')),
-    __param(3, (0, common_1.Query)('limit')),
+    __param(2, (0, common_1.Query)('search')),
+    __param(3, (0, common_1.Query)('page')),
+    __param(4, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, Object, Object]),
+    __metadata("design:paramtypes", [String, String, String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "listUsers", null);
 __decorate([
@@ -199,10 +200,11 @@ __decorate([
 __decorate([
     (0, common_1.Get)('rides'),
     __param(0, (0, common_1.Query)('status')),
-    __param(1, (0, common_1.Query)('page')),
-    __param(2, (0, common_1.Query)('limit')),
+    __param(1, (0, common_1.Query)('search')),
+    __param(2, (0, common_1.Query)('page')),
+    __param(3, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:paramtypes", [String, String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "listRides", null);
 __decorate([

@@ -26,10 +26,11 @@ export class AdminController {
   listUsers(
     @Query('accountStatus') accountStatus?: string,
     @Query('role') role?: string,
+    @Query('search') search?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
+    return this.adminService.listUsers({ accountStatus, role, search, page: +page, limit: +limit });
   }
 
   @Get('users/:id')
@@ -100,10 +101,11 @@ export class AdminController {
   @Get('rides')
   listRides(
     @Query('status') status?: string,
+    @Query('search') search?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.adminService.listAllRides(status, +page, +limit);
+    return this.adminService.listAllRides({ status, search, page: +page, limit: +limit });
   }
 
   @Get('analytics')

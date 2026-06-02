@@ -5,6 +5,7 @@ export declare class AdminService {
     listUsers(filters: {
         accountStatus?: string;
         role?: string;
+        search?: string;
         page: number;
         limit: number;
     }): Promise<{
@@ -287,7 +288,12 @@ export declare class AdminService {
         plateNumber: string;
         rcVerified: boolean;
     }>;
-    listAllRides(status?: string, page?: number, limit?: number): Promise<{
+    listAllRides(filters: {
+        status?: string;
+        search?: string;
+        page?: number;
+        limit?: number;
+    }): Promise<{
         data: ({
             rideGiver: {
                 user: {

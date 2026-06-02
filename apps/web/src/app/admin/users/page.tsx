@@ -36,7 +36,8 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ accountStatus: '', role: '' });
+  const [filter, setFilter] = useState({ accountStatus: '', role: '', search: '' });
+  const [searchInput, setSearchInput] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -52,7 +53,24 @@ export default function AdminUsersPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-gray-900">Users ({total})</h1>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex gap-1">
+            <input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') setFilter((f) => ({ ...f, search: searchInput })); }}
+              placeholder="Search name, email, TRID, phone..."
+              className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 w-64 focus:outline-none focus:ring-2 focus:ring-brand-400"
+            />
+            <button onClick={() => setFilter((f) => ({ ...f, search: searchInput }))}
+              className="text-sm bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+              🔍
+            </button>
+            {filter.search && (
+              <button onClick={() => { setSearchInput(''); setFilter((f) => ({ ...f, search: '' })); }}
+                className="text-sm text-gray-400 hover:text-gray-600 px-2">✕</button>
+            )}
+          </div>
           <select value={filter.accountStatus} onChange={(e) => setFilter((f) => ({ ...f, accountStatus: e.target.value }))}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
             <option value="">All Statuses</option>

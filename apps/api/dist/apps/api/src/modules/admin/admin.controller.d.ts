@@ -8,7 +8,7 @@ export declare class AdminController {
     private trustScoreService;
     private auditLogService;
     constructor(adminService: AdminService, verificationService: VerificationService, trustScoreService: TrustScoreService, auditLogService: AuditLogService);
-    listUsers(accountStatus?: string, role?: string, page?: number, limit?: number): Promise<{
+    listUsers(accountStatus?: string, role?: string, search?: string, page?: number, limit?: number): Promise<{
         data: {
             email: string;
             fullName: string;
@@ -325,7 +325,7 @@ export declare class AdminController {
         plateNumber: string;
         rcVerified: boolean;
     }>;
-    listRides(status?: string, page?: number, limit?: number): Promise<{
+    listRides(status?: string, search?: string, page?: number, limit?: number): Promise<{
         data: ({
             rideGiver: {
                 user: {

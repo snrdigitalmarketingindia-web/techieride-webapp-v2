@@ -22,6 +22,16 @@ let AdminService = class AdminService {
             where.accountStatus = filters.accountStatus;
         if (filters.role)
             where.role = filters.role;
+        if (filters.search) {
+            const q = filters.search.trim();
+            where.OR = [
+                { fullName: { contains: q, mode: 'insensitive' } },
+                { email: { contains: q, mode: 'insensitive' } },
+                { trid: { contains: q, mode: 'insensitive' } },
+                { companyName: { contains: q, mode: 'insensitive' } },
+                { phone: { contains: q } },
+            ];
+        }
         const [data, total] = await this.prisma.$transaction([
             this.prisma.user.findMany({
                 where,
@@ -139,8 +149,21 @@ let AdminService = class AdminService {
             data: { rcVerified: false },
         });
     }
-    async listAllRides(status, page = 1, limit = 20) {
-        const where = status ? { status } : {};
+    async listAllRides(filters) {
+        const { status, search, page = 1, limit = 20 } = filters;
+        const where = {};
+        if (status)
+            where.status = status;
+        if (search) {
+            const q = search.trim();
+            where.OR = [
+                { originName: { contains: q, mode: 'insensitive' } },
+                { destinationName: { contains: q, mode: 'insensitive' } },
+                { rideGiver: { user: { fullName: { contains: q, mode: 'insensitive' } } } },
+                { rideGiver: { user: { email: { contains: q, mode: 'insensitive' } } } },
+                { vehicle: { plateNumber: { contains: q, mode: 'insensitive' } } },
+            ];
+        }
         const [data, total] = await this.prisma.$transaction([
             this.prisma.ride.findMany({
                 where,
