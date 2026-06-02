@@ -2,6 +2,30 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 215 · 3614ff0 · 2026-06-02 03:21 UTC
+
+Commit: feat: auto-cancel unstarted PUBLISHED rides 30min past departure
+
+Cron runs every 30 min (IST). Finds PUBLISHED rides where now >
+departureTime + 30 min, cancels them, and notifies:
+- Giver: 'auto-cancelled — not started within 30 min'
+- Each confirmed participant: ride cancelled notification
+- Any PENDING requests on the ride also cancelled
+
+DEPARTURE_TIMEOUT_MINUTES = 30 (easy to tune).
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/rides/rides.service.d.ts
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/rides/rides.service.ts
+
+---
+
 ## Build 213 · ed33ed5 · 2026-06-02 03:19 UTC
 
 Commit: fix: reduce PENDING request expiry from 24h to 4h
