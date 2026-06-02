@@ -44,9 +44,10 @@ export class SosService {
       const ride = await this.prisma.ride.findUnique({
         where: { id: rideId },
         include: {
+          rideGiver: { select: { userId: true } },
           requests: {
             where: { status: { in: ['CONFIRMED', 'NO_SHOW'] } },
-            select: { seekerId: true },
+            include: { seeker: { select: { userId: true } } },
           },
         },
       });
@@ -62,9 +63,9 @@ export class SosService {
         );
       }
 
-      // User must be the giver or a confirmed/no-show seeker
-      const isGiver = ride.rideGiverId === userId;
-      const isSeeker = ride.requests.some((r) => r.seekerId === userId);
+      // Compare against User.id (not RideGiver.id / RideSeeker.id)
+      const isGiver = ride.rideGiver.userId === userId;
+      const isSeeker = ride.requests.some((r) => r.seeker?.userId === userId);
       if (!isGiver && !isSeeker) {
         throw new ForbiddenException('You are not a participant of this ride');
       }

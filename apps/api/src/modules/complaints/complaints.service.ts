@@ -46,23 +46,25 @@ export class ComplaintsService {
       const ride = await this.prisma.ride.findUnique({
         where: { id: rideId },
         include: {
+          rideGiver: { select: { userId: true } },
           requests: {
             where: { status: { in: ['CONFIRMED', 'NO_SHOW'] } },
-            select: { seekerId: true },
+            include: { seeker: { select: { userId: true } } },
           },
         },
       });
       if (!ride) throw new NotFoundException('Ride not found');
 
-      const participantIds = [
-        ride.rideGiverId,
-        ...ride.requests.map((r) => r.seekerId),
+      // Compare against User.id (not RideGiver.id / RideSeeker.id)
+      const participantUserIds = [
+        ride.rideGiver.userId,
+        ...ride.requests.map((r) => r.seeker?.userId).filter(Boolean) as string[],
       ];
 
-      if (!participantIds.includes(reporterId)) {
+      if (!participantUserIds.includes(reporterId)) {
         throw new ForbiddenException('You were not a participant of this ride');
       }
-      if (!participantIds.includes(reportedId)) {
+      if (!participantUserIds.includes(reportedId)) {
         throw new ForbiddenException('Reported user was not a participant of this ride');
       }
     }

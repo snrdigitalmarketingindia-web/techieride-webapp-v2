@@ -35,9 +35,10 @@ let SosService = class SosService {
             const ride = await this.prisma.ride.findUnique({
                 where: { id: rideId },
                 include: {
+                    rideGiver: { select: { userId: true } },
                     requests: {
                         where: { status: { in: ['CONFIRMED', 'NO_SHOW'] } },
-                        select: { seekerId: true },
+                        include: { seeker: { select: { userId: true } } },
                     },
                 },
             });
@@ -47,8 +48,8 @@ let SosService = class SosService {
             if (ride.status !== 'ONGOING') {
                 throw new common_1.BadRequestException(`SOS can only be triggered during an ONGOING ride (current status: ${ride.status})`);
             }
-            const isGiver = ride.rideGiverId === userId;
-            const isSeeker = ride.requests.some((r) => r.seekerId === userId);
+            const isGiver = ride.rideGiver.userId === userId;
+            const isSeeker = ride.requests.some((r) => r.seeker?.userId === userId);
             if (!isGiver && !isSeeker) {
                 throw new common_1.ForbiddenException('You are not a participant of this ride');
             }

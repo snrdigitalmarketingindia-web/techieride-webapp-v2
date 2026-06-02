@@ -30,9 +30,10 @@ let RatingsService = class RatingsService {
         const ride = await this.prisma.ride.findUnique({
             where: { id: rideId },
             include: {
+                rideGiver: { select: { userId: true } },
                 requests: {
                     where: { status: { in: ['CONFIRMED', 'NO_SHOW'] } },
-                    select: { seekerId: true, status: true },
+                    include: { seeker: { select: { userId: true } } },
                 },
             },
         });
@@ -41,14 +42,15 @@ let RatingsService = class RatingsService {
         if (ride.status !== 'COMPLETED') {
             throw new common_1.BadRequestException(`Cannot rate a ride with status ${ride.status} — only COMPLETED rides can be rated`);
         }
-        const confirmedSeekerIds = ride.requests.map((r) => r.seekerId);
-        const isGiver = ride.rideGiverId === raterId;
-        const isSeeker = confirmedSeekerIds.includes(raterId);
+        const giverUserId = ride.rideGiver.userId;
+        const confirmedSeekerUserIds = ride.requests.map((r) => r.seeker?.userId).filter(Boolean);
+        const isGiver = giverUserId === raterId;
+        const isSeeker = confirmedSeekerUserIds.includes(raterId);
         if (!isGiver && !isSeeker) {
             throw new common_1.ForbiddenException('Only ride participants can submit ratings');
         }
-        const rateeIsGiver = ride.rideGiverId === rateeId;
-        const rateeIsSeeker = confirmedSeekerIds.includes(rateeId);
+        const rateeIsGiver = giverUserId === rateeId;
+        const rateeIsSeeker = confirmedSeekerUserIds.includes(rateeId);
         if (!rateeIsGiver && !rateeIsSeeker) {
             throw new common_1.ForbiddenException('Ratee is not a participant of this ride');
         }
