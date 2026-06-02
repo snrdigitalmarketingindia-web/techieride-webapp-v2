@@ -10,6 +10,10 @@ const LocationPickerMap = dynamic(() => import('@/components/maps/LocationPicker
 
 const inputCls = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
 
+const SEEKER_PREFS_KEY = 'tr_seeker_prefs';
+const loadSeekerPrefs = () => { try { return JSON.parse(localStorage.getItem(SEEKER_PREFS_KEY) || '{}'); } catch { return {}; } };
+const saveSeekerPrefs = (prefs: object) => { try { localStorage.setItem(SEEKER_PREFS_KEY, JSON.stringify(prefs)); } catch {} };
+
 // ── Boarding Point Modal ──────────────────────────────────────────────────────
 function BoardingModal({
   ride,
@@ -177,6 +181,22 @@ export default function RideSearchPage() {
   const [view, setView] = useState<'list' | 'map'>('list');
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
 
+  // Load saved search prefs client-side (localStorage unavailable during SSR)
+  useEffect(() => {
+    const prefs = loadSeekerPrefs();
+    if (prefs.originName || prefs.destinationName) {
+      setForm((f) => ({
+        ...f,
+        originName: prefs.originName ?? f.originName,
+        originLat: prefs.originLat ?? f.originLat,
+        originLng: prefs.originLng ?? f.originLng,
+        destinationName: prefs.destinationName ?? f.destinationName,
+        destinationLat: prefs.destinationLat ?? f.destinationLat,
+        destinationLng: prefs.destinationLng ?? f.destinationLng,
+      }));
+    }
+  }, []);
+
   // Pre-load seeker's active requests so buttons are disabled immediately
   // Also auto-search today's rides on mount
   useEffect(() => {
@@ -194,6 +214,12 @@ export default function RideSearchPage() {
   }, []);
 
   const search = async () => {
+    if (form.originName && form.destinationName) {
+      saveSeekerPrefs({
+        originName: form.originName, originLat: form.originLat, originLng: form.originLng,
+        destinationName: form.destinationName, destinationLat: form.destinationLat, destinationLng: form.destinationLng,
+      });
+    }
     setLoading(true);
     try {
       const { data } = await ridesApi.search({

@@ -102,6 +102,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* AGM announcement banner */}
+      <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-3 shadow-sm">
+        <span className="text-xl">📢</span>
+        <p className="flex-1 text-sm font-medium text-yellow-800">
+          Stay tuned for <strong>AGM Meeting 2026</strong>!
+        </p>
+      </div>
+
       {/* Greeting */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">

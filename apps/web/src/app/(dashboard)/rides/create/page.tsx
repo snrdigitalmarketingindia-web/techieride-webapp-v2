@@ -42,26 +42,40 @@ export default function CreateRidePage() {
 
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [activeRide, setActiveRide] = useState<any>(null);
-  const [form, setForm] = useState(() => {
-    const prefs = typeof window !== 'undefined' ? loadPrefs() : {};
-    return {
-      vehicleId: '',
-      originName: prefs.originName ?? '',
-      originLat: prefs.originLat ?? 17.4401,
-      originLng: prefs.originLng ?? 78.3489,
-      destinationName: prefs.destinationName ?? '',
-      destinationLat: prefs.destinationLat ?? 17.4489,
-      destinationLng: prefs.destinationLng ?? 78.3696,
-      departureDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
-      departureTime: prefs.departureTime ?? defaultDepartureTime(),
-      totalSeats: 2,
-      notes: '',
-      saveAsTemplate: false,
-      departureDays: [1, 2, 3, 4, 5],
-    };
+  const [form, setForm] = useState({
+    vehicleId: '',
+    originName: '',
+    originLat: 17.4401,
+    originLng: 78.3489,
+    destinationName: '',
+    destinationLat: 17.4489,
+    destinationLng: 78.3696,
+    departureDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
+    departureTime: defaultDepartureTime(),
+    totalSeats: 2,
+    notes: '',
+    saveAsTemplate: false,
+    departureDays: [1, 2, 3, 4, 5],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Load saved prefs client-side (localStorage unavailable during SSR)
+  useEffect(() => {
+    const prefs = loadPrefs();
+    if (prefs.originName || prefs.destinationName) {
+      setForm((f) => ({
+        ...f,
+        originName: prefs.originName ?? f.originName,
+        originLat: prefs.originLat ?? f.originLat,
+        originLng: prefs.originLng ?? f.originLng,
+        destinationName: prefs.destinationName ?? f.destinationName,
+        destinationLat: prefs.destinationLat ?? f.destinationLat,
+        destinationLng: prefs.destinationLng ?? f.destinationLng,
+        departureTime: prefs.departureTime ?? f.departureTime,
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     vehiclesApi.getMine().then((r) => {
