@@ -2,6 +2,57 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 221 · e9415ee · 2026-06-02 03:51 UTC
+
+Commit: feat: add Ratings API + harden SOS + P0 test automation
+
+Ratings API (new module):
+- POST /ratings — validated: ride COMPLETED, no self-rating, no duplicate,
+  participant-only, score 1–5 integer; notifies ratee
+- GET /ratings/ride/:rideId — list ratings for a ride
+- GET /ratings/stats/:userId — averageRating + ratingCount
+
+SOS hardening:
+- 60-second cooldown per user (429 on repeat)
+- Ride state gate: rideId must be ONGOING (400 otherwise)
+- Participant check: only giver/confirmed seeker may trigger (403)
+- lat/lng now optional — SOS works without GPS (SOS-13)
+
+Shared enums:
+- Added NotificationType.RATING_RECEIVED to .ts, .js, .d.ts
+
+P0 test suite (tests/e2e-api-ratings-sos.ts):
+- RAT-01,02,03,04,05,06,07,10,11,13,16,23 (12 rating P0 cases)
+- SOS-01,02,03,04,07,08,09,10,11,13,15,20,23 (13 SOS P0 cases)
+- npm run test:api:ratings-sos; wired into CI Stage 1 + test:ci
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+- apps/api/dist/apps/api/src/app.module.js
+- apps/api/dist/apps/api/src/app.module.js.map
+- apps/api/dist/apps/api/src/modules/ratings/ratings.controller.d.ts
+- apps/api/dist/apps/api/src/modules/ratings/ratings.controller.js
+- apps/api/dist/apps/api/src/modules/ratings/ratings.controller.js.map
+- apps/api/dist/apps/api/src/modules/ratings/ratings.module.d.ts
+- apps/api/dist/apps/api/src/modules/ratings/ratings.module.js
+- apps/api/dist/apps/api/src/modules/ratings/ratings.module.js.map
+- apps/api/dist/apps/api/src/modules/ratings/ratings.service.d.ts
+- apps/api/dist/apps/api/src/modules/ratings/ratings.service.js
+- apps/api/dist/apps/api/src/modules/ratings/ratings.service.js.map
+- apps/api/dist/apps/api/src/modules/sos/sos.controller.d.ts
+- apps/api/dist/apps/api/src/modules/sos/sos.controller.js
+- apps/api/dist/apps/api/src/modules/sos/sos.controller.js.map
+- apps/api/dist/apps/api/src/modules/sos/sos.service.d.ts
+- apps/api/dist/apps/api/src/modules/sos/sos.service.js
+- apps/api/dist/apps/api/src/modules/sos/sos.service.js.map
+- apps/api/dist/packages/shared/src/enums.d.ts
+- apps/api/dist/packages/shared/src/enums.js
+
+---
+
 ## Build 219 · 2a8a685 · 2026-06-02 03:32 UTC
 
 Commit: docs: update handoff document for Session 9 end / Session 10 start
