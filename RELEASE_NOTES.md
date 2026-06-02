@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 332 · 88fe4f2 · 2026-06-02 18:51 UTC
+
+Commit: test: add cancellation suite (13) — seat restore, re-request, ONGOING block, giver cancel, seat freed flow
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+- package.json
+- tests/e2e-api-cancellation.ts
+
+---
+
 ## Build 330 · 2e4403e · 2026-06-02 18:36 UTC
 
 Commit: feat: admin verification badge fix, seeker cancel notifies giver, departure reminder cron
