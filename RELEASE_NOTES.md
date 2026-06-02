@@ -2,6 +2,46 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 234 · db87d96 · 2026-06-02 06:11 UTC
+
+Commit: fix: correct participant ID comparison in SOS, Ratings, Complaints
+
+Root cause: ride.rideGiverId = RideGiver.id (profile ID)
+            request.seekerId = RideSeeker.id (profile ID)
+            userId from JWT  = User.id
+
+All three services were comparing profile IDs against User.id,
+causing every participant check to return false → 403.
+
+Fix: include rideGiver.userId and seeker.userId relations in the
+ride query, then compare against User.id throughout.
+
+Affected services:
+- sos.service.ts      — isGiver + isSeeker checks
+- ratings.service.ts  — rater/ratee participant checks
+- complaints.service.ts — reporter/reported participant checks
+
+Fixes: e2e-api-extended SOS Flow tests (2 failures)
+       e2e-api-ratings-sos giver/seeker SOS + ratings tests
+       e2e-api-complaints ride-scoped complaint tests
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.js
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.js.map
+- apps/api/dist/apps/api/src/modules/ratings/ratings.service.js
+- apps/api/dist/apps/api/src/modules/ratings/ratings.service.js.map
+- apps/api/dist/apps/api/src/modules/sos/sos.service.js
+- apps/api/dist/apps/api/src/modules/sos/sos.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/complaints/complaints.service.ts
+- apps/api/src/modules/ratings/ratings.service.ts
+- apps/api/src/modules/sos/sos.service.ts
+
+---
+
 ## Build 232 · a4b7bc3 · 2026-06-02 04:22 UTC
 
 Commit: style: update logo dimensions for square brand mark (1080×1080)
