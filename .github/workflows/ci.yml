@@ -401,12 +401,57 @@ jobs:
       - name: Run Playwright tests
         id: test_playwright
         continue-on-error: true
-        run: npx playwright test --reporter=list,html
+        run: npx playwright test --reporter=list,html 2>&1 | tee /tmp/tr-logs/playwright.log
 
-      - name: 📊 Playwright test summary
+      - name: 📝 Write Playwright summary to Job Summary
         if: always()
         run: |
-          echo "  playwright: ${{ steps.test_playwright.outcome }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          OUT=$GITHUB_STEP_SUMMARY
+          FILE=/tmp/tr-logs/failure-summary.md
+          write() { echo "$1" | tee -a "$FILE" >> "$OUT"; }
+
+          write "# TechieRide CI — Playwright E2E Summary"
+          write ""
+          write "> **Repo:** \`${{ github.repository }}\` · **Branch:** \`${{ github.ref_name }}\` · **Commit:** \`${{ github.sha }}\`"
+          write "> **Run:** $RUN_URL"
+          write ""
+          write "| Suite | Result |"
+          write "|---|---|"
+          write "| Playwright E2E | ${{ steps.test_playwright.outcome }} |"
+          write ""
+
+          # Playwright list reporter marks failures with ' x ' (with spaces) or 'FAILED'
+          fails=$(grep -E "^\s+[0-9]+\) |FAILED|✘| ×" /tmp/tr-logs/playwright.log 2>/dev/null | head -50 || true)
+          # Also grab the summary line e.g. "5 failed" / "78 passed"
+          totals=$(grep -E "[0-9]+ (passed|failed|skipped)" /tmp/tr-logs/playwright.log | tail -3 || true)
+
+          write "## Test Results"
+          write ""
+          if [ -n "$totals" ]; then
+            write '```'
+            echo "$totals" | tee -a "$FILE" >> "$OUT"
+            write '```'
+            write ""
+          fi
+
+          if [ -n "$fails" ]; then
+            write "## Failed Tests"
+            write ""
+            write '```'
+            echo "$fails" | tee -a "$FILE" >> "$OUT"
+            write '```'
+            write ""
+            write "_See \`playwright-logs\` artifact for the full HTML report with screenshots._"
+            write ""
+            write "---"
+            write "_Paste \`failure-summary.md\` into Claude and say:_"
+            write "> CI run failed. Here is the failure summary — please investigate and fix."
+          else
+            write "✅ _No failures — all Playwright tests passed._"
+          fi
+
+          # Fail the job if playwright step failed
           if [[ "${{ steps.test_playwright.outcome }}" != "success" ]]; then
             echo "❌ Playwright tests failed."
             exit 1
@@ -433,17 +478,34 @@ jobs:
     steps:
       - name: Evaluate quality gate
         run: |
-          echo "API Tests    : ${{ needs.api-tests.result }}"
-          echo "Security     : ${{ needs.security-tests.result }}"
-          echo "Playwright   : ${{ needs.playwright-tests.result }}"
+          API="${{ needs.api-tests.result }}"
+          SEC="${{ needs.security-tests.result }}"
+          PW="${{ needs.playwright-tests.result }}"
 
-          if [[ "${{ needs.api-tests.result }}"      != "success" ]] || \
-             [[ "${{ needs.security-tests.result }}" != "success" ]] || \
-             [[ "${{ needs.playwright-tests.result }}" != "success" ]]; then
+          api_icon=$([ "$API" = "success" ] && echo "✅" || echo "❌")
+          sec_icon=$([ "$SEC" = "success" ] && echo "✅" || echo "❌")
+          pw_icon=$([ "$PW"  = "success" ] && echo "✅" || echo "❌")
+
+          {
+            echo "# TechieRide CI — Quality Gate"
             echo ""
+            echo "| Stage | Result |"
+            echo "|---|---|"
+            echo "| $api_icon API Tests (10 suites) | $API |"
+            echo "| $sec_icon Security Tests        | $SEC |"
+            echo "| $pw_icon  Playwright E2E        | $PW  |"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$API" != "success" || "$SEC" != "success" || "$PW" != "success" ]]; then
+            echo "## ❌ Quality Gate FAILED" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "One or more stages failed. Check each job's summary above for the list of failing tests." >> "$GITHUB_STEP_SUMMARY"
             echo "❌ QUALITY GATE FAILED — one or more stages did not pass."
             exit 1
           fi
 
-          echo ""
+          echo "## ✅ Quality Gate PASSED" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "All stages passed. Build is eligible for deployment." >> "$GITHUB_STEP_SUMMARY"
           echo "✅ All quality gates passed. Build is eligible for deployment."
