@@ -39,6 +39,9 @@ async function main() {
       isActive: true,
     },
   });
+  // Admin gets both seeker + giver profiles so they can participate in rides
+  await prisma.rideSeeker.upsert({ where: { userId: admin.id }, update: {}, create: { userId: admin.id } });
+  await prisma.rideGiver.upsert({ where: { userId: admin.id }, update: {}, create: { userId: admin.id } });
   console.log('✅ Admin:', admin.email);
 
   // ── Ride Seeker: Arjun ─────────────────────────────────────────────────
@@ -215,6 +218,11 @@ async function main() {
     });
     if (acc.role === UserRole.RIDE_SEEKER) {
       await prisma.rideSeeker.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
+    }
+    if (acc.role === UserRole.ADMIN) {
+      // Admin gets both profiles so they can participate in rides
+      await prisma.rideSeeker.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
+      await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
     }
     if (acc.role === UserRole.RIDE_GIVER) {
       const giver = await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });

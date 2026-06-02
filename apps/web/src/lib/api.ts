@@ -173,6 +173,7 @@ export const adminApi = {
   activateUser: (id: string) => api.patch(`/admin/users/${id}/activate`),
   adjustTrustScore: (id: string, delta: number, reason: string) => api.patch(`/admin/users/${id}/trust-score`, { delta, reason }),
   reinstateUser: (id: string) => api.patch(`/admin/users/${id}/reinstate`),
+  assignRole: (id: string, role: string) => api.patch(`/admin/users/${id}/role`, { role }),
   // 4 separate verification queues
   getEmailPendingQueue: () => api.get('/admin/queues/email-pending'),
   getExceptionQueue: () => api.get('/admin/queues/exception-requests'),

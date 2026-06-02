@@ -191,6 +191,27 @@ export default function AdminUserDetailPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Admin Actions</h2>
 
+        {/* Role assignment */}
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500">Assign Role (current: <span className="font-semibold text-gray-700">{user.role}</span>)</p>
+          <div className="flex gap-2 flex-wrap">
+            {(['RIDE_SEEKER', 'RIDE_GIVER', 'ADMIN'] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => act(() => adminApi.assignRole(id, r))}
+                disabled={user.role === r}
+                className={`text-sm px-4 py-1.5 rounded-lg border transition ${
+                  user.role === r
+                    ? 'bg-brand-600 text-white border-brand-600 cursor-default'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-brand-400 hover:text-brand-600'
+                }`}
+              >
+                {r === 'RIDE_SEEKER' ? '🧳 Ride Seeker Only' : r === 'RIDE_GIVER' ? '🚗 Ride Giver / Seeker' : '🛡 Admin'}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Trust score adjustment */}
         <div className="space-y-2">
           <p className="text-xs text-gray-500">Adjust Trust Score (current: {user.trustScore})</p>

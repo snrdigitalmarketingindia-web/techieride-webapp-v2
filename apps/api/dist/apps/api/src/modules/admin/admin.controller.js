@@ -36,6 +36,9 @@ let AdminController = class AdminController {
     getUserDetail(id) {
         return this.adminService.getUserDetail(id);
     }
+    assignRole(id, role) {
+        return this.adminService.assignRole(id, role);
+    }
     suspendUser(id) {
         return this.adminService.suspendUser(id);
     }
@@ -122,6 +125,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "getUserDetail", null);
+__decorate([
+    (0, common_1.Patch)('users/:id/role'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('role')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "assignRole", null);
 __decorate([
     (0, common_1.Patch)('users/:id/suspend'),
     __param(0, (0, common_1.Param)('id')),

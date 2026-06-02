@@ -109,7 +109,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   };
 
   const isMyRide = ride?.rideGiver?.userId === user?.id;
-  const isSeeker = user?.role === 'RIDE_SEEKER' || user?.role === 'RIDE_GIVER';
+  const isSeeker = user?.role === 'RIDE_SEEKER' || user?.role === 'RIDE_GIVER' || role === 'ADMIN';
   const alreadyParticipant = ride?.participants?.some((p: any) => p.seeker?.userId === user?.id);
 
   const requestSeat = async () => {

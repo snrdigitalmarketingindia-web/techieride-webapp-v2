@@ -111,7 +111,7 @@ function RoutePatternCard({ route, rides, isSeeker }: { route: string; rides: an
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function CommuteBoardPage() {
   const { user }  = useAuthStore();
-  const isSeeker  = user?.role === 'RIDE_SEEKER' || user?.role === 'RIDE_GIVER';
+  const isSeeker  = user?.role === 'RIDE_SEEKER' || user?.role === 'RIDE_GIVER' || role === 'ADMIN';
 
   const today    = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
   const presets  = useMemo(() => getPresets(today), [today]);

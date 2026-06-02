@@ -34,7 +34,7 @@ const isAtLeastOneHourAhead = (date: string, time: string) => {
 export default function CreateRidePage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const isGiver = user?.role === 'RIDE_GIVER';
+  const isGiver = user?.role === 'RIDE_GIVER' || role === 'ADMIN';
 
   useEffect(() => {
     if (user && !isGiver) router.replace('/dashboard');

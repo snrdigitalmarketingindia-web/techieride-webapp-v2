@@ -38,6 +38,14 @@ export class AdminController {
     return this.adminService.getUserDetail(id);
   }
 
+  @Patch('users/:id/role')
+  assignRole(
+    @Param('id') id: string,
+    @Body('role') role: 'RIDE_SEEKER' | 'RIDE_GIVER' | 'ADMIN',
+  ) {
+    return this.adminService.assignRole(id, role);
+  }
+
   @Patch('users/:id/suspend')
   suspendUser(@Param('id') id: string) {
     return this.adminService.suspendUser(id);

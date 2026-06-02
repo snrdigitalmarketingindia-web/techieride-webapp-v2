@@ -10,8 +10,8 @@ import { RideCard } from '@/components/ui/RideCard';
 export default function MyRidesPage() {
   const { user, _hasHydrated } = useAuthStore();
   const role = user?.role;
-  const isGiver  = role === 'RIDE_GIVER';
-  const isSeeker = role === 'RIDE_SEEKER' || role === 'RIDE_GIVER';
+  const isGiver  = role === 'RIDE_GIVER' || role === 'ADMIN';
+  const isSeeker = role === 'RIDE_SEEKER' || role === 'RIDE_GIVER' || role === 'ADMIN';
 
   // Default 'given' — corrected to 'taken' once role is known for pure seekers
   const [tab, setTab] = useState<'given' | 'taken'>('given');

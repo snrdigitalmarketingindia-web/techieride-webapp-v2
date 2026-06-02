@@ -288,8 +288,8 @@ export default function RequestsPage() {
   const { user } = useAuthStore();
   const role = user?.role;
 
-  const isGiver  = role === 'RIDE_GIVER';
-  const isSeeker = role === 'RIDE_SEEKER' || role === 'RIDE_GIVER';
+  const isGiver  = role === 'RIDE_GIVER' || role === 'ADMIN';
+  const isSeeker = role === 'RIDE_SEEKER' || role === 'RIDE_GIVER' || role === 'ADMIN';
 
   return (
     <div className="space-y-5">

@@ -86,6 +86,19 @@ let AdminService = class AdminService {
             },
         });
     }
+    async assignRole(userId, role) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user)
+            throw new Error('User not found');
+        if (role === 'RIDE_GIVER' || role === 'ADMIN') {
+            await this.prisma.rideSeeker.upsert({ where: { userId }, create: { userId }, update: {} });
+            await this.prisma.rideGiver.upsert({ where: { userId }, create: { userId }, update: {} });
+        }
+        if (role === 'RIDE_SEEKER') {
+            await this.prisma.rideSeeker.upsert({ where: { userId }, create: { userId }, update: {} });
+        }
+        return this.prisma.user.update({ where: { id: userId }, data: { role: role } });
+    }
     async suspendUser(userId) {
         return this.prisma.user.update({ where: { id: userId }, data: { isActive: false } });
     }
