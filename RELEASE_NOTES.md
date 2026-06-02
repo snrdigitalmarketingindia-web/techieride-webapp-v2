@@ -2,6 +2,25 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 236 · 09be1f5 · 2026-06-02 06:21 UTC
+
+Commit: fix(tests): give each SOS sub-test a fresh user to avoid 60s cooldown
+
+The 3 SOS tests in section 12 of e2e-api-final.ts reused a single
+seeker, hitting the cooldown after the first trigger. Each test now
+creates its own freshSeeker so all 3 can fire independently.
+
+Also removed the redundant seeker.confirm() call in the ride SOS
+test — approve() goes directly to CONFIRMED (no separate confirm step).
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e-api-final.ts
+
+---
+
 ## Build 234 · db87d96 · 2026-06-02 06:11 UTC
 
 Commit: fix: correct participant ID comparison in SOS, Ratings, Complaints
