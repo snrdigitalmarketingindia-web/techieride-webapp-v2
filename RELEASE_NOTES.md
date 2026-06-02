@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 322 · 4501072 · 2026-06-02 17:34 UTC
+
+Commit: fix: ensure npm install runs on start to pick up new cloudinary dependency
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/render-start.sh
+
+---
+
 ## Build 320 · 76d2c2b · 2026-06-02 17:30 UTC
 
 Commit: fix: remove prisma db push from render-start.sh — was hanging on Neon cold start, schema already in sync
