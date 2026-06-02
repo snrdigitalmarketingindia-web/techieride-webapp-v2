@@ -20,7 +20,9 @@ export default function DashboardPage() {
   const isSeeker = role === 'RIDE_SEEKER' || role === 'BOTH';
 
   const [upcomingRides, setUpcomingRides] = useState<any[]>([]);
+  const [bookedRides, setBookedRides] = useState<any[]>([]);
   const [hasActiveRide, setHasActiveRide] = useState(false);
+  const [hasActiveRequest, setHasActiveRequest] = useState(false);
   const [ecoSummary, setEcoSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
@@ -48,11 +50,22 @@ export default function DashboardPage() {
         ridesRef.current = top3;
         reloadPending(top3);
       });
-    } else {
-      ridesApi.getTaken().then((r) => {
-        const top3 = (r.data ?? []).slice(0, 3);
-        setUpcomingRides(top3);
-        ridesRef.current = top3;
+    }
+    if (isSeeker) {
+      // Check for active seeker requests (PENDING or CONFIRMED = ride accepted but not yet completed)
+      requestsApi.getMine().then((r) => {
+        const active = (r.data ?? []).some((req: any) => ['PENDING', 'CONFIRMED'].includes(req.status));
+        setHasActiveRequest(active);
+      });
+      // Always fetch taken rides for seeker — for BOTH users shown as a second section
+      ridesApi.getTaken().then((res) => {
+        const top3 = (res.data ?? []).slice(0, 3);
+        if (isGiver) {
+          setBookedRides(top3);   // BOTH user: separate section below given rides
+        } else {
+          setUpcomingRides(top3); // Seeker-only: main section
+          ridesRef.current = top3;
+        }
       });
     }
     gamificationApi.getSummary().then((r) => setEcoSummary(r.data)).finally(() => setLoading(false));
@@ -65,17 +78,29 @@ export default function DashboardPage() {
     return () => clearInterval(id);
   }, [isGiver]);
 
+  const refreshTaken = () => {
+    ridesApi.getTaken().then((r) => {
+      const top3 = (r.data ?? []).slice(0, 3);
+      if (isGiver) setBookedRides(top3);
+      else { setUpcomingRides(top3); ridesRef.current = top3; }
+    });
+    // Re-check active requests so Offer Ride re-enables after deboard/no-show
+    requestsApi.getMine().then((r) => {
+      setHasActiveRequest((r.data ?? []).some((req: any) => ['PENDING', 'CONFIRMED'].includes(req.status)));
+    });
+  };
+
   const handleBoard = async (rideId: string) => {
     setProcessing(rideId);
     await ridesApi.board(rideId).catch(() => {});
-    ridesApi.getTaken().then((r) => { setUpcomingRides((r.data ?? []).slice(0, 3)); ridesRef.current = (r.data ?? []).slice(0, 3); });
+    refreshTaken();
     setProcessing(null);
   };
 
   const handleDeboard = async (rideId: string) => {
     setProcessing(rideId);
     await ridesApi.deboard(rideId).catch(() => {});
-    ridesApi.getTaken().then((r) => { setUpcomingRides((r.data ?? []).slice(0, 3)); ridesRef.current = (r.data ?? []).slice(0, 3); });
+    refreshTaken();
     setProcessing(null);
   };
 
@@ -179,8 +204,8 @@ export default function DashboardPage() {
       {/* Quick actions — role-aware */}
       <div className="grid grid-cols-2 gap-3">
         {isGiver && (
-          hasActiveRide ? (
-            <div title="Complete or cancel your active ride before offering a new one"
+          (hasActiveRide || hasActiveRequest) ? (
+            <div title={hasActiveRequest ? "Cancel your active ride request before offering a ride" : "Complete or cancel your active ride before offering a new one"}
               className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center gap-3 opacity-50 cursor-not-allowed select-none">
               <span className="text-2xl">🚗</span>
               <span className="font-medium text-gray-400">Offer Ride</span>
@@ -314,6 +339,48 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Booked rides — shown for BOTH role users below their given rides */}
+      {isGiver && isSeeker && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-900">My Booked Rides</h2>
+            <Link href="/rides" className="text-sm text-brand-600 hover:underline">View all</Link>
+          </div>
+          {bookedRides.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+              <p className="text-gray-400 text-sm">No booked rides</p>
+              <Link href="/rides/search" className="inline-block mt-2 text-sm text-brand-600 hover:underline">Find a ride →</Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {bookedRides.map((ride) => {
+                const myParticipant = (ride.participants ?? []).find(
+                  (p: any) => p.seeker?.userId === user?.id
+                );
+                const bs = myParticipant?.boardingStatus;
+                const seekerActions = ride.status === 'ONGOING' ? (
+                  <div className="flex gap-2 flex-wrap">
+                    {bs === 'WAITING' && (
+                      <button onClick={() => handleBoard(ride.id)} disabled={processing === ride.id}
+                        className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition">
+                        ✅ I've Boarded
+                      </button>
+                    )}
+                    {bs === 'BOARDED' && (
+                      <button onClick={() => handleDeboard(ride.id)} disabled={processing === ride.id}
+                        className="text-xs bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition">
+                        🏁 I've Deboarded
+                      </button>
+                    )}
+                  </div>
+                ) : undefined;
+                return <RideCard key={ride.id} ride={ride} viewAs="seeker" actions={seekerActions} />;
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ECO impact */}
       {ecoSummary && (
