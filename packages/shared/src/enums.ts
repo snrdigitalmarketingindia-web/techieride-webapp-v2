@@ -27,7 +27,6 @@ export enum Gender {
 export enum UserRole {
   RIDE_GIVER = 'RIDE_GIVER',
   RIDE_SEEKER = 'RIDE_SEEKER',
-  BOTH = 'BOTH',
   ADMIN = 'ADMIN',
 }
 

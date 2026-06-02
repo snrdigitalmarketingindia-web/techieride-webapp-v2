@@ -16,8 +16,8 @@ const ECO_BADGES: Record<string, string> = {
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const role     = user?.role;
-  const isGiver  = role === 'RIDE_GIVER' || role === 'BOTH';
-  const isSeeker = role === 'RIDE_SEEKER' || role === 'BOTH';
+  const isGiver  = role === 'RIDE_GIVER';
+  const isSeeker = role === 'RIDE_SEEKER' || role === 'RIDE_GIVER';
 
   const [upcomingRides, setUpcomingRides] = useState<any[]>([]);
   const [bookedRides, setBookedRides] = useState<any[]>([]);
@@ -57,11 +57,11 @@ export default function DashboardPage() {
         const active = (r.data ?? []).some((req: any) => ['PENDING', 'CONFIRMED'].includes(req.status));
         setHasActiveRequest(active);
       });
-      // Always fetch taken rides for seeker — for BOTH users shown as a second section
+      // Always fetch taken rides for seeker — for RIDE_GIVER shown as second section
       ridesApi.getTaken().then((res) => {
         const top3 = (res.data ?? []).slice(0, 3);
         if (isGiver) {
-          setBookedRides(top3);   // BOTH user: separate section below given rides
+          setBookedRides(top3);   // RIDE_GIVER: separate section below given rides
         } else {
           setUpcomingRides(top3); // Seeker-only: main section
           ridesRef.current = top3;
@@ -340,7 +340,7 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Booked rides — shown for BOTH role users below their given rides */}
+      {/* Booked rides — shown for RIDE_GIVER (also a seeker) below their given rides */}
       {isGiver && isSeeker && (
         <div>
           <div className="flex items-center justify-between mb-3">

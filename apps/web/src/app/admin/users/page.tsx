@@ -86,9 +86,8 @@ export default function AdminUsersPage() {
           <select value={filter.role} onChange={(e) => setFilter((f) => ({ ...f, role: e.target.value }))}
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
             <option value="">All Roles</option>
-            <option value="RIDE_GIVER">Ride Giver</option>
-            <option value="RIDE_SEEKER">Ride Seeker</option>
-            <option value="BOTH">Both</option>
+            <option value="RIDE_GIVER">Ride Giver / Seeker</option>
+            <option value="RIDE_SEEKER">Ride Seeker Only</option>
           </select>
         </div>
       </div>

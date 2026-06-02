@@ -145,7 +145,7 @@ export class VerificationService {
         });
       } else {
         newAccountStatus = AccountStatus.DRIVER_VERIFIED;
-        const newRole = req.user.role === 'RIDE_SEEKER' ? 'BOTH' : 'RIDE_GIVER';
+        const newRole = 'RIDE_GIVER'; // RIDE_GIVER can both offer and book rides
         await this.prisma.rideGiver.upsert({
           where: { userId: req.userId },
           create: { userId: req.userId },

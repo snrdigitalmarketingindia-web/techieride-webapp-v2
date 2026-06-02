@@ -262,7 +262,7 @@ async function run() {
   await test('Giver can fetch own profile', async () => {
     const r = await giverClient.get('/users/me');
     assert(r.status === 200, `Got ${r.status}`);
-    assert(['RIDE_GIVER', 'BOTH'].includes(r.data.role), `Wrong role: ${r.data.role}`);
+    assert(r.data.role === 'RIDE_GIVER', `Wrong role: ${r.data.role}`);
   });
 
   await test('Giver can add a vehicle', async () => {

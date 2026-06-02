@@ -10,8 +10,8 @@ import { RideCard } from '@/components/ui/RideCard';
 export default function MyRidesPage() {
   const { user, _hasHydrated } = useAuthStore();
   const role = user?.role;
-  const isGiver  = role === 'RIDE_GIVER' || role === 'BOTH';
-  const isSeeker = role === 'RIDE_SEEKER' || role === 'BOTH';
+  const isGiver  = role === 'RIDE_GIVER';
+  const isSeeker = role === 'RIDE_SEEKER' || role === 'RIDE_GIVER';
 
   // Default 'given' — corrected to 'taken' once role is known for pure seekers
   const [tab, setTab] = useState<'given' | 'taken'>('given');
@@ -164,7 +164,7 @@ export default function MyRidesPage() {
         </div>
       </div>
 
-      {/* Only show tabs for BOTH role — pure giver or seeker sees no tab */}
+      {/* RIDE_GIVER can both offer and take rides — show tabs */}
       {isGiver && isSeeker && (
         <div className="flex bg-gray-100 rounded-lg p-1">
           {(['given', 'taken'] as const).map((t) => (

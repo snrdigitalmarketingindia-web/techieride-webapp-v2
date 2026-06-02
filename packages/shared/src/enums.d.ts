@@ -24,7 +24,6 @@ export declare enum Gender {
 export declare enum UserRole {
     RIDE_GIVER = "RIDE_GIVER",
     RIDE_SEEKER = "RIDE_SEEKER",
-    BOTH = "BOTH",
     ADMIN = "ADMIN"
 }
 export declare enum VerificationStatus {

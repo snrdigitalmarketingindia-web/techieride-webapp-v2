@@ -56,7 +56,7 @@ __decorate([
     __metadata("design:type", String)
 ], RegisterDto.prototype, "personalEmail", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)([shared_1.UserRole.RIDE_GIVER, shared_1.UserRole.RIDE_SEEKER, shared_1.UserRole.BOTH]),
+    (0, class_validator_1.IsEnum)([shared_1.UserRole.RIDE_GIVER, shared_1.UserRole.RIDE_SEEKER]),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "role", void 0);
 __decorate([

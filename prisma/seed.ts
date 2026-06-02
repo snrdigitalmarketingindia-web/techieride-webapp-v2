@@ -145,7 +145,7 @@ async function main() {
       bloodGroup: 'O-',
       homeLocation: 'Gachibowli, Hyderabad',
       officeLocation: 'Wipro Campus, Manikonda, Hyderabad',
-      role: UserRole.BOTH,
+      role: UserRole.RIDE_GIVER,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
       accountStatus: AccountStatus.DRIVER_VERIFIED,
@@ -178,7 +178,7 @@ async function main() {
       homeLocation: 'Kukatpally, Hyderabad', officeLocation: 'Nanakramguda, Hyderabad',
     },
     {
-      email: 'venky@venky.com', fullName: 'Venkatesh Reddy', role: UserRole.BOTH,
+      email: 'venky@venky.com', fullName: 'Venkatesh Reddy', role: UserRole.RIDE_GIVER,
       personalEmail: 'venky.reddy.hyd@gmail.com', gender: Gender.MALE, phone: '9000000004',
       bloodGroup: 'O+', companyName: 'Cognizant', employeeId: 'COG-404',
       homeLocation: 'LB Nagar, Hyderabad', officeLocation: 'Raheja Mindspace, Hyderabad',
@@ -186,7 +186,7 @@ async function main() {
   ];
 
   for (const acc of testAccounts) {
-    const acctStatus = (acc.role === UserRole.RIDE_GIVER || acc.role === UserRole.BOTH)
+    const acctStatus = (acc.role === UserRole.RIDE_GIVER)
       ? AccountStatus.DRIVER_VERIFIED
       : AccountStatus.EMPLOYEE_VERIFIED;
     const u = await prisma.user.upsert({
@@ -213,10 +213,10 @@ async function main() {
         isActive: true,
       },
     });
-    if (acc.role === UserRole.RIDE_SEEKER || acc.role === UserRole.BOTH) {
+    if (acc.role === UserRole.RIDE_SEEKER) {
       await prisma.rideSeeker.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
     }
-    if (acc.role === UserRole.RIDE_GIVER || acc.role === UserRole.BOTH) {
+    if (acc.role === UserRole.RIDE_GIVER) {
       const giver = await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
       // Give each seeded giver a verified vehicle so they can publish rides immediately
       if (acc.email === 'raju@raju.com') {

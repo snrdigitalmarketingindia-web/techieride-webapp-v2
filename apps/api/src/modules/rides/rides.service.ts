@@ -125,6 +125,17 @@ export class RidesService {
       throw new BadRequestException('You already have an active ride. Complete or cancel it before publishing a new one.');
     }
 
+    // Block if giver has an active booking as seeker (PENDING or CONFIRMED)
+    const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+    if (seeker) {
+      const activeRequest = await this.prisma.rideRequest.findFirst({
+        where: { seekerId: seeker.id, status: { in: ['PENDING', 'CONFIRMED'] } },
+      });
+      if (activeRequest) {
+        throw new BadRequestException('You have an active ride booking as a passenger. Complete or cancel it before offering a ride.');
+      }
+    }
+
     return this.prisma.ride.update({
       where: { id: rideId },
       data: { status: RideStatus.PUBLISHED },

@@ -31,7 +31,6 @@ var UserRole;
 (function (UserRole) {
     UserRole["RIDE_GIVER"] = "RIDE_GIVER";
     UserRole["RIDE_SEEKER"] = "RIDE_SEEKER";
-    UserRole["BOTH"] = "BOTH";
     UserRole["ADMIN"] = "ADMIN";
 })(UserRole || (exports.UserRole = UserRole = {}));
 var VerificationStatus;

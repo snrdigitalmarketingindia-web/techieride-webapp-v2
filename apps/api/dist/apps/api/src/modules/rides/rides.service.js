@@ -108,6 +108,15 @@ let RidesService = RidesService_1 = class RidesService {
         if (activeRide) {
             throw new common_1.BadRequestException('You already have an active ride. Complete or cancel it before publishing a new one.');
         }
+        const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+        if (seeker) {
+            const activeRequest = await this.prisma.rideRequest.findFirst({
+                where: { seekerId: seeker.id, status: { in: ['PENDING', 'CONFIRMED'] } },
+            });
+            if (activeRequest) {
+                throw new common_1.BadRequestException('You have an active ride booking as a passenger. Complete or cancel it before offering a ride.');
+            }
+        }
         return this.prisma.ride.update({
             where: { id: rideId },
             data: { status: shared_1.RideStatus.PUBLISHED },

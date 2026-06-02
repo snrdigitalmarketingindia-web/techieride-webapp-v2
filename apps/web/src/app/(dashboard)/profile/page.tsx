@@ -183,7 +183,7 @@ export default function ProfilePage() {
 
   const eco = user?.ecoLevel ? ECO_BADGES[user.ecoLevel] : ECO_BADGES.SEED;
   const inputCls = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
-  const isGiver = user?.role === 'RIDE_GIVER' || user?.role === 'BOTH';
+  const isGiver = user?.role === 'RIDE_GIVER';
 
   return (
     <div className="space-y-5 max-w-lg">

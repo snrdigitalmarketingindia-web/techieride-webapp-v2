@@ -39,7 +39,7 @@ export class RegisterDto {
   @IsOptional()
   personalEmail?: string; // personal email — app notifications (any domain allowed)
 
-  @IsEnum([UserRole.RIDE_GIVER, UserRole.RIDE_SEEKER, UserRole.BOTH])
+  @IsEnum([UserRole.RIDE_GIVER, UserRole.RIDE_SEEKER])
   role: UserRole;
 
   // ── Location (text, max 15 words) ─────────────────────────────────────────

@@ -162,7 +162,7 @@ async function run() {
     await test('BOTH role user profile shows role=BOTH', async () => {
       const r = await bothClient.get('/users/me');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(['BOTH', 'RIDE_GIVER'].includes(r.data.role), `Expected BOTH, got ${r.data.role}`);
+      assert(r.data.role === 'RIDE_GIVER', `Expected RIDE_GIVER, got ${r.data.role}`);
     });
 
     await test('BOTH user can add a vehicle (giver capability)', async () => {

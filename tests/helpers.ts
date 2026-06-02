@@ -95,7 +95,7 @@ export async function approveEmployeeVerification(
 }
 
 /**
- * Submit driver docs and have admin approve → accountStatus: DRIVER_VERIFIED, role: BOTH
+ * Submit driver docs and have admin approve → accountStatus: DRIVER_VERIFIED, role: RIDE_GIVER
  * Requires user to already be EMPLOYEE_VERIFIED.
  */
 export async function approveDriverVerification(

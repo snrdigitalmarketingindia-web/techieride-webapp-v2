@@ -287,7 +287,7 @@ async function run() {
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       const list = r.data.data ?? r.data;
       assert(Array.isArray(list), 'Expected array');
-      const nonGivers = list.filter((u: any) => u.role !== 'RIDE_GIVER' && u.role !== 'BOTH');
+      const nonGivers = list.filter((u: any) => u.role !== 'RIDE_GIVER');
       assert(nonGivers.length === 0, `Found non-giver users in RIDE_GIVER filter: ${nonGivers.map((u: any) => u.role)}`);
     });
 

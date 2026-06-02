@@ -85,7 +85,7 @@ export class RideRequestsService {
       }
     }
 
-    // BOTH-role users cannot request a seat on a ride they own as giver
+    // Givers cannot request a seat on their own ride
     if (ride.rideGiver.userId === userId) {
       throw new ForbiddenException('You cannot request a seat on your own ride');
     }

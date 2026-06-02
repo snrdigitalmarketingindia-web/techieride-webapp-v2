@@ -129,7 +129,7 @@ let VerificationService = class VerificationService {
             }
             else {
                 newAccountStatus = client_1.AccountStatus.DRIVER_VERIFIED;
-                const newRole = req.user.role === 'RIDE_SEEKER' ? 'BOTH' : 'RIDE_GIVER';
+                const newRole = 'RIDE_GIVER';
                 await this.prisma.rideGiver.upsert({
                     where: { userId: req.userId },
                     create: { userId: req.userId },
