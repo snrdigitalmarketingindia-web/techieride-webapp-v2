@@ -2,6 +2,44 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 244 · e7ed6b3 · 2026-06-02 06:32 UTC
+
+Commit: ci: complete Job Summary coverage across all 3 test stages + quality gate
+
+Every stage now writes a formatted Markdown summary to $GITHUB_STEP_SUMMARY
+which renders inline on the Actions run page — no download needed.
+
+API Tests job:
+  - Suite outcome table (10 rows)
+  - Every ❌ FAIL line extracted from all 10 log files
+  - Results totals per failing suite
+
+Security Tests job:
+  - Suite outcome row
+  - Every ❌ FAIL line from security.log
+
+Playwright E2E job:
+  - Suite outcome row
+  - pass/fail/skipped totals from Playwright output
+  - Failed test names extracted from list reporter
+  - Link to playwright-logs artifact for HTML report + screenshots
+
+Quality Gate job:
+  - Final 3-row table: API / Security / Playwright with ✅/❌
+  - Clear PASSED or FAILED verdict
+
+How to read summaries:
+  Actions run page → click any job → scroll down → Job Summary section
+  Each job has its own summary. Quality Gate gives the overall verdict.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+
+---
+
 ## Build 242 · ffbddcc · 2026-06-02 06:30 UTC
 
 Commit: ci: write failure summary to GitHub Job Summary (no download needed)
