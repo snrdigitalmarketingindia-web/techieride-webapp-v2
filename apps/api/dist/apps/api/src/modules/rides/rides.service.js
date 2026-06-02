@@ -29,6 +29,7 @@ const gamification_service_1 = require("../gamification/gamification.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const email_service_1 = require("../email/email.service");
 const trust_score_service_1 = require("../trust-score/trust-score.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 function haversineMeters(lat1, lng1, lat2, lng2) {
     const R = 6371000;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -41,12 +42,13 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
 }
 const DEPARTURE_TIMEOUT_MINUTES = 60;
 let RidesService = RidesService_1 = class RidesService {
-    constructor(prisma, gamification, notifications, email, trustScore) {
+    constructor(prisma, gamification, notifications, email, trustScore, auditLog) {
         this.prisma = prisma;
         this.gamification = gamification;
         this.notifications = notifications;
         this.email = email;
         this.trustScore = trustScore;
+        this.auditLog = auditLog;
         this.logger = new common_1.Logger(RidesService_1.name);
     }
     async create(userId, dto) {
@@ -320,6 +322,12 @@ let RidesService = RidesService_1 = class RidesService {
             await this.prisma.rideRequest.updateMany({
                 where: { rideId: ride.id, status: 'PENDING' },
                 data: { status: 'CANCELLED', cancelReason: 'Ride auto-cancelled' },
+            });
+            await this.auditLog.system('RIDE_AUTO_CANCELLED', 'ride', ride.id, {
+                reason: 'Ride not started within departure timeout',
+                departureTime: ride.departureTime,
+                origin: ride.originName,
+                destination: ride.destinationName,
             });
         }
     }
@@ -613,6 +621,7 @@ exports.RidesService = RidesService = RidesService_1 = __decorate([
         gamification_service_1.GamificationService,
         notifications_service_1.NotificationsService,
         email_service_1.EmailService,
-        trust_score_service_1.TrustScoreService])
+        trust_score_service_1.TrustScoreService,
+        audit_log_service_1.AuditLogService])
 ], RidesService);
 //# sourceMappingURL=rides.service.js.map

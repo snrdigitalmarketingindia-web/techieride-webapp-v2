@@ -12,12 +12,13 @@ const admin_controller_1 = require("./admin.controller");
 const admin_service_1 = require("./admin.service");
 const verification_module_1 = require("../verification/verification.module");
 const trust_score_module_1 = require("../trust-score/trust-score.module");
+const audit_log_module_1 = require("../audit-log/audit-log.module");
 let AdminModule = class AdminModule {
 };
 exports.AdminModule = AdminModule;
 exports.AdminModule = AdminModule = __decorate([
     (0, common_1.Module)({
-        imports: [verification_module_1.VerificationModule, trust_score_module_1.TrustScoreModule],
+        imports: [verification_module_1.VerificationModule, trust_score_module_1.TrustScoreModule, audit_log_module_1.AuditLogModule],
         controllers: [admin_controller_1.AdminController],
         providers: [admin_service_1.AdminService],
     })

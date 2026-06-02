@@ -35,6 +35,7 @@ const calls_module_1 = require("./modules/calls/calls.module");
 const ratings_module_1 = require("./modules/ratings/ratings.module");
 const complaints_module_1 = require("./modules/complaints/complaints.module");
 const trust_score_module_1 = require("./modules/trust-score/trust-score.module");
+const audit_log_module_1 = require("./modules/audit-log/audit-log.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -63,6 +64,7 @@ exports.AppModule = AppModule = __decorate([
             ratings_module_1.RatingsModule,
             complaints_module_1.ComplaintsModule,
             trust_score_module_1.TrustScoreModule,
+            audit_log_module_1.AuditLogModule,
         ],
         providers: [
             { provide: core_1.APP_GUARD, useClass: jwt_auth_guard_1.JwtAuthGuard },

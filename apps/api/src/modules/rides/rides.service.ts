@@ -27,6 +27,7 @@ import { GamificationService } from '../gamification/gamification.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -53,6 +54,7 @@ export class RidesService {
     private notifications: NotificationsService,
     private email: EmailService,
     private trustScore: TrustScoreService,
+    private auditLog: AuditLogService,
   ) {}
 
   async create(userId: string, dto: CreateRideDto) {
@@ -394,6 +396,14 @@ export class RidesService {
       await this.prisma.rideRequest.updateMany({
         where: { rideId: ride.id, status: 'PENDING' },
         data: { status: 'CANCELLED', cancelReason: 'Ride auto-cancelled' },
+      });
+
+      // Audit log with SYSTEM actor
+      await this.auditLog.system('RIDE_AUTO_CANCELLED', 'ride', ride.id, {
+        reason: 'Ride not started within departure timeout',
+        departureTime: ride.departureTime,
+        origin: ride.originName,
+        destination: ride.destinationName,
       });
     }
   }

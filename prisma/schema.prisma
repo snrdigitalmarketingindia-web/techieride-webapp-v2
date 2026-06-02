@@ -545,6 +545,25 @@ model Complaint {
   @@map("complaints")
 }
 
+// ─── Audit Log ────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actor      String                        // userId or "SYSTEM"
+  actorType  String   @default("USER")     // USER | SYSTEM | ADMIN
+  action     String                        // RIDE_CANCELLED, CALL_INITIATED, etc.
+  entityType String                        // ride | request | user | call | etc.
+  entityId   String?                       // the affected record id
+  metadata   Json?                         // extra context (reason, old/new values, etc.)
+  createdAt  DateTime @default(now())
+
+  @@index([actor])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
 // ─── SOS Event ────────────────────────────────────────────────────────────
 
 model SosEvent {

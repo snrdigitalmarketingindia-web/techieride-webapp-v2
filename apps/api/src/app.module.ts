@@ -26,6 +26,7 @@ import { CallsModule } from './modules/calls/calls.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
 import { ComplaintsModule } from './modules/complaints/complaints.module';
 import { TrustScoreModule } from './modules/trust-score/trust-score.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { TrustScoreModule } from './modules/trust-score/trust-score.module';
     RatingsModule,
     ComplaintsModule,
     TrustScoreModule,
+    AuditLogModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

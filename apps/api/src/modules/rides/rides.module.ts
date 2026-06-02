@@ -5,9 +5,10 @@ import { GamificationModule } from '../gamification/gamification.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
 import { TrustScoreModule } from '../trust-score/trust-score.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
 
 @Module({
-  imports: [GamificationModule, NotificationsModule, EmailModule, TrustScoreModule],
+  imports: [GamificationModule, NotificationsModule, EmailModule, TrustScoreModule, AuditLogModule],
   controllers: [RidesController],
   providers: [RidesService],
   exports: [RidesService],

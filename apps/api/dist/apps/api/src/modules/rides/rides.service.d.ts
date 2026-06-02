@@ -5,14 +5,16 @@ import { GamificationService } from '../gamification/gamification.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { EmailService } from '../email/email.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 export declare class RidesService {
     private prisma;
     private gamification;
     private notifications;
     private email;
     private trustScore;
+    private auditLog;
     private readonly logger;
-    constructor(prisma: PrismaService, gamification: GamificationService, notifications: NotificationsService, email: EmailService, trustScore: TrustScoreService);
+    constructor(prisma: PrismaService, gamification: GamificationService, notifications: NotificationsService, email: EmailService, trustScore: TrustScoreService, auditLog: AuditLogService);
     create(userId: string, dto: CreateRideDto): Promise<{
         rideGiver: {
             user: {

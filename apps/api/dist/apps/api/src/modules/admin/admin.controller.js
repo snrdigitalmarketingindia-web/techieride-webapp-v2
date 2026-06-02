@@ -18,15 +18,17 @@ const swagger_1 = require("@nestjs/swagger");
 const admin_service_1 = require("./admin.service");
 const verification_service_1 = require("../verification/verification.service");
 const trust_score_service_1 = require("../trust-score/trust-score.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 const roles_decorator_1 = require("../../common/decorators/roles.decorator");
 const roles_guard_1 = require("../../common/guards/roles.guard");
 const shared_1 = require("@techieride/shared");
 let AdminController = class AdminController {
-    constructor(adminService, verificationService, trustScoreService) {
+    constructor(adminService, verificationService, trustScoreService, auditLogService) {
         this.adminService = adminService;
         this.verificationService = verificationService;
         this.trustScoreService = trustScoreService;
+        this.auditLogService = auditLogService;
     }
     listUsers(accountStatus, role, page = 1, limit = 20) {
         return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
@@ -75,6 +77,15 @@ let AdminController = class AdminController {
     }
     resolveSos(id, adminId, notes) {
         return this.adminService.resolveSos(id, adminId, notes);
+    }
+    getAuditLog(actor, actorType, action, entityType, entityId, from, to, page = 1, limit = 50) {
+        return this.auditLogService.query({
+            actor, actorType, action, entityType, entityId,
+            from: from ? new Date(from) : undefined,
+            to: to ? new Date(to) : undefined,
+            page: +page,
+            limit: +limit,
+        });
     }
     getTrustScore(id) {
         return this.trustScoreService.getScore(id);
@@ -208,6 +219,21 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "resolveSos", null);
 __decorate([
+    (0, common_1.Get)('audit-log'),
+    __param(0, (0, common_1.Query)('actor')),
+    __param(1, (0, common_1.Query)('actorType')),
+    __param(2, (0, common_1.Query)('action')),
+    __param(3, (0, common_1.Query)('entityType')),
+    __param(4, (0, common_1.Query)('entityId')),
+    __param(5, (0, common_1.Query)('from')),
+    __param(6, (0, common_1.Query)('to')),
+    __param(7, (0, common_1.Query)('page')),
+    __param(8, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, String, String, String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getAuditLog", null);
+__decorate([
     (0, common_1.Get)('users/:id/trust-score'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -247,6 +273,7 @@ exports.AdminController = AdminController = __decorate([
     (0, common_1.Controller)('admin'),
     __metadata("design:paramtypes", [admin_service_1.AdminService,
         verification_service_1.VerificationService,
-        trust_score_service_1.TrustScoreService])
+        trust_score_service_1.TrustScoreService,
+        audit_log_service_1.AuditLogService])
 ], AdminController);
 //# sourceMappingURL=admin.controller.js.map

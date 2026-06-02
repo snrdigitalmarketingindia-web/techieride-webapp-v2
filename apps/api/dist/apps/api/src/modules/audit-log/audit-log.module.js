@@ -6,20 +6,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CallsModule = void 0;
+exports.AuditLogModule = void 0;
 const common_1 = require("@nestjs/common");
-const calls_controller_1 = require("./calls.controller");
-const calls_service_1 = require("./calls.service");
-const audit_log_module_1 = require("../audit-log/audit-log.module");
-let CallsModule = class CallsModule {
+const audit_log_service_1 = require("./audit-log.service");
+const prisma_service_1 = require("../../prisma/prisma.service");
+let AuditLogModule = class AuditLogModule {
 };
-exports.CallsModule = CallsModule;
-exports.CallsModule = CallsModule = __decorate([
+exports.AuditLogModule = AuditLogModule;
+exports.AuditLogModule = AuditLogModule = __decorate([
     (0, common_1.Module)({
-        imports: [audit_log_module_1.AuditLogModule],
-        controllers: [calls_controller_1.CallsController],
-        providers: [calls_service_1.CallsService],
-        exports: [calls_service_1.CallsService],
+        providers: [audit_log_service_1.AuditLogService, prisma_service_1.PrismaService],
+        exports: [audit_log_service_1.AuditLogService],
     })
-], CallsModule);
-//# sourceMappingURL=calls.module.js.map
+], AuditLogModule);
+//# sourceMappingURL=audit-log.module.js.map

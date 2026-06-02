@@ -5,8 +5,8 @@
  *   tests/business-functional/20-audit-trail.md  (AUD-*)
  *
  * IMPORTANT — Current implementation status:
- *   There is no dedicated /audit-log API endpoint or AuditLog DB table yet.
- *   The 20-audit-trail.md spec documents the target state.
+ *   A dedicated /admin/audit-log API endpoint and AuditLog DB table are now implemented.
+ *   The 20-audit-trail.md spec documents the full target state.
  *
  *   These tests verify the OBSERVABLE equivalent of audit trail requirements
  *   using existing API endpoints:
@@ -136,8 +136,20 @@ async function runRideLifecycleAuditTests() {
     assert(!!ride.data.cancelledAt, 'cancelledAt timestamp must be set on cancellation');
   });
 
-  // AUD-04 [REQUIRES_AUDIT_API]: Auto-cancellation by cron logged with SYSTEM actor
-  skip('AUD-04 [REQUIRES_AUDIT_API]', 'No audit log endpoint — cron system actor attribution not verifiable via API');
+  // AUD-04: Auto-cancellation by cron logged with SYSTEM actor
+  await test('AUD-04: audit log endpoint returns entries with SYSTEM actor for cron-triggered events', async () => {
+    const admin = await getAdminClient();
+    // Query for any SYSTEM actor entries — may be empty if cron hasn't run, but endpoint must work
+    const r = await admin.get('/admin/audit-log?actorType=SYSTEM');
+    assert(r.status === 200, `Expected 200 from audit log, got ${r.status}: ${JSON.stringify(r.data)}`);
+    assert(typeof r.data.total === 'number', 'Response must include total count');
+    assert(Array.isArray(r.data.entries), 'Response must include entries array');
+    // All returned entries must have actorType=SYSTEM and actor=SYSTEM
+    for (const entry of r.data.entries) {
+      assert(entry.actorType === 'SYSTEM', `Expected actorType SYSTEM, got ${entry.actorType}`);
+      assert(entry.actor === 'SYSTEM', `Expected actor SYSTEM, got ${entry.actor}`);
+    }
+  });
 
   // AUD-05: Ride start — status ONGOING + startedAt timestamp
   await test('AUD-05: ride start records ONGOING status and startedAt timestamp', async () => {
@@ -393,8 +405,21 @@ async function runAdminAuditTests() {
     assert(vehicle?.rcVerified === true, `Expected rcVerified=true after admin approval, got ${vehicle?.rcVerified}`);
   });
 
-  // AUD-20 [REQUIRES_AUDIT_API]: Call initiation logged
-  skip('AUD-20 [REQUIRES_AUDIT_API]', 'Call log endpoint exists but no audit query API to assert actor-attributed log entries');
+  // AUD-20: Call initiation logged in audit trail
+  await test('AUD-20: call initiation is logged in audit trail with caller as actor', async () => {
+    const giver = await freshGiver('a20');
+    const seeker = await freshSeeker('a20');
+    const rideId = await publishRide(giver.client, giver.vehicleId);
+    // Seeker initiates a call to giver
+    await seeker.client.post('/calls/log', { receiverId: giver.userId, rideId });
+    const admin = await getAdminClient();
+    const r = await admin.get('/admin/audit-log?action=CALL_INITIATED&entityType=call');
+    assert(r.status === 200, `Expected 200 from audit log, got ${r.status}`);
+    assert(Array.isArray(r.data.entries), 'audit-log must return { entries: [] }');
+    const entry = r.data.entries.find((e: any) => e.actor === seeker.userId);
+    assert(!!entry, `Expected audit entry with actor=${seeker.userId} for CALL_INITIATED`);
+    assert(entry.actorType === 'USER', `Expected actorType USER, got ${entry.actorType}`);
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -451,11 +476,28 @@ async function runImmutabilityTests() {
     assert(r.data.rideGiver?.userId === giver.userId, 'rideGiver.userId must match the creating user');
   });
 
-  // AUD-24 [REQUIRES_AUDIT_API]: System actor label on cron-triggered events
-  skip('AUD-24 [REQUIRES_AUDIT_API]', 'No audit log endpoint to query SYSTEM actor attribution for cron events');
+  // AUD-24: System actor label on cron-triggered events
+  await test('AUD-24: audit log filters by actorType=SYSTEM and all returned entries carry SYSTEM label', async () => {
+    const admin = await getAdminClient();
+    const r = await admin.get('/admin/audit-log?actorType=SYSTEM&limit=10');
+    assert(r.status === 200, `Expected 200, got ${r.status}`);
+    assert(Array.isArray(r.data.entries), 'entries must be an array');
+    for (const entry of r.data.entries) {
+      assert(entry.actor === 'SYSTEM', `All SYSTEM-filtered entries must have actor=SYSTEM, got ${entry.actor}`);
+      assert(entry.actorType === 'SYSTEM', `actorType must be SYSTEM, got ${entry.actorType}`);
+    }
+  });
 
-  // AUD-25 [REQUIRES_AUDIT_API]: Append-only — no PATCH on audit records
-  skip('AUD-25 [REQUIRES_AUDIT_API]', 'No audit log endpoint — append-only constraint not enforceable via API');
+  // AUD-25: Append-only — no PATCH on audit records
+  await test('AUD-25: audit log records are append-only — PATCH on an audit entry returns 404 or 405', async () => {
+    const admin = await getAdminClient();
+    // Try to PATCH a fabricated audit log entry — endpoint must not exist
+    const r = await admin.patch('/admin/audit-log/00000000-0000-4000-8000-000000000001', { action: 'TAMPERED' });
+    assert(
+      [404, 405].includes(r.status),
+      `Expected 404 or 405 on PATCH /admin/audit-log/:id (append-only), got ${r.status}`,
+    );
+  });
 
   // AUD-26: Records survive API restart — verified via DB-backed endpoint
   await test('AUD-26: ride and request records are DB-persisted (accessible with fresh client)', async () => {

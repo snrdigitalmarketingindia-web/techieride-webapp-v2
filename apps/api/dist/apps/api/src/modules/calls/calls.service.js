@@ -12,15 +12,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CallsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const audit_log_service_1 = require("../audit-log/audit-log.service");
 let CallsService = class CallsService {
-    constructor(prisma) {
+    constructor(prisma, auditLog) {
         this.prisma = prisma;
+        this.auditLog = auditLog;
     }
     async logCall(callerId, receiverId, rideId) {
         try {
-            await this.prisma.callLog.create({
+            const entry = await this.prisma.callLog.create({
                 data: { callerId, receiverId, rideId: rideId || null, event: 'USER_CALL_INITIATED' },
             });
+            await this.auditLog.log(callerId, 'CALL_INITIATED', 'call', entry.id, { receiverId, rideId });
         }
         catch {
         }
@@ -29,6 +32,7 @@ let CallsService = class CallsService {
 exports.CallsService = CallsService;
 exports.CallsService = CallsService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        audit_log_service_1.AuditLogService])
 ], CallsService);
 //# sourceMappingURL=calls.service.js.map

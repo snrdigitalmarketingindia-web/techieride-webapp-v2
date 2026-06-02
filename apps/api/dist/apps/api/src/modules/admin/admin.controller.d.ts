@@ -1,11 +1,13 @@
 import { AdminService } from './admin.service';
 import { VerificationService } from '../verification/verification.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 export declare class AdminController {
     private adminService;
     private verificationService;
     private trustScoreService;
-    constructor(adminService: AdminService, verificationService: VerificationService, trustScoreService: TrustScoreService);
+    private auditLogService;
+    constructor(adminService: AdminService, verificationService: VerificationService, trustScoreService: TrustScoreService, auditLogService: AuditLogService);
     listUsers(accountStatus?: string, role?: string, page?: number, limit?: number): Promise<{
         data: {
             email: string;
@@ -400,6 +402,21 @@ export declare class AdminController {
         resolutionNotes: string | null;
         triggeredAt: Date;
         resolvedAt: Date | null;
+    }>;
+    getAuditLog(actor?: string, actorType?: string, action?: string, entityType?: string, entityId?: string, from?: string, to?: string, page?: number, limit?: number): Promise<{
+        total: number;
+        page: number;
+        limit: number;
+        entries: {
+            id: string;
+            createdAt: Date;
+            actor: string;
+            actorType: string;
+            action: string;
+            entityType: string;
+            entityId: string | null;
+            metadata: import("@prisma/client/runtime/library").JsonValue | null;
+        }[];
     }>;
     getTrustScore(id: string): Promise<{
         trustScore: number;

@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { VerificationService } from '../verification/verification.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -18,6 +19,7 @@ export class AdminController {
     private adminService: AdminService,
     private verificationService: VerificationService,
     private trustScoreService: TrustScoreService,
+    private auditLogService: AuditLogService,
   ) {}
 
   @Get('users')
@@ -119,6 +121,29 @@ export class AdminController {
     @Body('notes') notes: string,
   ) {
     return this.adminService.resolveSos(id, adminId, notes);
+  }
+
+  // ── Audit Log ─────────────────────────────────────────────────────────
+
+  @Get('audit-log')
+  getAuditLog(
+    @Query('actor') actor?: string,
+    @Query('actorType') actorType?: string,
+    @Query('action') action?: string,
+    @Query('entityType') entityType?: string,
+    @Query('entityId') entityId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 50,
+  ) {
+    return this.auditLogService.query({
+      actor, actorType, action, entityType, entityId,
+      from: from ? new Date(from) : undefined,
+      to: to ? new Date(to) : undefined,
+      page: +page,
+      limit: +limit,
+    });
   }
 
   // ── Trust Score ────────────────────────────────────────────────────────
