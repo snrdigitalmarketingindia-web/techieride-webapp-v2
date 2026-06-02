@@ -2,6 +2,29 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 223 · 1938c9c · 2026-06-02 03:58 UTC
+
+Commit: docs(qa): add 19-notifications.md — 30 P0/P1 business test cases
+
+Complete business validation spec for the Notifications module:
+- 30 test cases covering full notification lifecycle
+- Ride lifecycle events: approved, rejected, confirmed, started,
+  cancelled (manual + auto-timeout), completed
+- SOS admin alerting + recipient isolation
+- PENDING expiry, rating received, boarding, no-show, verification
+- Security: auth gate, cross-user isolation, admin-only SOS
+- Regression: persistence after logout, API restart, order correctness
+- 5 UAT acceptance criteria
+- 8 identified missing business rules / production risks
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/business-functional/19-notifications.md
+
+---
+
 ## Build 221 · e9415ee · 2026-06-02 03:51 UTC
 
 Commit: feat: add Ratings API + harden SOS + P0 test automation
