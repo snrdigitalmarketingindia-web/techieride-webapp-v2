@@ -16,6 +16,12 @@ if [ ! -f "$MAIN_JS" ]; then
   find dist -name "main.js" 2>/dev/null || echo "Still not found!"
 fi
 
+# Ensure all dependencies are installed (catches stale cache after package.json changes)
+echo "📦 Verifying dependencies..."
+cd ../..
+npm install --prefer-offline 2>/dev/null || npm install
+cd apps/api
+
 echo "🗄️  Running Prisma migrations..."
 npx prisma generate --schema=../../prisma/schema.prisma
 
