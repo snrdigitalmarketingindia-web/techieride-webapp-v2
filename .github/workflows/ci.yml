@@ -83,75 +83,72 @@ jobs:
           done
 
       - name: Run base API tests (37)
-        id: test_base
         continue-on-error: true
-        run: npm run test:api 2>&1 | tee /tmp/tr-logs/01-base.log
+        run: |
+          npm run test:api 2>&1 | tee /tmp/tr-logs/01-base.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_01-base
       - name: Run extended API tests (30)
-        id: test_extended
         continue-on-error: true
-        run: npm run test:api:extended 2>&1 | tee /tmp/tr-logs/02-extended.log
+        run: |
+          npm run test:api:extended 2>&1 | tee /tmp/tr-logs/02-extended.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_02-extended
       - name: Run negative API tests (30)
-        id: test_negative
         continue-on-error: true
-        run: npm run test:api:negative 2>&1 | tee /tmp/tr-logs/03-negative.log
+        run: |
+          npm run test:api:negative 2>&1 | tee /tmp/tr-logs/03-negative.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_03-negative
       - name: Run business rules tests
-        id: test_rules
         continue-on-error: true
-        run: npm run test:api:rules 2>&1 | tee /tmp/tr-logs/04-rules.log
+        run: |
+          npm run test:api:rules 2>&1 | tee /tmp/tr-logs/04-rules.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_04-rules
       - name: Run production coverage tests
-        id: test_coverage
         continue-on-error: true
-        run: npm run test:api:coverage 2>&1 | tee /tmp/tr-logs/05-coverage.log
+        run: |
+          npm run test:api:coverage 2>&1 | tee /tmp/tr-logs/05-coverage.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_05-coverage
       - name: Run final gap-closing tests
-        id: test_final
         continue-on-error: true
-        run: npm run test:api:final 2>&1 | tee /tmp/tr-logs/06-final.log
+        run: |
+          npm run test:api:final 2>&1 | tee /tmp/tr-logs/06-final.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_06-final
       - name: Run ratings & SOS P0 tests
-        id: test_ratings_sos
         continue-on-error: true
-        run: npm run test:api:ratings-sos 2>&1 | tee /tmp/tr-logs/07-ratings-sos.log
+        run: |
+          npm run test:api:ratings-sos 2>&1 | tee /tmp/tr-logs/07-ratings-sos.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_07-ratings-sos
       - name: Run notifications P0 tests
-        id: test_notifications
         continue-on-error: true
-        run: npm run test:api:notifications 2>&1 | tee /tmp/tr-logs/08-notifications.log
+        run: |
+          npm run test:api:notifications 2>&1 | tee /tmp/tr-logs/08-notifications.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_08-notifications
       - name: Run audit trail observable tests
-        id: test_audit
         continue-on-error: true
-        run: npm run test:api:audit-trail 2>&1 | tee /tmp/tr-logs/09-audit-trail.log
+        run: |
+          npm run test:api:audit-trail 2>&1 | tee /tmp/tr-logs/09-audit-trail.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_09-audit-trail
       - name: Run complaint system P0 tests
-        id: test_complaints
         continue-on-error: true
-        run: npm run test:api:complaints 2>&1 | tee /tmp/tr-logs/10-complaints.log
+        run: |
+          npm run test:api:complaints 2>&1 | tee /tmp/tr-logs/10-complaints.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_10-complaints
 
       - name: 📊 API test summary
         if: always()
         run: |
           echo "Suite results:"
-          echo "  01-base         : ${{ steps.test_base.outcome }}"
-          echo "  02-extended     : ${{ steps.test_extended.outcome }}"
-          echo "  03-negative     : ${{ steps.test_negative.outcome }}"
-          echo "  04-rules        : ${{ steps.test_rules.outcome }}"
-          echo "  05-coverage     : ${{ steps.test_coverage.outcome }}"
-          echo "  06-final        : ${{ steps.test_final.outcome }}"
-          echo "  07-ratings-sos  : ${{ steps.test_ratings_sos.outcome }}"
-          echo "  08-notifications: ${{ steps.test_notifications.outcome }}"
-          echo "  09-audit-trail  : ${{ steps.test_audit.outcome }}"
-          echo "  10-complaints   : ${{ steps.test_complaints.outcome }}"
+          for suite in 01-base 02-extended 03-negative 04-rules 05-coverage 06-final 07-ratings-sos 08-notifications 09-audit-trail 10-complaints; do
+            if [ -f /tmp/tr-logs/FAILED_${suite} ]; then
+              echo "  ${suite}: ❌ FAILED"
+            else
+              echo "  ${suite}: ✅ passed"
+            fi
+          done
 
-          if [[ \
-            "${{ steps.test_base.outcome }}"          != "success" || \
-            "${{ steps.test_extended.outcome }}"      != "success" || \
-            "${{ steps.test_negative.outcome }}"      != "success" || \
-            "${{ steps.test_rules.outcome }}"         != "success" || \
-            "${{ steps.test_coverage.outcome }}"      != "success" || \
-            "${{ steps.test_final.outcome }}"         != "success" || \
-            "${{ steps.test_ratings_sos.outcome }}"   != "success" || \
-            "${{ steps.test_notifications.outcome }}" != "success" || \
-            "${{ steps.test_audit.outcome }}"         != "success" || \
-            "${{ steps.test_complaints.outcome }}"    != "success" \
-          ]]; then
+          failed_count=$(ls /tmp/tr-logs/FAILED_* 2>/dev/null | wc -l)
+          if [ "$failed_count" -gt 0 ]; then
             echo ""
-            echo "❌ One or more API test suites failed — see artifacts for details."
+            echo "❌ ${failed_count} suite(s) failed — see artifacts for details."
             exit 1
           fi
           echo ""
@@ -281,18 +278,20 @@ jobs:
           done
 
       - name: Run API security tests
-        id: test_security
         continue-on-error: true
-        run: npm run test:api:security 2>&1 | tee /tmp/tr-logs/security.log
+        run: |
+          npm run test:api:security 2>&1 | tee /tmp/tr-logs/security.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_security
 
       - name: 📊 Security test summary
         if: always()
         run: |
-          echo "  security: ${{ steps.test_security.outcome }}"
-          if [[ "${{ steps.test_security.outcome }}" != "success" ]]; then
+          if [ -f /tmp/tr-logs/FAILED_security ]; then
+            echo "  security: ❌ FAILED"
             echo "❌ Security tests failed."
             exit 1
           fi
+          echo "  security: ✅ passed"
           echo "✅ Security tests passed."
 
       - name: 📝 Write security summary to Job Summary
@@ -308,9 +307,10 @@ jobs:
           write "> **Repo:** \`${{ github.repository }}\` · **Branch:** \`${{ github.ref_name }}\` · **Commit:** \`${{ github.sha }}\`"
           write "> **Run:** $RUN_URL"
           write ""
+          sec_result=$([ -f /tmp/tr-logs/FAILED_security ] && echo "❌ FAILED" || echo "✅ passed")
           write "| Suite | Result |"
           write "|---|---|"
-          write "| security | ${{ steps.test_security.outcome }} |"
+          write "| security | ${sec_result} |"
           write ""
           write "## Failed Tests"
           write ""
@@ -399,9 +399,10 @@ jobs:
           done
 
       - name: Run Playwright tests
-        id: test_playwright
         continue-on-error: true
-        run: npx playwright test --reporter=list,html 2>&1 | tee /tmp/tr-logs/playwright.log
+        run: |
+          npx playwright test --reporter=list,html 2>&1 | tee /tmp/tr-logs/playwright.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_playwright
 
       - name: 📝 Write Playwright summary to Job Summary
         if: always()
@@ -416,9 +417,10 @@ jobs:
           write "> **Repo:** \`${{ github.repository }}\` · **Branch:** \`${{ github.ref_name }}\` · **Commit:** \`${{ github.sha }}\`"
           write "> **Run:** $RUN_URL"
           write ""
+          pw_result=$([ -f /tmp/tr-logs/FAILED_playwright ] && echo "❌ FAILED" || echo "✅ passed")
           write "| Suite | Result |"
           write "|---|---|"
-          write "| Playwright E2E | ${{ steps.test_playwright.outcome }} |"
+          write "| Playwright E2E | ${pw_result} |"
           write ""
 
           # Playwright list reporter marks failures with ' x ' (with spaces) or 'FAILED'
@@ -452,7 +454,7 @@ jobs:
           fi
 
           # Fail the job if playwright step failed
-          if [[ "${{ steps.test_playwright.outcome }}" != "success" ]]; then
+          if [ -f /tmp/tr-logs/FAILED_playwright ]; then
             echo "❌ Playwright tests failed."
             exit 1
           fi
