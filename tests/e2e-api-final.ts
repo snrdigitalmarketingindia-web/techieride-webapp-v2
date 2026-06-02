@@ -528,27 +528,29 @@ async function run() {
   // ── 12. SOS STANDALONE ────────────────────────────────────────────────────
   section('12. SOS — Standalone (No Active Ride)');
   {
-    const seeker = await freshSeeker('sos_standalone');
+    // Each sub-test uses a fresh seeker to avoid the 60s cooldown between triggers
 
     await test('User can trigger SOS without a rideId', async () => {
+      const seeker = await freshSeeker('sos_s1');
       const r = await seeker.client.post('/sos', { lat: 17.44, lng: 78.34 });
       assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
       assert(!!r.data.sosId, `Expected sosId in response: ${JSON.stringify(r.data)}`);
     });
 
     await test('SOS response includes emergency contact count', async () => {
+      const seeker = await freshSeeker('sos_s2');
       const r = await seeker.client.post('/sos', { lat: 17.44, lng: 78.34 });
       assert(r.status === 201, `Expected 201, got ${r.status}`);
       assert(r.data.message !== undefined, `Missing message field: ${JSON.stringify(r.data)}`);
     });
 
     await test('SOS with rideId (ongoing ride) also works', async () => {
+      const seeker = await freshSeeker('sos_s3');
       const giver = await freshGiver('sos_ride');
       const rideId = await publishRide(giver.client, giver.vehicleId);
       const reqR = await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
       const reqId = reqR.data.requestId as string;
       await giver.client.patch(`/ride-requests/${reqId}/approve`);
-      await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
       await giver.client.patch(`/rides/${rideId}/start`);
 
       const r = await seeker.client.post('/sos', { rideId, lat: 17.44, lng: 78.34 });
