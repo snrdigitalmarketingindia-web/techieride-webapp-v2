@@ -2,6 +2,26 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 318 · 7dc592d · 2026-06-02 17:19 UTC
+
+Commit: feat: replace MinIO with Cloudinary for document/photo uploads
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js.map
+- apps/api/dist/apps/api/src/modules/uploads/uploads.controller.js
+- apps/api/dist/apps/api/src/modules/uploads/uploads.controller.js.map
+- apps/api/dist/apps/api/src/modules/uploads/uploads.service.d.ts
+- apps/api/dist/apps/api/src/modules/uploads/uploads.service.js
+- apps/api/dist/apps/api/src/modules/uploads/uploads.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/package.json
+- apps/api/src/modules/uploads/uploads.controller.ts
+- apps/api/src/modules/uploads/uploads.service.ts
+- package-lock.json
+
+---
+
 ## Build 316 · 1061b4f · 2026-06-02 16:39 UTC
 
 Commit: fix: update requests.spec.ts — match redesigned page heading + add missing no-rides strings
