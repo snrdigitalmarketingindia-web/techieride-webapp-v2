@@ -2,6 +2,42 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 283 · d8d025f · 2026-06-02 12:51 UTC
+
+Commit: feat: Admin user detail page + search on users & rides
+
+User detail page (/admin/users/[id]):
+- 14-item verification checklist (email, phone, photo, docs, TRID, DL, RC, gender, blood, location)
+- Verification requests with document links + inline Approve/Reject (TRID auto-assigned)
+- Profile details grid, trust score adjustment, suspend/reinstate actions
+- Users list rows are now clickable → navigate to detail page
+
+Search — Users (/admin/users):
+- Search bar: name, email, TRID, company, phone (server-side, case-insensitive)
+- Enter key or 🔍 button triggers search, ✕ clears
+
+Search — Rides (/admin/rides):
+- Search bar: origin, destination, giver name, giver email, plate number
+- Combined with status filter
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.d.ts
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js.map
+- apps/api/dist/apps/api/src/modules/admin/admin.service.d.ts
+- apps/api/dist/apps/api/src/modules/admin/admin.service.js
+- apps/api/dist/apps/api/src/modules/admin/admin.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/admin/admin.controller.ts
+- apps/api/src/modules/admin/admin.service.ts
+- apps/web/src/app/admin/rides/page.tsx
+- apps/web/src/app/admin/users/page.tsx
+
+---
+
 ## Build 280 · 60bee6d · 2026-06-02 12:20 UTC
 
 Commit: feat: Women-only rides — API gate, search filter, UI badge + toggle
