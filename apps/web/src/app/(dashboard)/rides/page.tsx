@@ -18,6 +18,7 @@ export default function MyRidesPage() {
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasActiveRide, setHasActiveRide] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   // Giver: pending requests per ride  { rideId: req[] }
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [processing, setProcessing] = useState<string | null>(null);
@@ -99,6 +100,13 @@ export default function MyRidesPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">My Rides</h1>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className={`text-xs px-3 py-1.5 rounded-lg border transition ${showHistory ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-500 hover:border-gray-400'}`}
+          >
+            {showHistory ? '🕐 Hide History' : '🕐 Show History'}
+          </button>
         {isGiver && (
           hasActiveRide ? (
             <span
@@ -113,6 +121,7 @@ export default function MyRidesPage() {
             </Link>
           )
         )}
+        </div>
       </div>
 
       {/* Only show tabs for BOTH role — pure giver or seeker sees no tab */}
@@ -133,6 +142,14 @@ export default function MyRidesPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
           <div className="text-4xl mb-2">{tab === 'given' ? '🚗' : '🧳'}</div>
           <p className="text-gray-500 text-sm">No {tab === 'given' ? 'rides offered' : 'rides taken'} yet</p>
+        </div>
+      ) : rides.filter((r: any) => !['COMPLETED','CANCELLED'].includes(r.status)).length === 0 && !showHistory ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+          <div className="text-3xl mb-2">✅</div>
+          <p className="text-gray-500 text-sm">No active rides</p>
+          <button onClick={() => setShowHistory(true)} className="mt-2 text-xs text-brand-600 hover:underline">
+            Show {rides.length} completed / cancelled ride{rides.length > 1 ? 's' : ''}
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -156,7 +173,30 @@ export default function MyRidesPage() {
             </div>
           )}
 
-          {rides.map((ride) => {
+          {(() => {
+            const TERMINAL = ['COMPLETED', 'CANCELLED'];
+            const visibleRides = showHistory ? rides : rides.filter((r: any) => !TERMINAL.includes(r.status));
+            const hiddenCount = rides.length - visibleRides.length;
+            return (<>
+              {hiddenCount > 0 && !showHistory && (
+                <button
+                  onClick={() => setShowHistory(true)}
+                  className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition"
+                >
+                  + {hiddenCount} completed / cancelled ride{hiddenCount > 1 ? 's' : ''} hidden — Show History
+                </button>
+              )}
+              {visibleRides.length === 0 && hiddenCount > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <p className="text-gray-500 text-sm">No active rides</p>
+                  <button onClick={() => setShowHistory(true)} className="mt-2 text-xs text-brand-600 hover:underline">
+                    Show {hiddenCount} completed / cancelled
+                  </button>
+                </div>
+              )}
+            </>);
+          })()}
+          {(showHistory ? rides : rides.filter((r: any) => !['COMPLETED', 'CANCELLED'].includes(r.status))).map((ride) => {
             // Pending requests section for giver PUBLISHED rides
             const pendingReqs = tab === 'given' && ride.status === 'PUBLISHED'
               ? (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING')
