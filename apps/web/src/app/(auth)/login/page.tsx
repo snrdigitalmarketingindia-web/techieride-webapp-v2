@@ -67,7 +67,7 @@ export default function LoginPage() {
         <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
           <div className="text-center mb-6">
             <div className="flex justify-center mb-3">
-              <Image src="/logo.png" alt="TechieRide" width={140} height={48} className="object-contain" priority />
+              <Image src="/logo.png" alt="TechieRide" width={80} height={80} className="object-contain" priority />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Reset password</h2>
             <p className="text-sm text-gray-500 mt-1">We'll send a reset link to your office email</p>
@@ -124,7 +124,7 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-3">
-            <Image src="/logo.png" alt="TechieRide" width={160} height={54} className="object-contain" priority />
+            <Image src="/logo.png" alt="TechieRide" width={96} height={96} className="object-contain" priority />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-gray-500 text-sm mt-1">Sign in to your account</p>
