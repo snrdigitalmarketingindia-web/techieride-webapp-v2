@@ -29,6 +29,7 @@
     "test:api:notifications": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-notifications.ts",
     "test:api:audit-trail": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-audit-trail.ts",
     "test:api:complaints": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-complaints.ts",
+    "test:api:boarding": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-boarding.ts",
     "test:ui": "npx playwright test",
     "test:ui:security": "npx playwright test tests/e2e/security.spec.ts",
     "test:perf:smoke": "k6 run tests/performance/k6-smoke.js",

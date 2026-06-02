@@ -87,6 +87,13 @@ export default function MyRidesPage() {
     return () => clearInterval(id);
   }, [tab, isSeeker]);
 
+  const handleNoShow = async (rideId: string, seekerProfileId: string) => {
+    setProcessing(seekerProfileId);
+    await ridesApi.markNoShow(rideId, seekerProfileId).catch(() => {});
+    ridesApi.getGiven().then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+    setProcessing(null);
+  };
+
   const handleApprove = async (reqId: string, rideId: string) => {
     setProcessing(reqId);
     await requestsApi.approve(reqId).catch(() => {});
@@ -276,20 +283,71 @@ export default function MyRidesPage() {
                   </div>
                 )}
                 {/* Action buttons */}
-                <div className="flex gap-2 flex-wrap">
-                  {tab === 'given' && ride.status === 'PUBLISHED' && (
-                    <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">▶ Start Ride</button>
-                  )}
-                  {tab === 'given' && ride.status === 'ONGOING' && (
-                    <>
-                      <button onClick={() => handleComplete(ride.id)} className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">✅ Complete Ride</button>
-                      <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📡 Share Location</Link>
-                    </>
-                  )}
-                  {tab === 'taken' && ride.status === 'ONGOING' && (
-                    <Link href={`/tracking/${ride.id}`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📍 Track Live</Link>
-                  )}
-                </div>
+                {(() => {
+                  const participants: any[] = ride.participants ?? [];
+                  const waitingPassengers = participants.filter((p: any) => p.boardingStatus === 'WAITING');
+                  const unresolvedPassengers = participants.filter(
+                    (p: any) => p.boardingStatus !== 'DEBOARDED' && p.boardingStatus !== 'NO_SHOW'
+                  );
+                  const canComplete = unresolvedPassengers.length === 0;
+
+                  return (
+                    <div className="space-y-2">
+                      {/* PUBLISHED: warn if passengers haven't boarded */}
+                      {tab === 'given' && ride.status === 'PUBLISHED' && waitingPassengers.length > 0 && (
+                        <p className="text-xs text-amber-600">
+                          ⚠️ {waitingPassengers.length} passenger(s) yet to board — ask them to tap Board, or start as override
+                        </p>
+                      )}
+
+                      {/* ONGOING: no-show buttons for WAITING passengers */}
+                      {tab === 'given' && ride.status === 'ONGOING' && waitingPassengers.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-xs text-red-500 font-medium">
+                            ⚠️ {waitingPassengers.length} passenger(s) still waiting — mark no-show or wait for them to board before completing
+                          </p>
+                          {waitingPassengers.map((p: any) => (
+                            <div key={p.id} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-600 flex-1">
+                                {p.seeker?.user?.trid && <span className="text-brand-600 mr-1">{p.seeker.user.trid}</span>}
+                                {p.seeker?.user?.fullName ?? 'Passenger'}
+                              </span>
+                              <button
+                                onClick={() => handleNoShow(ride.id, p.seeker?.id)}
+                                disabled={processing === p.seeker?.id}
+                                className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0"
+                              >
+                                👻 Mark No-Show
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 flex-wrap">
+                        {tab === 'given' && ride.status === 'PUBLISHED' && (
+                          <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">▶ Start Ride</button>
+                        )}
+                        {tab === 'given' && ride.status === 'ONGOING' && (
+                          <>
+                            <button
+                              onClick={() => handleComplete(ride.id)}
+                              disabled={!canComplete}
+                              title={!canComplete ? 'Mark all passengers as deboarded or no-show first' : ''}
+                              className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              ✅ Complete Ride
+                            </button>
+                            <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📡 Share Location</Link>
+                          </>
+                        )}
+                        {tab === 'taken' && ride.status === 'ONGOING' && (
+                          <Link href={`/tracking/${ride.id}`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📍 Track Live</Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
 
