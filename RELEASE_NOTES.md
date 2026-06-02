@@ -2,6 +2,55 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 187 · 4cf245f · 2026-06-02 01:08 UTC
+
+Commit: feat(qa): complete automated QA framework — security tests, performance tests, quality gates
+
+Security Tests:
+- tests/e2e-api-security.ts — 35 API security tests: JWT attacks (alg:none, tampering,
+  role escalation), SQL injection probes, XSS sanitisation, path traversal, file upload
+  abuse, broken access control, rate limiting, sensitive data exposure
+- tests/e2e/security.spec.ts — 20 Playwright E2E security tests: auth bypass, privilege
+  escalation, data exposure, XSS, CSRF, call feature security, session management
+
+Performance Tests (k6):
+- tests/performance/k6-smoke.js  — 1 VU, 1 min, verify API alive
+- tests/performance/k6-load.js   — ramp 0→100 VUs, 8 min, p95 thresholds
+- tests/performance/k6-stress.js — ramp 0→1000 VUs, 17 min, breaking point
+
+CI/CD Enhancements:
+- Added Lint stage (ESLint + TypeScript checks) as first gate
+- Added Security Tests stage — zero-tolerance quality gate
+- Added Quality Gate job — fails build if ANY stage failed
+- Pipeline: Lint → API Tests → [Security + Playwright in parallel] → Quality Gate
+
+New npm scripts: test:api:security, test:ui:security, test:perf:*, test:ci, lint:api
+
+Documentation:
+- QA_TEST_STRATEGY.md  — testing pyramid, suite inventory, CI pipeline, data strategy
+- TEST_CASE_MATRIX.md  — 348 test cases mapped across 11 feature areas
+- RISK_ASSESSMENT.md   — P0-P3 risk register with mitigation and test coverage
+- RELEASE_CHECKLIST.md — go/no-go checklist, rollback plan, sign-off log
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+- QA_TEST_STRATEGY.md
+- RELEASE_CHECKLIST.md
+- RISK_ASSESSMENT.md
+- TEST_CASE_MATRIX.md
+- package.json
+- tests/e2e-api-security.ts
+- tests/e2e/security.spec.ts
+- tests/performance/k6-load.js
+- tests/performance/k6-smoke.js
+- tests/performance/k6-stress.js
+- tests/performance/results/.gitkeep
+
+---
+
 ## Build 184 · c5f5f47 · 2026-06-01 20:05 UTC
 
 Commit: feat: add TechieRide logo as browser favicon
