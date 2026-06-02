@@ -2,6 +2,33 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 225 · f420e37 · 2026-06-02 04:00 UTC
+
+Commit: docs(qa): add 20-audit-trail.md — 30 P0/P1 business test cases
+
+Complete business validation spec for the Audit Trail module:
+- 30 test cases covering all logged platform events
+- Ride lifecycle: create, publish, start, complete, cancel (manual + auto)
+- Request lifecycle: submit, approve, reject
+- Boarding events: board, deboard, no-show
+- Admin actions: suspend, reactivate, verify, reject verification, RC verify
+- SOS: trigger + resolution logging
+- Call initiation logging
+- Immutability: no DELETE or UPDATE on audit records (user or admin)
+- Actor identity: every record has userId or SYSTEM — never anonymous
+- Append-only, DB-persisted, IST timestamp regression
+- Admin query by rideId, userId, and time range
+- 5 UAT acceptance criteria
+- 8 missing business rules / production risks identified
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/business-functional/20-audit-trail.md
+
+---
+
 ## Build 223 · 1938c9c · 2026-06-02 03:58 UTC
 
 Commit: docs(qa): add 19-notifications.md — 30 P0/P1 business test cases
