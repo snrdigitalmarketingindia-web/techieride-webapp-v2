@@ -80,25 +80,79 @@ jobs:
           done
 
       - name: Run base API tests (37)
+        id: test_base
+        continue-on-error: true
         run: npm run test:api
       - name: Run extended API tests (30)
+        id: test_extended
+        continue-on-error: true
         run: npm run test:api:extended
       - name: Run negative API tests (30)
+        id: test_negative
+        continue-on-error: true
         run: npm run test:api:negative
       - name: Run business rules tests
+        id: test_rules
+        continue-on-error: true
         run: npm run test:api:rules
       - name: Run production coverage tests
+        id: test_coverage
+        continue-on-error: true
         run: npm run test:api:coverage
       - name: Run final gap-closing tests
+        id: test_final
+        continue-on-error: true
         run: npm run test:api:final
       - name: Run ratings & SOS P0 tests
+        id: test_ratings_sos
+        continue-on-error: true
         run: npm run test:api:ratings-sos
       - name: Run notifications P0 tests
+        id: test_notifications
+        continue-on-error: true
         run: npm run test:api:notifications
       - name: Run audit trail observable tests
+        id: test_audit
+        continue-on-error: true
         run: npm run test:api:audit-trail
       - name: Run complaint system P0 tests
+        id: test_complaints
+        continue-on-error: true
         run: npm run test:api:complaints
+
+      - name: 📊 API test summary
+        if: always()
+        run: |
+          echo "Suite results:"
+          echo "  base        : ${{ steps.test_base.outcome }}"
+          echo "  extended    : ${{ steps.test_extended.outcome }}"
+          echo "  negative    : ${{ steps.test_negative.outcome }}"
+          echo "  rules       : ${{ steps.test_rules.outcome }}"
+          echo "  coverage    : ${{ steps.test_coverage.outcome }}"
+          echo "  final       : ${{ steps.test_final.outcome }}"
+          echo "  ratings-sos : ${{ steps.test_ratings_sos.outcome }}"
+          echo "  notifications: ${{ steps.test_notifications.outcome }}"
+          echo "  audit-trail : ${{ steps.test_audit.outcome }}"
+          echo "  complaints  : ${{ steps.test_complaints.outcome }}"
+
+          if [[ \
+            "${{ steps.test_base.outcome }}"          != "success" || \
+            "${{ steps.test_extended.outcome }}"      != "success" || \
+            "${{ steps.test_negative.outcome }}"      != "success" || \
+            "${{ steps.test_rules.outcome }}"         != "success" || \
+            "${{ steps.test_coverage.outcome }}"      != "success" || \
+            "${{ steps.test_final.outcome }}"         != "success" || \
+            "${{ steps.test_ratings_sos.outcome }}"   != "success" || \
+            "${{ steps.test_notifications.outcome }}" != "success" || \
+            "${{ steps.test_audit.outcome }}"         != "success" || \
+            "${{ steps.test_complaints.outcome }}"    != "success" \
+          ]]; then
+            echo ""
+            echo "❌ One or more API test suites failed — see results above."
+            exit 1
+          fi
+          echo ""
+          echo "✅ All API test suites passed."
 
       - name: Upload API log on failure
         if: failure()
@@ -157,7 +211,19 @@ jobs:
           done
 
       - name: Run API security tests
+        id: test_security
+        continue-on-error: true
         run: npm run test:api:security
+
+      - name: 📊 Security test summary
+        if: always()
+        run: |
+          echo "  security: ${{ steps.test_security.outcome }}"
+          if [[ "${{ steps.test_security.outcome }}" != "success" ]]; then
+            echo "❌ Security tests failed."
+            exit 1
+          fi
+          echo "✅ Security tests passed."
 
       - name: Upload API log on failure
         if: failure()
@@ -231,7 +297,19 @@ jobs:
           done
 
       - name: Run Playwright tests
+        id: test_playwright
+        continue-on-error: true
         run: npx playwright test --reporter=list,html
+
+      - name: 📊 Playwright test summary
+        if: always()
+        run: |
+          echo "  playwright: ${{ steps.test_playwright.outcome }}"
+          if [[ "${{ steps.test_playwright.outcome }}" != "success" ]]; then
+            echo "❌ Playwright tests failed."
+            exit 1
+          fi
+          echo "✅ Playwright tests passed."
 
       - name: Upload Playwright report on failure
         if: failure()
