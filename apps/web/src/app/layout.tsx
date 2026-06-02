@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         {/* Floating designer credit — top right, always visible */}
-        <div className="fixed top-2 right-3 z-50 text-[10px] text-gray-400 pointer-events-none select-none">
+        <div className="fixed top-2 left-3 z-50 text-[10px] text-gray-400 pointer-events-none select-none">
           Designed by{' '}
           <a
             href="https://www.snrdigitalmarketing.com"
