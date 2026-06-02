@@ -6,10 +6,79 @@ on:
   pull_request:
     branches: [main]
 
+# ── Shared environment ────────────────────────────────────────────────────────
+env:
+  NODE_ENV: development
+  PORT: 3001
+  DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
+  REDIS_HOST: localhost
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ""
+  JWT_ACCESS_SECRET: ci_access_secret_min_32_chars_long
+  JWT_REFRESH_SECRET: ci_refresh_secret_min_32_chars_long
+  JWT_ACCESS_EXPIRES_IN: 15m
+  JWT_REFRESH_EXPIRES_IN: 7d
+  MINIO_ENDPOINT: localhost
+  MINIO_PORT: 9000
+  MINIO_USE_SSL: "false"
+  MINIO_ACCESS_KEY: minioadmin
+  MINIO_SECRET_KEY: minioadmin
+  MINIO_BUCKET_DOCUMENTS: user-documents
+  MINIO_BUCKET_PHOTOS: profile-photos
+  SMS_PROVIDER: mock
+  NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+  NEXT_PUBLIC_WS_URL: http://localhost:3001
+
+# ── Shared service definitions ────────────────────────────────────────────────
+x-services: &services
+  postgres:
+    image: postgres:15-alpine
+    env:
+      POSTGRES_USER: techieride
+      POSTGRES_PASSWORD: techieride
+      POSTGRES_DB: techieride
+    ports:
+      - 5432:5432
+    options: >-
+      --health-cmd "pg_isready -U techieride"
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 6379:6379
+    options: >-
+      --health-cmd "redis-cli ping"
+      --health-interval 10s
+      --health-timeout 5s
+      --health-retries 5
+
 jobs:
-  api-tests:
-    name: API Tests (97 tests)
+
+  # ── Stage 1: Lint ───────────────────────────────────────────────────────────
+  lint:
+    name: 🔍 Lint
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint API
+        run: npm run lint --workspace=apps/api
+      - name: TypeScript check — API
+        run: npx tsc --noEmit --project apps/api/tsconfig.json
+      - name: TypeScript check — Web
+        run: npx tsc --noEmit --project apps/web/tsconfig.json
+
+  # ── Stage 2: API Tests ──────────────────────────────────────────────────────
+  api-tests:
+    name: 🧪 API Tests (215 tests)
+    runs-on: ubuntu-latest
+    needs: lint
 
     services:
       postgres:
@@ -25,7 +94,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
       redis:
         image: redis:7-alpine
         ports:
@@ -36,52 +104,20 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      NODE_ENV: development
-      PORT: 3001
-      DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
-      JWT_ACCESS_SECRET: ci_access_secret_min_32_chars_long
-      JWT_REFRESH_SECRET: ci_refresh_secret_min_32_chars_long
-      JWT_ACCESS_EXPIRES_IN: 15m
-      JWT_REFRESH_EXPIRES_IN: 7d
-      MINIO_ENDPOINT: localhost
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: "false"
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET_DOCUMENTS: user-documents
-      MINIO_BUCKET_PHOTOS: profile-photos
-      SMS_PROVIDER: mock
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
-      NEXT_PUBLIC_WS_URL: http://localhost:3001
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npm run db:generate
-
-      - name: Push DB schema
-        run: npm run db:push -- --accept-data-loss
-
-      - name: Seed database
-        run: npm run db:seed
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run db:push -- --accept-data-loss
+      - run: npm run db:seed
 
       - name: Start API server
         run: |
           npm run dev --workspace=apps/api > /tmp/techieride-api.log 2>&1 &
-          echo "Waiting for API..."
           for i in $(seq 1 30); do
             curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready" && break
             sleep 2
@@ -89,19 +125,14 @@ jobs:
 
       - name: Run base API tests (37)
         run: npm run test:api
-
       - name: Run extended API tests (30)
         run: npm run test:api:extended
-
       - name: Run negative API tests (30)
         run: npm run test:api:negative
-
       - name: Run business rules tests
         run: npm run test:api:rules
-
       - name: Run production coverage tests
         run: npm run test:api:coverage
-
       - name: Run final gap-closing tests
         run: npm run test:api:final
 
@@ -112,8 +143,9 @@ jobs:
           name: api-log
           path: /tmp/techieride-api.log
 
-  playwright-tests:
-    name: Playwright E2E Tests (~80 tests)
+  # ── Stage 3: Security Tests ─────────────────────────────────────────────────
+  security-tests:
+    name: 🔐 Security Tests
     runs-on: ubuntu-latest
     needs: api-tests
 
@@ -131,7 +163,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
       redis:
         image: redis:7-alpine
         ports:
@@ -142,50 +173,79 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      NODE_ENV: development
-      PORT: 3001
-      DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
-      REDIS_HOST: localhost
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ""
-      JWT_ACCESS_SECRET: ci_access_secret_min_32_chars_long
-      JWT_REFRESH_SECRET: ci_refresh_secret_min_32_chars_long
-      JWT_ACCESS_EXPIRES_IN: 15m
-      JWT_REFRESH_EXPIRES_IN: 7d
-      MINIO_ENDPOINT: localhost
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: "false"
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET_DOCUMENTS: user-documents
-      MINIO_BUCKET_PHOTOS: profile-photos
-      SMS_PROVIDER: mock
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
-      NEXT_PUBLIC_WS_URL: http://localhost:3001
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+      - run: npm ci
+      - run: npm run db:generate
+      - run: npm run db:push -- --accept-data-loss
+      - run: npm run db:seed
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Start API server
+        run: |
+          npm run dev --workspace=apps/api > /tmp/techieride-api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready" && break
+            sleep 2
+          done
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+      # Quality gate: any security failure = build fails
+      - name: Run API security tests
+        run: npm run test:api:security
 
-      - name: Generate Prisma client
-        run: npm run db:generate
+      - name: Upload API log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-api-log
+          path: /tmp/techieride-api.log
 
+  # ── Stage 4: E2E Tests (Playwright) ────────────────────────────────────────
+  playwright-tests:
+    name: 🎭 Playwright E2E Tests
+    runs-on: ubuntu-latest
+    needs: api-tests
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: techieride
+          POSTGRES_PASSWORD: techieride
+          POSTGRES_DB: techieride
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U techieride"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run db:generate
       - name: Push DB schema
         run: npm run db:push -- --accept-data-loss
         env:
           DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
-
       - name: Seed database
         run: npm run db:seed
         env:
@@ -207,8 +267,11 @@ jobs:
             sleep 2
           done
 
-      - name: Run Playwright tests
-        run: npx playwright test --reporter=list,html
+      - name: Run Playwright tests (functional)
+        run: npx playwright test --ignore=tests/e2e/security.spec.ts --reporter=list,html
+
+      - name: Run Playwright security tests
+        run: npx playwright test tests/e2e/security.spec.ts --reporter=list
 
       - name: Upload Playwright report on failure
         if: failure()
@@ -227,3 +290,30 @@ jobs:
           path: |
             /tmp/techieride-api.log
             /tmp/techieride-web.log
+
+  # ── Stage 5: Quality Gate Summary ──────────────────────────────────────────
+  quality-gate:
+    name: ✅ Quality Gate
+    runs-on: ubuntu-latest
+    needs: [lint, api-tests, security-tests, playwright-tests]
+    if: always()
+    steps:
+      - name: Evaluate quality gate
+        run: |
+          echo "Lint         : ${{ needs.lint.result }}"
+          echo "API Tests    : ${{ needs.api-tests.result }}"
+          echo "Security     : ${{ needs.security-tests.result }}"
+          echo "Playwright   : ${{ needs.playwright-tests.result }}"
+
+          if [[ "${{ needs.lint.result }}"          != "success" ]] || \
+             [[ "${{ needs.api-tests.result }}"     != "success" ]] || \
+             [[ "${{ needs.security-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.playwright-tests.result }}" != "success" ]]; then
+            echo ""
+            echo "❌ QUALITY GATE FAILED — one or more stages did not pass."
+            echo "   Build is NOT eligible for deployment."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ All quality gates passed. Build is eligible for deployment."
