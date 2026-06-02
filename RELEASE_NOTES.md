@@ -2,6 +2,19 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 328 · a9643e7 · 2026-06-02 18:27 UTC
+
+Commit: feat: show trust score + band on dashboard, ride detail, and board page
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/src/modules/rides/rides.service.ts
+- apps/web/src/app/(dashboard)/dashboard/page.tsx
+- apps/web/src/app/(dashboard)/rides/[id]/page.tsx
+- apps/web/src/app/(dashboard)/rides/board/page.tsx
+
+---
+
 ## Build 326 · 547afa9 · 2026-06-02 18:17 UTC
 
 Commit: feat: show first-visit hint on search page to set home/office in profile
