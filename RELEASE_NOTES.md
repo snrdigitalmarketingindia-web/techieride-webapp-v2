@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 195 · f2ec203 · 2026-06-02 02:01 UTC
+
+Commit: fix(ci): remove Lint stage — ESLint not installed in API workspace
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+
+---
+
 ## Build 193 · e7536cd · 2026-06-02 01:59 UTC
 
 Commit: fix: rides not loading on navigation — wait for auth hydration before fetch
