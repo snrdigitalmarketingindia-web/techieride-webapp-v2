@@ -154,6 +154,14 @@ export const callsApi = {
     api.post('/calls/log', { receiverId, rideId }).catch(() => {}),
 };
 
+// ─── Quick Messages ───────────────────────────────────
+export const quickMessagesApi = {
+  send: (rideId: string, messageKey: string) =>
+    api.post(`/rides/${rideId}/quick-message`, { messageKey }),
+  getOptions: (rideId: string) =>
+    api.get(`/rides/${rideId}/quick-message/options`),
+};
+
 // ─── Complaints ───────────────────────────────────────
 export const complaintsApi = {
   file: (data: { reportedId: string; rideId?: string; reason: string; description?: string }) =>

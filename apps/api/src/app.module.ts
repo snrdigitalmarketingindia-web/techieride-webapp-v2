@@ -23,6 +23,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { SosModule } from './modules/sos/sos.module';
 import { CallsModule } from './modules/calls/calls.module';
+import { QuickMessagesModule } from './modules/quick-messages/quick-messages.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
 import { ComplaintsModule } from './modules/complaints/complaints.module';
 import { TrustScoreModule } from './modules/trust-score/trust-score.module';
@@ -49,6 +50,7 @@ import { AuditLogModule } from './modules/audit-log/audit-log.module';
     UploadsModule,
     SosModule,
     CallsModule,
+    QuickMessagesModule,
     RatingsModule,
     ComplaintsModule,
     TrustScoreModule,

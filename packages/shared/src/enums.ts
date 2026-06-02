@@ -82,6 +82,7 @@ export enum NotificationType {
   RATING_RECEIVED = 'RATING_RECEIVED',
   COMPLAINT_FILED = 'COMPLAINT_FILED',
   GENERIC = 'GENERIC',
+  QUICK_MESSAGE = 'QUICK_MESSAGE',
 }
 
 export enum ComplaintReason {

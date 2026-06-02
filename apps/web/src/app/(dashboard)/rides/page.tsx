@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { ridesApi, requestsApi } from '@/lib/api';
+import { ridesApi, requestsApi, quickMessagesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideCard } from '@/components/ui/RideCard';
@@ -27,6 +27,17 @@ export default function MyRidesPage() {
   const ridesRef = useRef<any[]>([]);
   // Seeker: pending/active requests not yet confirmed
   const [myRequests, setMyRequests] = useState<any[]>([]);
+  const [quickMsgSending, setQuickMsgSending] = useState<string | null>(null);
+  const [quickMsgOpen, setQuickMsgOpen] = useState<string | null>(null); // rideId
+
+  const sendQuickMessage = async (rideId: string, messageKey: string) => {
+    setQuickMsgSending(messageKey);
+    try {
+      await quickMessagesApi.send(rideId, messageKey);
+      setQuickMsgOpen(null);
+    } catch {}
+    setQuickMsgSending(null);
+  };
 
   // Once user role is known, set the correct default tab
   useEffect(() => {
@@ -340,7 +351,33 @@ export default function MyRidesPage() {
 
                       <div className="flex gap-2 flex-wrap">
                         {tab === 'given' && ride.status === 'PUBLISHED' && (
-                          <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">▶ Start Ride</button>
+                          <>
+                            <button onClick={() => handleStart(ride.id)} className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition">▶ Start Ride</button>
+                            <button
+                              onClick={() => setQuickMsgOpen(quickMsgOpen === ride.id ? null : ride.id)}
+                              className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition"
+                            >💬 Quick Message</button>
+                          </>
+                        )}
+                        {tab === 'given' && ride.status === 'PUBLISHED' && quickMsgOpen === ride.id && (
+                          <div className="w-full mt-1 p-2 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
+                            <p className="text-xs font-medium text-amber-800 mb-1">Send to all passengers:</p>
+                            {[
+                              { key: 'ARRIVED_AT_START', label: '🚗 I\'ve arrived at the starting point' },
+                              { key: 'ON_MY_WAY',        label: '⏱ On my way, arriving in 5 min' },
+                              { key: 'LOOK_FOR_MY_CAR',  label: '🅿️ I\'m at the pickup area — look for my car' },
+                              { key: 'CALL_ME_GIVER',    label: '📞 Can\'t find you — please call me' },
+                            ].map(({ key, label }) => (
+                              <button
+                                key={key}
+                                onClick={() => sendQuickMessage(ride.id, key)}
+                                disabled={quickMsgSending === key}
+                                className="w-full text-left text-xs px-2 py-1.5 rounded-md hover:bg-amber-100 disabled:opacity-50 transition text-amber-900"
+                              >
+                                {quickMsgSending === key ? '⏳ Sending...' : label}
+                              </button>
+                            ))}
+                          </div>
                         )}
                         {tab === 'given' && ride.status === 'ONGOING' && (
                           <>
@@ -353,7 +390,32 @@ export default function MyRidesPage() {
                               ✅ Complete Ride
                             </button>
                             <Link href={`/tracking/${ride.id}?giver=true`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📡 Share Location</Link>
+                            <button
+                              onClick={() => setQuickMsgOpen(quickMsgOpen === ride.id ? null : ride.id)}
+                              className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition"
+                            >💬 Quick Message</button>
                           </>
+                        )}
+                        {tab === 'given' && ride.status === 'ONGOING' && quickMsgOpen === ride.id && (
+                          <div className="w-full mt-1 p-2 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
+                            <p className="text-xs font-medium text-amber-800 mb-1">Send to all passengers:</p>
+                            {[
+                              { key: 'ARRIVED_AT_START', label: '🚗 I\'ve arrived at the starting point' },
+                              { key: 'ON_MY_WAY',        label: '⏱ On my way, arriving in 5 min' },
+                              { key: 'LOOK_FOR_MY_CAR',  label: '🅿️ I\'m at the pickup area — look for my car' },
+                              { key: 'LEAVING_SOON',     label: '⚠️ Leaving in 2 min — please hurry' },
+                              { key: 'CALL_ME_GIVER',    label: '📞 Can\'t find you — please call me' },
+                            ].map(({ key, label }) => (
+                              <button
+                                key={key}
+                                onClick={() => sendQuickMessage(ride.id, key)}
+                                disabled={quickMsgSending === key}
+                                className="w-full text-left text-xs px-2 py-1.5 rounded-md hover:bg-amber-100 disabled:opacity-50 transition text-amber-900"
+                              >
+                                {quickMsgSending === key ? '⏳ Sending...' : label}
+                              </button>
+                            ))}
+                          </div>
                         )}
                         {tab === 'taken' && ride.status === 'ONGOING' && (() => {
                           const myParticipant = (ride.participants ?? []).find(
@@ -381,9 +443,34 @@ export default function MyRidesPage() {
                                 </button>
                               )}
                               <Link href={`/tracking/${ride.id}`} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">📍 Track Live</Link>
+                              <button
+                                onClick={() => setQuickMsgOpen(quickMsgOpen === ride.id ? null : ride.id)}
+                                className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 transition"
+                              >💬 Quick Message</button>
                             </>
                           );
                         })()}
+                        {tab === 'taken' && ride.status === 'ONGOING' && quickMsgOpen === ride.id && (
+                          <div className="w-full mt-1 p-2 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
+                            <p className="text-xs font-medium text-amber-800 mb-1">Send to your driver:</p>
+                            {[
+                              { key: 'AT_PICKUP',      label: '📍 I\'m at the pickup point' },
+                              { key: 'RUNNING_LATE',   label: '🙏 Running late, please wait 5 min' },
+                              { key: 'ALMOST_THERE',   label: '🏃 Almost there, 1 min away' },
+                              { key: 'CAN_SEE_CAR',    label: '✅ I can see your car — coming now' },
+                              { key: 'CALL_ME_SEEKER', label: '📞 Can\'t find you — please call me' },
+                            ].map(({ key, label }) => (
+                              <button
+                                key={key}
+                                onClick={() => sendQuickMessage(ride.id, key)}
+                                disabled={quickMsgSending === key}
+                                className="w-full text-left text-xs px-2 py-1.5 rounded-md hover:bg-amber-100 disabled:opacity-50 transition text-amber-900"
+                              >
+                                {quickMsgSending === key ? '⏳ Sending...' : label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
