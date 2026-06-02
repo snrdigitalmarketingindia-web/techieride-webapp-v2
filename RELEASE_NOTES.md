@@ -2,6 +2,21 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 203 · aab85af · 2026-06-02 02:48 UTC
+
+Commit: fix(ci): replace --ignore flag with single playwright test run
+
+--ignore is not a valid Playwright CLI flag; run all specs in one
+command including security.spec.ts
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+
+---
+
 ## Build 201 · 8032f82 · 2026-06-02 02:38 UTC
 
 Commit: fix(security-tests): /ride-requests → /ride-requests/mine
