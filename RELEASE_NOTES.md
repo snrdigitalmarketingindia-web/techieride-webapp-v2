@@ -2,6 +2,23 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 334 · 92c9833 · 2026-06-02 19:04 UTC
+
+Commit: feat: quick messages — giver/seeker tap-to-notify during active rides
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/src/app.module.ts
+- apps/api/src/modules/quick-messages/quick-messages.controller.ts
+- apps/api/src/modules/quick-messages/quick-messages.module.ts
+- apps/api/src/modules/quick-messages/quick-messages.service.ts
+- apps/web/src/app/(dashboard)/rides/page.tsx
+- apps/web/src/lib/api.ts
+- packages/shared/src/enums.js
+- packages/shared/src/enums.ts
+
+---
+
 ## Build 332 · 88fe4f2 · 2026-06-02 18:51 UTC
 
 Commit: test: add cancellation suite (13) — seat restore, re-request, ONGOING block, giver cancel, seat freed flow
