@@ -38,7 +38,7 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
             Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-const DEPARTURE_TIMEOUT_MINUTES = 30;
+const DEPARTURE_TIMEOUT_MINUTES = 60;
 let RidesService = RidesService_1 = class RidesService {
     constructor(prisma, gamification, notifications, email) {
         this.prisma = prisma;

@@ -40,7 +40,7 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 }
 
 // Auto-cancel PUBLISHED rides where giver never started within 30 min of departure
-const DEPARTURE_TIMEOUT_MINUTES = 30;
+const DEPARTURE_TIMEOUT_MINUTES = 60;
 
 @Injectable()
 export class RidesService {
