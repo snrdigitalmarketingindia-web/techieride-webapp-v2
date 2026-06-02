@@ -33,6 +33,14 @@ const ECO_BADGES: Record<string, string> = {
   SEED: '🌱', SPROUT: '🌿', LEAF: '🍃', TREE: '🌳', FOREST: '🌲',
 };
 
+const TRUST_BAND: Record<string, { icon: string; color: string }> = {
+  NEW:      { icon: '🆕', color: 'bg-gray-100 text-gray-600' },
+  BRONZE:   { icon: '🥉', color: 'bg-orange-100 text-orange-700' },
+  SILVER:   { icon: '🥈', color: 'bg-slate-100 text-slate-700' },
+  GOLD:     { icon: '🥇', color: 'bg-yellow-100 text-yellow-700' },
+  PLATINUM: { icon: '💎', color: 'bg-purple-100 text-purple-700' },
+};
+
 export default function RideDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -177,6 +185,14 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
               }`}>
                 {ECO_BADGES[giverUser?.ecoLevel || 'SEED']} {giverUser?.ecoLevel}
               </span>
+              {giverUser?.trustBand && (() => {
+                const tb = TRUST_BAND[giverUser.trustBand] ?? TRUST_BAND.NEW;
+                return (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${tb.color}`}>
+                    {tb.icon} {giverUser.trustBand}
+                  </span>
+                );
+              })()}
             </div>
           </div>
           <span className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[ride.status]}`}>

@@ -12,6 +12,14 @@ const ECO_BADGES: Record<string, string> = {
   SEED: '🌱', SPROUT: '🌿', LEAF: '🍃', TREE: '🌳', FOREST: '🌲',
 };
 
+const TRUST_BAND: Record<string, { icon: string; color: string }> = {
+  NEW:      { icon: '🆕', color: 'bg-gray-100 text-gray-600' },
+  BRONZE:   { icon: '🥉', color: 'bg-orange-100 text-orange-700' },
+  SILVER:   { icon: '🥈', color: 'bg-slate-100 text-slate-700' },
+  GOLD:     { icon: '🥇', color: 'bg-yellow-100 text-yellow-700' },
+  PLATINUM: { icon: '💎', color: 'bg-purple-100 text-purple-700' },
+};
+
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -142,6 +150,14 @@ export default function DashboardPage() {
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           {ECO_BADGES[user?.ecoLevel || 'SEED']} {user?.ecoLevel} · {user?.ecoPoints || 0} ECO points
+          {user?.trustBand && (() => {
+            const tb = TRUST_BAND[user.trustBand] ?? TRUST_BAND.NEW;
+            return (
+              <span className={`ml-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${tb.color}`}>
+                {tb.icon} {user.trustBand} · {user.trustScore ?? 0} pts
+              </span>
+            );
+          })()}
         </p>
       </div>
 

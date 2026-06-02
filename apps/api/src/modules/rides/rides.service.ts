@@ -16,6 +16,7 @@ const GIVER_USER_SELECT = {
   id: true, fullName: true, profilePhoto: true,
   companyName: true, ecoLevel: true,
   phone: true, countryCode: true,
+  trustScore: true, trustBand: true,
 } as const;
 
 const SEEKER_USER_SELECT = {

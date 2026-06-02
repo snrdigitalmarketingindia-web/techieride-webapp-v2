@@ -17,6 +17,14 @@ function isoDate(d: Date) { return d.toISOString().split('T')[0]; }
 const ECO: Record<string, string> = { SEED: '🌱', SPROUT: '🌿', LEAF: '🍃', TREE: '🌳', FOREST: '🌲' };
 
 // Fill rate bar — red when >80%, amber 50-80%, green <50%
+const TRUST_BAND: Record<string, { icon: string; color: string }> = {
+  NEW:      { icon: '🆕', color: 'bg-gray-100 text-gray-600' },
+  BRONZE:   { icon: '🥉', color: 'bg-orange-100 text-orange-700' },
+  SILVER:   { icon: '🥈', color: 'bg-slate-100 text-slate-700' },
+  GOLD:     { icon: '🥇', color: 'bg-yellow-100 text-yellow-700' },
+  PLATINUM: { icon: '💎', color: 'bg-purple-100 text-purple-700' },
+};
+
 function FillBar({ rate, filled, total }: { rate: number; filled: number; total: number }) {
   const pct = Math.round(rate * 100);
   const color = pct >= 80 ? 'bg-red-500' : pct >= 50 ? 'bg-amber-400' : 'bg-green-500';
@@ -92,6 +100,7 @@ function RoutePatternCard({ route, rides, isSeeker }: { route: string; rides: an
             </div>
             <span className="text-xs text-gray-700">{g.fullName?.split(' ')[0]}</span>
             <span className="text-xs">{ECO[g.ecoLevel] || '🌱'}</span>
+            {g.trustBand && <span className={`text-xs px-1 py-0.5 rounded-full ${(TRUST_BAND[g.trustBand] ?? TRUST_BAND.NEW).color}`}>{(TRUST_BAND[g.trustBand] ?? TRUST_BAND.NEW).icon}</span>}
             {g.averageRating && <span className="text-xs text-gray-400">⭐{g.averageRating.toFixed(1)}</span>}
           </div>
         ))}
