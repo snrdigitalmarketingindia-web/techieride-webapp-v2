@@ -2,6 +2,31 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 242 · ffbddcc · 2026-06-02 06:30 UTC
+
+Commit: ci: write failure summary to GitHub Job Summary (no download needed)
+
+Previously: summary was only in a zipped artifact requiring download + unzip.
+
+Now: the 'Write failure summary' step writes directly to $GITHUB_STEP_SUMMARY
+which renders as formatted Markdown on the Actions run page — visible
+immediately with no download required.
+
+How to find it:
+  GitHub → Actions → [run] → click the job name (e.g. 'API Tests')
+  → scroll down → the summary table + all ❌ FAIL lines appear inline
+
+The failure-summary.md file is still saved to the api-test-logs artifact
+as a backup for copy-pasting into Claude.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+
+---
+
 ## Build 239 · a6dfe00 · 2026-06-02 06:25 UTC
 
 Commit: ci: persist all test output as downloadable artifacts (always)
