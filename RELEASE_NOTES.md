@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 303 · c94e4fd · 2026-06-02 14:11 UTC
+
+Commit: test: add edge-case suite — last-seat race, re-request, pending on cancel/complete, notification order, cron-start board
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+- package.json
+- tests/e2e-api-edge-cases.ts
+
+---
+
 ## Build 301 · d98b4a7 · 2026-06-02 14:03 UTC
 
 Commit: ci: add [skip vercel] to release-notes commits [skip vercel]
