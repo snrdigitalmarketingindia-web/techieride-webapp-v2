@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 326 · 547afa9 · 2026-06-02 18:17 UTC
+
+Commit: feat: show first-visit hint on search page to set home/office in profile
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/rides/search/page.tsx
+
+---
+
 ## Build 324 · 969ebfa · 2026-06-02 18:03 UTC
 
 Commit: fix: add TechieRide display name to email from address
