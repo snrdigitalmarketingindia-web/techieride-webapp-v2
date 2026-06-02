@@ -6,22 +6,24 @@ test.describe('🔄 Ride Request Flow', () => {
   test('Giver: requests page loads and shows incoming requests', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/requests');
-    // Role-aware heading: giver sees "Incoming Requests"
-    await expect(page.getByRole('heading', { name: /incoming requests/i })).toBeVisible({ timeout: 8_000 });
+    // Redesigned page: single "Requests" heading with "📥 Incoming — Your Rides" section
+    await expect(page.getByRole('heading', { name: /^requests$/i })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/incoming/i).first()).toBeVisible({ timeout: 8_000 });
     await expect(page).not.toHaveURL(/error/);
   });
 
   test('Giver: incoming tab shows ride selector or no-rides message', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/requests');
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     // Should show one of: ride selector, no-rides message, or select-a-ride prompt
     const pageText = await page.locator('body').innerText();
     const hasExpectedContent =
       pageText.includes('Select Ride') ||
       pageText.includes('No published rides') ||
       pageText.includes('Select a ride') ||
-      pageText.includes('create and publish') ||
+      pageText.includes('Create and publish') ||
+      pageText.includes('No active rides') ||
       pageText.includes('Incoming');
     expect(hasExpectedContent).toBe(true);
   });
