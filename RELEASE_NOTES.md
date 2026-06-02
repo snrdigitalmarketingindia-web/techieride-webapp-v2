@@ -2,6 +2,27 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 211 · 828cc28 · 2026-06-02 03:19 UTC
+
+Commit: feat: auto-expire PENDING ride requests after 24h
+
+Cron job runs every hour (IST). Finds PENDING requests older than
+24 hours, rejects them, and notifies the seeker with an 'expired'
+notification. Prevents seekers from waiting indefinitely for a
+giver who never responds.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/ride-requests/ride-requests.service.d.ts
+- apps/api/dist/apps/api/src/modules/ride-requests/ride-requests.service.js
+- apps/api/dist/apps/api/src/modules/ride-requests/ride-requests.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/ride-requests/ride-requests.service.ts
+
+---
+
 ## Build 209 · 7d359a0 · 2026-06-02 03:17 UTC
 
 Commit: feat: Show/Hide History toggle on My Rides
