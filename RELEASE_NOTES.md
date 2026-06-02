@@ -2,6 +2,60 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 189 · 482329e · 2026-06-02 01:51 UTC
+
+Commit: docs(qa): complete business validation framework — 18 functional test specs
+
+tests/business-functional/ — 18 comprehensive spec documents (530+ test cases):
+  01-registration.md        — Domain whitelist, OTP, TRID, exception path (30 TCs)
+  02-verification.md        — Two-track employee + driver verification (30 TCs)
+  03-ride-posting.md        — Ride creation, publish gate, immutability rules (30 TCs)
+  04-ride-search.md         — Haversine radius, IST date, state filtering (30 TCs)
+  05-ride-visibility.md     — Full visibility matrix across all states + devices (30 TCs)
+  06-ride-request.md        — Booking initiation, no-hold policy, lock rules (30 TCs)
+  07-seat-management.md     — Concurrency, overbooking prevention, race conditions (25 TCs)
+  08-calling.md             — tel: links, phone visibility gates, audit log (25 TCs)
+  09-boarding.md            — WAITING/BOARDED/NO_SHOW state machine (25 TCs)
+  10-deboarding.md          — Deboarding, completion, ECO points, gamification (25 TCs)
+  11-live-tracking.md       — WebSocket GPS, reconnection, multi-subscriber (25 TCs)
+  12-sos.md                 — Emergency SOS, spam prevention, admin response (25 TCs)
+  13-ratings.md             — Post-ride ratings, duplicate/self-rating blocks (25 TCs)
+  14-recurring-rides.md     — Commute templates, day skipping, generation (25 TCs)
+  15-women-only-rides.md    — Gender filtering, visibility gates, enforcement (25 TCs)
+  16-admin-workflows.md     — Approval, rejection, suspension, audit (30 TCs)
+  17-operational-scenarios.md — 16 real-world failure scenarios with test cases
+  18-trust-score.md         — Full scoring algorithm, bands, decay, admin overrides
+
+Each file includes: Happy Path + Negative + Boundary + Regression test cases,
+UAT Acceptance Criteria, and Missing Business Rules / Production Risks section.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/business-functional/01-registration.md
+- tests/business-functional/02-verification.md
+- tests/business-functional/03-ride-posting.md
+- tests/business-functional/04-ride-search.md
+- tests/business-functional/05-ride-visibility.md
+- tests/business-functional/06-ride-request.md
+- tests/business-functional/07-seat-management.md
+- tests/business-functional/08-calling.md
+- tests/business-functional/09-boarding.md
+- tests/business-functional/10-deboarding.md
+- tests/business-functional/11-live-tracking.md
+- tests/business-functional/12-sos.md
+- tests/business-functional/13-ratings.md
+- tests/business-functional/14-recurring-rides.md
+- tests/business-functional/15-women-only-rides.md
+- tests/business-functional/16-admin-workflows.md
+- tests/business-functional/17-operational-scenarios.md
+- tests/business-functional/18-trust-score.md
+- tests/qa-specs/01-registration.md
+- tests/qa-specs/02-verification.md
+
+---
+
 ## Build 187 · 4cf245f · 2026-06-02 01:08 UTC
 
 Commit: feat(qa): complete automated QA framework — security tests, performance tests, quality gates
