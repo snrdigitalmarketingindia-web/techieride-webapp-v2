@@ -372,7 +372,7 @@ async function runNegativeTests() {
   // Reported user does not exist
   await test('CMP-23: complaint against non-existent user → 404', async () => {
     const seeker = await freshSeeker('c23');
-    const fakeUserId = '00000000-0000-0000-0000-000000000001';
+    const fakeUserId = '00000000-0000-4000-8000-000000000001'; // valid UUID v4 format, guaranteed non-existent
     const r = await seeker.client.post('/complaints', {
       reportedId: fakeUserId,
       reason: 'FRAUD',
