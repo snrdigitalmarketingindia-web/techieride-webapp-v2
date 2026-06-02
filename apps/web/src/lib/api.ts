@@ -154,6 +154,17 @@ export const callsApi = {
     api.post('/calls/log', { receiverId, rideId }).catch(() => {}),
 };
 
+// ─── Complaints ───────────────────────────────────────
+export const complaintsApi = {
+  file: (data: { reportedId: string; rideId?: string; reason: string; description?: string }) =>
+    api.post('/complaints', data),
+  getMy: () => api.get('/complaints/my'),
+  adminGetAll: (params?: { status?: string; reportedId?: string }) =>
+    api.get('/complaints/admin', { params }),
+  adminUpdate: (id: string, data: { status: string; adminNotes?: string }) =>
+    api.patch(`/complaints/admin/${id}`, data),
+};
+
 // ─── Admin ────────────────────────────────────────────
 export const adminApi = {
   listUsers: (params?: any) => api.get('/admin/users', { params }),

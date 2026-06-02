@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { CallButton } from './CallButton';
+import { ReportUserModal } from './ReportUserModal';
 
 const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'bg-blue-100 text-blue-700',
@@ -27,6 +29,7 @@ interface RideCardProps {
 }
 
 export function RideCard({ ride, viewAs, actions }: RideCardProps) {
+  const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const participants: any[] = ride.participants ?? [];
   const dateStr = ride.departureDate
     ? new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -84,6 +87,15 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
               variant="ghost"
             />
           )}
+          {['ONGOING', 'COMPLETED'].includes(ride.status) && (
+            <button
+              onClick={() => setReportTarget({ id: ride.rideGiver.userId, name: ride.rideGiver.user.fullName })}
+              className="text-xs text-red-500 hover:text-red-700 hover:underline shrink-0"
+              title="Report this user"
+            >
+              🚩 Report
+            </button>
+          )}
         </div>
       )}
 
@@ -140,6 +152,16 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
             <span className="text-xs text-gray-400">{participants.length} joined</span>
           )}
         </div>
+      )}
+
+      {/* ── Report modal ─────────────────────────────── */}
+      {reportTarget && (
+        <ReportUserModal
+          reportedId={reportTarget.id}
+          reportedName={reportTarget.name}
+          rideId={ride.id}
+          onClose={() => setReportTarget(null)}
+        />
       )}
 
       {/* ── Action buttons slot ──────────────────────── */}

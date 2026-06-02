@@ -5,14 +5,15 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
-import { adminApi } from '@/lib/api';
+import { adminApi, complaintsApi } from '@/lib/api';
 
 const links = [
   { href: '/admin', label: 'Dashboard', icon: '📊' },
-  { href: '/admin/verification', label: 'Verification', icon: '✅', badge: true },
+  { href: '/admin/verification', label: 'Verification', icon: '✅', badge: 'verification' },
   { href: '/admin/vehicles', label: 'Vehicles', icon: '🚙' },
   { href: '/admin/users', label: 'Users', icon: '👤' },
   { href: '/admin/rides', label: 'Rides', icon: '🚗' },
+  { href: '/admin/complaints', label: 'Complaints', icon: '🚩', badge: 'complaints' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [openComplaintsCount, setOpenComplaintsCount] = useState(0);
 
   useEffect(() => {
     if (!_hasHydrated) return;
@@ -53,6 +55,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       ]).then(([e, d, dr]) => {
         setPendingCount(e.data.length + d.data.length + dr.data.length);
       }).catch(() => {});
+
+      // Load open complaints count for sidebar badge
+      complaintsApi.adminGetAll({ status: 'OPEN' })
+        .then((r) => setOpenComplaintsCount(r.data.length))
+        .catch(() => {});
     };
 
     init();
@@ -94,9 +101,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <span>{l.icon}</span>
               <span className="hidden sm:inline flex-1">{l.label}</span>
-              {l.badge && pendingCount > 0 && (
+              {l.badge === 'verification' && pendingCount > 0 && (
                 <span className="hidden sm:inline text-xs bg-amber-500 text-white px-1.5 py-0.5 rounded-full font-semibold ml-auto">
                   {pendingCount}
+                </span>
+              )}
+              {l.badge === 'complaints' && openComplaintsCount > 0 && (
+                <span className="hidden sm:inline text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full font-semibold ml-auto">
+                  {openComplaintsCount}
                 </span>
               )}
             </Link>
