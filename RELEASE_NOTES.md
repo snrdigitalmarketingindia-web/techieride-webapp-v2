@@ -2,6 +2,17 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 314 · 4bfcf60 · 2026-06-02 16:22 UTC
+
+Commit: fix: complete() — use cancelReason not rejectionReason (field does not exist on RideRequest)
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js
+- apps/api/src/modules/rides/rides.service.ts
+
+---
+
 ## Build 312 · e691470 · 2026-06-02 16:13 UTC
 
 Commit: build: recompile API dist after pending-request completion fix
