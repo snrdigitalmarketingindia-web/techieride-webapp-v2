@@ -8,9 +8,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var RidesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RidesService = void 0;
 const common_1 = require("@nestjs/common");
+const schedule_1 = require("@nestjs/schedule");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const shared_1 = require("@techieride/shared");
 const GIVER_USER_SELECT = {
@@ -36,12 +38,14 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
             Math.sin(dLng / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
-let RidesService = class RidesService {
+const DEPARTURE_TIMEOUT_MINUTES = 30;
+let RidesService = RidesService_1 = class RidesService {
     constructor(prisma, gamification, notifications, email) {
         this.prisma = prisma;
         this.gamification = gamification;
         this.notifications = notifications;
         this.email = email;
+        this.logger = new common_1.Logger(RidesService_1.name);
     }
     async create(userId, dto) {
         const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
@@ -259,6 +263,52 @@ let RidesService = class RidesService {
             });
         }
         return updated;
+    }
+    async autoExpireUnstartedRides() {
+        const now = new Date();
+        const published = await this.prisma.ride.findMany({
+            where: { status: shared_1.RideStatus.PUBLISHED },
+            include: {
+                rideGiver: { include: { user: true } },
+                participants: { include: { seeker: { include: { user: true } } } },
+            },
+        });
+        const overdue = published.filter((ride) => {
+            const [h, m] = ride.departureTime.split(':').map(Number);
+            const departure = new Date(ride.departureDate);
+            departure.setHours(h, m, 0, 0);
+            const cutoff = new Date(departure.getTime() + DEPARTURE_TIMEOUT_MINUTES * 60 * 1000);
+            return now > cutoff;
+        });
+        if (overdue.length === 0)
+            return;
+        this.logger.log(`⏰ Auto-cancelling ${overdue.length} unstarted ride(s) past departure + ${DEPARTURE_TIMEOUT_MINUTES}m`);
+        for (const ride of overdue) {
+            await this.prisma.ride.update({
+                where: { id: ride.id },
+                data: { status: shared_1.RideStatus.CANCELLED, cancelledAt: now, cancelReason: 'Ride not started — auto-cancelled' },
+            });
+            await this.notifications.create(ride.rideGiver.userId, {
+                type: shared_1.NotificationType.RIDE_CANCELLED,
+                title: 'Your ride was auto-cancelled',
+                body: `${ride.originName} → ${ride.destinationName} was cancelled because it was not started within ${DEPARTURE_TIMEOUT_MINUTES} minutes of departure.`,
+                data: { rideId: ride.id },
+            });
+            for (const p of ride.participants) {
+                if (p.seeker?.userId) {
+                    await this.notifications.create(p.seeker.userId, {
+                        type: shared_1.NotificationType.RIDE_CANCELLED,
+                        title: 'Your ride was cancelled',
+                        body: `${ride.originName} → ${ride.destinationName} on ${new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} was not started and has been cancelled.`,
+                        data: { rideId: ride.id },
+                    });
+                }
+            }
+            await this.prisma.rideRequest.updateMany({
+                where: { rideId: ride.id, status: 'PENDING' },
+                data: { status: 'CANCELLED', cancelReason: 'Ride auto-cancelled' },
+            });
+        }
     }
     async cancel(rideId, userId, reason) {
         const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
@@ -534,7 +584,13 @@ let RidesService = class RidesService {
     }
 };
 exports.RidesService = RidesService;
-exports.RidesService = RidesService = __decorate([
+__decorate([
+    (0, schedule_1.Cron)('*/30 * * * *', { timeZone: 'Asia/Kolkata' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], RidesService.prototype, "autoExpireUnstartedRides", null);
+exports.RidesService = RidesService = RidesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         gamification_service_1.GamificationService,

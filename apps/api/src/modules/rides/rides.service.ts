@@ -3,7 +3,9 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateRideDto } from './dto/create-ride.dto';
 import { SearchRidesDto } from './dto/search-rides.dto';
@@ -37,8 +39,13 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Auto-cancel PUBLISHED rides where giver never started within 30 min of departure
+const DEPARTURE_TIMEOUT_MINUTES = 30;
+
 @Injectable()
 export class RidesService {
+  private readonly logger = new Logger(RidesService.name);
+
   constructor(
     private prisma: PrismaService,
     private gamification: GamificationService,
@@ -316,6 +323,64 @@ export class RidesService {
     }
 
     return updated;
+  }
+
+  // Runs every 30 min — auto-cancels PUBLISHED rides not started 30+ min past departure
+  @Cron('*/30 * * * *', { timeZone: 'Asia/Kolkata' })
+  async autoExpireUnstartedRides() {
+    const now = new Date();
+
+    const published = await this.prisma.ride.findMany({
+      where: { status: RideStatus.PUBLISHED },
+      include: {
+        rideGiver: { include: { user: true } },
+        participants: { include: { seeker: { include: { user: true } } } },
+      },
+    });
+
+    const overdue = published.filter((ride) => {
+      const [h, m] = ride.departureTime.split(':').map(Number);
+      const departure = new Date(ride.departureDate);
+      departure.setHours(h, m, 0, 0);
+      const cutoff = new Date(departure.getTime() + DEPARTURE_TIMEOUT_MINUTES * 60 * 1000);
+      return now > cutoff;
+    });
+
+    if (overdue.length === 0) return;
+    this.logger.log(`⏰ Auto-cancelling ${overdue.length} unstarted ride(s) past departure + ${DEPARTURE_TIMEOUT_MINUTES}m`);
+
+    for (const ride of overdue) {
+      await this.prisma.ride.update({
+        where: { id: ride.id },
+        data: { status: RideStatus.CANCELLED, cancelledAt: now, cancelReason: 'Ride not started — auto-cancelled' },
+      });
+
+      // Notify giver
+      await this.notifications.create(ride.rideGiver.userId, {
+        type: NotificationType.RIDE_CANCELLED,
+        title: 'Your ride was auto-cancelled',
+        body: `${ride.originName} → ${ride.destinationName} was cancelled because it was not started within ${DEPARTURE_TIMEOUT_MINUTES} minutes of departure.`,
+        data: { rideId: ride.id },
+      });
+
+      // Notify each confirmed participant
+      for (const p of ride.participants) {
+        if (p.seeker?.userId) {
+          await this.notifications.create(p.seeker.userId, {
+            type: NotificationType.RIDE_CANCELLED,
+            title: 'Your ride was cancelled',
+            body: `${ride.originName} → ${ride.destinationName} on ${new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} was not started and has been cancelled.`,
+            data: { rideId: ride.id },
+          });
+        }
+      }
+
+      // Free up pending requests too
+      await this.prisma.rideRequest.updateMany({
+        where: { rideId: ride.id, status: 'PENDING' },
+        data: { status: 'CANCELLED', cancelReason: 'Ride auto-cancelled' },
+      });
+    }
   }
 
   async cancel(rideId: string, userId: string, reason: string) {

@@ -9,6 +9,7 @@ export declare class RidesService {
     private gamification;
     private notifications;
     private email;
+    private readonly logger;
     constructor(prisma: PrismaService, gamification: GamificationService, notifications: NotificationsService, email: EmailService);
     create(userId: string, dto: CreateRideDto): Promise<{
         rideGiver: {
@@ -192,6 +193,7 @@ export declare class RidesService {
         cancelledAt: Date | null;
         cancelReason: string | null;
     }>;
+    autoExpireUnstartedRides(): Promise<void>;
     cancel(rideId: string, userId: string, reason: string): Promise<{
         id: string;
         createdAt: Date;
