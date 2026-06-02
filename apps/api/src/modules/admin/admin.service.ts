@@ -95,8 +95,25 @@ export class AdminService {
     return this.prisma.user.update({ where: { id: userId }, data: { role: role as any } });
   }
 
-  async suspendUser(userId: string) {
-    return this.prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+  async suspendUser(userId: string, reason?: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false, accountStatus: 'SUSPENDED' as any },
+    });
+  }
+
+  async deactivateUser(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false, accountStatus: 'DEACTIVATED' as any },
+    });
+  }
+
+  async rejectUser(userId: string, reason: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { isActive: false, accountStatus: 'REJECTED' as any, verificationStatus: 'REJECTED' as any },
+    });
   }
 
   async activateUser(userId: string) {

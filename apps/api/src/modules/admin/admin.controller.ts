@@ -51,6 +51,16 @@ export class AdminController {
     return this.adminService.suspendUser(id);
   }
 
+  @Patch('users/:id/deactivate')
+  deactivateUser(@Param('id') id: string) {
+    return this.adminService.deactivateUser(id);
+  }
+
+  @Patch('users/:id/reject')
+  rejectUser(@Param('id') id: string, @Body('reason') reason: string) {
+    return this.adminService.rejectUser(id, reason);
+  }
+
   @Patch('users/:id/activate')
   activateUser(@Param('id') id: string) {
     return this.adminService.activateUser(id);

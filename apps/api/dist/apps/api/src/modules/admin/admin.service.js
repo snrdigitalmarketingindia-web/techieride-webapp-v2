@@ -99,8 +99,23 @@ let AdminService = class AdminService {
         }
         return this.prisma.user.update({ where: { id: userId }, data: { role: role } });
     }
-    async suspendUser(userId) {
-        return this.prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+    async suspendUser(userId, reason) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { isActive: false, accountStatus: 'SUSPENDED' },
+        });
+    }
+    async deactivateUser(userId) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { isActive: false, accountStatus: 'DEACTIVATED' },
+        });
+    }
+    async rejectUser(userId, reason) {
+        return this.prisma.user.update({
+            where: { id: userId },
+            data: { isActive: false, accountStatus: 'REJECTED', verificationStatus: 'REJECTED' },
+        });
     }
     async activateUser(userId) {
         return this.prisma.user.update({ where: { id: userId }, data: { isActive: true } });

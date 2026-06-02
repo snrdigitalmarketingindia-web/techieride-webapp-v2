@@ -42,6 +42,12 @@ let AdminController = class AdminController {
     suspendUser(id) {
         return this.adminService.suspendUser(id);
     }
+    deactivateUser(id) {
+        return this.adminService.deactivateUser(id);
+    }
+    rejectUser(id, reason) {
+        return this.adminService.rejectUser(id, reason);
+    }
     activateUser(id) {
         return this.adminService.activateUser(id);
     }
@@ -140,6 +146,21 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "suspendUser", null);
+__decorate([
+    (0, common_1.Patch)('users/:id/deactivate'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "deactivateUser", null);
+__decorate([
+    (0, common_1.Patch)('users/:id/reject'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('reason')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "rejectUser", null);
 __decorate([
     (0, common_1.Patch)('users/:id/activate'),
     __param(0, (0, common_1.Param)('id')),

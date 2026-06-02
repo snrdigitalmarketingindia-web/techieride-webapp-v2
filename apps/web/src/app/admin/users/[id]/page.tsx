@@ -31,6 +31,9 @@ export default function AdminUserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
   const [rejReason, setRejReason] = useState('');
+  const [suspendReason, setSuspendReason] = useState('');
+  const [showSuspendInput, setShowSuspendInput] = useState(false);
+  const [showRejectInput, setShowRejectInput] = useState(false);
   const [trustDelta, setTrustDelta] = useState('');
   const [trustReason, setTrustReason] = useState('');
 
@@ -212,45 +215,104 @@ export default function AdminUserDetailPage() {
           </div>
         </div>
 
+        {/* Account status actions — contextual based on current status */}
+        <div className="space-y-3 border-t border-gray-100 pt-4">
+          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Account Status Actions</p>
+
+          {/* Active accounts — can suspend, reject, or deactivate */}
+          {!['SUSPENDED', 'DEACTIVATED', 'BANNED', 'REJECTED'].includes(user.accountStatus) && (
+            <div className="space-y-2">
+              {/* Suspend with reason */}
+              {!showSuspendInput ? (
+                <button onClick={() => setShowSuspendInput(true)}
+                  className="text-sm bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-lg hover:bg-amber-100 transition w-full text-left">
+                  🚫 Suspend Account
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <input value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)}
+                    placeholder="Reason for suspension (required)"
+                    className="w-full text-sm border border-amber-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400" />
+                  <div className="flex gap-2">
+                    <button onClick={() => { if (!suspendReason.trim()) { setActionMsg('❌ Enter reason'); return; } act(() => adminApi.suspendUser(id)); setShowSuspendInput(false); setSuspendReason(''); }}
+                      className="flex-1 text-sm bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition">
+                      Confirm Suspend
+                    </button>
+                    <button onClick={() => { setShowSuspendInput(false); setSuspendReason(''); }}
+                      className="text-sm text-gray-500 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Reject with reason */}
+              {!showRejectInput ? (
+                <button onClick={() => setShowRejectInput(true)}
+                  className="text-sm bg-red-50 text-red-700 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-100 transition w-full text-left">
+                  ❌ Reject Account
+                </button>
+              ) : (
+                <div className="space-y-2">
+                  <input value={rejReason} onChange={(e) => setRejReason(e.target.value)}
+                    placeholder="Reason for rejection (required)"
+                    className="w-full text-sm border border-red-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-400" />
+                  <div className="flex gap-2">
+                    <button onClick={() => { if (!rejReason.trim()) { setActionMsg('❌ Enter reason'); return; } act(() => adminApi.rejectUser(id, rejReason)); setShowRejectInput(false); setRejReason(''); }}
+                      className="flex-1 text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">
+                      Confirm Reject
+                    </button>
+                    <button onClick={() => { setShowRejectInput(false); setRejReason(''); }}
+                      className="text-sm text-gray-500 px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Deactivate */}
+              <button onClick={() => { if (confirm('Permanently deactivate this account?')) act(() => adminApi.deactivateUser(id)); }}
+                className="text-sm bg-gray-50 text-gray-600 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-100 transition w-full text-left">
+                ⛔ Deactivate Account
+              </button>
+            </div>
+          )}
+
+          {/* Suspended / Rejected / Deactivated — can reinstate */}
+          {['SUSPENDED', 'REJECTED', 'DEACTIVATED'].includes(user.accountStatus) && (
+            <button onClick={() => act(() => adminApi.reinstateUser(id))}
+              className="text-sm bg-green-50 text-green-700 border border-green-200 px-4 py-2 rounded-lg hover:bg-green-100 transition w-full text-left">
+              ✅ Reinstate Account
+            </button>
+          )}
+
+          {user.accountStatus === 'BANNED' && (
+            <p className="text-xs text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-lg">
+              🔴 Account permanently banned. Contact super-admin to restore.
+            </p>
+          )}
+        </div>
+
         {/* Trust score adjustment */}
-        <div className="space-y-2">
-          <p className="text-xs text-gray-500">Adjust Trust Score (current: {user.trustScore})</p>
+        <div className="space-y-2 border-t border-gray-100 pt-4">
+          <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Trust Score Adjustment <span className="normal-case font-normal">(current: {user.trustScore} · {user.trustBand})</span></p>
           <div className="flex gap-2">
             <input type="number" value={trustDelta} onChange={(e) => setTrustDelta(e.target.value)}
-              placeholder="e.g. +10 or -5"
+              placeholder="+10 or -5"
               className="w-28 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400" />
             <input value={trustReason} onChange={(e) => setTrustReason(e.target.value)}
-              placeholder="Reason"
+              placeholder="Reason for adjustment"
               className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400" />
             <button
-              onClick={() => act(() => adminApi.adjustTrustScore(id, Number(trustDelta), trustReason))}
-              className="bg-brand-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-brand-700 transition"
-            >Apply</button>
+              onClick={() => { if (!trustDelta || !trustReason.trim()) { setActionMsg('❌ Enter delta and reason'); return; } act(() => adminApi.adjustTrustScore(id, Number(trustDelta), trustReason)); setTrustDelta(''); setTrustReason(''); }}
+              className="bg-brand-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-brand-700 transition">
+              Apply
+            </button>
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          {user.isActive ? (
-            <button onClick={() => act(() => adminApi.suspendUser(id))}
-              className="text-sm bg-red-50 text-red-700 border border-red-200 px-4 py-1.5 rounded-lg hover:bg-red-100 transition">
-              🚫 Suspend Account
-            </button>
-          ) : (
-            <button onClick={() => act(() => adminApi.activateUser(id))}
-              className="text-sm bg-green-50 text-green-700 border border-green-200 px-4 py-1.5 rounded-lg hover:bg-green-100 transition">
-              ✅ Activate Account
-            </button>
-          )}
-          {['SUSPENDED', 'BANNED'].includes(user.accountStatus) && (
-            <button onClick={() => act(() => adminApi.reinstateUser(id))}
-              className="text-sm bg-blue-50 text-blue-700 border border-blue-200 px-4 py-1.5 rounded-lg hover:bg-blue-100 transition">
-              🔄 Reinstate Account
-            </button>
-          )}
-        </div>
-
         {actionMsg && (
-          <p className={`text-sm ${actionMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>{actionMsg}</p>
+          <p className={`text-sm font-medium ${actionMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>{actionMsg}</p>
         )}
       </div>
     </div>
