@@ -2,6 +2,23 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 209 · 7d359a0 · 2026-06-02 03:17 UTC
+
+Commit: feat: Show/Hide History toggle on My Rides
+
+COMPLETED and CANCELLED rides hidden by default — keeps the active
+rides view clean. A 'Show History' button toggles them back.
+If all rides are historical, shows a prompt to reveal them.
+'+ N completed/cancelled hidden' hint appears below active rides.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/rides/page.tsx
+
+---
+
 ## Build 207 · f833a36 · 2026-06-02 03:13 UTC
 
 Commit: fix: remove user?.role from rides fetch dependency — eliminates wrong fetch on hydration
