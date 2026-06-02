@@ -364,7 +364,7 @@ function assert(cond: boolean, msg: string) {
   await test('SEC-BAC-04: unauthenticated access to protected routes blocked', async () => {
     const protectedRoutes = [
       '/users/me', '/rides/given', '/rides/taken', '/vehicles/my',
-      '/notifications', '/ride-requests', '/gamification/summary',
+      '/notifications', '/ride-requests/mine', '/gamification/summary',
     ];
     for (const route of protectedRoutes) {
       const r = await anon.get(route);
