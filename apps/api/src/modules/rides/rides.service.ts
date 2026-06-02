@@ -308,6 +308,12 @@ export class RidesService {
       data: { status: RideStatus.COMPLETED, completedAt: new Date() },
     });
 
+    // Reject any PENDING requests that were never approved before completion
+    await this.prisma.rideRequest.updateMany({
+      where: { rideId, status: 'PENDING' },
+      data: { status: 'REJECTED', rejectionReason: 'Ride has been completed' },
+    });
+
     // Award ECO + Trust points
     const participants = await this.prisma.rideParticipant.findMany({
       where: { rideId },
