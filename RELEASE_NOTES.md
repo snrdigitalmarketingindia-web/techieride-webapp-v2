@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 336 · 512d320 · 2026-06-02 19:13 UTC
+
+Commit: feat: show gender warning on search when women-only rides exist but gender not set
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/rides/search/page.tsx
+
+---
+
 ## Build 334 · 92c9833 · 2026-06-02 19:04 UTC
 
 Commit: feat: quick messages — giver/seeker tap-to-notify during active rides
