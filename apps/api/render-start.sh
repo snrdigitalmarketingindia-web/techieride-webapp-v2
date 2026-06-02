@@ -30,7 +30,5 @@ WHERE id NOT IN (
 );
 DEDUP_SQL
 
-npx prisma db push --schema=../../prisma/schema.prisma --accept-data-loss
-
 echo "🚀 Starting API server..."
 node "$MAIN_JS"
