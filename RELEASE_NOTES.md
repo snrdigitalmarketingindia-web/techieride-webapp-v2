@@ -2,6 +2,49 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 227 · 17eb2a0 · 2026-06-02 04:06 UTC
+
+Commit: test(p0): add notifications + audit trail automated test suites
+
+Notifications (tests/e2e-api-notifications.ts) — 18 P0 tests:
+- Ride lifecycle: NOT-01 approved, NOT-02 rejected, NOT-03/04 confirmed
+  (seeker + giver), NOT-05 all seekers on start, NOT-06 cancel, NOT-07 complete
+- SOS admin alert: NOT-08 admin receives SOS_ALERT
+- Feature events: NOT-10 rating received, NOT-15 no-show
+- Verification: NOT-24 approved, NOT-25 rejected
+- Security/isolation: NOT-16 recipient isolation, NOT-17 no duplicates,
+  NOT-18 auth gate, NOT-19 cross-user isolation, NOT-26 SOS not in user feed
+- CRUD/persistence: NOT-20 mark read, NOT-22 unread count, NOT-23 DB-persisted,
+  NOT-28 pending seekers notified on cancel, NOT-30 fresh-client persistence
+
+Audit Trail (tests/e2e-api-audit-trail.ts) — 20 executable + 5 skipped:
+- Ride lifecycle: AUD-01 actor identity, AUD-02 DRAFT→PUBLISHED,
+  AUD-03 cancelledAt, AUD-05 startedAt, AUD-06 completedAt
+- Request lifecycle: AUD-07 actor attribution, AUD-08 seat decrement,
+  AUD-09 REJECTED status
+- Boarding: AUD-10 BOARDED, AUD-11 DEBOARDED, AUD-12 NO_SHOW
+- SOS: AUD-13 record+actor, AUD-14 RESOLVED removes from active queue
+- Admin: AUD-15 suspend, AUD-16 reactivate, AUD-17 verify approve,
+  AUD-18 verify reject, AUD-19 RC verified
+- Immutability: AUD-21 rides not deletable, AUD-22 requests not deletable,
+  AUD-23 actor identity on records, AUD-26 DB-persisted
+- Timestamp regression: AUD-30 valid ISO 8601, startedAt ≤ completedAt,
+  no epoch/IST midnight mismatch
+- Skipped (require audit API): AUD-04, AUD-20, AUD-24, AUD-25
+- npm scripts: test:api:notifications, test:api:audit-trail
+- Both wired into CI Stage 1 and test:ci
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+- package.json
+- tests/e2e-api-audit-trail.ts
+- tests/e2e-api-notifications.ts
+
+---
+
 ## Build 225 · f420e37 · 2026-06-02 04:00 UTC
 
 Commit: docs(qa): add 20-audit-trail.md — 30 P0/P1 business test cases
