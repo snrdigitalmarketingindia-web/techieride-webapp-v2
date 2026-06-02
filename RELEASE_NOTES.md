@@ -2,6 +2,30 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 265 · b0470d4 · 2026-06-02 08:40 UTC
+
+Commit: Fix boarding test: define section/test/assert locally + gate board() to ONGOING
+
+Test fix: section/test/assert were imported from helpers but are defined
+locally in each test file — copied the standard pattern from other suites.
+
+Service fix: board() allowed PUBLISHED rides (status check included
+RideStatus.PUBLISHED). Changed to ONGOING-only gate so seekers can only
+board once the ride has started. Updated the allBoarded auto-start check
+from PUBLISHED to ONGOING accordingly. Rebuilt dist.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/rides/rides.service.ts
+- tests/e2e-api-boarding.ts
+
+---
+
 ## Build 263 · 3205a56 · 2026-06-02 08:25 UTC
 
 Commit: Add seeker Board/Deboard buttons + 3 more boarding test cases
