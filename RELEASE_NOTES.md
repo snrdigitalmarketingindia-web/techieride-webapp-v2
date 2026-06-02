@@ -2,6 +2,67 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 276 · 116bccd · 2026-06-02 11:58 UTC
+
+Commit: feat: Trust Score system — schema, service, cron decay, admin API
+
+Schema:
+- Add TrustBand enum (NEW/BRONZE/SILVER/GOLD/PLATINUM) to Prisma + shared
+- Add trustScore (default 10) + trustBand (default NEW) to User model
+- Add TrustScoreEvent model with idempotency guard (userId+eventType+referenceId)
+
+Service (TrustScoreService):
+- adjust() — atomic score update with idempotency, band recalc, threshold checks
+- Auto-suspend at score < 5, warning at < 10, permanent ban at 0
+- Domain handlers: onRideCompleted, onRatingReceived, onNoShow, onGiverCancelledRide, onComplaintVerified, onVerificationApproved
+- Milestone bonuses at 10 and 50 rides
+- adminAdjust() + adminReinstate() for manual overrides
+- Daily cron decay (03:00 IST) — 30/60/90 day inactivity tiers, floor at 10
+
+Wired into:
+- rides.service: complete() +5 giver / +2 seeker; cancel() -2 giver; markNoShow() -3 seeker
+- ratings.service: submitRating() adjusts ratee trust by star count
+- complaints.service: adminReview() RESOLVED deducts -5 from reported user
+- verification.service: approveRequest() +5 EMPLOYEE / +5 DRIVER
+
+Admin endpoints:
+- GET  /admin/users/:id/trust-score
+- GET  /admin/users/:id/trust-score/history
+- PATCH /admin/users/:id/trust-score (delta + reason)
+- PATCH /admin/users/:id/reinstate
+
+User endpoints:
+- GET /users/me/trust-score
+- GET /users/me/trust-score/history
+- trustScore + trustBand exposed in public profile
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/app.module.js
+- apps/api/dist/apps/api/src/app.module.js.map
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.d.ts
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js.map
+- apps/api/dist/apps/api/src/modules/admin/admin.module.js
+- apps/api/dist/apps/api/src/modules/admin/admin.module.js.map
+- apps/api/dist/apps/api/src/modules/admin/admin.service.d.ts
+- apps/api/dist/apps/api/src/modules/auth/strategies/jwt.strategy.d.ts
+- apps/api/dist/apps/api/src/modules/commute-templates/commute-templates.controller.d.ts
+- apps/api/dist/apps/api/src/modules/commute-templates/commute-templates.service.d.ts
+- apps/api/dist/apps/api/src/modules/complaints/complaints.module.js
+- apps/api/dist/apps/api/src/modules/complaints/complaints.module.js.map
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.d.ts
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.js
+- apps/api/dist/apps/api/src/modules/complaints/complaints.service.js.map
+- apps/api/dist/apps/api/src/modules/gamification/gamification.controller.d.ts
+- apps/api/dist/apps/api/src/modules/gamification/gamification.service.d.ts
+- apps/api/dist/apps/api/src/modules/ratings/ratings.module.js
+- apps/api/dist/apps/api/src/modules/ratings/ratings.module.js.map
+
+---
+
 ## Build 274 · 398ff61 · 2026-06-02 09:31 UTC
 
 Commit: Fill all seed users with complete dummy data — no empty fields
