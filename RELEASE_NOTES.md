@@ -2,6 +2,42 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 293 · 961e344 · 2026-06-02 13:29 UTC
+
+Commit: feat: Contextual admin actions — suspend with reason, reject with reason, deactivate, reinstate
+
+API:
+- PATCH /admin/users/:id/suspend   → accountStatus = SUSPENDED + isActive = false
+- PATCH /admin/users/:id/deactivate → accountStatus = DEACTIVATED + isActive = false
+- PATCH /admin/users/:id/reject     → accountStatus = REJECTED + verificationStatus = REJECTED
+- Existing activate/reinstate unchanged
+
+UI (admin user detail page):
+- Active accounts show: Suspend (with reason input), Reject (with reason input), Deactivate
+- Suspend/Reject expand inline reason input before confirming
+- Deactivate uses browser confirm dialog
+- Suspended/Rejected/Deactivated accounts show: Reinstate
+- Banned accounts show read-only message (super-admin only)
+- Trust score adjustment now requires both delta and reason
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.d.ts
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js.map
+- apps/api/dist/apps/api/src/modules/admin/admin.service.d.ts
+- apps/api/dist/apps/api/src/modules/admin/admin.service.js
+- apps/api/dist/apps/api/src/modules/admin/admin.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/admin/admin.controller.ts
+- apps/api/src/modules/admin/admin.service.ts
+- apps/web/src/app/admin/users/[id]/page.tsx
+- apps/web/src/lib/api.ts
+
+---
+
 ## Build 291 · 8334a59 · 2026-06-02 13:25 UTC
 
 Commit: fix: Add logout button to admin sidebar
