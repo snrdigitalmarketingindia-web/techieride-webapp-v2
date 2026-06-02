@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 330 · 2e4403e · 2026-06-02 18:36 UTC
+
+Commit: feat: admin verification badge fix, seeker cancel notifies giver, departure reminder cron
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/src/modules/ride-requests/ride-requests.service.ts
+- apps/api/src/modules/rides/rides.service.ts
+- apps/web/src/app/admin/layout.tsx
+
+---
+
 ## Build 328 · a9643e7 · 2026-06-02 18:27 UTC
 
 Commit: feat: show trust score + band on dashboard, ride detail, and board page
