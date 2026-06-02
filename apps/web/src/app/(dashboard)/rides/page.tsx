@@ -8,12 +8,13 @@ import { CallButton } from '@/components/ui/CallButton';
 import { RideCard } from '@/components/ui/RideCard';
 
 export default function MyRidesPage() {
-  const { user } = useAuthStore();
+  const { user, _hasHydrated } = useAuthStore();
   const role = user?.role;
   const isGiver  = role === 'RIDE_GIVER' || role === 'BOTH';
   const isSeeker = role === 'RIDE_SEEKER' || role === 'BOTH';
 
-  const [tab, setTab] = useState<'given' | 'taken'>(isGiver ? 'given' : 'taken');
+  // Default 'given' — corrected to 'taken' once role is known for pure seekers
+  const [tab, setTab] = useState<'given' | 'taken'>('given');
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasActiveRide, setHasActiveRide] = useState(false);
@@ -23,7 +24,13 @@ export default function MyRidesPage() {
   // Seeker: pending/active requests not yet confirmed
   const [myRequests, setMyRequests] = useState<any[]>([]);
 
-  // Check for active ride once on mount so Offer Ride button reflects real state
+  // Once user role is known, set the correct default tab
+  useEffect(() => {
+    if (!user) return;
+    setTab(isGiver ? 'given' : 'taken');
+  }, [user?.role]);
+
+  // Check for active ride once role is known
   useEffect(() => {
     if (!isGiver) return;
     ridesApi.getGiven().then((r) => {
@@ -34,11 +41,12 @@ export default function MyRidesPage() {
     }).catch(() => {});
   }, [isGiver]);
 
+  // Fetch rides — wait until user is hydrated so tab is correct
   useEffect(() => {
+    if (!user) return;
     setLoading(true);
     const fetch = tab === 'given' ? ridesApi.getGiven() : ridesApi.getTaken();
     fetch.then((r) => setRides(r.data ?? [])).finally(() => setLoading(false));
-    // Load seeker's pending requests when on taken tab
     if (tab === 'taken' && isSeeker) {
       requestsApi.getMine().then((r) => {
         const pending = (r.data ?? []).filter((req: any) =>
@@ -47,7 +55,7 @@ export default function MyRidesPage() {
         setMyRequests(pending);
       }).catch(() => {});
     }
-  }, [tab]);
+  }, [tab, user?.role]);
 
   const reloadPending = async (rideId: string) => {
     const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));

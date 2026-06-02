@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
+    if (!user) return; // wait for auth hydration so role is correct
     const ridesFetch = isGiver
       ? ridesApi.getGiven().then((r) => r.data.slice(0, 3))
       : ridesApi.getTaken().then((r) => r.data.slice(0, 3));
@@ -41,7 +42,7 @@ export default function DashboardPage() {
       }),
       gamificationApi.getSummary().then((r) => setEcoSummary(r.data)),
     ]).finally(() => setLoading(false));
-  }, []);
+  }, [user?.role]);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
