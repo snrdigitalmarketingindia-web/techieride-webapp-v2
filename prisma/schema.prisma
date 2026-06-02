@@ -100,6 +100,22 @@ enum SosStatus {
   RESOLVED
 }
 
+enum ComplaintReason {
+  HARASSMENT
+  NO_SHOW
+  UNSAFE_DRIVING
+  FRAUD
+  INAPPROPRIATE_CONTENT
+  OTHER
+}
+
+enum ComplaintStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
 enum EmailStatus {
   PENDING
   VERIFIED
@@ -160,6 +176,8 @@ model User {
   ratingsGiven         RideRating[]       @relation("rater")
   ratingsReceived      RideRating[]       @relation("ratee")
   sosEvents            SosEvent[]
+  complaintsReported   Complaint[]        @relation("complaintsReported")
+  complaintsReceived   Complaint[]        @relation("complaintsReceived")
 
   @@index([email])
   @@index([emailStatus])
@@ -333,6 +351,7 @@ model Ride {
   participants RideParticipant[]
   ratings      RideRating[]
   sosEvents    SosEvent[]
+  complaints   Complaint[]
 
   @@index([rideGiverId])
   @@index([status])
@@ -465,6 +484,31 @@ model CallLog {
   @@index([receiverId])
   @@index([rideId])
   @@map("call_logs")
+}
+
+// ─── Complaint ────────────────────────────────────────────────────────────
+
+model Complaint {
+  id          String          @id @default(uuid())
+  reporterId  String
+  reportedId  String
+  rideId      String?
+  reason      ComplaintReason
+  description String?
+  status      ComplaintStatus @default(OPEN)
+  adminNotes  String?
+  resolvedBy  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  resolvedAt  DateTime?
+
+  reporter User  @relation("complaintsReported", fields: [reporterId], references: [id])
+  reported User  @relation("complaintsReceived", fields: [reportedId], references: [id])
+  ride     Ride? @relation(fields: [rideId], references: [id])
+
+  @@index([status])
+  @@index([reportedId])
+  @@map("complaints")
 }
 
 // ─── SOS Event ────────────────────────────────────────────────────────────

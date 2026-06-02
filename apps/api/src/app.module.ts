@@ -24,6 +24,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { SosModule } from './modules/sos/sos.module';
 import { CallsModule } from './modules/calls/calls.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
+import { ComplaintsModule } from './modules/complaints/complaints.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { RatingsModule } from './modules/ratings/ratings.module';
     SosModule,
     CallsModule,
     RatingsModule,
+    ComplaintsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

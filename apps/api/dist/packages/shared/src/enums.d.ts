@@ -73,7 +73,22 @@ export declare enum NotificationType {
     SEEKER_NO_SHOW = "SEEKER_NO_SHOW",
     SOS_ALERT = "SOS_ALERT",
     RATING_RECEIVED = "RATING_RECEIVED",
+    COMPLAINT_FILED = "COMPLAINT_FILED",
     GENERIC = "GENERIC"
+}
+export declare enum ComplaintReason {
+    HARASSMENT = "HARASSMENT",
+    NO_SHOW = "NO_SHOW",
+    UNSAFE_DRIVING = "UNSAFE_DRIVING",
+    FRAUD = "FRAUD",
+    INAPPROPRIATE_CONTENT = "INAPPROPRIATE_CONTENT",
+    OTHER = "OTHER"
+}
+export declare enum ComplaintStatus {
+    OPEN = "OPEN",
+    UNDER_REVIEW = "UNDER_REVIEW",
+    RESOLVED = "RESOLVED",
+    DISMISSED = "DISMISSED"
 }
 export declare enum BoardingStatus {
     WAITING = "WAITING",

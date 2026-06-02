@@ -85,8 +85,25 @@ var NotificationType;
     NotificationType["SEEKER_NO_SHOW"] = "SEEKER_NO_SHOW";
     NotificationType["SOS_ALERT"] = "SOS_ALERT";
     NotificationType["RATING_RECEIVED"] = "RATING_RECEIVED";
+    NotificationType["COMPLAINT_FILED"] = "COMPLAINT_FILED";
     NotificationType["GENERIC"] = "GENERIC";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
+var ComplaintReason;
+(function (ComplaintReason) {
+    ComplaintReason["HARASSMENT"] = "HARASSMENT";
+    ComplaintReason["NO_SHOW"] = "NO_SHOW";
+    ComplaintReason["UNSAFE_DRIVING"] = "UNSAFE_DRIVING";
+    ComplaintReason["FRAUD"] = "FRAUD";
+    ComplaintReason["INAPPROPRIATE_CONTENT"] = "INAPPROPRIATE_CONTENT";
+    ComplaintReason["OTHER"] = "OTHER";
+})(ComplaintReason || (exports.ComplaintReason = ComplaintReason = {}));
+var ComplaintStatus;
+(function (ComplaintStatus) {
+    ComplaintStatus["OPEN"] = "OPEN";
+    ComplaintStatus["UNDER_REVIEW"] = "UNDER_REVIEW";
+    ComplaintStatus["RESOLVED"] = "RESOLVED";
+    ComplaintStatus["DISMISSED"] = "DISMISSED";
+})(ComplaintStatus || (exports.ComplaintStatus = ComplaintStatus = {}));
 var BoardingStatus;
 (function (BoardingStatus) {
     BoardingStatus["WAITING"] = "WAITING";
