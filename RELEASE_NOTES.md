@@ -2,6 +2,26 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 267 · 560e17a · 2026-06-02 08:42 UTC
+
+Commit: Fix CI summary: show crash output when suite fails with no ❌ FAIL lines
+
+When a suite crashes before running any tests (compile error, import
+error, unhandled exception), there are no ❌ FAIL lines so the summary
+falsely showed '✅ No failures'.
+
+Fix: for each failed suite (marker file exists), if no ❌ FAIL lines
+are found, treat it as a crash and show the last 20 lines of the log
+so the actual error is visible in the GitHub Actions summary.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/ci.yml
+
+---
+
 ## Build 265 · b0470d4 · 2026-06-02 08:40 UTC
 
 Commit: Fix boarding test: define section/test/assert locally + gate board() to ONGOING
