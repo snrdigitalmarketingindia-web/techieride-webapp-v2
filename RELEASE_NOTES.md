@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 305 · d966b87 · 2026-06-02 16:03 UTC
+
+Commit: fix: edge-case tests — use /ride-requests/mine instead of missing :id endpoint, fix notifications response key
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e-api-edge-cases.ts
+
+---
+
 ## Build 303 · c94e4fd · 2026-06-02 14:11 UTC
 
 Commit: test: add edge-case suite — last-seat race, re-request, pending on cancel/complete, notification order, cron-start board
