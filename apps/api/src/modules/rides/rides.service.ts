@@ -427,6 +427,52 @@ export class RidesService {
     }
   }
 
+  // Runs every 30 min — sends departure reminder 60 min before departure
+  @Cron('*/30 * * * *', { timeZone: 'Asia/Kolkata' })
+  async sendDepartureReminders() {
+    const now = new Date();
+    const windowStart = new Date(now.getTime() + 55 * 60 * 1000);  // 55 min from now
+    const windowEnd   = new Date(now.getTime() + 65 * 60 * 1000);  // 65 min from now
+
+    const rides = await this.prisma.ride.findMany({
+      where: { status: RideStatus.PUBLISHED },
+      include: {
+        rideGiver: { include: { user: true } },
+        participants: { include: { seeker: { include: { user: true } } } },
+      },
+    });
+
+    for (const ride of rides) {
+      const [h, m] = ride.departureTime.split(':').map(Number);
+      const departure = new Date(ride.departureDate);
+      departure.setHours(h, m, 0, 0);
+
+      if (departure < windowStart || departure > windowEnd) continue;
+
+      const label = `${ride.originName} → ${ride.destinationName} at ${ride.departureTime}`;
+
+      // Notify giver
+      await this.notifications.create(ride.rideGiver.userId, {
+        type: NotificationType.RIDE_STARTED,
+        title: '⏰ Departure in 1 hour',
+        body: `Your ride ${label} departs soon. Make sure you're ready!`,
+        data: { rideId: ride.id },
+      });
+
+      // Notify confirmed seekers (participants)
+      for (const p of ride.participants) {
+        await this.notifications.create(p.seeker.userId, {
+          type: NotificationType.RIDE_STARTED,
+          title: '⏰ Your ride departs in 1 hour',
+          body: `${label} — be at your pickup point on time.`,
+          data: { rideId: ride.id },
+        });
+      }
+
+      this.logger.log(`⏰ Sent departure reminder for ride ${ride.id}`);
+    }
+  }
+
   async cancel(rideId: string, userId: string, reason: string) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

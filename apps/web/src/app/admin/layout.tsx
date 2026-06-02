@@ -48,13 +48,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       setReady(true);
       // Load pending verification count for sidebar badge
-      Promise.all([
-        adminApi.getExceptionQueue(),
-        adminApi.getDocumentQueue(),
-        adminApi.getDriverQueue(),
-      ]).then(([e, d, dr]) => {
-        setPendingCount(e.data.length + d.data.length + dr.data.length);
-      }).catch(() => {});
+      adminApi.getPendingVerifications()
+        .then((r) => setPendingCount(Array.isArray(r.data) ? r.data.length : 0))
+        .catch(() => {});
 
       // Load open complaints count for sidebar badge
       complaintsApi.adminGetAll({ status: 'OPEN' })

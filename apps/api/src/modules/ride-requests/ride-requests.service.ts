@@ -265,10 +265,16 @@ export class RideRequestsService {
     const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
     if (!seeker) throw new ForbiddenException();
 
-    const request = await this.prisma.rideRequest.findUnique({ where: { id: requestId } });
+    const request = await this.prisma.rideRequest.findUnique({
+      where: { id: requestId },
+      include: { ride: { include: { rideGiver: true } } },
+    });
     if (!request || request.seekerId !== seeker.id) throw new NotFoundException();
     if (['CANCELLED', 'REJECTED'].includes(request.status)) {
       throw new BadRequestException('Request already cancelled');
+    }
+    if (request.ride?.status === 'ONGOING') {
+      throw new BadRequestException('Cannot cancel a request once the ride has started');
     }
 
     if (request.status === 'CONFIRMED') {
@@ -279,6 +285,17 @@ export class RideRequestsService {
       await this.prisma.rideParticipant.deleteMany({
         where: { rideId: request.rideId, seekerId: seeker.id },
       });
+
+      // Notify giver that seeker cancelled
+      const seekerUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      if (request.ride?.rideGiver?.userId) {
+        await this.notifications.create(request.ride.rideGiver.userId, {
+          type: NotificationType.RIDE_CANCELLED,
+          title: 'Passenger cancelled their seat',
+          body: `${seekerUser?.fullName ?? 'A passenger'} cancelled their booking on ${request.ride.originName} → ${request.ride.destinationName}`,
+          data: { rideId: request.rideId },
+        });
+      }
     }
 
     return this.prisma.rideRequest.update({
