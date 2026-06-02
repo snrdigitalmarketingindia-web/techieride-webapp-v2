@@ -27,10 +27,12 @@ __decorate([
 ], TriggerSosDto.prototype, "rideId", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], TriggerSosDto.prototype, "lat", void 0);
 __decorate([
     (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Number)
 ], TriggerSosDto.prototype, "lng", void 0);
 let SosController = class SosController {

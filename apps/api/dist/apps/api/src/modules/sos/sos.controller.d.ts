@@ -1,8 +1,8 @@
 import { SosService } from './sos.service';
 declare class TriggerSosDto {
     rideId?: string;
-    lat: number;
-    lng: number;
+    lat?: number;
+    lng?: number;
 }
 export declare class SosController {
     private sosService;

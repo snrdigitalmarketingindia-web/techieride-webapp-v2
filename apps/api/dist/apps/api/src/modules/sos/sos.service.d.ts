@@ -4,7 +4,7 @@ export declare class SosService {
     private prisma;
     private notifications;
     constructor(prisma: PrismaService, notifications: NotificationsService);
-    trigger(userId: string, rideId: string | undefined, lat: number, lng: number): Promise<{
+    trigger(userId: string, rideId: string | undefined, lat: number | undefined, lng: number | undefined): Promise<{
         sosId: string;
         message: string;
     }>;

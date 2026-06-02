@@ -23,6 +23,7 @@ import { GamificationModule } from './modules/gamification/gamification.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { SosModule } from './modules/sos/sos.module';
 import { CallsModule } from './modules/calls/calls.module';
+import { RatingsModule } from './modules/ratings/ratings.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { CallsModule } from './modules/calls/calls.module';
     UploadsModule,
     SosModule,
     CallsModule,
+    RatingsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

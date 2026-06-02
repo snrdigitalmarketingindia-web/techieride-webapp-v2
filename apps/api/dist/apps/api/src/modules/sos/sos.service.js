@@ -14,18 +14,51 @@ const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const shared_1 = require("@techieride/shared");
+const SOS_COOLDOWN_SECONDS = 60;
 let SosService = class SosService {
     constructor(prisma, notifications) {
         this.prisma = prisma;
         this.notifications = notifications;
     }
     async trigger(userId, rideId, lat, lng) {
+        const lastSos = await this.prisma.sosEvent.findFirst({
+            where: { userId },
+            orderBy: { triggeredAt: 'desc' },
+        });
+        if (lastSos) {
+            const secondsSinceLast = (Date.now() - lastSos.triggeredAt.getTime()) / 1000;
+            if (secondsSinceLast < SOS_COOLDOWN_SECONDS) {
+                throw new common_1.HttpException(`SOS cooldown active — please wait ${Math.ceil(SOS_COOLDOWN_SECONDS - secondsSinceLast)} more second(s)`, common_1.HttpStatus.TOO_MANY_REQUESTS);
+            }
+        }
+        if (rideId) {
+            const ride = await this.prisma.ride.findUnique({
+                where: { id: rideId },
+                include: {
+                    requests: {
+                        where: { status: { in: ['CONFIRMED', 'NO_SHOW'] } },
+                        select: { seekerId: true },
+                    },
+                },
+            });
+            if (!ride) {
+                throw new common_1.BadRequestException('Ride not found');
+            }
+            if (ride.status !== 'ONGOING') {
+                throw new common_1.BadRequestException(`SOS can only be triggered during an ONGOING ride (current status: ${ride.status})`);
+            }
+            const isGiver = ride.rideGiverId === userId;
+            const isSeeker = ride.requests.some((r) => r.seekerId === userId);
+            if (!isGiver && !isSeeker) {
+                throw new common_1.ForbiddenException('You are not a participant of this ride');
+            }
+        }
         const sos = await this.prisma.sosEvent.create({
             data: {
                 userId,
-                rideId: rideId || null,
-                lat,
-                lng,
+                rideId: rideId ?? null,
+                lat: lat ?? 0,
+                lng: lng ?? 0,
                 status: 'TRIGGERED',
             },
         });
@@ -33,15 +66,18 @@ let SosService = class SosService {
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
         for (const contact of contacts) {
             console.log(`🆘 SOS ALERT — ${user?.fullName} needs help! ` +
-                `Location: ${lat},${lng} | Contact: ${contact.name} (${contact.phone})`);
+                `Location: ${lat ?? 'unknown'},${lng ?? 'unknown'} | Contact: ${contact.name} (${contact.phone})`);
         }
         const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN', isActive: true } });
+        const locationStr = lat != null && lng != null
+            ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+            : 'Location unavailable';
         for (const admin of admins) {
             await this.notifications.create(admin.id, {
                 type: shared_1.NotificationType.SOS_ALERT,
                 title: `🆘 SOS Alert from ${user?.fullName}`,
-                body: `Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}${rideId ? ` | Ride: ${rideId.slice(0, 8)}` : ''}`,
-                data: { sosId: sos.id, userId, lat, lng, rideId },
+                body: `Location: ${locationStr}${rideId ? ` | Ride: ${rideId.slice(0, 8)}` : ''}`,
+                data: { sosId: sos.id, userId, lat: lat ?? null, lng: lng ?? null, rideId: rideId ?? null },
             });
         }
         return {

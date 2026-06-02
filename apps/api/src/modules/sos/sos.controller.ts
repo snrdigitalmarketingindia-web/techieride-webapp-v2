@@ -6,8 +6,8 @@ import { IsNumber, IsOptional, IsUUID } from 'class-validator';
 
 class TriggerSosDto {
   @IsUUID() @IsOptional() rideId?: string;
-  @IsNumber() lat: number;
-  @IsNumber() lng: number;
+  @IsNumber() @IsOptional() lat?: number;
+  @IsNumber() @IsOptional() lng?: number;
 }
 
 @ApiTags('SOS')

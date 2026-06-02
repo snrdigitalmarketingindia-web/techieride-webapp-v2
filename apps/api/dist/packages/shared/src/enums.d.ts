@@ -72,6 +72,7 @@ export declare enum NotificationType {
     SEEKER_DEBOARDED = "SEEKER_DEBOARDED",
     SEEKER_NO_SHOW = "SEEKER_NO_SHOW",
     SOS_ALERT = "SOS_ALERT",
+    RATING_RECEIVED = "RATING_RECEIVED",
     GENERIC = "GENERIC"
 }
 export declare enum BoardingStatus {

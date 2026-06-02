@@ -84,6 +84,7 @@ var NotificationType;
     NotificationType["SEEKER_DEBOARDED"] = "SEEKER_DEBOARDED";
     NotificationType["SEEKER_NO_SHOW"] = "SEEKER_NO_SHOW";
     NotificationType["SOS_ALERT"] = "SOS_ALERT";
+    NotificationType["RATING_RECEIVED"] = "RATING_RECEIVED";
     NotificationType["GENERIC"] = "GENERIC";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
 var BoardingStatus;

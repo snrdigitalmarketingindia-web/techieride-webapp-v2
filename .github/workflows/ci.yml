@@ -33,7 +33,7 @@ jobs:
 
   # ── Stage 1: API Tests ──────────────────────────────────────────────────────
   api-tests:
-    name: 🧪 API Tests (215 tests)
+    name: 🧪 API Tests (215 + Ratings/SOS P0)
     runs-on: ubuntu-latest
 
     services:
@@ -91,6 +91,8 @@ jobs:
         run: npm run test:api:coverage
       - name: Run final gap-closing tests
         run: npm run test:api:final
+      - name: Run ratings & SOS P0 tests
+        run: npm run test:api:ratings-sos
 
       - name: Upload API log on failure
         if: failure()
