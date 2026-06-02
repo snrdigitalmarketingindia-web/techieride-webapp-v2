@@ -2,6 +2,60 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 278 · eaab0ab · 2026-06-02 12:10 UTC
+
+Commit: feat: Audit Log API — GET /admin/audit-log, SYSTEM actor for cron events
+
+Schema:
+- Add AuditLog model (actor, actorType USER/SYSTEM/ADMIN, action, entityType,
+  entityId, metadata JSON, createdAt) with indexes on actor/action/entityType
+
+Service (AuditLogService):
+- log() — fire-and-forget, never throws
+- system() — convenience wrapper for SYSTEM actor
+- query() — paginated filter by actor/actorType/action/entityType/entityId/date range
+
+Wired into:
+- rides.service autoExpireUnstartedRides() → SYSTEM actor RIDE_AUTO_CANCELLED
+- calls.service logCall() → USER actor CALL_INITIATED
+
+Admin endpoint:
+- GET /admin/audit-log (query params: actor, actorType, action, entityType, entityId, from, to, page, limit)
+- No PATCH route — append-only by design (404/405 on attempt)
+
+Tests (e2e-api-audit-trail.ts):
+- AUD-04: SYSTEM actor filter returns correctly labelled entries (was skipped)
+- AUD-20: CALL_INITIATED appears in audit log with caller as actor (was skipped)
+- AUD-24: actorType=SYSTEM filter — all entries carry SYSTEM label (was skipped)
+- AUD-25: PATCH /admin/audit-log/:id returns 404/405 (was skipped)
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/app.module.js
+- apps/api/dist/apps/api/src/app.module.js.map
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.d.ts
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.js.map
+- apps/api/dist/apps/api/src/modules/admin/admin.module.js
+- apps/api/dist/apps/api/src/modules/admin/admin.module.js.map
+- apps/api/dist/apps/api/src/modules/audit-log/audit-log.module.d.ts
+- apps/api/dist/apps/api/src/modules/audit-log/audit-log.module.js
+- apps/api/dist/apps/api/src/modules/audit-log/audit-log.module.js.map
+- apps/api/dist/apps/api/src/modules/audit-log/audit-log.service.d.ts
+- apps/api/dist/apps/api/src/modules/audit-log/audit-log.service.js
+- apps/api/dist/apps/api/src/modules/audit-log/audit-log.service.js.map
+- apps/api/dist/apps/api/src/modules/calls/calls.module.js
+- apps/api/dist/apps/api/src/modules/calls/calls.module.js.map
+- apps/api/dist/apps/api/src/modules/calls/calls.service.d.ts
+- apps/api/dist/apps/api/src/modules/calls/calls.service.js
+- apps/api/dist/apps/api/src/modules/calls/calls.service.js.map
+- apps/api/dist/apps/api/src/modules/rides/rides.module.js
+- apps/api/dist/apps/api/src/modules/rides/rides.module.js.map
+
+---
+
 ## Build 276 · 116bccd · 2026-06-02 11:58 UTC
 
 Commit: feat: Trust Score system — schema, service, cron decay, admin API
