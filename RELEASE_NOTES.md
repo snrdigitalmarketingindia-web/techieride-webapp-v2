@@ -2,6 +2,39 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 232 · a4b7bc3 · 2026-06-02 04:22 UTC
+
+Commit: style: update logo dimensions for square brand mark (1080×1080)
+
+All 13 logo placements updated to square-correct dimensions:
+
+  Landing nav                   : 40×40
+  Dashboard header nav          : 40×40
+  Admin sidebar nav             : 48×48
+  Loading spinners (admin/dash) : 80×80
+  Auth card headers             : 80×80  (login, signup, reset, verify-email)
+  Auth page hero (mobile panel) : 96×96  (login, signup main)
+  Confirm email pages           : 72×72
+
+object-contain preserved throughout — no cropping.
+No code-path changes; dimensions only.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(auth)/login/page.tsx
+- apps/web/src/app/(auth)/profile/confirm-email-change/page.tsx
+- apps/web/src/app/(auth)/profile/confirm-personal-email/page.tsx
+- apps/web/src/app/(auth)/reset-password/page.tsx
+- apps/web/src/app/(auth)/signup/page.tsx
+- apps/web/src/app/(auth)/verify-email/page.tsx
+- apps/web/src/app/admin/layout.tsx
+- apps/web/src/app/page.tsx
+- apps/web/src/components/layout/DashboardLayout.tsx
+
+---
+
 ## Build 229 · 98a96d9 · 2026-06-02 04:12 UTC
 
 Commit: feat: complaint system + notifications/audit/complaint P0 test suites
