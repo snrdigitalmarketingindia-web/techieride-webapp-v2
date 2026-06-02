@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 316 · 1061b4f · 2026-06-02 16:39 UTC
+
+Commit: fix: update requests.spec.ts — match redesigned page heading + add missing no-rides strings
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e/requests.spec.ts
+
+---
+
 ## Build 314 · 4bfcf60 · 2026-06-02 16:22 UTC
 
 Commit: fix: complete() — use cancelReason not rejectionReason (field does not exist on RideRequest)
