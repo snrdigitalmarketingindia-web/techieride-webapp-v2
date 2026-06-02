@@ -170,16 +170,20 @@ async function runEdgeCaseTests() {
     assert(cancel.status === 200, `Ride cancel failed: ${JSON.stringify(cancel.data)}`);
 
     // Both pending requests should now be CANCELLED or REJECTED
-    const s1req = await seeker1.client.get(`/ride-requests/${reqId1}`);
+    const s1mine = await seeker1.client.get('/ride-requests/mine');
+    const s1req = (s1mine.data as any[]).find((r: any) => r.id === reqId1);
+    assert(!!s1req, `seeker1 request ${reqId1} not found in /mine`);
     assert(
-      ['CANCELLED', 'REJECTED'].includes(s1req.data.status),
-      `Expected seeker1 request CANCELLED/REJECTED after ride cancel, got ${s1req.data.status}`,
+      ['CANCELLED', 'REJECTED'].includes(s1req.status),
+      `Expected seeker1 request CANCELLED/REJECTED after ride cancel, got ${s1req.status}`,
     );
 
-    const s2req = await seeker2.client.get(`/ride-requests/${reqId2}`);
+    const s2mine = await seeker2.client.get('/ride-requests/mine');
+    const s2req = (s2mine.data as any[]).find((r: any) => r.id === reqId2);
+    assert(!!s2req, `seeker2 request ${reqId2} not found in /mine`);
     assert(
-      ['CANCELLED', 'REJECTED'].includes(s2req.data.status),
-      `Expected seeker2 request CANCELLED/REJECTED after ride cancel, got ${s2req.data.status}`,
+      ['CANCELLED', 'REJECTED'].includes(s2req.status),
+      `Expected seeker2 request CANCELLED/REJECTED after ride cancel, got ${s2req.status}`,
     );
   });
 
@@ -209,10 +213,12 @@ async function runEdgeCaseTests() {
     assert(complete.status === 200, `Complete failed: ${JSON.stringify(complete.data)}`);
 
     // The pending request should now be CANCELLED or REJECTED (not left PENDING)
-    const pendCheck = await pendingSeeker.client.get(`/ride-requests/${pendReqId}`);
+    const pendMine = await pendingSeeker.client.get('/ride-requests/mine');
+    const pendCheck = (pendMine.data as any[]).find((r: any) => r.id === pendReqId);
+    assert(!!pendCheck, `pending request ${pendReqId} not found in /mine`);
     assert(
-      ['CANCELLED', 'REJECTED'].includes(pendCheck.data.status),
-      `Expected pending request to be closed after ride complete, got ${pendCheck.data.status}`,
+      ['CANCELLED', 'REJECTED'].includes(pendCheck.status),
+      `Expected pending request to be closed after ride complete, got ${pendCheck.status}`,
     );
   });
 
@@ -244,7 +250,7 @@ async function runEdgeCaseTests() {
     const notifs = await giver.client.get('/notifications');
     assert(notifs.status === 200, `GET /notifications failed: ${JSON.stringify(notifs.data)}`);
 
-    const items: any[] = notifs.data.notifications ?? notifs.data ?? [];
+    const items: any[] = notifs.data.data ?? notifs.data ?? [];
     assert(items.length >= 3, `Expected at least 3 notifications, got ${items.length}`);
 
     // Verify descending order
