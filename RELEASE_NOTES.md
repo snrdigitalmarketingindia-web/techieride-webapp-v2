@@ -2,6 +2,54 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 280 · 60bee6d · 2026-06-02 12:20 UTC
+
+Commit: feat: Women-only rides — API gate, search filter, UI badge + toggle
+
+Schema:
+- Add womenOnly Boolean @default(false) to Ride model
+
+API:
+- CreateRideDto: add optional womenOnly field
+- rides.service create(): pass womenOnly through to DB
+- ride-requests.service create(): gate — if ride.womenOnly, reject non-FEMALE with 403
+- rides.service search(): exclude womenOnly rides from non-FEMALE users (injected userId)
+- SearchRidesDto: add optional userId (server-injected, not from query string)
+- rides.controller search(): inject userId from auth token into DTO
+
+UI:
+- RideCard: pink 'Women only' badge when ride.womenOnly
+- Create Ride form: women-only checkbox toggle
+- Search page: 'Show women-only rides only' client-side filter toggle + badge on result cards
+- Profile page: gender select field (MALE/FEMALE/OTHER) in edit form
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/admin/admin.controller.d.ts
+- apps/api/dist/apps/api/src/modules/admin/admin.service.d.ts
+- apps/api/dist/apps/api/src/modules/ride-requests/ride-requests.controller.d.ts
+- apps/api/dist/apps/api/src/modules/ride-requests/ride-requests.service.d.ts
+- apps/api/dist/apps/api/src/modules/ride-requests/ride-requests.service.js
+- apps/api/dist/apps/api/src/modules/ride-requests/ride-requests.service.js.map
+- apps/api/dist/apps/api/src/modules/rides/dto/create-ride.dto.d.ts
+- apps/api/dist/apps/api/src/modules/rides/dto/create-ride.dto.js
+- apps/api/dist/apps/api/src/modules/rides/dto/create-ride.dto.js.map
+- apps/api/dist/apps/api/src/modules/rides/dto/search-rides.dto.d.ts
+- apps/api/dist/apps/api/src/modules/rides/dto/search-rides.dto.js
+- apps/api/dist/apps/api/src/modules/rides/dto/search-rides.dto.js.map
+- apps/api/dist/apps/api/src/modules/rides/rides.controller.d.ts
+- apps/api/dist/apps/api/src/modules/rides/rides.controller.js
+- apps/api/dist/apps/api/src/modules/rides/rides.controller.js.map
+- apps/api/dist/apps/api/src/modules/rides/rides.service.d.ts
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js.map
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/ride-requests/ride-requests.service.ts
+
+---
+
 ## Build 278 · eaab0ab · 2026-06-02 12:10 UTC
 
 Commit: feat: Audit Log API — GET /admin/audit-log, SYSTEM actor for cron events
