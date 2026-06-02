@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api';
 
 const ACCOUNT_STATUS_COLORS: Record<string, string> = {
@@ -31,6 +32,7 @@ const ACCOUNT_STATUS_LABELS: Record<string, string> = {
 };
 
 export default function AdminUsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,7 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {users.map((u) => (
-                <tr key={u.id} className={`hover:bg-gray-50 ${!u.isActive ? 'opacity-50' : ''}`}>
+                <tr key={u.id} onClick={() => router.push(`/admin/users/${u.id}`)} className={`hover:bg-gray-50 cursor-pointer ${!u.isActive ? 'opacity-50' : ''}`}>
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">{u.fullName}</p>
                     <p className="text-xs text-gray-400">{u.email}</p>

@@ -39,6 +39,35 @@ export class AdminService {
     });
   }
 
+  async getUserDetail(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true, fullName: true, email: true, personalEmail: true,
+        phone: true, countryCode: true, isPhoneVerified: true,
+        gender: true, bloodGroup: true, profilePhoto: true,
+        companyName: true, employeeId: true,
+        homeLocation: true, officeLocation: true,
+        role: true, accountStatus: true, verificationStatus: true,
+        emailStatus: true, trid: true, isActive: true,
+        trustScore: true, trustBand: true,
+        ecoPoints: true, ecoLevel: true,
+        createdAt: true, updatedAt: true,
+        verificationRequests: {
+          orderBy: { submittedAt: 'desc' },
+          select: {
+            id: true, verificationType: true, status: true,
+            employeeIdUrl: true, profilePhotoUrl: true,
+            drivingLicenseUrl: true, rcUrl: true,
+            rejectionReason: true, reviewedAt: true, submittedAt: true,
+          },
+        },
+        rideGiver: { select: { id: true, licenseVerified: true, totalRidesGiven: true, averageRating: true } },
+        rideSeeker: { select: { id: true, totalRidesTaken: true, averageRating: true } },
+      },
+    });
+  }
+
   async suspendUser(userId: string) {
     return this.prisma.user.update({ where: { id: userId }, data: { isActive: false } });
   }

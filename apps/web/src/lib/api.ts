@@ -168,8 +168,11 @@ export const complaintsApi = {
 // ─── Admin ────────────────────────────────────────────
 export const adminApi = {
   listUsers: (params?: any) => api.get('/admin/users', { params }),
+  getUser: (id: string) => api.get(`/admin/users/${id}`),
   suspendUser: (id: string) => api.patch(`/admin/users/${id}/suspend`),
   activateUser: (id: string) => api.patch(`/admin/users/${id}/activate`),
+  adjustTrustScore: (id: string, delta: number, reason: string) => api.patch(`/admin/users/${id}/trust-score`, { delta, reason }),
+  reinstateUser: (id: string) => api.patch(`/admin/users/${id}/reinstate`),
   // 4 separate verification queues
   getEmailPendingQueue: () => api.get('/admin/queues/email-pending'),
   getExceptionQueue: () => api.get('/admin/queues/exception-requests'),

@@ -32,6 +32,11 @@ export class AdminController {
     return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
   }
 
+  @Get('users/:id')
+  getUserDetail(@Param('id') id: string) {
+    return this.adminService.getUserDetail(id);
+  }
+
   @Patch('users/:id/suspend')
   suspendUser(@Param('id') id: string) {
     return this.adminService.suspendUser(id);

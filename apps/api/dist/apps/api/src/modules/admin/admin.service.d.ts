@@ -33,6 +33,57 @@ export declare class AdminService {
         accountStatus: import(".prisma/client").$Enums.AccountStatus;
         createdAt: Date;
     }[]>;
+    getUserDetail(userId: string): Promise<{
+        rideGiver: {
+            id: string;
+            averageRating: number;
+            licenseVerified: boolean;
+            totalRidesGiven: number;
+        } | null;
+        rideSeeker: {
+            id: string;
+            totalRidesTaken: number;
+            averageRating: number;
+        } | null;
+        email: string;
+        fullName: string;
+        companyName: string | null;
+        employeeId: string | null;
+        gender: import(".prisma/client").$Enums.Gender | null;
+        phone: string | null;
+        countryCode: string;
+        personalEmail: string | null;
+        homeLocation: string | null;
+        officeLocation: string | null;
+        bloodGroup: string | null;
+        id: string;
+        profilePhoto: string | null;
+        isPhoneVerified: boolean;
+        trid: string | null;
+        role: import(".prisma/client").$Enums.UserRole;
+        verificationStatus: import(".prisma/client").$Enums.VerificationStatus;
+        emailStatus: import(".prisma/client").$Enums.EmailStatus;
+        isActive: boolean;
+        accountStatus: import(".prisma/client").$Enums.AccountStatus;
+        ecoPoints: number;
+        ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+        trustScore: number;
+        trustBand: import(".prisma/client").$Enums.TrustBand;
+        createdAt: Date;
+        updatedAt: Date;
+        verificationRequests: {
+            id: string;
+            verificationType: import(".prisma/client").$Enums.VerificationType;
+            employeeIdUrl: string | null;
+            profilePhotoUrl: string | null;
+            drivingLicenseUrl: string | null;
+            rcUrl: string | null;
+            status: import(".prisma/client").$Enums.VerificationStatus;
+            rejectionReason: string | null;
+            reviewedAt: Date | null;
+            submittedAt: Date;
+        }[];
+    } | null>;
     suspendUser(userId: string): Promise<{
         email: string;
         fullName: string;

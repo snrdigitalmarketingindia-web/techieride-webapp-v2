@@ -33,6 +33,9 @@ let AdminController = class AdminController {
     listUsers(accountStatus, role, page = 1, limit = 20) {
         return this.adminService.listUsers({ accountStatus, role, page: +page, limit: +limit });
     }
+    getUserDetail(id) {
+        return this.adminService.getUserDetail(id);
+    }
     suspendUser(id) {
         return this.adminService.suspendUser(id);
     }
@@ -111,6 +114,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Object, Object]),
     __metadata("design:returntype", void 0)
 ], AdminController.prototype, "listUsers", null);
+__decorate([
+    (0, common_1.Get)('users/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AdminController.prototype, "getUserDetail", null);
 __decorate([
     (0, common_1.Patch)('users/:id/suspend'),
     __param(0, (0, common_1.Param)('id')),
