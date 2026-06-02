@@ -2,6 +2,22 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 274 · 398ff61 · 2026-06-02 09:31 UTC
+
+Commit: Fill all seed users with complete dummy data — no empty fields
+
+Added personalEmail, gender, bloodGroup, isPhoneVerified, countryCode,
+homeLocation, officeLocation, companyName, employeeId for all 8 test accounts.
+Dev test accounts now have realistic full names and company names.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- prisma/seed.ts
+
+---
+
 ## Build 272 · 2b60efe · 2026-06-02 09:24 UTC
 
 Commit: Add AGM banner + fix localStorage prefill for giver and seeker
