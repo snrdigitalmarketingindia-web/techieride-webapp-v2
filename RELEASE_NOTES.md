@@ -2,6 +2,25 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 197 · bc09232 · 2026-06-02 02:09 UTC
+
+Commit: fix(security-tests): correct endpoint paths and assertions
+
+- /auth/me → /users/me (correct route for profile endpoint)
+- /admin/verification → /admin/verification/pending
+- /admin/verification/{id}/approve → /admin/verification/{id}/review
+- SEC-AUTH-04: gmail intentionally allowed; test truly invalid domain instead
+- SEC-FILE-01: accept any non-200/201 (500 from body parser is acceptable)
+- Remove duplicate auth test
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e-api-security.ts
+
+---
+
 ## Build 195 · f2ec203 · 2026-06-02 02:01 UTC
 
 Commit: fix(ci): remove Lint stage — ESLint not installed in API workspace
