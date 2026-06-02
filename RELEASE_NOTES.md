@@ -2,6 +2,23 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 251 · 81f0998 · 2026-06-02 07:20 UTC
+
+Commit: Fix CMP-23: use valid UUID v4 format for fake reportedId
+
+'00000000-0000-0000-0000-000000000001' is not a valid UUID v4/nil UUID
+so class-validator's @IsUUID() rejects it with 400 before the service
+runs. Changed to a properly-formatted v4 UUID (version=4, variant=8)
+that is guaranteed non-existent in the DB.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e-api-complaints.ts
+
+---
+
 ## Build 248 · 44e3532 · 2026-06-02 06:54 UTC
 
 Commit: fix: resolve all 07/08/09/10 test suite failures
