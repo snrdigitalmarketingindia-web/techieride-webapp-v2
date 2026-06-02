@@ -11,23 +11,54 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var RideRequestsService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RideRequestsService = void 0;
 const common_1 = require("@nestjs/common");
+const schedule_1 = require("@nestjs/schedule");
 const ioredis_1 = require("ioredis");
 const redis_module_1 = require("../../config/redis.module");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const shared_1 = require("@techieride/shared");
+const PENDING_EXPIRY_HOURS = 24;
 const USER_CONTACT_SELECT = {
     id: true, fullName: true, profilePhoto: true,
     companyName: true, phone: true, countryCode: true,
 };
-let RideRequestsService = class RideRequestsService {
+let RideRequestsService = RideRequestsService_1 = class RideRequestsService {
     constructor(prisma, notifications, redis) {
         this.prisma = prisma;
         this.notifications = notifications;
         this.redis = redis;
+        this.logger = new common_1.Logger(RideRequestsService_1.name);
+    }
+    async expirePendingRequests() {
+        const cutoff = new Date(Date.now() - PENDING_EXPIRY_HOURS * 60 * 60 * 1000);
+        const stale = await this.prisma.rideRequest.findMany({
+            where: { status: 'PENDING', createdAt: { lt: cutoff } },
+            include: {
+                seeker: { include: { user: true } },
+                ride: true,
+            },
+        });
+        if (stale.length === 0)
+            return;
+        this.logger.log(`⏰ Auto-rejecting ${stale.length} stale PENDING request(s)`);
+        for (const req of stale) {
+            await this.prisma.rideRequest.update({
+                where: { id: req.id },
+                data: { status: 'REJECTED', cancelReason: 'Auto-expired after 24 hours' },
+            });
+            if (req.seeker?.userId) {
+                await this.notifications.create(req.seeker.userId, {
+                    type: shared_1.NotificationType.REQUEST_REJECTED,
+                    title: 'Ride request expired',
+                    body: `Your request for the ride on ${new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} was not responded to and has expired.`,
+                    data: { rideId: req.rideId, requestId: req.id },
+                });
+            }
+        }
     }
     async create(userId, dto) {
         const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
@@ -236,7 +267,13 @@ let RideRequestsService = class RideRequestsService {
     }
 };
 exports.RideRequestsService = RideRequestsService;
-exports.RideRequestsService = RideRequestsService = __decorate([
+__decorate([
+    (0, schedule_1.Cron)('0 * * * *', { timeZone: 'Asia/Kolkata' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], RideRequestsService.prototype, "expirePendingRequests", null);
+exports.RideRequestsService = RideRequestsService = RideRequestsService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(2, (0, common_1.Inject)(redis_module_1.REDIS_CLIENT)),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,

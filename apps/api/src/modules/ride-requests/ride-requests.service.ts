@@ -5,13 +5,17 @@ import {
   BadRequestException,
   ConflictException,
   Inject,
+  Logger,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../../config/redis.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { NotificationType, REDIS_KEYS } from '@techieride/shared';
+
+const PENDING_EXPIRY_HOURS = 24;
 
 const USER_CONTACT_SELECT = {
   id: true, fullName: true, profilePhoto: true,
@@ -20,11 +24,46 @@ const USER_CONTACT_SELECT = {
 
 @Injectable()
 export class RideRequestsService {
+  private readonly logger = new Logger(RideRequestsService.name);
+
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
     @Inject(REDIS_CLIENT) private redis: Redis,
   ) {}
+
+  // Runs every hour — auto-rejects PENDING requests older than 24h
+  @Cron('0 * * * *', { timeZone: 'Asia/Kolkata' })
+  async expirePendingRequests() {
+    const cutoff = new Date(Date.now() - PENDING_EXPIRY_HOURS * 60 * 60 * 1000);
+
+    const stale = await this.prisma.rideRequest.findMany({
+      where: { status: 'PENDING', createdAt: { lt: cutoff } },
+      include: {
+        seeker: { include: { user: true } },
+        ride: true,
+      },
+    });
+
+    if (stale.length === 0) return;
+    this.logger.log(`⏰ Auto-rejecting ${stale.length} stale PENDING request(s)`);
+
+    for (const req of stale) {
+      await this.prisma.rideRequest.update({
+        where: { id: req.id },
+        data: { status: 'REJECTED', cancelReason: 'Auto-expired after 24 hours' },
+      });
+
+      if (req.seeker?.userId) {
+        await this.notifications.create(req.seeker.userId, {
+          type: NotificationType.REQUEST_REJECTED,
+          title: 'Ride request expired',
+          body: `Your request for the ride on ${new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} was not responded to and has expired.`,
+          data: { rideId: req.rideId, requestId: req.id },
+        });
+      }
+    }
+  }
 
   async create(userId: string, dto: CreateRequestDto) {
     const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });

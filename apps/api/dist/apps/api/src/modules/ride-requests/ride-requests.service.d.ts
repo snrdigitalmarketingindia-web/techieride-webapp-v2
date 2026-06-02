@@ -6,7 +6,9 @@ export declare class RideRequestsService {
     private prisma;
     private notifications;
     private redis;
+    private readonly logger;
     constructor(prisma: PrismaService, notifications: NotificationsService, redis: Redis);
+    expirePendingRequests(): Promise<void>;
     create(userId: string, dto: CreateRequestDto): Promise<{
         requestId: string;
         status: string;
