@@ -34,7 +34,7 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     fullName: '', phone: '', companyName: '',
-    homeLocation: '', officeLocation: '', bloodGroup: '',
+    homeLocation: '', officeLocation: '', bloodGroup: '', gender: '',
   });
   const [editSaving, setEditSaving] = useState(false);
   const [editMsg, setEditMsg] = useState('');
@@ -59,6 +59,7 @@ export default function ProfilePage() {
       homeLocation:   (user as any)?.homeLocation   ?? '',
       officeLocation: (user as any)?.officeLocation ?? '',
       bloodGroup:     (user as any)?.bloodGroup     ?? '',
+      gender:         (user as any)?.gender         ?? '',
     });
     setEditMsg('');
     setEditing(true);
@@ -229,6 +230,19 @@ export default function ProfilePage() {
                 />
               </div>
             ))}
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Gender</label>
+              <select
+                value={editForm.gender}
+                onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+              >
+                <option value="">Prefer not to say</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
             {editMsg && <p className="text-xs text-red-600">{editMsg}</p>}
             <div className="flex gap-2 pt-1">
               <button onClick={saveEdit} disabled={editSaving}

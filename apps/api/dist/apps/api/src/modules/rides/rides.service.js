@@ -75,6 +75,7 @@ let RidesService = RidesService_1 = class RidesService {
                 totalSeats: dto.totalSeats,
                 availableSeats: dto.totalSeats,
                 notes: dto.notes,
+                womenOnly: dto.womenOnly ?? false,
                 status: shared_1.RideStatus.DRAFT,
             },
             include: { vehicle: true, rideGiver: { include: { user: true } } },
@@ -479,6 +480,11 @@ let RidesService = RidesService_1 = class RidesService {
         });
     }
     async search(dto) {
+        let requesterGender = null;
+        if (dto.userId) {
+            const user = await this.prisma.user.findUnique({ where: { id: dto.userId }, select: { gender: true } });
+            requesterGender = user?.gender ?? null;
+        }
         const rides = await this.prisma.ride.findMany({
             where: {
                 status: shared_1.RideStatus.PUBLISHED,
@@ -487,6 +493,7 @@ let RidesService = RidesService_1 = class RidesService {
                     lt: new Date(new Date(dto.date).getTime() + 86400000),
                 },
                 availableSeats: { gt: 0 },
+                ...(requesterGender !== 'FEMALE' ? { womenOnly: false } : {}),
             },
             include: {
                 rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },

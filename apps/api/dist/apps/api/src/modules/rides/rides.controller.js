@@ -24,8 +24,8 @@ let RidesController = class RidesController {
     constructor(ridesService) {
         this.ridesService = ridesService;
     }
-    search(dto) {
-        return this.ridesService.search(dto);
+    search(dto, userId) {
+        return this.ridesService.search({ ...dto, userId });
     }
     community(from, to) {
         return this.ridesService.getCommunityRides(from, to);
@@ -72,8 +72,9 @@ __decorate([
     (0, public_decorator_1.Public)(),
     (0, common_1.Get)('search'),
     __param(0, (0, common_1.Query)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [search_rides_dto_1.SearchRidesDto]),
+    __metadata("design:paramtypes", [search_rides_dto_1.SearchRidesDto, String]),
     __metadata("design:returntype", void 0)
 ], RidesController.prototype, "search", null);
 __decorate([

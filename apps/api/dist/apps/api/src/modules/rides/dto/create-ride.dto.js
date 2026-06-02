@@ -61,4 +61,9 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CreateRideDto.prototype, "notes", void 0);
+__decorate([
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], CreateRideDto.prototype, "womenOnly", void 0);
 //# sourceMappingURL=create-ride.dto.js.map

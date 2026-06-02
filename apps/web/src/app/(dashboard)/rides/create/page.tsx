@@ -54,6 +54,7 @@ export default function CreateRidePage() {
     departureTime: defaultDepartureTime(),
     totalSeats: 2,
     notes: '',
+    womenOnly: false,
     saveAsTemplate: false,
     departureDays: [1, 2, 3, 4, 5],
   });
@@ -215,6 +216,11 @@ export default function CreateRidePage() {
           <label className="text-sm font-medium text-gray-700">Notes (optional)</label>
           <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="E.g. No music, no smoking" rows={2} className={`${inputCls} mt-1 resize-none`} />
         </div>
+
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={form.womenOnly} onChange={(e) => update('womenOnly', e.target.checked)} className="w-4 h-4 text-pink-600" />
+          <span className="text-sm text-gray-700">👩 Women-only ride <span className="text-gray-400">(only female passengers allowed)</span></span>
+        </label>
 
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={form.saveAsTemplate} onChange={(e) => update('saveAsTemplate', e.target.checked)} className="w-4 h-4 text-brand-600" />

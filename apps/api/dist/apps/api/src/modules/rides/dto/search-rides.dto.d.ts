@@ -4,6 +4,7 @@ export declare class SearchRidesDto {
     destinationLat: number;
     destinationLng: number;
     date: string;
+    userId?: string;
     page: number;
     limit: number;
 }

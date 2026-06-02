@@ -50,6 +50,11 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {ride.womenOnly && (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-pink-100 text-pink-700">
+              👩 Women only
+            </span>
+          )}
           {ride.totalSeats != null && (
             <span className="text-xs text-gray-400">
               {ride.availableSeats}/{ride.totalSeats} seats

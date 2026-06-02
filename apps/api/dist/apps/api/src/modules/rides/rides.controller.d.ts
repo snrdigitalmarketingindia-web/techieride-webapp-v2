@@ -4,7 +4,7 @@ import { SearchRidesDto } from './dto/search-rides.dto';
 export declare class RidesController {
     private ridesService;
     constructor(ridesService: RidesService);
-    search(dto: SearchRidesDto): Promise<{
+    search(dto: SearchRidesDto, userId: string): Promise<{
         distanceFromOriginM: number;
         distanceFromDestinationM: number;
         rideGiver: {
@@ -63,6 +63,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -160,6 +161,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -254,6 +256,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -348,6 +351,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -441,6 +445,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -469,6 +474,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -497,6 +503,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -525,6 +532,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -553,6 +561,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;
@@ -592,6 +601,7 @@ export declare class RidesController {
         estimatedArrivalTime: string | null;
         totalSeats: number;
         availableSeats: number;
+        womenOnly: boolean;
         notes: string | null;
         startedAt: Date | null;
         completedAt: Date | null;

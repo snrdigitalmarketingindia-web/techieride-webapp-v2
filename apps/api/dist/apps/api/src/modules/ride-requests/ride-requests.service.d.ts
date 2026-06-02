@@ -93,6 +93,7 @@ export declare class RideRequestsService {
             estimatedArrivalTime: string | null;
             totalSeats: number;
             availableSeats: number;
+            womenOnly: boolean;
             notes: string | null;
             startedAt: Date | null;
             completedAt: Date | null;

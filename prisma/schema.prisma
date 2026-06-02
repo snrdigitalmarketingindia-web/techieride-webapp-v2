@@ -348,6 +348,7 @@ model Ride {
   estimatedArrivalTime String?
   totalSeats           Int
   availableSeats       Int
+  womenOnly            Boolean    @default(false)
   status               RideStatus @default(DRAFT)
   notes                String?
   startedAt            DateTime?

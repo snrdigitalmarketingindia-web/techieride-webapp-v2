@@ -178,6 +178,7 @@ export default function RideSearchPage() {
   const [loading, setLoading] = useState(false);
   // rideId → 'pending' (awaiting giver) | 'sent' (just sent this session)
   const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'sent'>>({});
+  const [womenOnlyFilter, setWomenOnlyFilter] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
 
@@ -323,6 +324,10 @@ export default function RideSearchPage() {
         >
           {loading ? 'Searching...' : '🔍 Search Rides'}
         </button>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={womenOnlyFilter} onChange={(e) => setWomenOnlyFilter(e.target.checked)} className="w-4 h-4 text-pink-600" />
+          <span className="text-sm text-gray-600">👩 Show women-only rides only</span>
+        </label>
       </div>
 
       {/* View toggle */}
@@ -359,7 +364,7 @@ export default function RideSearchPage() {
               <p className="text-gray-500 text-sm">No rides found. Try adjusting your search.</p>
             </div>
           )}
-          {rides.map((ride) => (
+          {rides.filter((r) => !womenOnlyFilter || r.womenOnly).map((ride) => (
             <div key={ride.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
               <div className="flex items-start justify-between">
                 <div>
@@ -400,6 +405,7 @@ export default function RideSearchPage() {
               </div>
 
               <div className="flex items-center gap-2 text-xs text-gray-500">
+                {ride.womenOnly && <span className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded font-medium">👩 Women only</span>}
                 <span className="bg-gray-100 px-2 py-0.5 rounded">{ride.vehicle?.make} {ride.vehicle?.model}</span>
                 <span className="bg-gray-100 px-2 py-0.5 rounded">{ride.vehicle?.color}</span>
               </div>

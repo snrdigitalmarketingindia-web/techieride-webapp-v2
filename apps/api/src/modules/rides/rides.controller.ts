@@ -16,8 +16,8 @@ export class RidesController {
 
   @Public()
   @Get('search')
-  search(@Query() dto: SearchRidesDto) {
-    return this.ridesService.search(dto);
+  search(@Query() dto: SearchRidesDto, @CurrentUser('id') userId: string) {
+    return this.ridesService.search({ ...dto, userId });
   }
 
   @Public()

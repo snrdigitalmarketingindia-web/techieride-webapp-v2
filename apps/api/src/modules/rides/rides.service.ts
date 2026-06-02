@@ -81,6 +81,7 @@ export class RidesService {
         totalSeats: dto.totalSeats,
         availableSeats: dto.totalSeats,
         notes: dto.notes,
+        womenOnly: dto.womenOnly ?? false,
         status: RideStatus.DRAFT,
       },
       include: { vehicle: true, rideGiver: { include: { user: true } } },
@@ -604,6 +605,13 @@ export class RidesService {
   }
 
   async search(dto: SearchRidesDto) {
+    // Determine if requester is FEMALE to decide whether to show womenOnly rides
+    let requesterGender: string | null = null;
+    if (dto.userId) {
+      const user = await this.prisma.user.findUnique({ where: { id: dto.userId }, select: { gender: true } });
+      requesterGender = user?.gender ?? null;
+    }
+
     const rides = await this.prisma.ride.findMany({
       where: {
         status: RideStatus.PUBLISHED,
@@ -612,6 +620,8 @@ export class RidesService {
           lt: new Date(new Date(dto.date).getTime() + 86400000),
         },
         availableSeats: { gt: 0 },
+        // Hide womenOnly rides from non-FEMALE users
+        ...(requesterGender !== 'FEMALE' ? { womenOnly: false } : {}),
       },
       include: {
         rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },

@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsInt, IsNumber, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class CreateRideDto {
   @IsUUID() vehicleId: string;
@@ -12,4 +12,5 @@ export class CreateRideDto {
   @IsString() departureTime: string;
   @IsInt() @Min(1) @Max(7) totalSeats: number;
   @IsString() @IsOptional() notes?: string;
+  @IsBoolean() @IsOptional() womenOnly?: boolean;
 }

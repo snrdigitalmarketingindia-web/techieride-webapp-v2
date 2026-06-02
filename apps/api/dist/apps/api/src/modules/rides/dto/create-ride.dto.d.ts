@@ -10,4 +10,5 @@ export declare class CreateRideDto {
     departureTime: string;
     totalSeats: number;
     notes?: string;
+    womenOnly?: boolean;
 }

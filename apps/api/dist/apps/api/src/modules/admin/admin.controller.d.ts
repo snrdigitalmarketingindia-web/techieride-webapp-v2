@@ -327,6 +327,7 @@ export declare class AdminController {
             estimatedArrivalTime: string | null;
             totalSeats: number;
             availableSeats: number;
+            womenOnly: boolean;
             notes: string | null;
             startedAt: Date | null;
             completedAt: Date | null;
@@ -373,6 +374,7 @@ export declare class AdminController {
             estimatedArrivalTime: string | null;
             totalSeats: number;
             availableSeats: number;
+            womenOnly: boolean;
             notes: string | null;
             startedAt: Date | null;
             completedAt: Date | null;

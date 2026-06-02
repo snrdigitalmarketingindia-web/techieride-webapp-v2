@@ -74,6 +74,12 @@ let RideRequestsService = RideRequestsService_1 = class RideRequestsService {
             throw new common_1.BadRequestException('Ride is not available');
         if (ride.availableSeats <= 0)
             throw new common_1.BadRequestException('No seats available');
+        if (ride.womenOnly) {
+            const requester = await this.prisma.user.findUnique({ where: { id: userId }, select: { gender: true } });
+            if (requester?.gender !== 'FEMALE') {
+                throw new common_1.ForbiddenException('This ride is for women only');
+            }
+        }
         if (ride.rideGiver.userId === userId) {
             throw new common_1.ForbiddenException('You cannot request a seat on your own ride');
         }

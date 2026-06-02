@@ -87,6 +87,7 @@ export declare class RideRequestsController {
             estimatedArrivalTime: string | null;
             totalSeats: number;
             availableSeats: number;
+            womenOnly: boolean;
             notes: string | null;
             startedAt: Date | null;
             completedAt: Date | null;

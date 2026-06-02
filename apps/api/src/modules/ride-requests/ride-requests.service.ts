@@ -77,6 +77,14 @@ export class RideRequestsService {
     if (ride.status !== 'PUBLISHED') throw new BadRequestException('Ride is not available');
     if (ride.availableSeats <= 0) throw new BadRequestException('No seats available');
 
+    // Women-only gate
+    if (ride.womenOnly) {
+      const requester = await this.prisma.user.findUnique({ where: { id: userId }, select: { gender: true } });
+      if (requester?.gender !== 'FEMALE') {
+        throw new ForbiddenException('This ride is for women only');
+      }
+    }
+
     // BOTH-role users cannot request a seat on a ride they own as giver
     if (ride.rideGiver.userId === userId) {
       throw new ForbiddenException('You cannot request a seat on your own ride');
