@@ -2,6 +2,26 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 272 · 2b60efe · 2026-06-02 09:24 UTC
+
+Commit: Add AGM banner + fix localStorage prefill for giver and seeker
+
+- Dashboard: add 'Stay tuned for AGM Meeting 2026' announcement banner
+- Offer Ride: fix SSR bug where localStorage prefs were never read (useState
+  initializer runs on server where window is undefined); moved to useEffect
+- Find Rides: add localStorage prefill for seeker origin/destination, saved
+  on each search
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/dashboard/page.tsx
+- apps/web/src/app/(dashboard)/rides/create/page.tsx
+- apps/web/src/app/(dashboard)/rides/search/page.tsx
+
+---
+
 ## Build 267 · 560e17a · 2026-06-02 08:42 UTC
 
 Commit: Fix CI summary: show crash output when suite fails with no ❌ FAIL lines
