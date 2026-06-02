@@ -24,6 +24,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [processing, setProcessing] = useState<string | null>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const ridesRef = useRef<any[]>([]);
 
   const reloadPending = (rides: any[]) => {
@@ -64,11 +66,13 @@ export default function DashboardPage() {
     setProcessing(null);
   };
 
-  const handleReject = async (reqId: string, rideId: string) => {
+  const handleReject = async (reqId: string, rideId: string, reason: string) => {
     setProcessing(reqId);
-    await requestsApi.reject(reqId).catch(() => {});
+    await requestsApi.reject(reqId, reason || undefined).catch(() => {});
     const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));
     setPendingMap((prev) => ({ ...prev, [rideId]: res.data ?? [] }));
+    setRejectingId(null);
+    setRejectReason('');
     setProcessing(null);
   };
 
@@ -188,19 +192,48 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">📥 Pending ({pendingReqs.length})</p>
                   {pendingReqs.map((req: any) => (
-                    <div key={req.id} className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0">
-                        {req.seeker?.user?.fullName?.[0] ?? '?'}
+                    <div key={req.id} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0">
+                          {req.seeker?.user?.fullName?.[0] ?? '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">
+                            {req.seeker?.user?.trid && <span className="text-brand-600 mr-1">{req.seeker.user.trid}</span>}
+                            {req.seeker?.user?.fullName ?? 'Seeker'}
+                          </p>
+                        </div>
+                        {req.seeker?.user?.phone && (
+                          <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
+                            receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
+                        )}
+                        <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
+                          className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">✅ Approve</button>
+                        <button
+                          onClick={() => { setRejectingId(req.id); setRejectReason(''); }}
+                          disabled={processing === req.id}
+                          className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0">
+                          ❌ Reject
+                        </button>
                       </div>
-                      <p className="text-xs font-medium text-gray-800 flex-1 truncate">{req.seeker?.user?.fullName ?? 'Seeker'}</p>
-                      {req.seeker?.user?.phone && (
-                        <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
-                          receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
+                      {rejectingId === req.id && (
+                        <div className="flex gap-2 pl-8">
+                          <input
+                            autoFocus
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="Reason (optional)"
+                            className="flex-1 text-xs px-2.5 py-1.5 border border-red-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400"
+                          />
+                          <button
+                            onClick={() => handleReject(req.id, ride.id, rejectReason)}
+                            disabled={processing === req.id}
+                            className="text-xs bg-red-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-red-700 disabled:opacity-50 shrink-0">
+                            Confirm
+                          </button>
+                          <button onClick={() => setRejectingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1">Cancel</button>
+                        </div>
                       )}
-                      <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
-                        className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">✅ Approve</button>
-                      <button onClick={() => handleReject(req.id, ride.id)} disabled={processing === req.id}
-                        className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0">❌ Reject</button>
                     </div>
                   ))}
                 </div>
