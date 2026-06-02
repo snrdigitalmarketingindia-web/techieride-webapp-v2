@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const isSeeker = role === 'RIDE_SEEKER' || role === 'BOTH';
 
   const [upcomingRides, setUpcomingRides] = useState<any[]>([]);
+  const [hasActiveRide, setHasActiveRide] = useState(false);
   const [ecoSummary, setEcoSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
@@ -38,17 +39,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    const ridesFetch = isGiver
-      ? ridesApi.getGiven().then((r) => r.data.slice(0, 3))
-      : ridesApi.getTaken().then((r) => r.data.slice(0, 3));
-    Promise.all([
-      ridesFetch.then((rides) => {
-        setUpcomingRides(rides);
-        ridesRef.current = rides;
-        if (isGiver) reloadPending(rides);
-      }),
-      gamificationApi.getSummary().then((r) => setEcoSummary(r.data)),
-    ]).finally(() => setLoading(false));
+    if (isGiver) {
+      ridesApi.getGiven().then((r) => {
+        const all = r.data ?? [];
+        setHasActiveRide(all.some((ride: any) => ['PUBLISHED', 'ONGOING'].includes(ride.status)));
+        const top3 = all.slice(0, 3);
+        setUpcomingRides(top3);
+        ridesRef.current = top3;
+        reloadPending(top3);
+      });
+    } else {
+      ridesApi.getTaken().then((r) => {
+        const top3 = (r.data ?? []).slice(0, 3);
+        setUpcomingRides(top3);
+        ridesRef.current = top3;
+      });
+    }
+    gamificationApi.getSummary().then((r) => setEcoSummary(r.data)).finally(() => setLoading(false));
   }, [user?.role]);
 
   // Poll every 15s so new ride requests appear without manual refresh
@@ -149,8 +156,21 @@ export default function DashboardPage() {
 
       {/* Quick actions — role-aware */}
       <div className="grid grid-cols-2 gap-3">
+        {isGiver && (
+          hasActiveRide ? (
+            <div title="Complete or cancel your active ride before offering a new one"
+              className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center gap-3 opacity-50 cursor-not-allowed select-none">
+              <span className="text-2xl">🚗</span>
+              <span className="font-medium text-gray-400">Offer Ride</span>
+            </div>
+          ) : (
+            <Link href="/rides/create" className="bg-brand-50 border border-brand-200 rounded-xl p-4 flex items-center gap-3 hover:opacity-80 transition">
+              <span className="text-2xl">🚗</span>
+              <span className="font-medium text-gray-800">Offer Ride</span>
+            </Link>
+          )
+        )}
         {[
-          isGiver  && { href: '/rides/create',      icon: '🚗', label: 'Offer Ride',  color: 'bg-brand-50 border-brand-200'   },
           isSeeker && { href: '/rides/search',      icon: '🔍', label: 'Find Rides',  color: 'bg-blue-50 border-blue-200'     },
                        { href: '/rides',             icon: '📋', label: 'My Rides',   color: 'bg-purple-50 border-purple-200' },
                        { href: '/rides/leaderboard', icon: '🏆', label: 'Leaderboard',color: 'bg-yellow-50 border-yellow-200' },
