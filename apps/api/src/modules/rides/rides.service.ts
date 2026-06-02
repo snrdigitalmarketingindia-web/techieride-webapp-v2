@@ -322,6 +322,17 @@ export class RidesService {
       });
     }
 
+    // Notify giver that their ride is completed
+    const giverUser = await this.prisma.rideGiver.findUnique({ where: { id: ride.rideGiverId } });
+    if (giverUser) {
+      await this.notifications.create(giverUser.userId, {
+        type: NotificationType.RIDE_COMPLETED,
+        title: 'Ride completed! ✅',
+        body: `${ride.originName} → ${ride.destinationName} has been completed.`,
+        data: { rideId },
+      });
+    }
+
     return updated;
   }
 
@@ -407,9 +418,9 @@ export class RidesService {
       }
     }
 
-    // Find confirmed participants before cancelling so we can notify them
+    // Find all active (CONFIRMED + PENDING) requesters before cancelling so we can notify them
     const confirmedParticipants = await this.prisma.rideRequest.findMany({
-      where: { rideId, status: { in: ['CONFIRMED'] } },
+      where: { rideId, status: { in: ['CONFIRMED', 'PENDING'] } },
       include: { seeker: { include: { user: { select: { email: true, personalEmail: true, fullName: true } } } } },
     });
 

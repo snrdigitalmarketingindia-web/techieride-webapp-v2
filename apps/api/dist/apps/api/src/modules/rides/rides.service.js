@@ -262,6 +262,15 @@ let RidesService = RidesService_1 = class RidesService {
                 data: { rideId },
             });
         }
+        const giverUser = await this.prisma.rideGiver.findUnique({ where: { id: ride.rideGiverId } });
+        if (giverUser) {
+            await this.notifications.create(giverUser.userId, {
+                type: shared_1.NotificationType.RIDE_COMPLETED,
+                title: 'Ride completed! ✅',
+                body: `${ride.originName} → ${ride.destinationName} has been completed.`,
+                data: { rideId },
+            });
+        }
         return updated;
     }
     async autoExpireUnstartedRides() {
@@ -331,7 +340,7 @@ let RidesService = RidesService_1 = class RidesService {
             }
         }
         const confirmedParticipants = await this.prisma.rideRequest.findMany({
-            where: { rideId, status: { in: ['CONFIRMED'] } },
+            where: { rideId, status: { in: ['CONFIRMED', 'PENDING'] } },
             include: { seeker: { include: { user: { select: { email: true, personalEmail: true, fullName: true } } } } },
         });
         await this.prisma.rideRequest.updateMany({

@@ -102,7 +102,9 @@ async function runRideLifecycleAuditTests() {
     const rideId = await publishRide(giver.client, giver.vehicleId);
     const r = await giver.client.get(`/rides/${rideId}`);
     assert(r.status === 200, `GET /rides/:id failed: ${r.status}`);
-    assert(r.data.rideGiverId === giver.userId, 'Ride actor (rideGiverId) must match creating user');
+    // rideGiverId = RideGiver.id (profile ID); rideGiver.userId = User.id — compare via nested relation
+    assert(!!r.data.rideGiverId, 'rideGiverId must be present');
+    assert(r.data.rideGiver?.userId === giver.userId, 'Ride actor (rideGiver.userId) must match creating user');
   });
 
   // AUD-02: Ride publish — status transition recorded
@@ -181,7 +183,8 @@ async function runRequestAuditTests() {
     assert(incoming.status === 200, `Incoming failed: ${incoming.status}`);
     const req = incoming.data.find((rq: any) => rq.id === r.data.requestId);
     assert(!!req, 'Request must be visible to giver as actor');
-    assert(req.seekerId === seeker.userId, 'seekerId must match submitting user');
+    // seekerId = RideSeeker.id (profile ID); compare via nested seeker.userId
+    assert(req.seeker?.userId === seeker.userId, 'seeker.userId must match submitting user');
   });
 
   // AUD-08: Approval — request status transitions to CONFIRMED/APPROVED, seat count decremented
@@ -235,7 +238,8 @@ async function runBoardingAuditTests() {
     const r = await seeker.client.patch(`/rides/${rideId}/board`);
     assert(r.status === 200, `Board failed: ${JSON.stringify(r.data)}`);
     const ride = await giver.client.get(`/rides/${rideId}`);
-    const participant = ride.data.participants?.find((p: any) => p.seekerId === seeker.userId);
+    // seekerId = RideSeeker.id; compare via nested seeker.userId
+    const participant = ride.data.participants?.find((p: any) => p.seeker?.userId === seeker.userId);
     assert(!!participant, 'Participant record must exist');
     assert(participant.boardingStatus === 'BOARDED', `Expected BOARDED, got ${participant.boardingStatus}`);
   });
@@ -248,8 +252,8 @@ async function runBoardingAuditTests() {
     const r = await seeker.client.patch(`/rides/${rideId}/deboard`);
     assert(r.status === 200, `Deboard failed: ${JSON.stringify(r.data)}`);
     const ride = await giver.client.get(`/rides/${rideId}`);
-    const participant = ride.data.participants?.find((p: any) => p.seekerId === seeker.userId);
-    assert(participant.boardingStatus === 'DEBOARDED', `Expected DEBOARDED, got ${participant.boardingStatus}`);
+    const participant = ride.data.participants?.find((p: any) => p.seeker?.userId === seeker.userId);
+    assert(participant?.boardingStatus === 'DEBOARDED', `Expected DEBOARDED, got ${participant?.boardingStatus}`);
   });
 
   // AUD-12: No-show marking — participant status becomes NO_SHOW
@@ -259,8 +263,8 @@ async function runBoardingAuditTests() {
     const r = await giver.client.patch(`/rides/${rideId}/no-show/${seeker.userId}`);
     assert(r.status === 200, `No-show failed: ${JSON.stringify(r.data)}`);
     const ride = await giver.client.get(`/rides/${rideId}`);
-    const participant = ride.data.participants?.find((p: any) => p.seekerId === seeker.userId);
-    assert(participant.boardingStatus === 'NO_SHOW', `Expected NO_SHOW, got ${participant.boardingStatus}`);
+    const participant = ride.data.participants?.find((p: any) => p.seeker?.userId === seeker.userId);
+    assert(participant?.boardingStatus === 'NO_SHOW', `Expected NO_SHOW, got ${participant?.boardingStatus}`);
   });
 }
 
@@ -321,8 +325,9 @@ async function runAdminAuditTests() {
     const r = await admin.patch(`/admin/users/${seeker.userId}/suspend`);
     assert(r.status === 200, `Suspend failed: ${JSON.stringify(r.data)}`);
     const users = await admin.get('/admin/users');
-    const user = users.data.users?.find((u: any) => u.id === seeker.userId)
-      ?? users.data.find?.((u: any) => u.id === seeker.userId);
+    // Response: { data: [...], total, page, limit }
+    const userList: any[] = users.data.data ?? users.data;
+    const user = userList.find((u: any) => u.id === seeker.userId);
     assert(!!user, 'Suspended user must still be visible in admin user list');
     assert(user.isActive === false, `Expected isActive=false after suspension, got ${user.isActive}`);
   });
@@ -335,9 +340,9 @@ async function runAdminAuditTests() {
     const r = await admin.patch(`/admin/users/${seeker.userId}/activate`);
     assert(r.status === 200, `Activate failed: ${JSON.stringify(r.data)}`);
     const users = await admin.get('/admin/users');
-    const user = users.data.users?.find((u: any) => u.id === seeker.userId)
-      ?? users.data.find?.((u: any) => u.id === seeker.userId);
-    assert(user.isActive === true, `Expected isActive=true after reactivation, got ${user.isActive}`);
+    const userList: any[] = users.data.data ?? users.data;
+    const user = userList.find((u: any) => u.id === seeker.userId);
+    assert(user?.isActive === true, `Expected isActive=true after reactivation, got ${user?.isActive}`);
   });
 
   // AUD-17: Verification approval — accountStatus changes to EMPLOYEE_VERIFIED
@@ -443,7 +448,7 @@ async function runImmutabilityTests() {
     const rideId = await publishRide(giver.client, giver.vehicleId);
     const r = await giver.client.get(`/rides/${rideId}`);
     assert(!!r.data.rideGiverId, 'rideGiverId must be present on every ride record');
-    assert(r.data.rideGiverId === giver.userId, 'rideGiverId must match the creating user');
+    assert(r.data.rideGiver?.userId === giver.userId, 'rideGiver.userId must match the creating user');
   });
 
   // AUD-24 [REQUIRES_AUDIT_API]: System actor label on cron-triggered events
