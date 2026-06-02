@@ -2,6 +2,27 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 207 · f833a36 · 2026-06-02 03:13 UTC
+
+Commit: fix: remove user?.role from rides fetch dependency — eliminates wrong fetch on hydration
+
+When user hydrates, both the tab-correction effect (sets tab) and the
+fetch effect (depends on user?.role) fired simultaneously. The fetch
+ran with the OLD tab value first, causing a wrong API call and an empty
+ride list flash before the correct fetch arrived.
+
+Fix: fetch effect now only depends on [tab]. The tab-correction effect
+sets the correct tab after hydration, which then triggers the fetch
+with the right value — one fetch, correct data, no flicker.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/rides/page.tsx
+
+---
+
 ## Build 205 · 3ccb2b7 · 2026-06-02 03:01 UTC
 
 Commit: fix(e2e-security): use correct login form placeholders
