@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ridesApi, requestsApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 import dynamic from 'next/dynamic';
 import { CallButton } from '@/components/ui/CallButton';
 
@@ -164,6 +165,7 @@ function BoardingModal({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function RideSearchPage() {
+  const { user } = useAuthStore();
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   const [form, setForm] = useState({
     originName: '',
@@ -364,6 +366,21 @@ export default function RideSearchPage() {
             destLat={form.destinationLat}
             destLng={form.destinationLng}
           />
+        </div>
+      )}
+
+      {/* Women-only gender warning */}
+      {!user?.gender && rides.some((r) => r.womenOnly) && (
+        <div className="bg-pink-50 border border-pink-200 rounded-lg px-3 py-2.5 flex items-start gap-2 text-sm text-pink-800">
+          <span className="text-lg leading-none">👩</span>
+          <div>
+            <p className="font-medium">Some rides are women-only</p>
+            <p className="text-xs text-pink-600 mt-0.5">
+              Set your gender in{' '}
+              <a href="/profile" className="underline font-medium">Profile</a>
+              {' '}to see and book women-only rides.
+            </p>
+          </div>
         </div>
       )}
 
