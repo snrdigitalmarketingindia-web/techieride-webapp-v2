@@ -222,11 +222,8 @@ jobs:
             sleep 2
           done
 
-      - name: Run Playwright tests (functional)
-        run: npx playwright test --ignore=tests/e2e/security.spec.ts --reporter=list,html
-
-      - name: Run Playwright security tests
-        run: npx playwright test tests/e2e/security.spec.ts --reporter=list
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=list,html
 
       - name: Upload Playwright report on failure
         if: failure()
