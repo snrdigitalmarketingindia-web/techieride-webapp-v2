@@ -176,6 +176,7 @@ export default function RideSearchPage() {
   });
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
   // rideId → 'pending' (awaiting giver) | 'sent' (just sent this session)
   const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'sent'>>({});
   const [womenOnlyFilter, setWomenOnlyFilter] = useState(false);
@@ -195,6 +196,8 @@ export default function RideSearchPage() {
         destinationLat: prefs.destinationLat ?? f.destinationLat,
         destinationLng: prefs.destinationLng ?? f.destinationLng,
       }));
+    } else {
+      setIsFirstVisit(true);
     }
   }, []);
 
@@ -283,6 +286,15 @@ export default function RideSearchPage() {
           onConfirm={submitRequest}
           onClose={() => setBoardingRide(null)}
         />
+      )}
+
+      {/* First-visit hint */}
+      {isFirstVisit && (
+        <div className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 text-xs text-blue-700 flex items-center gap-2">
+          💡 Tip: Save your home &amp; office in{' '}
+          <a href="/profile" className="underline font-medium">Profile</a>
+          {' '}— your search will pre-fill automatically next time.
+        </div>
       )}
 
       {/* Search form */}
