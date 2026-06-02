@@ -2,6 +2,20 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 217 · fa29b32 · 2026-06-02 03:22 UTC
+
+Commit: fix: increase departure timeout from 30 min to 1 hour
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/dist/apps/api/src/modules/rides/rides.service.js
+- apps/api/dist/tsconfig.tsbuildinfo
+- apps/api/src/modules/rides/rides.service.ts
+
+---
+
 ## Build 215 · 3614ff0 · 2026-06-02 03:21 UTC
 
 Commit: feat: auto-cancel unstarted PUBLISHED rides 30min past departure
