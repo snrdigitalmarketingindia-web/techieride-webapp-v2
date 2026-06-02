@@ -2,6 +2,21 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 291 · 8334a59 · 2026-06-02 13:25 UTC
+
+Commit: fix: Add logout button to admin sidebar
+
+Shows 🚪 icon on mobile, 'Logout' label on desktop. Clears auth state
+and redirects to landing page on click.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/admin/layout.tsx
+
+---
+
 ## Build 289 · db0928c · 2026-06-02 13:22 UTC
 
 Commit: feat: Landing page — improved contrast, social links, origin story
