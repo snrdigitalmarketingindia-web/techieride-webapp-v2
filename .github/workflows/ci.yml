@@ -71,9 +71,12 @@ jobs:
       - run: npm run db:push -- --accept-data-loss
       - run: npm run db:seed
 
+      - name: Create log directory
+        run: mkdir -p /tmp/tr-logs
+
       - name: Start API server
         run: |
-          npm run dev --workspace=apps/api > /tmp/techieride-api.log 2>&1 &
+          npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready" && break
             sleep 2
@@ -82,58 +85,58 @@ jobs:
       - name: Run base API tests (37)
         id: test_base
         continue-on-error: true
-        run: npm run test:api
+        run: npm run test:api 2>&1 | tee /tmp/tr-logs/01-base.log
       - name: Run extended API tests (30)
         id: test_extended
         continue-on-error: true
-        run: npm run test:api:extended
+        run: npm run test:api:extended 2>&1 | tee /tmp/tr-logs/02-extended.log
       - name: Run negative API tests (30)
         id: test_negative
         continue-on-error: true
-        run: npm run test:api:negative
+        run: npm run test:api:negative 2>&1 | tee /tmp/tr-logs/03-negative.log
       - name: Run business rules tests
         id: test_rules
         continue-on-error: true
-        run: npm run test:api:rules
+        run: npm run test:api:rules 2>&1 | tee /tmp/tr-logs/04-rules.log
       - name: Run production coverage tests
         id: test_coverage
         continue-on-error: true
-        run: npm run test:api:coverage
+        run: npm run test:api:coverage 2>&1 | tee /tmp/tr-logs/05-coverage.log
       - name: Run final gap-closing tests
         id: test_final
         continue-on-error: true
-        run: npm run test:api:final
+        run: npm run test:api:final 2>&1 | tee /tmp/tr-logs/06-final.log
       - name: Run ratings & SOS P0 tests
         id: test_ratings_sos
         continue-on-error: true
-        run: npm run test:api:ratings-sos
+        run: npm run test:api:ratings-sos 2>&1 | tee /tmp/tr-logs/07-ratings-sos.log
       - name: Run notifications P0 tests
         id: test_notifications
         continue-on-error: true
-        run: npm run test:api:notifications
+        run: npm run test:api:notifications 2>&1 | tee /tmp/tr-logs/08-notifications.log
       - name: Run audit trail observable tests
         id: test_audit
         continue-on-error: true
-        run: npm run test:api:audit-trail
+        run: npm run test:api:audit-trail 2>&1 | tee /tmp/tr-logs/09-audit-trail.log
       - name: Run complaint system P0 tests
         id: test_complaints
         continue-on-error: true
-        run: npm run test:api:complaints
+        run: npm run test:api:complaints 2>&1 | tee /tmp/tr-logs/10-complaints.log
 
       - name: 📊 API test summary
         if: always()
         run: |
           echo "Suite results:"
-          echo "  base        : ${{ steps.test_base.outcome }}"
-          echo "  extended    : ${{ steps.test_extended.outcome }}"
-          echo "  negative    : ${{ steps.test_negative.outcome }}"
-          echo "  rules       : ${{ steps.test_rules.outcome }}"
-          echo "  coverage    : ${{ steps.test_coverage.outcome }}"
-          echo "  final       : ${{ steps.test_final.outcome }}"
-          echo "  ratings-sos : ${{ steps.test_ratings_sos.outcome }}"
-          echo "  notifications: ${{ steps.test_notifications.outcome }}"
-          echo "  audit-trail : ${{ steps.test_audit.outcome }}"
-          echo "  complaints  : ${{ steps.test_complaints.outcome }}"
+          echo "  01-base         : ${{ steps.test_base.outcome }}"
+          echo "  02-extended     : ${{ steps.test_extended.outcome }}"
+          echo "  03-negative     : ${{ steps.test_negative.outcome }}"
+          echo "  04-rules        : ${{ steps.test_rules.outcome }}"
+          echo "  05-coverage     : ${{ steps.test_coverage.outcome }}"
+          echo "  06-final        : ${{ steps.test_final.outcome }}"
+          echo "  07-ratings-sos  : ${{ steps.test_ratings_sos.outcome }}"
+          echo "  08-notifications: ${{ steps.test_notifications.outcome }}"
+          echo "  09-audit-trail  : ${{ steps.test_audit.outcome }}"
+          echo "  10-complaints   : ${{ steps.test_complaints.outcome }}"
 
           if [[ \
             "${{ steps.test_base.outcome }}"          != "success" || \
@@ -148,18 +151,19 @@ jobs:
             "${{ steps.test_complaints.outcome }}"    != "success" \
           ]]; then
             echo ""
-            echo "❌ One or more API test suites failed — see results above."
+            echo "❌ One or more API test suites failed — see artifacts for details."
             exit 1
           fi
           echo ""
           echo "✅ All API test suites passed."
 
-      - name: Upload API log on failure
-        if: failure()
+      - name: 📁 Upload test logs (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: api-log
-          path: /tmp/techieride-api.log
+          name: api-test-logs
+          path: /tmp/tr-logs/
+          retention-days: 30
 
   # ── Stage 3: Security Tests ─────────────────────────────────────────────────
   security-tests:
@@ -202,9 +206,12 @@ jobs:
       - run: npm run db:push -- --accept-data-loss
       - run: npm run db:seed
 
+      - name: Create log directory
+        run: mkdir -p /tmp/tr-logs
+
       - name: Start API server
         run: |
-          npm run dev --workspace=apps/api > /tmp/techieride-api.log 2>&1 &
+          npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready" && break
             sleep 2
@@ -213,7 +220,7 @@ jobs:
       - name: Run API security tests
         id: test_security
         continue-on-error: true
-        run: npm run test:api:security
+        run: npm run test:api:security 2>&1 | tee /tmp/tr-logs/security.log
 
       - name: 📊 Security test summary
         if: always()
@@ -225,12 +232,13 @@ jobs:
           fi
           echo "✅ Security tests passed."
 
-      - name: Upload API log on failure
-        if: failure()
+      - name: 📁 Upload security logs (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: security-api-log
-          path: /tmp/techieride-api.log
+          name: security-test-logs
+          path: /tmp/tr-logs/
+          retention-days: 30
 
   # ── Stage 4: E2E Tests (Playwright) ────────────────────────────────────────
   playwright-tests:
@@ -280,9 +288,12 @@ jobs:
         env:
           DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
 
+      - name: Create log directory
+        run: mkdir -p /tmp/tr-logs
+
       - name: Start API server
         run: |
-          npm run dev --workspace=apps/api > /tmp/techieride-api.log 2>&1 &
+          npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready" && break
             sleep 2
@@ -290,7 +301,7 @@ jobs:
 
       - name: Start web server
         run: |
-          npm run dev --workspace=apps/web > /tmp/techieride-web.log 2>&1 &
+          npm run dev --workspace=apps/web > /tmp/tr-logs/web-server.log 2>&1 &
           for i in $(seq 1 30); do
             curl -sf http://localhost:3000 > /dev/null 2>&1 && echo "Web ready" && break
             sleep 2
@@ -311,23 +322,16 @@ jobs:
           fi
           echo "✅ Playwright tests passed."
 
-      - name: Upload Playwright report on failure
-        if: failure()
+      - name: 📁 Upload Playwright report + server logs (always)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-logs
           path: |
             tests/e2e/report/
             test-results/
-
-      - name: Upload server logs on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-logs
-          path: |
-            /tmp/techieride-api.log
-            /tmp/techieride-web.log
+            /tmp/tr-logs/
+          retention-days: 30
 
   # ── Stage 5: Quality Gate ───────────────────────────────────────────────────
   quality-gate:
