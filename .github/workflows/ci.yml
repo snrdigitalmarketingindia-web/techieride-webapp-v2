@@ -157,89 +157,68 @@ jobs:
           echo ""
           echo "✅ All API test suites passed."
 
-      - name: 📝 Generate failure summary
+      - name: 📝 Write failure summary to Job Summary
         if: always()
         run: |
-          OUT=/tmp/tr-logs/failure-summary.md
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          OUT=$GITHUB_STEP_SUMMARY   # renders inline on the Actions run page — no download needed
+          FILE=/tmp/tr-logs/failure-summary.md  # also saved as standalone artifact
 
-          cat > "$OUT" <<'HEADER'
-          # TechieRide CI — Failure Summary
+          write() { echo "$1" | tee -a "$FILE" >> "$OUT"; }
 
-          > Paste this file into Claude to continue investigating.
-          > Repo: ${{ github.repository }}
-          > Branch: ${{ github.ref_name }}
-          > Commit: ${{ github.sha }}
-          > Run: HEADER
+          write "# TechieRide CI — Test Summary"
+          write ""
+          write "> **Repo:** \`${{ github.repository }}\` · **Branch:** \`${{ github.ref_name }}\` · **Commit:** \`${{ github.sha }}\`"
+          write "> **Run:** $RUN_URL · **Triggered by:** ${{ github.actor }}"
+          write ""
+          write "## Suite Outcomes"
+          write ""
+          write "| Suite | Result |"
+          write "|---|---|"
+          write "| 01-base          | ${{ steps.test_base.outcome }} |"
+          write "| 02-extended      | ${{ steps.test_extended.outcome }} |"
+          write "| 03-negative      | ${{ steps.test_negative.outcome }} |"
+          write "| 04-rules         | ${{ steps.test_rules.outcome }} |"
+          write "| 05-coverage      | ${{ steps.test_coverage.outcome }} |"
+          write "| 06-final         | ${{ steps.test_final.outcome }} |"
+          write "| 07-ratings-sos   | ${{ steps.test_ratings_sos.outcome }} |"
+          write "| 08-notifications | ${{ steps.test_notifications.outcome }} |"
+          write "| 09-audit-trail   | ${{ steps.test_audit.outcome }} |"
+          write "| 10-complaints    | ${{ steps.test_complaints.outcome }} |"
+          write ""
+          write "## Failed Tests"
+          write ""
 
-          # rewrite with actual values (heredoc can't expand vars directly)
-          {
-            echo "# TechieRide CI — Failure Summary"
-            echo ""
-            echo "> Paste this file into Claude to continue investigating."
-            echo "> **Repo:** \`${{ github.repository }}\`"
-            echo "> **Branch:** \`${{ github.ref_name }}\`"
-            echo "> **Commit:** \`${{ github.sha }}\`"
-            echo "> **Run:** $RUN_URL"
-            echo "> **Triggered by:** ${{ github.actor }}"
-            echo ""
-            echo "## Suite Outcomes"
-            echo ""
-            echo "| Suite | Result |"
-            echo "|---|---|"
-            echo "| 01-base          | ${{ steps.test_base.outcome }} |"
-            echo "| 02-extended      | ${{ steps.test_extended.outcome }} |"
-            echo "| 03-negative      | ${{ steps.test_negative.outcome }} |"
-            echo "| 04-rules         | ${{ steps.test_rules.outcome }} |"
-            echo "| 05-coverage      | ${{ steps.test_coverage.outcome }} |"
-            echo "| 06-final         | ${{ steps.test_final.outcome }} |"
-            echo "| 07-ratings-sos   | ${{ steps.test_ratings_sos.outcome }} |"
-            echo "| 08-notifications | ${{ steps.test_notifications.outcome }} |"
-            echo "| 09-audit-trail   | ${{ steps.test_audit.outcome }} |"
-            echo "| 10-complaints    | ${{ steps.test_complaints.outcome }} |"
-            echo ""
-            echo "## Failed Tests"
-            echo ""
-          } > "$OUT"
-
-          # Extract FAIL lines + the error message on the same line from every log
           found=0
           for log in /tmp/tr-logs/0*.log /tmp/tr-logs/1*.log; do
             [ -f "$log" ] || continue
             suite=$(basename "$log" .log)
-            # Grab every ❌ FAIL line
-            fails=$(grep -n "❌ FAIL" "$log" 2>/dev/null || true)
+            fails=$(grep "❌ FAIL" "$log" 2>/dev/null || true)
             if [ -n "$fails" ]; then
               found=1
-              echo "### $suite" >> "$OUT"
-              echo "" >> "$OUT"
-              echo '```' >> "$OUT"
-              echo "$fails" >> "$OUT"
-              echo '```' >> "$OUT"
-              echo "" >> "$OUT"
-              # Also grab the final Results line for context
-              results=$(grep -E "Results:|passed|failed" "$log" | tail -5 || true)
+              write "### $suite"
+              write ""
+              write '```'
+              echo "$fails" | tee -a "$FILE" >> "$OUT"
+              write '```'
+              write ""
+              results=$(grep -E "passed|failed" "$log" | tail -3 || true)
               if [ -n "$results" ]; then
-                echo "**Results line:**" >> "$OUT"
-                echo '```' >> "$OUT"
-                echo "$results" >> "$OUT"
-                echo '```' >> "$OUT"
-                echo "" >> "$OUT"
+                write '```'
+                echo "$results" | tee -a "$FILE" >> "$OUT"
+                write '```'
+                write ""
               fi
             fi
           done
 
           if [ $found -eq 0 ]; then
-            echo "_No failures detected in any suite._" >> "$OUT"
+            write "✅ _No failures — all suites passed._"
+          else
+            write "---"
+            write "_Paste \`failure-summary.md\` (from \`api-test-logs\` artifact) into Claude and say:_"
+            write "> CI run failed. Here is the failure summary — please investigate and fix."
           fi
-
-          echo "## Next Steps" >> "$OUT"
-          echo "" >> "$OUT"
-          echo "Share this file with Claude (TRWebApp_v2 session) and say:" >> "$OUT"
-          echo '> "CI run failed. Here is the failure summary — please investigate and fix."' >> "$OUT"
-
-          echo "--- failure-summary.md ---"
-          cat "$OUT"
 
       - name: 📁 Upload test logs + failure summary (always)
         if: always()
@@ -316,31 +295,33 @@ jobs:
           fi
           echo "✅ Security tests passed."
 
-      - name: 📝 Generate security failure summary
+      - name: 📝 Write security summary to Job Summary
         if: always()
         run: |
-          OUT=/tmp/tr-logs/failure-summary.md
           RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          {
-            echo "# TechieRide CI — Security Failure Summary"
-            echo ""
-            echo "> **Repo:** \`${{ github.repository }}\`  **Branch:** \`${{ github.ref_name }}\`  **Commit:** \`${{ github.sha }}\`"
-            echo "> **Run:** $RUN_URL"
-            echo ""
-            echo "| Suite | Result |"
-            echo "|---|---|"
-            echo "| security | ${{ steps.test_security.outcome }} |"
-            echo ""
-            echo "## Failed Tests"
-            echo ""
-          } > "$OUT"
-          fails=$(grep -n "❌ FAIL" /tmp/tr-logs/security.log 2>/dev/null || true)
+          OUT=$GITHUB_STEP_SUMMARY
+          FILE=/tmp/tr-logs/failure-summary.md
+          write() { echo "$1" | tee -a "$FILE" >> "$OUT"; }
+
+          write "# TechieRide CI — Security Test Summary"
+          write ""
+          write "> **Repo:** \`${{ github.repository }}\` · **Branch:** \`${{ github.ref_name }}\` · **Commit:** \`${{ github.sha }}\`"
+          write "> **Run:** $RUN_URL"
+          write ""
+          write "| Suite | Result |"
+          write "|---|---|"
+          write "| security | ${{ steps.test_security.outcome }} |"
+          write ""
+          write "## Failed Tests"
+          write ""
+          fails=$(grep "❌ FAIL" /tmp/tr-logs/security.log 2>/dev/null || true)
           if [ -n "$fails" ]; then
-            echo '```' >> "$OUT"; echo "$fails" >> "$OUT"; echo '```' >> "$OUT"
+            write '```'
+            echo "$fails" | tee -a "$FILE" >> "$OUT"
+            write '```'
           else
-            echo "_No failures detected._" >> "$OUT"
+            write "✅ _No failures — security suite passed._"
           fi
-          cat "$OUT"
 
       - name: 📁 Upload security logs (always)
         if: always()
