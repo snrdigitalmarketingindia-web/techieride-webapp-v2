@@ -1,325 +1,207 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api';
 
-// ── Types ──────────────────────────────────────────────────────────────────
-interface VerificationRequest {
-  id: string;
-  verificationType: 'EMPLOYEE' | 'DRIVER' | 'EXCEPTION';
-  employeeIdUrl?: string;
-  drivingLicenseUrl?: string;
-  rcUrl?: string;
-  exceptionReason?: string;
-  submittedAt: string;
-  user: { fullName: string; email: string; phone?: string; companyName?: string; accountStatus: string };
-}
+const TYPE_BADGE: Record<string, { label: string; cls: string }> = {
+  EMPLOYEE:  { label: '📋 Employee ID', cls: 'bg-blue-100 text-blue-700' },
+  DRIVER:    { label: '🚗 Driver Docs', cls: 'bg-purple-100 text-purple-700' },
+  EXCEPTION: { label: '🔍 Exception',   cls: 'bg-orange-100 text-orange-700' },
+};
 
-interface EmailPendingUser {
-  id: string;
-  fullName: string;
-  email: string;
-  companyName?: string;
-  accountStatus: string;
-  createdAt: string;
-}
+const STATUS_BADGE: Record<string, string> = {
+  EMAIL_VERIFICATION_PENDING:    'bg-gray-100 text-gray-500',
+  DOCUMENT_VERIFICATION_PENDING: 'bg-yellow-100 text-yellow-700',
+  DRIVER_VERIFICATION_PENDING:   'bg-purple-100 text-purple-700',
+  EXCEPTION_VERIFICATION_REQUESTED: 'bg-orange-100 text-orange-700',
+};
 
-// ── Tabs config ────────────────────────────────────────────────────────────
-const TABS = [
-  { key: 'email',      label: 'Email Pending',      icon: '📧', desc: 'Registered but email not verified' },
-  { key: 'exception',  label: 'Exception Requests',  icon: '🔍', desc: 'Manual identity verification' },
-  { key: 'document',   label: 'Document Review',     icon: '📋', desc: 'Employee ID + company ID card' },
-  { key: 'driver',     label: 'Driver Review',       icon: '🚗', desc: 'Driving licence + RC' },
-] as const;
-
-type TabKey = typeof TABS[number]['key'];
-
-// ── Inline reject form ────────────────────────────────────────────────────
-function RejectForm({ onSubmit, onCancel, loading }: {
-  onSubmit: (reason: string) => void;
-  onCancel: () => void;
-  loading: boolean;
-}) {
-  const [reason, setReason] = useState('');
-  return (
-    <div className="mt-3 space-y-2">
-      <textarea
-        value={reason}
-        onChange={e => setReason(e.target.value)}
-        rows={2}
-        placeholder="Rejection reason (e.g. Blurry photo, ID expired, not matching company)"
-        className="w-full text-sm px-3 py-2 border border-red-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 resize-none"
-      />
-      <div className="flex gap-2">
-        <button onClick={() => onSubmit(reason)} disabled={loading || !reason.trim()}
-          className="flex-1 bg-red-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition">
-          {loading ? '⏳ Rejecting…' : 'Confirm Reject'}
-        </button>
-        <button onClick={onCancel} disabled={loading}
-          className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Document links ─────────────────────────────────────────────────────────
-function DocLinks({ req }: { req: VerificationRequest }) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {req.employeeIdUrl && (
-        <a href={req.employeeIdUrl} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-brand-600 border border-brand-200 bg-brand-50 px-3 py-1.5 rounded-lg hover:bg-brand-100 transition">
-          🪪 Company ID
-        </a>
-      )}
-      {req.drivingLicenseUrl && (
-        <a href={req.drivingLicenseUrl} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-brand-600 border border-brand-200 bg-brand-50 px-3 py-1.5 rounded-lg hover:bg-brand-100 transition">
-          📄 Driving License
-        </a>
-      )}
-      {req.rcUrl && (
-        <a href={req.rcUrl} target="_blank" rel="noopener noreferrer"
-          className="text-xs text-brand-600 border border-brand-200 bg-brand-50 px-3 py-1.5 rounded-lg hover:bg-brand-100 transition">
-          🚗 RC
-        </a>
-      )}
-      {req.exceptionReason && (
-        <div className="w-full mt-1 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-xs text-orange-800">
-          <span className="font-medium">Exception reason: </span>{req.exceptionReason}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Verification card ──────────────────────────────────────────────────────
-function VerificationCard({ req, onReview }: {
-  req: VerificationRequest;
-  onReview: (id: string, decision: 'APPROVED' | 'REJECTED', reason?: string) => Promise<void>;
-}) {
-  const [processing, setProcessing] = useState(false);
-  const [showReject, setShowReject] = useState(false);
-
-  const approve = async () => {
-    setProcessing(true);
-    try { await onReview(req.id, 'APPROVED'); }
-    finally { setProcessing(false); }
-  };
-
-  const reject = async (reason: string) => {
-    setProcessing(true);
-    try { await onReview(req.id, 'REJECTED', reason); setShowReject(false); }
-    finally { setProcessing(false); }
-  };
-
-  const typeLabels: Record<string, string> = {
-    EMPLOYEE: '📋 Employee',
-    DRIVER: '🚗 Driver',
-    EXCEPTION: '🔍 Exception',
-  };
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
-            <p className="font-semibold text-gray-900">{req.user.fullName}</p>
-            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-              {typeLabels[req.verificationType]}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500">{req.user.email}</p>
-          {req.user.phone && <p className="text-xs text-gray-400">{req.user.phone}</p>}
-          {req.user.companyName && <p className="text-xs text-gray-400">{req.user.companyName}</p>}
-        </div>
-        <p className="text-xs text-gray-400 shrink-0">
-          {new Date(req.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </p>
-      </div>
-
-      <DocLinks req={req} />
-
-      {!showReject ? (
-        <div className="flex gap-2">
-          <button onClick={approve} disabled={processing}
-            className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition">
-            {processing ? '⏳' : '✅ Approve'}
-          </button>
-          <button onClick={() => setShowReject(true)} disabled={processing}
-            className="flex-1 bg-red-50 text-red-700 border border-red-200 py-2 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50 transition">
-            ❌ Reject
-          </button>
-        </div>
-      ) : (
-        <RejectForm onSubmit={reject} onCancel={() => setShowReject(false)} loading={processing} />
-      )}
-    </div>
-  );
-}
-
-// ── Main page ──────────────────────────────────────────────────────────────
 export default function AdminVerificationPage() {
-  const [activeTab, setActiveTab] = useState<TabKey>('document');
-  const [counts, setCounts] = useState<Record<TabKey, number>>({ email: 0, exception: 0, document: 0, driver: 0 });
-  const [emailQueue, setEmailQueue] = useState<EmailPendingUser[]>([]);
-  const [verificationQueues, setVerificationQueues] = useState<Record<string, VerificationRequest[]>>({
-    exception: [], document: [], driver: [],
-  });
+  const router = useRouter();
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [processing, setProcessing] = useState<string | null>(null);
 
-  const loadAll = useCallback(async () => {
+  const load = useCallback(() => {
     setLoading(true);
-    try {
-      const [emailRes, exceptionRes, documentRes, driverRes] = await Promise.all([
-        adminApi.getEmailPendingQueue(),
-        adminApi.getExceptionQueue(),
-        adminApi.getDocumentQueue(),
-        adminApi.getDriverQueue(),
-      ]);
-      setEmailQueue(emailRes.data);
-      setVerificationQueues({
-        exception: exceptionRes.data,
-        document: documentRes.data,
-        driver: driverRes.data,
-      });
-      setCounts({
-        email: emailRes.data.length,
-        exception: exceptionRes.data.length,
-        document: documentRes.data.length,
-        driver: driverRes.data.length,
-      });
-    } finally {
-      setLoading(false);
-    }
+    adminApi.getPendingVerifications()
+      .then((r) => setRequests(r.data))
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { load(); }, [load]);
 
-  const handleReview = async (id: string, decision: 'APPROVED' | 'REJECTED', reason?: string) => {
-    await adminApi.reviewVerification(id, { decision, rejectionReason: reason });
-    // Remove from whichever queue it was in
-    setVerificationQueues(prev => {
-      const updated = { ...prev };
-      for (const key of Object.keys(updated)) {
-        updated[key] = updated[key].filter(r => r.id !== id);
-      }
-      return updated;
-    });
-    setCounts(prev => {
-      const key = activeTab;
-      return { ...prev, [key]: Math.max(0, prev[key] - 1) };
-    });
+  const review = async (id: string, decision: 'APPROVED' | 'REJECTED', reason?: string) => {
+    setProcessing(id);
+    try {
+      await adminApi.reviewVerification(id, { decision, rejectionReason: reason });
+      setRequests((prev) => prev.filter((r) => r.id !== id));
+      setRejectingId(null);
+      setRejectReason('');
+    } finally {
+      setProcessing(null);
+    }
   };
 
-  const totalPending = counts.exception + counts.document + counts.driver;
+  const grouped = {
+    EMPLOYEE:  requests.filter((r) => r.verificationType === 'EMPLOYEE'),
+    DRIVER:    requests.filter((r) => r.verificationType === 'DRIVER'),
+    EXCEPTION: requests.filter((r) => r.verificationType === 'EXCEPTION'),
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Verification Queues</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Verification Queue</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {totalPending} pending review · {counts.email} email unverified
+            {loading ? '…' : `${requests.length} pending review`}
+            {!loading && grouped.EMPLOYEE.length > 0 && ` · ${grouped.EMPLOYEE.length} Employee`}
+            {!loading && grouped.DRIVER.length > 0 && ` · ${grouped.DRIVER.length} Driver`}
+            {!loading && grouped.EXCEPTION.length > 0 && ` · ${grouped.EXCEPTION.length} Exception`}
           </p>
         </div>
-        <button onClick={loadAll} disabled={loading}
+        <button onClick={load} disabled={loading}
           className="text-sm text-brand-600 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition disabled:opacity-50">
-          {loading ? '⏳ Loading…' : '↻ Refresh'}
+          {loading ? '⏳' : '↻ Refresh'}
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl overflow-x-auto">
-        {TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap min-w-0 ${
-              activeTab === tab.key
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <span>{tab.icon}</span>
-            <span className="hidden sm:inline">{tab.label}</span>
-            {counts[tab.key] > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-                activeTab === tab.key
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-gray-200 text-gray-600'
-              }`}>
-                {counts[tab.key]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab description */}
-      <p className="text-sm text-gray-500">
-        {TABS.find(t => t.key === activeTab)?.desc}
-      </p>
-
       {loading ? (
-        <div className="text-center py-16 text-gray-400">Loading queues…</div>
+        <div className="text-center py-20 text-gray-400">Loading…</div>
+      ) : requests.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 py-20 text-center">
+          <p className="text-4xl mb-3">✅</p>
+          <p className="text-gray-600 font-medium">All caught up!</p>
+          <p className="text-gray-400 text-sm mt-1">No pending verification requests.</p>
+        </div>
       ) : (
-        <>
-          {/* ── Queue 1: Email Pending ──────────────────────────────────── */}
-          {activeTab === 'email' && (
-            emailQueue.length === 0 ? (
-              <EmptyState icon="📧" message="No users stuck in email verification." />
-            ) : (
-              <div className="space-y-3">
-                {emailQueue.map(u => (
-                  <div key={u.id} className="bg-white rounded-xl border border-gray-200 p-5 flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-gray-900">{u.fullName}</p>
-                      <p className="text-sm text-gray-500">{u.email}</p>
-                      {u.companyName && <p className="text-xs text-gray-400">{u.companyName}</p>}
-                      <p className="text-xs text-gray-400 mt-1">
-                        Registered {new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
-                    </div>
-                    <span className="shrink-0 text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">
-                      📧 Email Pending
-                    </span>
-                  </div>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {['User', 'Type', 'Documents', 'Submitted', 'Actions'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
-              </div>
-            )
-          )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {requests.map((req) => {
+                const badge = TYPE_BADGE[req.verificationType];
+                const isRejecting = rejectingId === req.id;
+                const isProcessing = processing === req.id;
 
-          {/* ── Queues 2, 3, 4: Verification requests with approve/reject ── */}
-          {(activeTab === 'exception' || activeTab === 'document' || activeTab === 'driver') && (
-            verificationQueues[activeTab]?.length === 0 ? (
-              <EmptyState
-                icon={activeTab === 'exception' ? '🔍' : activeTab === 'document' ? '📋' : '🚗'}
-                message={`No pending ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} requests.`}
-              />
-            ) : (
-              <div className="space-y-4">
-                {verificationQueues[activeTab]?.map(req => (
-                  <VerificationCard key={req.id} req={req} onReview={handleReview} />
-                ))}
-              </div>
-            )
-          )}
-        </>
+                return (
+                  <tr key={req.id} className="hover:bg-gray-50">
+                    {/* User */}
+                    <td className="px-4 py-4">
+                      <button
+                        onClick={() => router.push(`/admin/users/${req.userId}`)}
+                        className="text-left hover:underline"
+                      >
+                        <p className="font-medium text-gray-900">{req.user.fullName}</p>
+                        <p className="text-xs text-gray-400">{req.user.email}</p>
+                        {req.user.companyName && <p className="text-xs text-gray-400">{req.user.companyName}</p>}
+                      </button>
+                      <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${STATUS_BADGE[req.user.accountStatus] ?? 'bg-gray-100 text-gray-500'}`}>
+                        {req.user.accountStatus.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+
+                    {/* Type */}
+                    <td className="px-4 py-4">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${badge?.cls}`}>
+                        {badge?.label}
+                      </span>
+                    </td>
+
+                    {/* Documents */}
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col gap-1">
+                        {req.employeeIdUrl && (
+                          <a href={req.employeeIdUrl} target="_blank" rel="noreferrer"
+                            className="text-xs text-brand-600 hover:underline">📄 Employee ID</a>
+                        )}
+                        {req.drivingLicenseUrl && (
+                          <a href={req.drivingLicenseUrl} target="_blank" rel="noreferrer"
+                            className="text-xs text-brand-600 hover:underline">🪪 Driving Licence</a>
+                        )}
+                        {req.rcUrl && (
+                          <a href={req.rcUrl} target="_blank" rel="noreferrer"
+                            className="text-xs text-brand-600 hover:underline">🚗 RC</a>
+                        )}
+                        {req.exceptionReason && (
+                          <p className="text-xs text-orange-600 italic max-w-xs">"{req.exceptionReason}"</p>
+                        )}
+                        {!req.employeeIdUrl && !req.drivingLicenseUrl && !req.rcUrl && (
+                          <span className="text-xs text-gray-400">No docs uploaded</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Submitted */}
+                    <td className="px-4 py-4 text-xs text-gray-400 whitespace-nowrap">
+                      {new Date(req.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-4 py-4">
+                      {isRejecting ? (
+                        <div className="space-y-2 min-w-[200px]">
+                          <textarea
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            rows={2}
+                            placeholder="Rejection reason (required)"
+                            className="w-full text-xs px-2 py-1.5 border border-red-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400 resize-none"
+                          />
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => { if (rejectReason.trim()) review(req.id, 'REJECTED', rejectReason); }}
+                              disabled={isProcessing || !rejectReason.trim()}
+                              className="flex-1 text-xs bg-red-600 text-white py-1.5 rounded-lg hover:bg-red-700 disabled:opacity-50 transition">
+                              {isProcessing ? '⏳' : 'Reject'}
+                            </button>
+                            <button onClick={() => { setRejectingId(null); setRejectReason(''); }}
+                              className="text-xs px-3 py-1.5 border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition">
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => review(req.id, 'APPROVED')}
+                            disabled={isProcessing}
+                            className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition">
+                            {isProcessing ? '⏳' : '✅ Approve'}
+                          </button>
+                          <button
+                            onClick={() => setRejectingId(req.id)}
+                            disabled={isProcessing}
+                            className="text-xs bg-red-50 text-red-700 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-100 disabled:opacity-50 transition">
+                            ❌ Reject
+                          </button>
+                          <button
+                            onClick={() => router.push(`/admin/users/${req.userId}`)}
+                            className="text-xs text-brand-600 hover:underline">
+                            View Full Profile →
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
-  );
-}
-
-function EmptyState({ icon, message }: { icon: string; message: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
-      <p className="text-4xl mb-3">{icon}</p>
-      <p className="text-gray-500 text-sm">{message}</p>
-      <p className="text-gray-400 text-xs mt-1">All caught up!</p>
     </div>
   );
 }
