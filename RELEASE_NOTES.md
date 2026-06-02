@@ -2,6 +2,24 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 253 · fc8b7f7 · 2026-06-02 07:50 UTC
+
+Commit: Add global designer footer + inline pending requests on dashboard + 15s polling
+
+- layout.tsx: Designed by SNR Digital Marketing footer on every page (blue link)
+- dashboard: show seeker name + Approve/Reject buttons inline instead of count badge
+- dashboard + rides: poll pending requests every 15s so new requests appear without manual refresh
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/src/app/(dashboard)/dashboard/page.tsx
+- apps/web/src/app/(dashboard)/rides/page.tsx
+- apps/web/src/app/layout.tsx
+
+---
+
 ## Build 251 · 81f0998 · 2026-06-02 07:20 UTC
 
 Commit: Fix CMP-23: use valid UUID v4 format for fake reportedId
