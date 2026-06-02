@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 324 · 969ebfa · 2026-06-02 18:03 UTC
+
+Commit: fix: add TechieRide display name to email from address
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/src/modules/email/email.service.ts
+
+---
+
 ## Build 322 · 4501072 · 2026-06-02 17:34 UTC
 
 Commit: fix: ensure npm install runs on start to pick up new cloudinary dependency
