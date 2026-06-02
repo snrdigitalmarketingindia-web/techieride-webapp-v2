@@ -2,6 +2,16 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 301 · d98b4a7 · 2026-06-02 14:03 UTC
+
+Commit: ci: add [skip vercel] to release-notes commits [skip vercel]
+Author: Srinivas Reddy
+
+Files changed:
+- .github/workflows/release-notes.yml
+
+---
+
 ## Build 299 · 12df90d · 2026-06-02 13:44 UTC
 
 Commit: ci: retrigger Vercel deploy
