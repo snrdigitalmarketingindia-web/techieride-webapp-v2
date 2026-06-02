@@ -21,7 +21,7 @@ const redis_module_1 = require("../../config/redis.module");
 const prisma_service_1 = require("../../prisma/prisma.service");
 const notifications_service_1 = require("../notifications/notifications.service");
 const shared_1 = require("@techieride/shared");
-const PENDING_EXPIRY_HOURS = 24;
+const PENDING_EXPIRY_HOURS = 4;
 const USER_CONTACT_SELECT = {
     id: true, fullName: true, profilePhoto: true,
     companyName: true, phone: true, countryCode: true,

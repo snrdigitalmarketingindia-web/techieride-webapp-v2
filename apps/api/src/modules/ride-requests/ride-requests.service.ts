@@ -15,7 +15,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { NotificationType, REDIS_KEYS } from '@techieride/shared';
 
-const PENDING_EXPIRY_HOURS = 24;
+const PENDING_EXPIRY_HOURS = 4;
 
 const USER_CONTACT_SELECT = {
   id: true, fullName: true, profilePhoto: true,
