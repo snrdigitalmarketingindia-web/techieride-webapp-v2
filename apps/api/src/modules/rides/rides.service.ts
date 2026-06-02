@@ -311,7 +311,7 @@ export class RidesService {
     // Reject any PENDING requests that were never approved before completion
     await this.prisma.rideRequest.updateMany({
       where: { rideId, status: 'PENDING' },
-      data: { status: 'REJECTED', rejectionReason: 'Ride has been completed' },
+      data: { status: 'REJECTED', cancelReason: 'Ride has been completed' },
     });
 
     // Award ECO + Trust points
