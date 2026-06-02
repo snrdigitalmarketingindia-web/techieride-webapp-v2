@@ -2,6 +2,26 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 246 · ffe8cc2 · 2026-06-02 06:42 UTC
+
+Commit: assets: replace logo.png with new TechieRide circular brand mark
+
+New logo: TRLogo_White.png (1254×1254 square PNG)
+Copied to logo.png — used by all 13 Image placements across
+auth pages, dashboard nav, admin sidebar, loading spinners,
+and browser favicon (layout.tsx icons config).
+
+Original source file retained as TRLogo_White.png for reference.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- apps/web/public/TRLogo_White.png
+- apps/web/public/logo.png
+
+---
+
 ## Build 244 · e7ed6b3 · 2026-06-02 06:32 UTC
 
 Commit: ci: complete Job Summary coverage across all 3 test stages + quality gate
