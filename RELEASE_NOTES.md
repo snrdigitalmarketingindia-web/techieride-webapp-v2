@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 201 · 8032f82 · 2026-06-02 02:38 UTC
+
+Commit: fix(security-tests): /ride-requests → /ride-requests/mine
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e-api-security.ts
+
+---
+
 ## Build 199 · d2c95a0 · 2026-06-02 02:28 UTC
 
 Commit: fix(security-tests): fix XSS assertion + BAC-04 route
