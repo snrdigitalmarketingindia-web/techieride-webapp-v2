@@ -62,7 +62,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Image src="/TR_Logo_black.png" alt="Techieride" width={40} height={40} className="object-contain" priority />
           <span className="text-xs font-medium text-gray-400 hidden sm:inline">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
+          <span className="text-[10px] text-gray-400 hidden sm:inline">
+            Designed by{' '}
+            <a href="https://www.snrdigitalmarketing.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 transition">
+              SNR Digital Marketing
+            </a>
+          </span>
           {user && (
             <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition">
               <span className="text-sm font-medium text-gray-700">{user.fullName?.split(' ')[0]}</span>
