@@ -2,6 +2,21 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 205 · 3ccb2b7 · 2026-06-02 03:01 UTC
+
+Commit: fix(e2e-security): use correct login form placeholders
+
+getByPlaceholder(/email/i) never matched 'you@company.com' → timeout.
+Use exact placeholder strings matching the login page.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e/security.spec.ts
+
+---
+
 ## Build 203 · aab85af · 2026-06-02 02:48 UTC
 
 Commit: fix(ci): replace --ignore flag with single playwright test run
