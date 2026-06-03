@@ -16,7 +16,7 @@ async function main() {
   // ── Admin ──────────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@techieride.in' },
-    update: { accountStatus: AccountStatus.EMPLOYEE_VERIFIED, emailStatus: 'VERIFIED' },
+    update: { accountStatus: AccountStatus.EMPLOYEE_VERIFIED, emailStatus: 'VERIFIED', isActive: true },
     create: {
       email: 'admin@techieride.in',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -54,7 +54,7 @@ async function main() {
   // ── Ride Seeker: Arjun ─────────────────────────────────────────────────
   const arjun = await prisma.user.upsert({
     where: { email: 'arjun@tcs.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED, isActive: true },
     create: {
       email: 'arjun@tcs.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -96,7 +96,7 @@ async function main() {
   // ── Ride Seeker: Tapaswini ─────────────────────────────────────────────
   const tapaswini = await prisma.user.upsert({
     where: { email: 'tapaswini@tapaswini.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED, isActive: true },
     create: {
       email: 'tapaswini@tapaswini.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -138,7 +138,7 @@ async function main() {
   // ── Ride Giver: Rahul ──────────────────────────────────────────────────
   const rahul = await prisma.user.upsert({
     where: { email: 'rahul@rahul.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.DRIVER_VERIFIED },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.DRIVER_VERIFIED, isActive: true },
     create: {
       email: 'rahul@rahul.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -241,7 +241,16 @@ async function main() {
       : AccountStatus.EMPLOYEE_VERIFIED;
     const u = await prisma.user.upsert({
       where: { email: acc.email },
-      update: { accountStatus: acctStatus, emailStatus: 'VERIFIED' },
+      update: {
+        // System fields only — never overwrite user-editable profile fields
+        // (fullName, phone, gender, bloodGroup, companyName, homeLocation,
+        //  officeLocation, personalEmail, profilePhoto, countryCode all preserved)
+        accountStatus: acctStatus,
+        emailStatus: 'VERIFIED',
+        verificationStatus: VerificationStatus.APPROVED,
+        role: acc.role,
+        isActive: true,
+      },
       create: {
         email: acc.email,
         passwordHash: await hashPw(SEED_PASSWORD),

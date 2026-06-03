@@ -208,11 +208,10 @@ export default function RideSearchPage() {
   // Also auto-search today's rides on mount
   useEffect(() => {
     requestsApi.getMine().then((r) => {
-      const active: Record<string, 'pending'> = {};
+      const active: Record<string, 'pending' | 'confirmed'> = {};
       for (const req of r.data ?? []) {
-        if (['PENDING', 'CONFIRMED'].includes(req.status)) {
-          active[req.ride?.id] = 'pending';
-        }
+        if (req.status === 'PENDING') active[req.ride?.id] = 'pending';
+        if (req.status === 'CONFIRMED') active[req.ride?.id] = 'confirmed';
       }
       setRequestedMap(active);
     }).catch(() => {});
@@ -453,6 +452,11 @@ export default function RideSearchPage() {
                 if (reqStatus === 'pending') return (
                   <div className="w-full py-2.5 rounded-lg text-sm font-medium text-center bg-amber-50 text-amber-700 border border-amber-200">
                     ⏳ Awaiting giver's response
+                  </div>
+                );
+                if (reqStatus === 'confirmed') return (
+                  <div className="w-full py-2.5 rounded-lg text-sm font-medium text-center bg-green-100 text-green-800 border border-green-300">
+                    🎉 Seat Confirmed!
                   </div>
                 );
                 if (reqStatus === 'sent') return (
