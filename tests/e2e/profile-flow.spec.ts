@@ -85,14 +85,16 @@ test.describe('👤 Profile Flow', () => {
   test('PF-10: clicking Add/Change personal email shows input field', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await page.getByRole('button', { name: /add|change/i }).first().click();
+    // Personal Email Change button is the last Add/Change button (Official Email's is first)
+    await page.getByRole('button', { name: /add|change/i }).last().click();
     await expect(page.getByPlaceholder(/gmail/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('PF-11: send confirmation email button present for personal email change', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await page.getByRole('button', { name: /add|change/i }).first().click();
+    // Personal Email Change button is the last Add/Change button (Official Email's is first)
+    await page.getByRole('button', { name: /add|change/i }).last().click();
     await expect(page.getByRole('button', { name: /send confirmation/i })).toBeVisible({ timeout: 5_000 });
   });
 
@@ -105,12 +107,12 @@ test.describe('👤 Profile Flow', () => {
     await expect(page.getByRole('button', { name: /change/i }).last()).toBeVisible();
   });
 
-  // ── Emergency Contact ────────────────────────────────────────────────────
+  // ── Verification Documents ───────────────────────────────────────────────
 
-  test('PF-13: emergency contact section visible', async ({ page }) => {
+  test('PF-13: verification documents section visible on profile', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await expect(page.getByText(/emergency contact/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/verification documents/i)).toBeVisible({ timeout: 8_000 });
   });
 
   test('PF-14: add emergency contact form opens', async ({ page }) => {
@@ -129,7 +131,7 @@ test.describe('👤 Profile Flow', () => {
   test('PF-15: seeker profile shows Become a Giver CTA', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await expect(page.getByText(/become a giver|offer rides/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/become a giver|offer rides/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('PF-16: giver profile does NOT show Become a Giver CTA', async ({ page }) => {

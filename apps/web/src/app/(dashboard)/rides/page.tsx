@@ -56,15 +56,16 @@ export default function MyRidesPage() {
     }).catch(() => {});
   }, [isGiver]);
 
-  // Fetch rides when tab changes — tab is only set after user hydrates (see effect above)
-  // so this naturally waits for the correct role before fetching.
+  // Fetch rides when tab or hydration changes.
+  // _hasHydrated is needed because givers start on tab='given' and role-effect calls setTab('given')
+  // (same value → no tab change → effect never re-fires without _hasHydrated as a dep).
   useEffect(() => {
-    if (!user) return;
+    if (!user || !_hasHydrated) return;
     setLoading(true);
     const fetch = tab === 'given' ? ridesApi.getGiven() : ridesApi.getTaken();
     fetch.then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; }).finally(() => setLoading(false));
     if (tab === 'taken' && isSeeker) reloadMyRequests();
-  }, [tab]); // tab is only updated after role is known — no need for user?.role here
+  }, [tab, _hasHydrated]);
 
   const reloadMyRequests = () => {
     requestsApi.getMine().then((r) => {

@@ -56,10 +56,9 @@ test.describe('⭐ Rating & Complaint Flow', () => {
     const reqId = req.requestId ?? req.id ?? req.data?.id;
     await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
     await api(giverToken, 'patch', `/rides/${completedRideId}/start`);
-    const parts = await api(giverToken, 'get', `/rides/${completedRideId}/participants`);
-    const pId = (parts.data ?? parts)[0]?.seekerId ?? (parts.data ?? parts)[0]?.id;
-    await api(giverToken, 'patch', `/rides/${completedRideId}/board/${pId}`).catch(() => {});
-    await api(giverToken, 'patch', `/rides/${completedRideId}/deboard/${pId}`).catch(() => {});
+    // Seeker self-boards and self-deboards (no-param PATCH via seeker token)
+    await api(seekerToken, 'patch', `/rides/${completedRideId}/board`).catch(() => {});
+    await api(seekerToken, 'patch', `/rides/${completedRideId}/deboard`).catch(() => {});
     await api(giverToken, 'patch', `/rides/${completedRideId}/complete`);
   });
 
@@ -67,13 +66,13 @@ test.describe('⭐ Rating & Complaint Flow', () => {
 
   test('RF-01: seeker gets rating prompt notification after ride completion', async ({ page }) => {
     await loginUI(page, 'seeker');
-    await page.goto('/notifications');
+    await page.locator('button[aria-label="Notifications"]').click();
     await expect(page.getByText(/rate|experience|completed/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('RF-02: giver gets ride completion notification', async ({ page }) => {
     await loginUI(page, 'giver');
-    await page.goto('/notifications');
+    await page.locator('button[aria-label="Notifications"]').click();
     await expect(page.getByText(/completed/i).first()).toBeVisible({ timeout: 8_000 });
   });
 

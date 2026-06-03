@@ -72,7 +72,7 @@ test.describe('💬 Quick Messages Flow', () => {
     }
 
     await loginUI(page, 'seeker');
-    await page.goto('/notifications');
+    await page.locator('button[aria-label="Notifications"]').click();
     await expect(page.getByText(/message|quick|on my way|route/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
@@ -96,9 +96,12 @@ test.describe('💬 Quick Messages Flow', () => {
     await expect(page.getByText(/on my way|running late|arrived|message/i).first()).toBeVisible({ timeout: 5_000 });
   });
 
-  test('QM-07: seeker sees Quick Message button on their confirmed ride', async ({ page }) => {
+  test('QM-07: seeker sees Quick Message button on their ONGOING ride', async ({ page }) => {
+    // Seeker sees Quick Message only when ride is ONGOING; start it here
+    await api(giverToken, 'patch', `/rides/${rideId}/start`).catch(() => {});
+
     await loginUI(page, 'seeker');
-    await page.goto('/requests');
+    await page.goto('/rides');
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
   });
 

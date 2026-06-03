@@ -55,10 +55,10 @@ test.describe('🔔 Notifications Flow', () => {
     await expect(page.locator('.notification-badge')).toBeVisible({ timeout: 8_000 });
   });
 
-  test('NF-03: notifications page shows notification list', async ({ page }) => {
+  test('NF-03: notifications drawer shows notification list', async ({ page }) => {
     await loginUI(page, 'giver');
-    await page.goto('/notifications');
-    await expect(page.getByRole('heading', { name: /notifications/i })).toBeVisible({ timeout: 8_000 });
+    await page.locator('button[aria-label="Notifications"]').click();
+    await expect(page.getByText('Notifications').first()).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/seat request|arjun/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
@@ -85,7 +85,7 @@ test.describe('🔔 Notifications Flow', () => {
     }
 
     await loginUI(page, 'seeker');
-    await page.goto('/notifications');
+    await page.locator('button[aria-label="Notifications"]').click();
     await expect(page.getByText(/approved|confirmed|seat/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
