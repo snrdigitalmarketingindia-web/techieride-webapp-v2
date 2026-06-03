@@ -2,6 +2,18 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 340 · 49f12c8 · 2026-06-03 00:42 UTC
+
+Commit: fix: correct notification type on new request, show search error, upgrade requests loading skeleton
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/src/modules/ride-requests/ride-requests.service.ts
+- apps/web/src/app/(dashboard)/requests/page.tsx
+- apps/web/src/app/(dashboard)/rides/search/page.tsx
+
+---
+
 ## Build 338 · 8fdb1af · 2026-06-03 00:38 UTC
 
 Commit: fix: block giver cancel on ONGOING ride, fix CAN-08 test seat-freed flow
