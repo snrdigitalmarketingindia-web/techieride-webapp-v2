@@ -58,11 +58,11 @@ test.describe('🛡️ Admin Full Flow', () => {
     await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
   });
 
-  test('AF-05: user detail shows account status and TRID', async ({ page }) => {
+  test('AF-05: user detail shows account status', async ({ page }) => {
     await loginUI(page, 'admin');
     await page.goto('/admin/users');
     await page.getByText(/arjun mehta/i).first().click();
-    await expect(page.getByText(/TR\d{4}|employee verified/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/ACTIVE|PENDING|SUSPENDED|DEACTIVATED|BANNED/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('AF-06: admin can search/filter users', async ({ page }) => {

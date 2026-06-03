@@ -4,7 +4,7 @@
  * QA Architect coverage: all boarding state transitions visible in UI
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
@@ -39,6 +39,7 @@ test.describe('🚏 Boarding Flow', () => {
   test.beforeAll(async () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    await clearActiveRides(giverToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
@@ -81,10 +82,10 @@ test.describe('🚏 Boarding Flow', () => {
     await expect(page.getByText(/yet to board/i)).toBeVisible({ timeout: 8_000 });
   });
 
-  test('BF-03: boarding button visible on ONGOING ride', async ({ page }) => {
-    await loginUI(page, 'giver');
+  test('BF-03: seeker sees boarding button on ONGOING ride', async ({ page }) => {
+    await loginUI(page, 'seeker');
     await page.goto('/rides');
-    await expect(page.getByRole('button', { name: /board|start ride/i }).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('button', { name: /i.ve boarded/i }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('BF-04: after deboard — complete ride button becomes available', async ({ page }) => {

@@ -221,8 +221,9 @@ export default function ProfilePage() {
               { label: 'Blood Group', key: 'bloodGroup',     type: 'text' },
             ].map(({ label, key, type }) => (
               <div key={key}>
-                <label className="text-xs text-gray-500 mb-1 block">{label}</label>
+                <label htmlFor={`edit-${key}`} className="text-xs text-gray-500 mb-1 block">{label}</label>
                 <input
+                  id={`edit-${key}`}
                   type={type}
                   value={(editForm as any)[key]}
                   onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}

@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, request as playwrightRequest } from '@playwright/test';
 
 export const SEED_PASSWORD = 'TechieRide@2024';
 
@@ -17,6 +17,44 @@ export const PHONES = {
   giver:  'rahul@rahul.com',
   seeker: 'arjun@tcs.com',
 };
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
+
+/**
+ * Cancel all PUBLISHED rides and complete all ONGOING rides for the giver.
+ * Call at the start of any beforeAll that needs a clean slate for the giver account.
+ */
+export async function clearActiveRides(giverToken: string) {
+  const ctx = await playwrightRequest.newContext();
+  const res = await ctx.get(`${API}/rides/given`, {
+    headers: { Authorization: `Bearer ${giverToken}` },
+  });
+  const body = await res.json();
+  const rides: any[] = body.data ?? body;
+  if (!Array.isArray(rides)) { await ctx.dispose(); return; }
+
+  for (const ride of rides) {
+    if (ride.status === 'PUBLISHED') {
+      await ctx.patch(`${API}/rides/${ride.id}/cancel`, {
+        headers: { Authorization: `Bearer ${giverToken}` },
+      }).catch(() => {});
+    } else if (ride.status === 'ONGOING') {
+      // Mark all WAITING/BOARDED participants as no-show so complete is unblocked
+      const participants: any[] = ride.participants ?? [];
+      for (const p of participants) {
+        if (p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED') {
+          await ctx.patch(`${API}/rides/${ride.id}/no-show/${p.id}`, {
+            headers: { Authorization: `Bearer ${giverToken}` },
+          }).catch(() => {});
+        }
+      }
+      await ctx.patch(`${API}/rides/${ride.id}/complete`, {
+        headers: { Authorization: `Bearer ${giverToken}` },
+      }).catch(() => {});
+    }
+  }
+  await ctx.dispose();
+}
 
 // ── Login via UI (email + password) ──────────────────────────────
 export async function loginUI(page: Page, emailOrKey: string) {

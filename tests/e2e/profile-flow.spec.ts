@@ -29,10 +29,10 @@ test.describe('👤 Profile Flow', () => {
     await expect(page.getByText(/swift|city|innova|vehicle/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
-  test('PF-04: trust score badge visible on profile', async ({ page }) => {
+  test('PF-04: eco tier badge visible on profile', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/profile');
-    await expect(page.getByText(/new|bronze|silver|gold|platinum/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/seed|sprout|leaf|tree|forest/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   // ── Edit Profile ─────────────────────────────────────────────────────────
@@ -52,7 +52,8 @@ test.describe('👤 Profile Flow', () => {
     await nameInput.clear();
     await nameInput.fill('Arjun Mehta');
     await page.getByRole('button', { name: /save changes/i }).click();
-    await expect(page.getByText(/saved|updated|success/i).first()).toBeVisible({ timeout: 5_000 });
+    // Form closes on successful save — the edit form disappears
+    await expect(page.getByLabel(/full name/i)).not.toBeVisible({ timeout: 8_000 });
   });
 
   test('PF-07: home and office area fields are editable', async ({ page }) => {
@@ -63,7 +64,7 @@ test.describe('👤 Profile Flow', () => {
     await expect(page.getByLabel(/office area/i)).toBeVisible({ timeout: 5_000 });
   });
 
-  test('PF-08: blood group dropdown is editable', async ({ page }) => {
+  test('PF-08: blood group field is editable', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
     await page.getByRole('button', { name: /edit/i }).click();

@@ -84,12 +84,13 @@ export default function NotificationDrawer() {
     <div className="relative" ref={panelRef}>
       {/* Bell button */}
       <button
+        aria-label="Notifications"
         onClick={() => { setOpen(!open); if (!open) load(); }}
         className="relative p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
       >
         <span className="text-xl">🔔</span>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+          <span className="notification-badge absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
             {unread > 9 ? '9+' : unread}
           </span>
         )}

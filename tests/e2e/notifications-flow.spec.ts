@@ -4,7 +4,7 @@
  * QA Architect coverage: notification delivery visible in UI
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
@@ -35,6 +35,7 @@ test.describe('🔔 Notifications Flow', () => {
   test.beforeAll(async () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    await clearActiveRides(giverToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
@@ -50,7 +51,7 @@ test.describe('🔔 Notifications Flow', () => {
 
   test('NF-01: bell icon visible in dashboard header', async ({ page }) => {
     await loginUI(page, 'giver');
-    await expect(page.locator('[aria-label*="notif"], a[href*="notif"], button[aria-label*="bell"]').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('button[aria-label="Notifications"]')).toBeVisible({ timeout: 8_000 });
   });
 
   test('NF-02: giver receives notification when seeker requests a seat', async ({ page }) => {
@@ -59,7 +60,7 @@ test.describe('🔔 Notifications Flow', () => {
 
     await loginUI(page, 'giver');
     // Bell should show unread badge
-    await expect(page.locator('[class*="badge"], [class*="unread"], [class*="dot"], [class*="count"]').first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('.notification-badge')).toBeVisible({ timeout: 8_000 });
   });
 
   test('NF-03: notifications page shows notification list', async ({ page }) => {
@@ -85,7 +86,8 @@ test.describe('🔔 Notifications Flow', () => {
 
   test('NF-05: seeker receives notification when giver approves request', async ({ page }) => {
     const myRequests = await api(seekerToken, 'get', '/ride-requests/mine');
-    const req = (myRequests.data ?? myRequests).find((r: any) => r.rideId === rideId && r.status === 'PENDING');
+    const list: any[] = Array.isArray(myRequests) ? myRequests : (myRequests.data ?? []);
+    const req = list.find((r: any) => r.rideId === rideId && r.status === 'PENDING');
     if (req) {
       await api(giverToken, 'patch', `/ride-requests/${req.id}/approve`);
     }
