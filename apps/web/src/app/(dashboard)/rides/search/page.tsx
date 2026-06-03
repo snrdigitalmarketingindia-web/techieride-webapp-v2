@@ -181,7 +181,7 @@ export default function RideSearchPage() {
   const [searchError, setSearchError] = useState('');
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   // rideId → 'pending' (awaiting giver) | 'sent' (just sent this session)
-  const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'sent'>>({});
+  const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'confirmed' | 'sent'>>({});
   const [womenOnlyFilter, setWomenOnlyFilter] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
