@@ -43,7 +43,8 @@ export async function clearActiveRides(giverToken: string) {
       const participants: any[] = ride.participants ?? [];
       for (const p of participants) {
         if (p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED') {
-          await ctx.patch(`${API}/rides/${ride.id}/no-show/${p.id}`, {
+          // no-show endpoint takes seekerId (RideSeeker.id), not the participant record id
+          await ctx.patch(`${API}/rides/${ride.id}/no-show/${p.seekerId}`, {
             headers: { Authorization: `Bearer ${giverToken}` },
           }).catch(() => {});
         }

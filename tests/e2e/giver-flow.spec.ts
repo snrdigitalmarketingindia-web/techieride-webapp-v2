@@ -138,11 +138,9 @@ test.describe('🚗 Giver Full Flow', () => {
   });
 
   test('GF-11: giver boards and deboards passenger — Complete Ride becomes available', async ({ page }) => {
-    // Board the participant
-    const participants = await api(giverToken, 'get', `/rides/${rideId}/participants`);
-    const participantId = (participants.data ?? participants)[0]?.seekerId ?? (participants.data ?? participants)[0]?.id;
-    await api(giverToken, 'patch', `/rides/${rideId}/board/${participantId}`).catch(() => {});
-    await api(giverToken, 'patch', `/rides/${rideId}/deboard/${participantId}`).catch(() => {});
+    // Seeker self-boards then self-deboards via their own token
+    await api(seekerToken, 'patch', `/rides/${rideId}/board`).catch(() => {});
+    await api(seekerToken, 'patch', `/rides/${rideId}/deboard`).catch(() => {});
 
     await loginUI(page, 'giver');
     await page.goto('/rides');

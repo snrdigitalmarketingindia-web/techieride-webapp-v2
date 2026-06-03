@@ -38,14 +38,18 @@ test.describe('🚏 Boarding Flow', () => {
   let seekerToken: string;
   let vehicleId: string;
   let rideId: string;
-  let seekerRecordId: string;
 
   test.beforeAll(async () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    if (!giverToken) throw new Error('BF beforeAll: failed to get giverToken');
+    if (!seekerToken) throw new Error('BF beforeAll: failed to get seekerToken');
+
     await clearActiveRides(giverToken);
+
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
-    vehicleId = (vehicles.data ?? vehicles)[0]?.id;
+    vehicleId = Array.isArray(vehicles) ? vehicles[0]?.id : vehicles.data?.[0]?.id;
+    if (!vehicleId) throw new Error(`BF beforeAll: no vehicle found — ${JSON.stringify(vehicles)}`);
 
     // Full setup: create ride, publish, request, approve, start
     const r = await api(giverToken, 'post', '/rides', {
@@ -53,18 +57,22 @@ test.describe('🚏 Boarding Flow', () => {
       destinationName: 'Mindspace, Hyderabad', destinationLat: 17.44, destinationLng: 78.38,
       ...inOneHour(), totalSeats: 2, vehicleId,
     });
-    rideId = (r.data ?? r).id;
-    await api(giverToken, 'patch', `/rides/${rideId}/publish`);
+    rideId = r.id ?? r.data?.id;
+    if (!rideId) throw new Error(`BF beforeAll: ride creation failed — ${JSON.stringify(r)}`);
+
+    const pub = await api(giverToken, 'patch', `/rides/${rideId}/publish`);
+    if (pub.statusCode >= 400) throw new Error(`BF beforeAll: publish failed — ${JSON.stringify(pub)}`);
 
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId, pickupName: 'LB Nagar Metro, Hyderabad' });
-    const reqId = (req.data ?? req).id;
-    await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
-    await api(giverToken, 'patch', `/rides/${rideId}/start`);
+    const reqId = req.id ?? req.data?.id;
+    if (!reqId) throw new Error(`BF beforeAll: request failed — ${JSON.stringify(req)}`);
 
-    // Get seeker participant record
-    const participants = await api(giverToken, 'get', `/rides/${rideId}/participants`);
-    const pList = participants.data ?? participants;
-    seekerRecordId = pList[0]?.seekerId ?? pList[0]?.id;
+    const appr = await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
+    if (appr.statusCode >= 400) throw new Error(`BF beforeAll: approve failed — ${JSON.stringify(appr)}`);
+
+    const started = await api(giverToken, 'patch', `/rides/${rideId}/start`);
+    if (started.statusCode >= 400) throw new Error(`BF beforeAll: start failed — ${JSON.stringify(started)}`);
+    // seekerRecordId not needed — seeker self-boards via their own token
   });
 
   test('BF-01: ONGOING ride shows passenger as WAITING', async ({ page }) => {
@@ -93,8 +101,9 @@ test.describe('🚏 Boarding Flow', () => {
   });
 
   test('BF-04: after deboard — complete ride button becomes available', async ({ page }) => {
-    await api(giverToken, 'patch', `/rides/${rideId}/board/${seekerRecordId}`).catch(() => {});
-    await api(giverToken, 'patch', `/rides/${rideId}/deboard/${seekerRecordId}`).catch(() => {});
+    // Seeker self-boards then self-deboards via their own token
+    await api(seekerToken, 'patch', `/rides/${rideId}/board`).catch(() => {});
+    await api(seekerToken, 'patch', `/rides/${rideId}/deboard`).catch(() => {});
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
