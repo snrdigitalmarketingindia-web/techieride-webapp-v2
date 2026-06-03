@@ -178,6 +178,7 @@ export default function RideSearchPage() {
   });
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   // rideId → 'pending' (awaiting giver) | 'sent' (just sent this session)
   const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'sent'>>({});
@@ -227,6 +228,7 @@ export default function RideSearchPage() {
       });
     }
     setLoading(true);
+    setSearchError('');
     try {
       const { data } = await ridesApi.search({
         originLat: form.originLat,
@@ -238,6 +240,7 @@ export default function RideSearchPage() {
       setRides(data);
     } catch {
       setRides([]);
+      setSearchError('Unable to fetch rides. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -387,7 +390,12 @@ export default function RideSearchPage() {
       {/* Results */}
       {view === 'list' && (
         <div className="space-y-3">
-          {rides.length === 0 && !loading && (
+          {searchError && !loading && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+              <p className="text-red-600 text-sm">⚠️ {searchError}</p>
+            </div>
+          )}
+          {rides.length === 0 && !loading && !searchError && (
             <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
               <div className="text-4xl mb-2">🛣️</div>
               <p className="text-gray-500 text-sm">No rides found. Try adjusting your search.</p>

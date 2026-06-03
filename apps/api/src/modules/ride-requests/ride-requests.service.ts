@@ -142,8 +142,8 @@ export class RideRequestsService {
 
     // Notify giver
     await this.notifications.create(ride.rideGiver.userId, {
-      type: NotificationType.REQUEST_APPROVED,
-      title: 'New seat request',
+      type: NotificationType.GENERIC,
+      title: '🙋 New seat request',
       body: `Someone wants to join your ride on ${new Date(ride.departureDate).toLocaleDateString()}`,
       data: { rideId: ride.id, requestId: request.id },
     });
