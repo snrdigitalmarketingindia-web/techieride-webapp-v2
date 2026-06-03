@@ -7,20 +7,10 @@
  */
 
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
 // ── API helpers ────────────────────────────────────────────────────────────
-async function apiLogin(email: string) {
-  const ctx = await playwrightRequest.newContext();
-  const res = await ctx.post(`${API}/auth/login`, {
-    data: { email, password: SEED_PASSWORD },
-  });
-  const body = await res.json();
-  await ctx.dispose();
-  return body.data?.accessToken as string;
-}
 
 async function apiCall(token: string, method: 'get' | 'post' | 'patch' | 'delete', path: string, data?: object) {
   const ctx = await playwrightRequest.newContext();

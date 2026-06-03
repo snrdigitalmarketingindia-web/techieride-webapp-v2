@@ -18,7 +18,24 @@ export const PHONES = {
   seeker: 'arjun@tcs.com',
 };
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
+export const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
+
+/** Logs in via API and returns the access token. Throws with full response body on failure. */
+export async function apiLogin(email: string): Promise<string> {
+  const ctx = await playwrightRequest.newContext();
+  const res = await ctx.post(`${API}/auth/login`, {
+    data: { email, password: SEED_PASSWORD },
+  });
+  const body = await res.json();
+  await ctx.dispose();
+  const token = body.data?.accessToken ?? body.accessToken;
+  if (!token) {
+    throw new Error(
+      `apiLogin(${email}) failed — HTTP ${res.status()} — ${JSON.stringify(body)}`
+    );
+  }
+  return token;
+}
 
 /**
  * Cancel all PUBLISHED rides and complete all ONGOING rides for the giver.
