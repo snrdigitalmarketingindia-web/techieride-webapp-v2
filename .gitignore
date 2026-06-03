@@ -7,3 +7,4 @@ dist/
 *.swo
 .DS_Store
 prisma/migrations/
+.vercel/
