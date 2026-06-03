@@ -204,6 +204,7 @@ export declare class RidesService {
         cancelReason: string | null;
     }>;
     autoExpireUnstartedRides(): Promise<void>;
+    sendDepartureReminders(): Promise<void>;
     cancel(rideId: string, userId: string, reason: string): Promise<{
         id: string;
         createdAt: Date;
@@ -285,6 +286,8 @@ export declare class RidesService {
                 id: string;
                 profilePhoto: string | null;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+                trustScore: number;
+                trustBand: import(".prisma/client").$Enums.TrustBand;
             };
         } & {
             id: string;
@@ -349,6 +352,8 @@ export declare class RidesService {
                 id: string;
                 profilePhoto: string | null;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+                trustScore: number;
+                trustBand: import(".prisma/client").$Enums.TrustBand;
             };
         } & {
             id: string;
@@ -518,6 +523,8 @@ export declare class RidesService {
                 id: string;
                 profilePhoto: string | null;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+                trustScore: number;
+                trustBand: import(".prisma/client").$Enums.TrustBand;
             };
         } & {
             id: string;

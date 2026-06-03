@@ -86,6 +86,7 @@ var NotificationType;
     NotificationType["RATING_RECEIVED"] = "RATING_RECEIVED";
     NotificationType["COMPLAINT_FILED"] = "COMPLAINT_FILED";
     NotificationType["GENERIC"] = "GENERIC";
+    NotificationType["QUICK_MESSAGE"] = "QUICK_MESSAGE";
 })(NotificationType || (exports.NotificationType = NotificationType = {}));
 var ComplaintReason;
 (function (ComplaintReason) {

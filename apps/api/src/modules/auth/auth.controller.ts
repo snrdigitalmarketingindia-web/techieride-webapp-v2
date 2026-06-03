@@ -98,9 +98,9 @@ export class AuthController {
     @Body() body: any,
     @Headers('svix-signature') signature: string,
   ) {
-    // Verify webhook secret in production
+    // Reject if secret not configured — never allow unauthenticated webhook calls
     const webhookSecret = this.config.get('RESEND_WEBHOOK_SECRET');
-    if (webhookSecret && signature !== webhookSecret) {
+    if (!webhookSecret || signature !== webhookSecret) {
       return { ok: false };
     }
 

@@ -19,6 +19,7 @@ const GIVER_USER_SELECT = {
     id: true, fullName: true, profilePhoto: true,
     companyName: true, ecoLevel: true,
     phone: true, countryCode: true,
+    trustScore: true, trustBand: true,
 };
 const SEEKER_USER_SELECT = {
     id: true, fullName: true, profilePhoto: true,
@@ -258,14 +259,16 @@ let RidesService = RidesService_1 = class RidesService {
         if (notYetResolved.length > 0) {
             throw new common_1.BadRequestException(`Cannot complete ride — ${notYetResolved.length} passenger(s) have not deboarded yet. Mark them as no-show if they didn't board.`);
         }
-        const updated = await this.prisma.ride.update({
-            where: { id: rideId },
-            data: { status: shared_1.RideStatus.COMPLETED, completedAt: new Date() },
-        });
-        await this.prisma.rideRequest.updateMany({
-            where: { rideId, status: 'PENDING' },
-            data: { status: 'REJECTED', cancelReason: 'Ride has been completed' },
-        });
+        const [updated] = await this.prisma.$transaction([
+            this.prisma.ride.update({
+                where: { id: rideId },
+                data: { status: shared_1.RideStatus.COMPLETED, completedAt: new Date() },
+            }),
+            this.prisma.rideRequest.updateMany({
+                where: { rideId, status: 'PENDING' },
+                data: { status: 'REJECTED', cancelReason: 'Ride has been completed' },
+            }),
+        ]);
         const participants = await this.prisma.rideParticipant.findMany({
             where: { rideId },
             include: { seeker: { include: { user: true } } },
@@ -345,6 +348,41 @@ let RidesService = RidesService_1 = class RidesService {
             });
         }
     }
+    async sendDepartureReminders() {
+        const now = new Date();
+        const windowStart = new Date(now.getTime() + 55 * 60 * 1000);
+        const windowEnd = new Date(now.getTime() + 65 * 60 * 1000);
+        const rides = await this.prisma.ride.findMany({
+            where: { status: shared_1.RideStatus.PUBLISHED },
+            include: {
+                rideGiver: { include: { user: true } },
+                participants: { include: { seeker: { include: { user: true } } } },
+            },
+        });
+        for (const ride of rides) {
+            const [h, m] = ride.departureTime.split(':').map(Number);
+            const departure = new Date(ride.departureDate);
+            departure.setHours(h, m, 0, 0);
+            if (departure < windowStart || departure > windowEnd)
+                continue;
+            const label = `${ride.originName} → ${ride.destinationName} at ${ride.departureTime}`;
+            await this.notifications.create(ride.rideGiver.userId, {
+                type: shared_1.NotificationType.RIDE_STARTED,
+                title: '⏰ Departure in 1 hour',
+                body: `Your ride ${label} departs soon. Make sure you're ready!`,
+                data: { rideId: ride.id },
+            });
+            for (const p of ride.participants) {
+                await this.notifications.create(p.seeker.userId, {
+                    type: shared_1.NotificationType.RIDE_STARTED,
+                    title: '⏰ Your ride departs in 1 hour',
+                    body: `${label} — be at your pickup point on time.`,
+                    data: { rideId: ride.id },
+                });
+            }
+            this.logger.log(`⏰ Sent departure reminder for ride ${ride.id}`);
+        }
+    }
     async cancel(rideId, userId, reason) {
         const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
         const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -355,7 +393,7 @@ let RidesService = RidesService_1 = class RidesService {
         const isAdmin = user?.role === 'ADMIN';
         if (!isOwner && !isAdmin)
             throw new common_1.ForbiddenException();
-        if ([shared_1.RideStatus.COMPLETED, shared_1.RideStatus.CANCELLED].includes(ride.status)) {
+        if ([shared_1.RideStatus.COMPLETED, shared_1.RideStatus.CANCELLED, shared_1.RideStatus.ONGOING].includes(ride.status)) {
             throw new common_1.BadRequestException(`Cannot cancel a ${ride.status} ride`);
         }
         if (!isAdmin) {
@@ -635,6 +673,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], RidesService.prototype, "autoExpireUnstartedRides", null);
+__decorate([
+    (0, schedule_1.Cron)('*/30 * * * *', { timeZone: 'Asia/Kolkata' }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], RidesService.prototype, "sendDepartureReminders", null);
 exports.RidesService = RidesService = RidesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,

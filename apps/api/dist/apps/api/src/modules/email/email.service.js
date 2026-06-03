@@ -20,7 +20,8 @@ let EmailService = EmailService_1 = class EmailService {
         this.resend = null;
         this.logger = new common_1.Logger(EmailService_1.name);
         const apiKey = config.get('RESEND_API_KEY');
-        this.from = config.get('EMAIL_FROM', 'noreply@techieride.in');
+        const fromEmail = config.get('EMAIL_FROM', 'noreply@techieride.in');
+        this.from = `TechieRide <${fromEmail}>`;
         this.appUrl = config.get('APP_URL', 'http://localhost:3000');
         this.isDev = config.get('NODE_ENV', 'development') === 'development';
         if (apiKey) {

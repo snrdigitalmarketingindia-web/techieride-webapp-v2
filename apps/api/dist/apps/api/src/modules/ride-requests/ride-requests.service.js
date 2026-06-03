@@ -127,8 +127,8 @@ let RideRequestsService = RideRequestsService_1 = class RideRequestsService {
             },
         });
         await this.notifications.create(ride.rideGiver.userId, {
-            type: shared_1.NotificationType.REQUEST_APPROVED,
-            title: 'New seat request',
+            type: shared_1.NotificationType.GENERIC,
+            title: '🙋 New seat request',
             body: `Someone wants to join your ride on ${new Date(ride.departureDate).toLocaleDateString()}`,
             data: { rideId: ride.id, requestId: request.id },
         });
@@ -237,11 +237,17 @@ let RideRequestsService = RideRequestsService_1 = class RideRequestsService {
         const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
         if (!seeker)
             throw new common_1.ForbiddenException();
-        const request = await this.prisma.rideRequest.findUnique({ where: { id: requestId } });
+        const request = await this.prisma.rideRequest.findUnique({
+            where: { id: requestId },
+            include: { ride: { include: { rideGiver: true } } },
+        });
         if (!request || request.seekerId !== seeker.id)
             throw new common_1.NotFoundException();
         if (['CANCELLED', 'REJECTED'].includes(request.status)) {
             throw new common_1.BadRequestException('Request already cancelled');
+        }
+        if (request.ride?.status === 'ONGOING') {
+            throw new common_1.BadRequestException('Cannot cancel a request once the ride has started');
         }
         if (request.status === 'CONFIRMED') {
             await this.prisma.ride.update({
@@ -251,6 +257,15 @@ let RideRequestsService = RideRequestsService_1 = class RideRequestsService {
             await this.prisma.rideParticipant.deleteMany({
                 where: { rideId: request.rideId, seekerId: seeker.id },
             });
+            const seekerUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+            if (request.ride?.rideGiver?.userId) {
+                await this.notifications.create(request.ride.rideGiver.userId, {
+                    type: shared_1.NotificationType.RIDE_CANCELLED,
+                    title: 'Passenger cancelled their seat',
+                    body: `${seekerUser?.fullName ?? 'A passenger'} cancelled their booking on ${request.ride.originName} → ${request.ride.destinationName}`,
+                    data: { rideId: request.rideId },
+                });
+            }
         }
         return this.prisma.rideRequest.update({
             where: { id: requestId },

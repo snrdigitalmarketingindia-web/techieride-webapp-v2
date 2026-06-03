@@ -73,7 +73,8 @@ export declare enum NotificationType {
     SOS_ALERT = "SOS_ALERT",
     RATING_RECEIVED = "RATING_RECEIVED",
     COMPLAINT_FILED = "COMPLAINT_FILED",
-    GENERIC = "GENERIC"
+    GENERIC = "GENERIC",
+    QUICK_MESSAGE = "QUICK_MESSAGE"
 }
 export declare enum ComplaintReason {
     HARASSMENT = "HARASSMENT",

@@ -16,6 +16,8 @@ export declare class RidesController {
                 id: string;
                 profilePhoto: string | null;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+                trustScore: number;
+                trustBand: import(".prisma/client").$Enums.TrustBand;
             };
         } & {
             id: string;
@@ -178,6 +180,8 @@ export declare class RidesController {
                 id: string;
                 profilePhoto: string | null;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+                trustScore: number;
+                trustBand: import(".prisma/client").$Enums.TrustBand;
             };
         } & {
             id: string;
@@ -273,6 +277,8 @@ export declare class RidesController {
                 id: string;
                 profilePhoto: string | null;
                 ecoLevel: import(".prisma/client").$Enums.EcoLevel;
+                trustScore: number;
+                trustBand: import(".prisma/client").$Enums.TrustBand;
             };
         } & {
             id: string;

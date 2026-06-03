@@ -304,16 +304,16 @@ export class RidesService {
       );
     }
 
-    const updated = await this.prisma.ride.update({
-      where: { id: rideId },
-      data: { status: RideStatus.COMPLETED, completedAt: new Date() },
-    });
-
-    // Reject any PENDING requests that were never approved before completion
-    await this.prisma.rideRequest.updateMany({
-      where: { rideId, status: 'PENDING' },
-      data: { status: 'REJECTED', cancelReason: 'Ride has been completed' },
-    });
+    const [updated] = await this.prisma.$transaction([
+      this.prisma.ride.update({
+        where: { id: rideId },
+        data: { status: RideStatus.COMPLETED, completedAt: new Date() },
+      }),
+      this.prisma.rideRequest.updateMany({
+        where: { rideId, status: 'PENDING' },
+        data: { status: 'REJECTED', cancelReason: 'Ride has been completed' },
+      }),
+    ]);
 
     // Award ECO + Trust points
     const participants = await this.prisma.rideParticipant.findMany({

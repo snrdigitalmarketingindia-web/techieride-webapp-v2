@@ -53,7 +53,7 @@ let AuthController = class AuthController {
     }
     async handleBounce(body, signature) {
         const webhookSecret = this.config.get('RESEND_WEBHOOK_SECRET');
-        if (webhookSecret && signature !== webhookSecret) {
+        if (!webhookSecret || signature !== webhookSecret) {
             return { ok: false };
         }
         if (body?.type === 'email.bounced' && body?.data?.to) {
