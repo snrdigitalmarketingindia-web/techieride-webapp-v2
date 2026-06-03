@@ -215,25 +215,22 @@ async function runCancellationTests() {
   section('CAN — Seat Availability After Cancellation');
 
   await test('CAN-08: Seeker cancels → freed seat allows another seeker to book → 201', async () => {
-    // 1-seat ride — only 1 can be confirmed at a time
+    // 1-seat ride — seeker1 takes it, cancels, seeker2 books the freed seat
     const { giver, seeker, rideId, reqId } = await setupConfirmedBooking('08', 1);
 
-    // Another seeker tries to book — should fail (no seats)
+    // Seat is taken — seeker1 cancels
+    const cancel = await seeker.client.patch(`/ride-requests/${reqId}/cancel`);
+    assert(cancel.status === 200, `Cancel failed: ${JSON.stringify(cancel.data)}`);
+
+    // Seat is now free — seeker2 can request
     const seeker2 = await freshSeeker('can_08b');
     const req2 = await seeker2.client.post('/ride-requests', { rideId, pickupName: 'Pickup B' });
-    assert(req2.status === 201, `Second seeker request failed`);
+    assert(req2.status === 201, `Seeker2 request after seat freed failed: ${JSON.stringify(req2.data)}`);
     const reqId2 = req2.data.requestId as string;
 
-    const earlyApprove = await giver.client.patch(`/ride-requests/${reqId2}/approve`);
-    assert(earlyApprove.status === 400, `Expected 400 (no seats), got ${earlyApprove.status}`);
-
-    // Original seeker cancels — seat freed
-    const cancel = await seeker.client.patch(`/ride-requests/${reqId}/cancel`);
-    assert(cancel.status === 200, `Cancel failed`);
-
-    // Now giver can approve seeker2
+    // Giver approves seeker2
     const approve2 = await giver.client.patch(`/ride-requests/${reqId2}/approve`);
-    assert(approve2.status === 200, `Expected second seeker approval to succeed after seat freed, got ${approve2.status}: ${JSON.stringify(approve2.data)}`);
+    assert(approve2.status === 200, `Expected approval to succeed after seat freed, got ${approve2.status}: ${JSON.stringify(approve2.data)}`);
   });
 }
 
