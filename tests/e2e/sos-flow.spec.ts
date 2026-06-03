@@ -31,8 +31,8 @@ test.describe('🆘 SOS Flow', () => {
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
-    // Setup an ONGOING ride
-    const d = new Date(); d.setHours(d.getHours() + 1);
+    // Setup an ONGOING ride (4h departure so cancel always has >1h margin)
+    const d = new Date(); d.setHours(d.getHours() + 4);
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'Gachibowli, Hyderabad', originLat: 17.44, originLng: 78.35,
       destinationName: 'Nanakramguda, Hyderabad', destinationLat: 17.44, destinationLng: 78.38,
@@ -43,7 +43,7 @@ test.describe('🆘 SOS Flow', () => {
     ongoingRideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${ongoingRideId}/publish`);
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId: ongoingRideId, pickupName: 'Gachibowli, Hyderabad' });
-    const reqId = (req.data ?? req).id;
+    const reqId = req.requestId ?? req.id ?? req.data?.id;
     await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
     await api(giverToken, 'patch', `/rides/${ongoingRideId}/start`);
   });

@@ -41,7 +41,7 @@ test.describe('💬 Quick Messages Flow', () => {
     rideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${rideId}/publish`);
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId, pickupName: 'Miyapur Metro, Hyderabad' });
-    const reqId = (req.data ?? req).id;
+    const reqId = req.requestId ?? req.id ?? req.data?.id;
     await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
   });
 

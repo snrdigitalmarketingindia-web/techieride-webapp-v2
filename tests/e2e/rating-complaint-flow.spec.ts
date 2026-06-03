@@ -41,8 +41,8 @@ test.describe('⭐ Rating & Complaint Flow', () => {
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
-    // Full ride completion setup
-    const d = new Date(); d.setHours(d.getHours() + 1);
+    // Full ride completion setup (4h departure so cancel always has >1h margin)
+    const d = new Date(); d.setHours(d.getHours() + 4);
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'Jubilee Hills, Hyderabad', originLat: 17.43, originLng: 78.40,
       destinationName: 'Banjara Hills, Hyderabad', destinationLat: 17.41, destinationLng: 78.44,
@@ -53,7 +53,7 @@ test.describe('⭐ Rating & Complaint Flow', () => {
     completedRideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${completedRideId}/publish`);
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId: completedRideId, pickupName: 'Jubilee Hills, Hyderabad' });
-    const reqId = (req.data ?? req).id;
+    const reqId = req.requestId ?? req.id ?? req.data?.id;
     await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
     await api(giverToken, 'patch', `/rides/${completedRideId}/start`);
     const parts = await api(giverToken, 'get', `/rides/${completedRideId}/participants`);

@@ -17,8 +17,9 @@ async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: s
   await ctx.dispose();
   return body;
 }
-function inOneHour(): { departureDate: string; departureTime: string } {
-  const d = new Date(); d.setHours(d.getHours() + 1);
+function inFourHours(): { departureDate: string; departureTime: string } {
+  // Use 4 hours from now so cancel (requires >1h before departure) always has margin
+  const d = new Date(); d.setHours(d.getHours() + 4);
   return {
     departureDate: d.toISOString().split('T')[0],
     departureTime: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
@@ -47,7 +48,7 @@ test.describe('🚏 Boarding Flow', () => {
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'LB Nagar, Hyderabad', originLat: 17.34, originLng: 78.55,
       destinationName: 'Mindspace, Hyderabad', destinationLat: 17.44, destinationLng: 78.38,
-      ...inOneHour(), totalSeats: 2, vehicleId,
+      ...inFourHours(), totalSeats: 2, vehicleId,
     });
     rideId = r.id ?? r.data?.id;
     if (!rideId) throw new Error(`BF beforeAll: ride creation failed — ${JSON.stringify(r)}`);
@@ -56,7 +57,7 @@ test.describe('🚏 Boarding Flow', () => {
     if (pub.statusCode >= 400) throw new Error(`BF beforeAll: publish failed — ${JSON.stringify(pub)}`);
 
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId, pickupName: 'LB Nagar Metro, Hyderabad' });
-    const reqId = req.id ?? req.data?.id;
+    const reqId = req.requestId ?? req.id ?? req.data?.id;
     if (!reqId) throw new Error(`BF beforeAll: request failed — ${JSON.stringify(req)}`);
 
     const appr = await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);

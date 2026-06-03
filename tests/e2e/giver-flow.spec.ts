@@ -73,7 +73,7 @@ test.describe('🚗 Giver Full Flow', () => {
 
   test('GF-04: giver sees pending request on requests page', async ({ page }) => {
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
-    requestId = (req.data ?? req).id;
+    requestId = req.requestId ?? req.id ?? req.data?.id;
 
     await loginUI(page, 'giver');
     await page.goto('/requests');
@@ -91,7 +91,7 @@ test.describe('🚗 Giver Full Flow', () => {
   test('GF-06: giver rejects a second request — requests page updates', async ({ page }) => {
     const seeker2Token = await apiLogin('raghu@raghu.com');
     const req2 = await api(seeker2Token, 'post', '/ride-requests', { rideId, pickupName: 'Miyapur, Hyderabad' });
-    const req2Id = (req2.data ?? req2).id;
+    const req2Id = req2.requestId ?? req2.id ?? req2.data?.id;
     await api(giverToken, 'patch', `/ride-requests/${req2Id}/reject`);
 
     await loginUI(page, 'giver');

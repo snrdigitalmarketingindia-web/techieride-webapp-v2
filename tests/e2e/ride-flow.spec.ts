@@ -80,7 +80,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
       rideId,
       pickupName: 'Kondapur Metro, Hyderabad',
     });
-    requestId = req.data?.id ?? req.id;
+    requestId = req.requestId ?? req.id ?? req.data?.id;
 
     // Refresh and verify pending state shown
     await page.reload();
@@ -116,7 +116,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
       rideId,
       pickupName: 'Miyapur, Hyderabad',
     });
-    const req2Id = req2.data?.id ?? req2.id;
+    const req2Id = req2.requestId ?? req2.id ?? req2.data?.id;
 
     // Giver rejects
     await apiCall(giverToken, 'patch', `/ride-requests/${req2Id}/reject`);

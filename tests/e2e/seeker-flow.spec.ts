@@ -88,7 +88,7 @@ test.describe('🙋 Seeker Full Flow', () => {
 
   test('SF-05: seeker requests seat — sees "Awaiting giver response"', async ({ page }) => {
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
-    requestId = (req.data ?? req).id;
+    requestId = req.requestId ?? req.id ?? req.data?.id;
 
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
