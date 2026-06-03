@@ -97,6 +97,21 @@ export class AuthService {
       await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
     }
 
+    // If personal email provided at registration, send verification (non-blocking)
+    if (user.personalEmail) {
+      try {
+        const personalToken = randomBytes(32).toString('hex');
+        const personalExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { pendingEmail: `p:${user.personalEmail}`, pendingEmailToken: personalToken, pendingEmailExpiry: personalExpiry },
+        });
+        await this.email.sendEmailChangeVerification(user.personalEmail, dto.fullName, personalToken, true);
+      } catch (_) {
+        // non-blocking — don't fail registration if personal email send fails
+      }
+    }
+
     return {
       message: isDev
         ? 'Account created! (Dev mode: email auto-verified)'

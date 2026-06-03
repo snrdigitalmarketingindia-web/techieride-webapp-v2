@@ -87,6 +87,19 @@ let AuthService = class AuthService {
         else {
             await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
         }
+        if (user.personalEmail) {
+            try {
+                const personalToken = (0, crypto_1.randomBytes)(32).toString('hex');
+                const personalExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                await this.prisma.user.update({
+                    where: { id: user.id },
+                    data: { pendingEmail: `p:${user.personalEmail}`, pendingEmailToken: personalToken, pendingEmailExpiry: personalExpiry },
+                });
+                await this.email.sendEmailChangeVerification(user.personalEmail, dto.fullName, personalToken, true);
+            }
+            catch (_) {
+            }
+        }
         return {
             message: isDev
                 ? 'Account created! (Dev mode: email auto-verified)'

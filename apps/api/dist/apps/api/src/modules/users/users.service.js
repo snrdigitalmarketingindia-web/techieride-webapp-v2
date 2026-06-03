@@ -63,7 +63,6 @@ let UsersService = class UsersService {
                 ...(dto.fcmToken !== undefined ? { fcmToken: dto.fcmToken } : {}),
                 ...(dto.homeLocation !== undefined ? { homeLocation: dto.homeLocation } : {}),
                 ...(dto.officeLocation !== undefined ? { officeLocation: dto.officeLocation } : {}),
-                ...(dto.personalEmail !== undefined ? { personalEmail: dto.personalEmail } : {}),
                 ...(dto.bloodGroup !== undefined ? { bloodGroup: dto.bloodGroup } : {}),
                 ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
                 ...(dto.countryCode !== undefined ? { countryCode: dto.countryCode } : {}),
@@ -144,9 +143,9 @@ let UsersService = class UsersService {
         const newPersonalEmail = user.pendingEmail.slice(2);
         await this.prisma.user.update({
             where: { id: user.id },
-            data: { personalEmail: newPersonalEmail, pendingEmail: null, pendingEmailToken: null, pendingEmailExpiry: null },
+            data: { personalEmail: newPersonalEmail, personalEmailVerified: true, pendingEmail: null, pendingEmailToken: null, pendingEmailExpiry: null },
         });
-        return { message: 'Personal email updated successfully' };
+        return { message: 'Personal email verified and updated successfully' };
     }
     async removeEmergencyContact(userId, contactId) {
         return this.prisma.emergencyContact.deleteMany({

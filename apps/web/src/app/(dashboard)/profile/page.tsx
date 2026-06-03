@@ -325,7 +325,14 @@ export default function ProfilePage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-gray-900">Personal Email</p>
-            <p className="text-sm text-gray-500">{(user as any)?.personalEmail || 'Not set'}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm text-gray-500">{(user as any)?.personalEmail || 'Not set'}</p>
+              {(user as any)?.personalEmail && (
+                (user as any)?.personalEmailVerified
+                  ? <span className="text-xs text-green-600 font-medium">✅ Verified</span>
+                  : <span className="text-xs text-amber-600 font-medium">⚠️ Unverified</span>
+              )}
+            </div>
           </div>
           <button onClick={() => { setPersonalEmailMode(!personalEmailMode); setPersonalEmailMsg(''); }}
             className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">

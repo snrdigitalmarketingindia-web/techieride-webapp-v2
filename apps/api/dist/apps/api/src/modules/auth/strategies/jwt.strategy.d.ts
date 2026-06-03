@@ -22,6 +22,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;

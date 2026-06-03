@@ -27,6 +27,7 @@ export declare class UsersService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         profilePhoto: string | null;
         isPhoneVerified: boolean;
         trid: string | null;
@@ -77,6 +78,7 @@ export declare class UsersService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;
@@ -115,6 +117,7 @@ export declare class UsersService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;

@@ -98,6 +98,7 @@ export declare class AdminService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;
@@ -136,6 +137,7 @@ export declare class AdminService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;
@@ -174,6 +176,7 @@ export declare class AdminService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;
@@ -212,6 +215,7 @@ export declare class AdminService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;
@@ -250,6 +254,7 @@ export declare class AdminService {
         officeLocation: string | null;
         bloodGroup: string | null;
         id: string;
+        personalEmailVerified: boolean;
         passwordHash: string;
         profilePhoto: string | null;
         isPhoneVerified: boolean;

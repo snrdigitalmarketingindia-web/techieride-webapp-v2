@@ -379,6 +379,7 @@ export declare class RidesController {
                 officeLocation: string | null;
                 bloodGroup: string | null;
                 id: string;
+                personalEmailVerified: boolean;
                 passwordHash: string;
                 profilePhoto: string | null;
                 isPhoneVerified: boolean;
