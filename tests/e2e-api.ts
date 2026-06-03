@@ -101,7 +101,7 @@ async function run() {
 
   const testEmail = {
     admin:  'admin@techieride.in',
-    giver:  'priya@infosys.com',
+    giver:  'rahul@rahul.com',
     seeker: 'arjun@tcs.com',
   };
 

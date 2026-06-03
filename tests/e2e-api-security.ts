@@ -174,7 +174,7 @@ function assert(cond: boolean, msg: string) {
   });
 
   await test('SEC-AUTHZ-03: giver cannot create a ride for another giver', async () => {
-    const { token: giverToken } = await loginAs('priya@infosys.com');
+    const { token: giverToken } = await loginAs('rahul@rahul.com');
     // Try posting a ride with an arbitrary rideGiverId in the body (should be ignored)
     const r = await makeClient(giverToken).post('/rides', {
       rideGiverId: '00000000-0000-0000-0000-000000000000',
@@ -203,7 +203,7 @@ function assert(cond: boolean, msg: string) {
 
   await test('SEC-AUTHZ-05: user cannot fetch another user private profile', async () => {
     const { token: t1, userId: u1 } = await loginAs('arjun@tcs.com');
-    const { userId: u2 } = await loginAs('priya@infosys.com');
+    const { userId: u2 } = await loginAs('rahul@rahul.com');
     assert(u1 !== u2, 'Test accounts must be different users');
     const r = await makeClient(t1).get(`/users/${u2}`);
     // Should either 403 or return limited public data (no email/phone)
@@ -266,7 +266,7 @@ function assert(cond: boolean, msg: string) {
 
   for (const xss of xssPayloads) {
     await test(`SEC-XSS: script in ride notes rejected or sanitised: ${xss.slice(0, 25)}`, async () => {
-      const { token } = await loginAs('priya@infosys.com');
+      const { token } = await loginAs('rahul@rahul.com');
       // Try to store XSS in ride notes
       const vehicles = await makeClient(token).get('/vehicles/my');
       if (vehicles.status !== 200 || !vehicles.data?.length) return; // skip if no vehicle
@@ -342,7 +342,7 @@ function assert(cond: boolean, msg: string) {
   await test('SEC-BAC-02: giver cannot start a ride they do not own', async () => {
     const { token } = await loginAs('raju@raju.com');
     // Try to start Priya's ride
-    const priyaRides = await (await loginAs('priya@infosys.com') && makeClient((await loginAs('priya@infosys.com')).token)).get('/rides');
+    const priyaRides = await (await loginAs('rahul@rahul.com') && makeClient((await loginAs('rahul@rahul.com')).token)).get('/rides');
     if (!priyaRides.data?.length) return;
     const rideId = priyaRides.data[0].id;
     const r = await makeClient(token).patch(`/rides/${rideId}/start`);
@@ -351,7 +351,7 @@ function assert(cond: boolean, msg: string) {
 
   await test('SEC-BAC-03: seeker cannot read another seeker requests', async () => {
     const { token: t1 } = await loginAs('arjun@tcs.com');
-    const { userId: u2 } = await loginAs('ravi@wipro.com');
+    const { userId: u2 } = await loginAs('rahul@rahul.com');
     const r = await makeClient(t1).get(`/ride-requests?seekerId=${u2}`);
     // Should only return own requests, not other seeker's
     if (r.status === 200 && Array.isArray(r.data)) {

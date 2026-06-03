@@ -7,9 +7,9 @@ import { loginUI, ACCOUNTS } from './helpers';
 // and that the UI surfaces the right error messages to the user.
 //
 // Seed state used:
-//   priya@infosys.com  — APPROVED, vehicle TS09AB5678 rcVerified=true  → CAN publish
+//   rahul@rahul.com  — APPROVED, vehicle TS09AB5678 rcVerified=true  → CAN publish
 //   raju@raju.com      — APPROVED, vehicle TS07RJ1234 rcVerified=true  → CAN publish
-//   ravi@wipro.com     — APPROVED (BOTH), vehicle TS07VK5678 rcVerified=true → CAN publish
+//   rahul@rahul.com     — APPROVED (BOTH), vehicle TS07VK5678 rcVerified=true → CAN publish
 //   arjun@tcs.com      — RIDE_SEEKER, no rideGiver record               → 403 on any ride create
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -63,7 +63,7 @@ test.describe('🛡️ Verification Bypass — Approved giver CAN publish (VB-04
 
     // Login as Priya
     const loginRes = await page.request.post(`${apiBase}/auth/login`, {
-      data: { email: 'priya@infosys.com', password: 'TechieRide@2024' },
+      data: { email: 'rahul@rahul.com', password: 'TechieRide@2024' },
     });
     expect(loginRes.status()).toBe(200);
     const { accessToken } = await loginRes.json();

@@ -23,7 +23,7 @@ const SEEKERS = [
   'raghu@raghu.com',
 ];
 const GIVERS = [
-  'priya@infosys.com',
+  'rahul@rahul.com',
   'raju@raju.com',
 ];
 

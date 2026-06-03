@@ -73,7 +73,7 @@ async function registerAndLogin(email: string, _roleIgnored?: string) {
 
 // ─── Seed emails ──────────────────────────────────────────────────────────
 const ADMIN  = 'admin@techieride.in';
-const GIVER  = 'priya@infosys.com';   // seeded, verified, has vehicle
+const GIVER  = 'rahul@rahul.com';   // seeded, verified, has vehicle
 const SEEKER = 'arjun@tcs.com';       // seeded, verified
 
 // ─── Main ─────────────────────────────────────────────────────────────────

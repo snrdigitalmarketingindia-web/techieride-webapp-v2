@@ -80,7 +80,7 @@ function makeClient(token?: string): AxiosInstance {
 }
 
 const SEED_PASSWORD = 'TechieRide@2024';
-const GIVER  = 'priya@infosys.com';
+const GIVER  = 'rahul@rahul.com';
 const SEEKER = 'arjun@tcs.com';
 
 async function loginAs(email: string) {

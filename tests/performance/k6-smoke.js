@@ -14,7 +14,7 @@ import { Rate, Trend } from 'k6/metrics';
 
 const BASE = __ENV.API_BASE_URL || 'http://localhost:3001/api/v1';
 const SEEKER_EMAIL = __ENV.SEEKER_EMAIL || 'arjun@tcs.com';
-const GIVER_EMAIL  = __ENV.GIVER_EMAIL  || 'priya@infosys.com';
+const GIVER_EMAIL  = __ENV.GIVER_EMAIL  || 'rahul@rahul.com';
 const PASSWORD     = __ENV.TEST_PASSWORD || 'TechieRide@2024';
 
 // Custom metrics

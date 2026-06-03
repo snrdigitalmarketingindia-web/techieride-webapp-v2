@@ -182,7 +182,7 @@ test.describe('🔒 Permission Leaks — Token isolation (PERM-09)', () => {
 
 test.describe('🔒 Permission Leaks — BOTH role (PERM-10)', () => {
   test('PERM-10: BOTH role user sees giver and seeker sections on dashboard', async ({ page }) => {
-    await loginUI(page, ACCOUNTS.both?.email ?? 'ravi@wipro.com');
+    await loginUI(page, ACCOUNTS.both?.email ?? 'rahul@rahul.com');
     await page.goto('/dashboard');
     await expect(page.getByText(/good (morning|afternoon|evening)/i)).toBeVisible({ timeout: 10_000 });
     // Should see Offer Ride (giver action)
@@ -192,7 +192,7 @@ test.describe('🔒 Permission Leaks — BOTH role (PERM-10)', () => {
   });
 
   test('PERM-10b: BOTH role user can access /rides/create without redirect', async ({ page }) => {
-    await loginUI(page, ACCOUNTS.both?.email ?? 'ravi@wipro.com');
+    await loginUI(page, ACCOUNTS.both?.email ?? 'rahul@rahul.com');
     await page.goto('/rides/create');
     await expect(page).not.toHaveURL(/\/login/);
     await expect(page.getByRole('heading', { name: /offer a ride/i })).toBeVisible({ timeout: 8_000 });

@@ -5,16 +5,16 @@ export const SEED_PASSWORD = 'TechieRide@2024';
 // ── Seed accounts from seed.ts ────────────────────────────────────
 export const ACCOUNTS = {
   admin:  { email: 'admin@techieride.in',  password: SEED_PASSWORD },
-  giver:  { email: 'priya@infosys.com',    password: SEED_PASSWORD },
+  giver:  { email: 'rahul@rahul.com',    password: SEED_PASSWORD },
   giver2: { email: 'raju@raju.com',        password: SEED_PASSWORD },
   seeker: { email: 'arjun@tcs.com',        password: SEED_PASSWORD },
-  both:   { email: 'ravi@wipro.com',       password: SEED_PASSWORD },
+  both:   { email: 'rahul@rahul.com',       password: SEED_PASSWORD },
 };
 
 // Keep PHONES for any legacy references
 export const PHONES = {
   admin:  'admin@techieride.in',
-  giver:  'priya@infosys.com',
+  giver:  'rahul@rahul.com',
   seeker: 'arjun@tcs.com',
 };
 

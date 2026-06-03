@@ -39,7 +39,7 @@ export const options = {
 // Rotating test accounts to avoid session conflicts at high VU counts
 const ACCOUNTS = [
   'arjun@tcs.com', 'raghu@raghu.com',
-  'priya@infosys.com', 'raju@raju.com', 'ravi@wipro.com',
+  'rahul@rahul.com', 'raju@raju.com', 'rahul@rahul.com',
 ];
 
 export default function () {
