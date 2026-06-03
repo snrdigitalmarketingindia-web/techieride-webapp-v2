@@ -4,7 +4,7 @@
  * QA Architect coverage: safety-critical SOS scenarios
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
@@ -35,6 +35,7 @@ test.describe('🆘 SOS Flow', () => {
   test.beforeAll(async () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    await clearActiveRides(giverToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
@@ -43,7 +44,9 @@ test.describe('🆘 SOS Flow', () => {
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'Gachibowli, Hyderabad', originLat: 17.44, originLng: 78.35,
       destinationName: 'Nanakramguda, Hyderabad', destinationLat: 17.44, destinationLng: 78.38,
-      departureTime: d.toISOString(), availableSeats: 2, vehicleId,
+      departureDate: d.toISOString().split('T')[0],
+      departureTime: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+      totalSeats: 2, vehicleId,
     });
     ongoingRideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${ongoingRideId}/publish`);
@@ -76,11 +79,11 @@ test.describe('🆘 SOS Flow', () => {
 
   test('SOS-04: SOS outside ONGOING ride returns 400', async () => {
     // Create a PUBLISHED (not started) ride
-    const d = new Date(); d.setDate(d.getDate() + 5); d.setHours(9, 0, 0, 0);
+    const d = new Date(); d.setDate(d.getDate() + 5);
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'Test SOS Area', originLat: 17.44, originLng: 78.38,
       destinationName: 'Test SOS Dest', destinationLat: 17.45, destinationLng: 78.39,
-      departureTime: d.toISOString(), availableSeats: 2, vehicleId,
+      departureDate: d.toISOString().split('T')[0], departureTime: '09:00', totalSeats: 2, vehicleId,
     });
     const testRideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${testRideId}/publish`);

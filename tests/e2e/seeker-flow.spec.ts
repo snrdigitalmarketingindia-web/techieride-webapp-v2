@@ -4,7 +4,7 @@
  * QA Architect coverage: all seeker-visible states and transitions
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
@@ -25,8 +25,9 @@ async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: s
   await ctx.dispose();
   return body;
 }
-function tomorrow9am() {
-  const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d.toISOString();
+function tomorrow9am(): { departureDate: string; departureTime: string } {
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  return { departureDate: d.toISOString().split('T')[0], departureTime: '09:00' };
 }
 
 test.describe('🙋 Seeker Full Flow', () => {
@@ -39,6 +40,7 @@ test.describe('🙋 Seeker Full Flow', () => {
   test.beforeAll(async () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    await clearActiveRides(giverToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
@@ -46,7 +48,7 @@ test.describe('🙋 Seeker Full Flow', () => {
     const created = await api(giverToken, 'post', '/rides', {
       originName: 'Kondapur, Hyderabad', originLat: 17.46, originLng: 78.36,
       destinationName: 'HITEC City, Hyderabad', destinationLat: 17.44, destinationLng: 78.39,
-      departureTime: tomorrow9am(), availableSeats: 3, vehicleId,
+      ...tomorrow9am(), totalSeats: 3, vehicleId,
     });
     rideId = (created.data ?? created).id;
     await api(giverToken, 'patch', `/rides/${rideId}/publish`);

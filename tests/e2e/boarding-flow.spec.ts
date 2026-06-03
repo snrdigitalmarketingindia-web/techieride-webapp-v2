@@ -25,8 +25,12 @@ async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: s
   await ctx.dispose();
   return body;
 }
-function inOneHour() {
-  const d = new Date(); d.setHours(d.getHours() + 1); return d.toISOString();
+function inOneHour(): { departureDate: string; departureTime: string } {
+  const d = new Date(); d.setHours(d.getHours() + 1);
+  return {
+    departureDate: d.toISOString().split('T')[0],
+    departureTime: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+  };
 }
 
 test.describe('🚏 Boarding Flow', () => {
@@ -47,7 +51,7 @@ test.describe('🚏 Boarding Flow', () => {
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'LB Nagar, Hyderabad', originLat: 17.34, originLng: 78.55,
       destinationName: 'Mindspace, Hyderabad', destinationLat: 17.44, destinationLng: 78.38,
-      departureTime: inOneHour(), availableSeats: 2, vehicleId,
+      ...inOneHour(), totalSeats: 2, vehicleId,
     });
     rideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${rideId}/publish`);

@@ -39,11 +39,11 @@ test.describe('🔔 Notifications Flow', () => {
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
-    const d = new Date(); d.setDate(d.getDate() + 2); d.setHours(10, 0, 0, 0);
+    const d = new Date(); d.setDate(d.getDate() + 2);
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'Manikonda, Hyderabad', originLat: 17.40, originLng: 78.38,
       destinationName: 'Nanakramguda, Hyderabad', destinationLat: 17.44, destinationLng: 78.38,
-      departureTime: d.toISOString(), availableSeats: 3, vehicleId,
+      departureDate: d.toISOString().split('T')[0], departureTime: '10:00', totalSeats: 3, vehicleId,
     });
     rideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${rideId}/publish`);

@@ -7,7 +7,7 @@
  */
 
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
@@ -44,6 +44,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
   test.beforeAll(async () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    await clearActiveRides(giverToken);
 
     // Get giver's vehicle
     const vehicles = await apiCall(giverToken, 'get', '/vehicles/my');
@@ -61,8 +62,9 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
       originLat: 17.4639, originLng: 78.3674,
       destinationName: 'HITEC City, Hyderabad',
       destinationLat: 17.4486, destinationLng: 78.3908,
-      departureTime: tomorrow.toISOString(),
-      availableSeats: 3,
+      departureDate: tomorrow.toISOString().split('T')[0],
+      departureTime: '09:00',
+      totalSeats: 3,
       vehicleId,
     });
     rideId = created.data?.id ?? created.id;

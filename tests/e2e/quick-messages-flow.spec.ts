@@ -4,7 +4,7 @@
  * QA Architect coverage: quick message UI interactions and delivery
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
@@ -35,6 +35,7 @@ test.describe('💬 Quick Messages Flow', () => {
   test.beforeAll(async () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    await clearActiveRides(giverToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
@@ -43,7 +44,7 @@ test.describe('💬 Quick Messages Flow', () => {
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'Miyapur, Hyderabad', originLat: 17.50, originLng: 78.35,
       destinationName: 'Raheja Mindspace, Hyderabad', destinationLat: 17.44, destinationLng: 78.38,
-      departureTime: d.toISOString(), availableSeats: 3, vehicleId,
+      departureDate: d.toISOString().split('T')[0], departureTime: '11:00', totalSeats: 3, vehicleId,
     });
     rideId = (r.data ?? r).id;
     await api(giverToken, 'patch', `/rides/${rideId}/publish`);

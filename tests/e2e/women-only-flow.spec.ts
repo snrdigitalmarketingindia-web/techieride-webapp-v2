@@ -4,7 +4,7 @@
  * QA Architect coverage: gender-based access and visibility
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides } from './helpers';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://techieride-webapp-v2.onrender.com/api/v1';
 
@@ -37,6 +37,7 @@ test.describe('👩 Women-Only Ride Flow', () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     // Tapaswini is female seeker
     femaleToken = await apiLogin('tapaswini@tapaswini.com');
+    await clearActiveRides(giverToken);
 
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
@@ -46,7 +47,7 @@ test.describe('👩 Women-Only Ride Flow', () => {
     const r = await api(giverToken, 'post', '/rides', {
       originName: 'Kondapur, Hyderabad', originLat: 17.46, originLng: 78.36,
       destinationName: 'HITEC City, Hyderabad', destinationLat: 17.44, destinationLng: 78.39,
-      departureTime: d.toISOString(), availableSeats: 3, vehicleId,
+      departureDate: d.toISOString().split('T')[0], departureTime: '08:00', totalSeats: 3, vehicleId,
       womenOnly: true,
     });
     womenRideId = (r.data ?? r).id;
