@@ -1,9 +1,8 @@
-import { PrismaClient, Gender, UserRole, VerificationStatus, EcoLevel, AccountStatus } from '@prisma/client';
+import { PrismaClient, Gender, UserRole, VerificationStatus, EcoLevel, AccountStatus, TrustBand } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-// All seed accounts use this password for easy testing
 const SEED_PASSWORD = 'TechieRide@2024';
 const BCRYPT_ROUNDS = 12;
 
@@ -22,9 +21,9 @@ async function main() {
       email: 'admin@techieride.in',
       passwordHash: await hashPw(SEED_PASSWORD),
       fullName: 'TR Admin',
-      personalEmail: 'tradmin.personal@gmail.com',
+      personalEmail: 'admin.testtr@gmail.com',
       gender: Gender.MALE,
-      phone: '9000000000',
+      phone: '9999999999',
       countryCode: '+91',
       isPhoneVerified: true,
       bloodGroup: 'O+',
@@ -36,12 +35,20 @@ async function main() {
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
       accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
+      ecoPoints: 500,
+      ecoLevel: EcoLevel.LEAF,
+      trustScore: 85,
+      trustBand: TrustBand.PLATINUM,
       isActive: true,
     },
   });
-  // Admin gets both seeker + giver profiles so they can participate in rides
   await prisma.rideSeeker.upsert({ where: { userId: admin.id }, update: {}, create: { userId: admin.id } });
   await prisma.rideGiver.upsert({ where: { userId: admin.id }, update: {}, create: { userId: admin.id } });
+  await prisma.emergencyContact.upsert({
+    where: { id: 'ec-admin-001' },
+    update: {},
+    create: { id: 'ec-admin-001', userId: admin.id, name: 'Lakshmi Admin', phone: '9100000001', relationship: 'Spouse' },
+  }).catch(() => prisma.emergencyContact.findFirst({ where: { userId: admin.id } }));
   console.log('✅ Admin:', admin.email);
 
   // ── Ride Seeker: Arjun ─────────────────────────────────────────────────
@@ -52,7 +59,7 @@ async function main() {
       email: 'arjun@tcs.com',
       passwordHash: await hashPw(SEED_PASSWORD),
       fullName: 'Arjun Mehta',
-      personalEmail: 'arjun.mehta.personal@gmail.com',
+      personalEmail: 'arjun.testtr@gmail.com',
       gender: Gender.MALE,
       companyName: 'TCS',
       employeeId: 'TCS-001',
@@ -68,33 +75,79 @@ async function main() {
       accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
       ecoPoints: 60,
       ecoLevel: EcoLevel.SEED,
+      trustScore: 35,
+      trustBand: TrustBand.BRONZE,
+      isActive: true,
     },
   });
-  await prisma.rideSeeker.upsert({
-    where: { userId: arjun.id },
-    update: {},
-    create: { userId: arjun.id },
-  });
+  await prisma.rideSeeker.upsert({ where: { userId: arjun.id }, update: {}, create: { userId: arjun.id } });
   await prisma.verificationRequest.upsert({
     where: { userId_verificationType: { userId: arjun.id, verificationType: 'EMPLOYEE' } },
     update: { status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
     create: { userId: arjun.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
+  await prisma.emergencyContact.upsert({
+    where: { id: 'ec-arjun-001' },
+    update: {},
+    create: { id: 'ec-arjun-001', userId: arjun.id, name: 'Sunita Mehta', phone: '9100000002', relationship: 'Mother' },
+  }).catch(() => prisma.emergencyContact.findFirst({ where: { userId: arjun.id } }));
   console.log('✅ Seeker Arjun:', arjun.email);
 
-  // ── Ride Giver: Priya ──────────────────────────────────────────────────
-  const priya = await prisma.user.upsert({
-    where: { email: 'priya@infosys.com' },
+  // ── Ride Seeker: Tapaswini ─────────────────────────────────────────────
+  const tapaswini = await prisma.user.upsert({
+    where: { email: 'tapaswini@tapaswini.com' },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED },
+    create: {
+      email: 'tapaswini@tapaswini.com',
+      passwordHash: await hashPw(SEED_PASSWORD),
+      fullName: 'Sai Tapaswini',
+      personalEmail: 'saitapaswini.testtr@gmail.com',
+      gender: Gender.FEMALE,
+      companyName: 'Wipro',
+      employeeId: 'WIP-101',
+      phone: '7702166977',
+      countryCode: '+91',
+      isPhoneVerified: true,
+      bloodGroup: 'O-',
+      homeLocation: 'Gachibowli, Hyderabad',
+      officeLocation: 'Wipro Campus, Manikonda, Hyderabad',
+      role: UserRole.RIDE_SEEKER,
+      verificationStatus: VerificationStatus.APPROVED,
+      emailStatus: 'VERIFIED',
+      accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
+      ecoPoints: 60,
+      ecoLevel: EcoLevel.SEED,
+      trustScore: 30,
+      trustBand: TrustBand.BRONZE,
+      isActive: true,
+    },
+  });
+  await prisma.rideSeeker.upsert({ where: { userId: tapaswini.id }, update: {}, create: { userId: tapaswini.id } });
+  await prisma.verificationRequest.upsert({
+    where: { userId_verificationType: { userId: tapaswini.id, verificationType: 'EMPLOYEE' } },
+    update: { status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: tapaswini.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+  });
+  await prisma.emergencyContact.upsert({
+    where: { id: 'ec-tapaswini-001' },
+    update: {},
+    create: { id: 'ec-tapaswini-001', userId: tapaswini.id, name: 'Srinivas Sadhu', phone: '9100000003', relationship: 'Father' },
+  }).catch(() => prisma.emergencyContact.findFirst({ where: { userId: tapaswini.id } }));
+  console.log('✅ Seeker Tapaswini:', tapaswini.email);
+
+  // ── Ride Giver: Rahul ──────────────────────────────────────────────────
+  const rahul = await prisma.user.upsert({
+    where: { email: 'rahul@rahul.com' },
     update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.DRIVER_VERIFIED },
     create: {
-      email: 'priya@infosys.com',
+      email: 'rahul@rahul.com',
       passwordHash: await hashPw(SEED_PASSWORD),
-      fullName: 'Priya Sharma',
-      personalEmail: 'priya.sharma.hyd@gmail.com',
-      gender: Gender.FEMALE,
+      fullName: 'Rahul Sharma',
+      personalEmail: 'rahul.testtr@gmail.com',
+      gender: Gender.MALE,
       companyName: 'Infosys',
       employeeId: 'INF-002',
-      phone: '9000000001',
+      phone: '9849808599',
       countryCode: '+91',
       isPhoneVerified: true,
       bloodGroup: 'A+',
@@ -106,85 +159,79 @@ async function main() {
       accountStatus: AccountStatus.DRIVER_VERIFIED,
       ecoPoints: 180,
       ecoLevel: EcoLevel.SPROUT,
+      trustScore: 55,
+      trustBand: TrustBand.SILVER,
+      isActive: true,
     },
   });
-  const priyaGiver = await prisma.rideGiver.upsert({
-    where: { userId: priya.id },
+  const rahulGiver = await prisma.rideGiver.upsert({
+    where: { userId: rahul.id },
     update: { licenseVerified: true },
-    create: { userId: priya.id, licenseVerified: true, totalRidesGiven: 5, averageRating: 4.7 },
+    create: { userId: rahul.id, licenseVerified: true, totalRidesGiven: 5, averageRating: 4.7 },
   });
-  const vehicle = await prisma.vehicle.upsert({
+  await prisma.vehicle.upsert({
     where: { plateNumber: 'TS09AB5678' },
     update: { rcVerified: true },
-    create: { rideGiverId: priyaGiver.id, make: 'Maruti', model: 'Swift', color: 'White', plateNumber: 'TS09AB5678', totalSeats: 4, rcVerified: true },
+    create: { rideGiverId: rahulGiver.id, make: 'Maruti', model: 'Swift', color: 'White', plateNumber: 'TS09AB5678', totalSeats: 4, rcVerified: true },
   });
   await prisma.verificationRequest.upsert({
-    where: { userId_verificationType: { userId: priya.id, verificationType: 'EMPLOYEE' } },
+    where: { userId_verificationType: { userId: rahul.id, verificationType: 'EMPLOYEE' } },
     update: { status: VerificationStatus.APPROVED },
-    create: { userId: priya.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: rahul.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
   await prisma.verificationRequest.upsert({
-    where: { userId_verificationType: { userId: priya.id, verificationType: 'DRIVER' } },
+    where: { userId_verificationType: { userId: rahul.id, verificationType: 'DRIVER' } },
     update: { status: VerificationStatus.APPROVED },
-    create: { userId: priya.id, verificationType: 'DRIVER', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: rahul.id, verificationType: 'DRIVER', drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
-  console.log('✅ Giver Priya:', priya.email, '| Vehicle:', vehicle.plateNumber);
+  await prisma.emergencyContact.upsert({
+    where: { id: 'ec-rahul-001' },
+    update: {},
+    create: { id: 'ec-rahul-001', userId: rahul.id, name: 'Meena Sharma', phone: '9100000004', relationship: 'Wife' },
+  }).catch(() => prisma.emergencyContact.findFirst({ where: { userId: rahul.id } }));
+  console.log('✅ Giver Rahul:', rahul.email);
 
-  // ── Both: Ravi ─────────────────────────────────────────────────────────
-  const ravi = await prisma.user.upsert({
-    where: { email: 'ravi@wipro.com' },
-    update: { accountStatus: AccountStatus.DRIVER_VERIFIED, emailStatus: 'VERIFIED' },
-    create: {
-      email: 'ravi@wipro.com',
-      passwordHash: await hashPw(SEED_PASSWORD),
-      fullName: 'Ravi Kumar',
-      personalEmail: 'ravi.kumar.wipro@gmail.com',
-      gender: Gender.MALE,
-      companyName: 'Wipro',
-      employeeId: 'WIP-101',
-      phone: '9111111111',
-      countryCode: '+91',
-      isPhoneVerified: true,
-      bloodGroup: 'O-',
-      homeLocation: 'Gachibowli, Hyderabad',
-      officeLocation: 'Wipro Campus, Manikonda, Hyderabad',
-      role: UserRole.RIDE_GIVER,
-      verificationStatus: VerificationStatus.APPROVED,
-      emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.DRIVER_VERIFIED,
-      ecoPoints: 340,
-      ecoLevel: EcoLevel.LEAF,
-    },
-  });
-  await prisma.rideSeeker.upsert({ where: { userId: ravi.id }, update: {}, create: { userId: ravi.id, totalRidesTaken: 12, averageRating: 4.8 } });
-  await prisma.rideGiver.upsert({ where: { userId: ravi.id }, update: {}, create: { userId: ravi.id, licenseVerified: true, totalRidesGiven: 8, averageRating: 4.9 } });
-  console.log('✅ Both Ravi:', ravi.email, '| 🍃 LEAF level');
-
-  // ── Dev/Test accounts (non-IT domains, dev only) ──────────────────────
+  // ── Dev/Test accounts ──────────────────────────────────────────────────
   const testAccounts = [
     {
       email: 'csr@csr.com', fullName: 'CSR Admin', role: UserRole.ADMIN,
-      personalEmail: 'csr.admin.tr@gmail.com', gender: Gender.FEMALE, phone: '9000000005',
+      personalEmail: 'csr.testtr@gmail.com', gender: Gender.FEMALE, phone: '9989437777',
       bloodGroup: 'AB+', companyName: 'TechieRide', employeeId: 'TR-CSR-001',
       homeLocation: 'Jubilee Hills, Hyderabad', officeLocation: 'Madhapur, Hyderabad',
+      ecoPoints: 120, ecoLevel: EcoLevel.SPROUT, trustScore: 50, trustBand: TrustBand.SILVER,
+      emergency: { id: 'ec-csr-001', name: 'Ramesh Kumar', phone: '9100000005', relationship: 'Husband' },
     },
     {
-      email: 'raghu@raghu.com', fullName: 'Raghu Nandan', role: UserRole.RIDE_SEEKER,
-      personalEmail: 'raghu.nandan.hyd@gmail.com', gender: Gender.MALE, phone: '9000000003',
+      email: 'raghu@raghu.com', fullName: 'Raghu Sri', role: UserRole.RIDE_SEEKER,
+      personalEmail: 'raghu.testtr@gmail.com', gender: Gender.MALE, phone: '9581166626',
       bloodGroup: 'B-', companyName: 'HCL Technologies', employeeId: 'HCL-303',
       homeLocation: 'Miyapur, Hyderabad', officeLocation: 'HITEC City, Hyderabad',
+      ecoPoints: 40, ecoLevel: EcoLevel.SEED, trustScore: 25, trustBand: TrustBand.BRONZE,
+      emergency: { id: 'ec-raghu-001', name: 'Padma Sri', phone: '9100000006', relationship: 'Mother' },
     },
     {
-      email: 'raju@raju.com', fullName: 'Raju Bhai', role: UserRole.RIDE_GIVER,
-      personalEmail: 'raju.bhai.drives@gmail.com', gender: Gender.MALE, phone: '9000000002',
+      email: 'raju@raju.com', fullName: 'Rajendra Prasad', role: UserRole.RIDE_GIVER,
+      personalEmail: 'raju.testtr@gmail.com', gender: Gender.MALE, phone: '9948695942',
       bloodGroup: 'A-', companyName: 'Tech Mahindra', employeeId: 'TM-202',
       homeLocation: 'Kukatpally, Hyderabad', officeLocation: 'Nanakramguda, Hyderabad',
+      ecoPoints: 220, ecoLevel: EcoLevel.SPROUT, trustScore: 60, trustBand: TrustBand.SILVER,
+      emergency: { id: 'ec-raju-001', name: 'Sunitha Prasad', phone: '9100000007', relationship: 'Wife' },
     },
     {
-      email: 'venky@venky.com', fullName: 'Venkatesh Reddy', role: UserRole.RIDE_GIVER,
-      personalEmail: 'venky.reddy.hyd@gmail.com', gender: Gender.MALE, phone: '9000000004',
+      email: 'venky@venky.com', fullName: 'Venkatesh Enjamoori', role: UserRole.RIDE_GIVER,
+      personalEmail: 'venky.testtr@gmail.com', gender: Gender.MALE, phone: '9866911799',
       bloodGroup: 'O+', companyName: 'Cognizant', employeeId: 'COG-404',
       homeLocation: 'LB Nagar, Hyderabad', officeLocation: 'Raheja Mindspace, Hyderabad',
+      ecoPoints: 310, ecoLevel: EcoLevel.LEAF, trustScore: 70, trustBand: TrustBand.GOLD,
+      emergency: { id: 'ec-venky-001', name: 'Vijaya Enjamoori', phone: '9100000008', relationship: 'Father' },
+    },
+    {
+      email: 'harish@harish.com', fullName: 'Harish Reddy Sadhu', role: UserRole.RIDE_GIVER,
+      personalEmail: 'harish.testtr@gmail.com', gender: Gender.MALE, phone: '9849465601',
+      bloodGroup: 'B+', companyName: 'Accenture', employeeId: 'ACC-505',
+      homeLocation: 'Manikonda, Hyderabad', officeLocation: 'Nanakramguda, Hyderabad',
+      ecoPoints: 150, ecoLevel: EcoLevel.SPROUT, trustScore: 45, trustBand: TrustBand.SILVER,
+      emergency: { id: 'ec-harish-001', name: 'Anitha Sadhu', phone: '9100000009', relationship: 'Sister' },
     },
   ];
 
@@ -213,20 +260,23 @@ async function main() {
         verificationStatus: VerificationStatus.APPROVED,
         emailStatus: 'VERIFIED',
         accountStatus: acctStatus,
+        ecoPoints: acc.ecoPoints,
+        ecoLevel: acc.ecoLevel as EcoLevel,
+        trustScore: acc.trustScore,
+        trustBand: acc.trustBand as TrustBand,
         isActive: true,
       },
     });
+
     if (acc.role === UserRole.RIDE_SEEKER) {
       await prisma.rideSeeker.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
     }
     if (acc.role === UserRole.ADMIN) {
-      // Admin gets both profiles so they can participate in rides
       await prisma.rideSeeker.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
       await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
     }
     if (acc.role === UserRole.RIDE_GIVER) {
       const giver = await prisma.rideGiver.upsert({ where: { userId: u.id }, update: {}, create: { userId: u.id } });
-      // Give each seeded giver a verified vehicle so they can publish rides immediately
       if (acc.email === 'raju@raju.com') {
         await prisma.vehicle.upsert({
           where: { plateNumber: 'TS07RJ1234' },
@@ -241,12 +291,27 @@ async function main() {
           create: { rideGiverId: giver.id, make: 'Hyundai', model: 'i20', color: 'Red', plateNumber: 'TS07VK5678', totalSeats: 4, rcVerified: true },
         });
       }
+      if (acc.email === 'harish@harish.com') {
+        await prisma.vehicle.upsert({
+          where: { plateNumber: 'TS08HR9012' },
+          update: { rcVerified: true },
+          create: { rideGiverId: giver.id, make: 'Toyota', model: 'Innova', color: 'Silver', plateNumber: 'TS08HR9012', totalSeats: 6, rcVerified: true },
+        });
+      }
     }
+
+    // Emergency contact
+    await prisma.emergencyContact.upsert({
+      where: { id: acc.emergency.id },
+      update: {},
+      create: { id: acc.emergency.id, userId: u.id, name: acc.emergency.name, phone: acc.emergency.phone, relationship: acc.emergency.relationship },
+    }).catch(() => prisma.emergencyContact.findFirst({ where: { userId: u.id } }));
+
     console.log(`✅ Test account: ${acc.email} (${acc.role})`);
   }
 
   // ── Gamification points ────────────────────────────────────────────────
-  for (const [user, pts] of [[arjun, 60], [priya, 180], [ravi, 340]] as const) {
+  for (const [user, pts] of [[arjun, 60], [rahul, 180], [tapaswini, 60]] as const) {
     const exists = await prisma.gamificationPoint.findFirst({ where: { userId: user.id, eventType: 'SEED_DATA' } });
     if (!exists) {
       await prisma.gamificationPoint.create({ data: { userId: user.id, eventType: 'SEED_DATA', points: pts, co2SavedG: pts * 80 } });
@@ -257,14 +322,12 @@ async function main() {
   console.log('\n🚀 Seed complete!\n');
   console.log('Test accounts (all use password: TechieRide@2024)');
   console.log('  Admin  : admin@techieride.in');
-  console.log('  Seeker : arjun@tcs.com');
-  console.log('  Giver  : priya@infosys.com');
-  console.log('  Both   : ravi@wipro.com');
+  console.log('  Seeker : arjun@tcs.com | tapaswini@tapaswini.com');
+  console.log('  Giver  : rahul@rahul.com');
   console.log('\n  Dev-only test accounts:');
   console.log('  Admin  : csr@csr.com');
   console.log('  Seeker : raghu@raghu.com');
-  console.log('  Giver  : raju@raju.com');
-  console.log('  Both   : venky@venky.com');
+  console.log('  Giver  : raju@raju.com | venky@venky.com | harish@harish.com');
 }
 
 main()
