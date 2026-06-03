@@ -2,6 +2,21 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 343 · 0cb2695 · 2026-06-03 00:53 UTC
+
+Commit: Fix NOT-04 test — expect GENERIC for new seat request notification
+
+S14 changed the giver notification type from REQUEST_APPROVED to GENERIC;
+test was not updated.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+Author: Srinivas Reddy
+
+Files changed:
+- tests/e2e-api-notifications.ts
+
+---
+
 ## Build 340 · 49f12c8 · 2026-06-03 00:42 UTC
 
 Commit: fix: correct notification type on new request, show search error, upgrade requests loading skeleton
