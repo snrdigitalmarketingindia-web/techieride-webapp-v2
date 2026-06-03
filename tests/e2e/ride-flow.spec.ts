@@ -10,7 +10,13 @@ import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
 
 
-// ── API helpers ────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+/** Fill the search date input with tomorrow's date so API-created tomorrow rides show up */
+function tomorrowDateStr(): string {
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+}
 
 async function apiCall(token: string, method: 'get' | 'post' | 'patch' | 'delete', path: string, data?: object) {
   const ctx = await playwrightRequest.newContext();
@@ -60,9 +66,10 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     rideId = created.data?.id ?? created.id;
     await apiCall(giverToken, 'patch', `/rides/${rideId}/publish`);
 
-    // Seeker searches and sees the ride
+    // Seeker searches and sees the ride (set date to tomorrow — rides are created with tomorrow's departure)
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
 
@@ -72,6 +79,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
   test('seeker requests seat — search page shows "awaiting approval"', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
 
@@ -84,6 +92,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
 
     // Refresh and verify pending state shown
     await page.reload();
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
 
@@ -97,6 +106,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     // Seeker refreshes search page
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
 
@@ -134,6 +144,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     // Seeker search page should show "Request Seat" button again
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
 

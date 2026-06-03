@@ -56,16 +56,18 @@ export default function MyRidesPage() {
     }).catch(() => {});
   }, [isGiver]);
 
-  // Fetch rides when tab or hydration changes.
-  // _hasHydrated is needed because givers start on tab='given' and role-effect calls setTab('given')
-  // (same value → no tab change → effect never re-fires without _hasHydrated as a dep).
+  // Fetch rides when tab, hydration, or user identity changes.
+  // user?.id is required: DashboardLayout fetches the profile async after _hasHydrated fires,
+  // so the effect may run with _hasHydrated=true but user=null and early-return. Once
+  // fetchProfile() completes and sets user, user?.id changes → effect re-fires correctly.
+  // _hasHydrated is kept so givers (tab stays 'given') still get one guaranteed trigger.
   useEffect(() => {
     if (!user || !_hasHydrated) return;
     setLoading(true);
     const fetch = tab === 'given' ? ridesApi.getGiven() : ridesApi.getTaken();
     fetch.then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; }).finally(() => setLoading(false));
     if (tab === 'taken' && isSeeker) reloadMyRequests();
-  }, [tab, _hasHydrated]);
+  }, [tab, _hasHydrated, user?.id]);
 
   const reloadMyRequests = () => {
     requestsApi.getMine().then((r) => {

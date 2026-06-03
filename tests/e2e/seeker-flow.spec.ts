@@ -21,6 +21,11 @@ function tomorrow9am(): { departureDate: string; departureTime: string } {
   const d = new Date(); d.setDate(d.getDate() + 1);
   return { departureDate: d.toISOString().split('T')[0], departureTime: '09:00' };
 }
+/** Tomorrow's date string for filling the search date input */
+function tomorrowDateStr(): string {
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  return d.toISOString().split('T')[0];
+}
 
 test.describe('🙋 Seeker Full Flow', () => {
   let giverToken: string;
@@ -92,6 +97,7 @@ test.describe('🙋 Seeker Full Flow', () => {
 
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
     await expect(page.getByText(/awaiting giver/i)).toBeVisible({ timeout: 8_000 });
@@ -102,6 +108,7 @@ test.describe('🙋 Seeker Full Flow', () => {
 
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
     await expect(page.getByText(/seat confirmed/i)).toBeVisible({ timeout: 8_000 });
@@ -118,6 +125,7 @@ test.describe('🙋 Seeker Full Flow', () => {
 
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
     await expect(page.getByRole('button', { name: /request seat/i })).toBeVisible({ timeout: 8_000 });
@@ -133,6 +141,7 @@ test.describe('🙋 Seeker Full Flow', () => {
     // UI should also show pending state not a new request button
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
     await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();

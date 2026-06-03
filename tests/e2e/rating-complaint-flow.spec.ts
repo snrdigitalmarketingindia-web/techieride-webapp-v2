@@ -51,15 +51,23 @@ test.describe('⭐ Rating & Complaint Flow', () => {
       totalSeats: 2, vehicleId,
     });
     completedRideId = (r.data ?? r).id;
-    await api(giverToken, 'patch', `/rides/${completedRideId}/publish`);
+    if (!completedRideId) throw new Error(`RF beforeAll: ride creation failed — ${JSON.stringify(r)}`);
+    const pub = await api(giverToken, 'patch', `/rides/${completedRideId}/publish`);
+    if ((pub.statusCode ?? pub.status ?? 200) >= 400) throw new Error(`RF beforeAll: publish failed — ${JSON.stringify(pub)}`);
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId: completedRideId, pickupName: 'Jubilee Hills, Hyderabad' });
     const reqId = req.requestId ?? req.id ?? req.data?.id;
-    await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
-    await api(giverToken, 'patch', `/rides/${completedRideId}/start`);
+    if (!reqId) throw new Error(`RF beforeAll: request failed — ${JSON.stringify(req)}`);
+    const appr = await api(giverToken, 'patch', `/ride-requests/${reqId}/approve`);
+    if ((appr.statusCode ?? appr.status ?? 200) >= 400) throw new Error(`RF beforeAll: approve failed — ${JSON.stringify(appr)}`);
+    const started = await api(giverToken, 'patch', `/rides/${completedRideId}/start`);
+    if ((started.statusCode ?? started.status ?? 200) >= 400) throw new Error(`RF beforeAll: start failed — ${JSON.stringify(started)}`);
     // Seeker self-boards and self-deboards (no-param PATCH via seeker token)
-    await api(seekerToken, 'patch', `/rides/${completedRideId}/board`).catch(() => {});
-    await api(seekerToken, 'patch', `/rides/${completedRideId}/deboard`).catch(() => {});
-    await api(giverToken, 'patch', `/rides/${completedRideId}/complete`);
+    const boarded = await api(seekerToken, 'patch', `/rides/${completedRideId}/board`).catch((e) => ({ error: String(e) }));
+    if ((boarded.statusCode ?? boarded.status ?? 200) >= 400) throw new Error(`RF beforeAll: board failed — ${JSON.stringify(boarded)}`);
+    const deboarded = await api(seekerToken, 'patch', `/rides/${completedRideId}/deboard`).catch((e) => ({ error: String(e) }));
+    if ((deboarded.statusCode ?? deboarded.status ?? 200) >= 400) throw new Error(`RF beforeAll: deboard failed — ${JSON.stringify(deboarded)}`);
+    const completed = await api(giverToken, 'patch', `/rides/${completedRideId}/complete`);
+    if ((completed.statusCode ?? completed.status ?? 200) >= 400) throw new Error(`RF beforeAll: complete failed — ${JSON.stringify(completed)}`);
   });
 
   // ── Ratings ──────────────────────────────────────────────────────────────
