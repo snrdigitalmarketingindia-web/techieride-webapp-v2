@@ -149,8 +149,8 @@ async function runNotificationTests() {
     const seeker = await freshSeeker('n04');
     const rideId = await publishRide(giver.client, giver.vehicleId);
     await seeker.client.post('/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
-    // create() notifies giver with REQUEST_APPROVED ("New seat request")
-    await assertHasNotification(giver.client, 'REQUEST_APPROVED', 'giver');
+    // create() notifies giver with GENERIC ("New seat request" — changed in S14)
+    await assertHasNotification(giver.client, 'GENERIC', 'giver');
   });
 
   // NOT-05: All confirmed seekers notified on RIDE_STARTED
