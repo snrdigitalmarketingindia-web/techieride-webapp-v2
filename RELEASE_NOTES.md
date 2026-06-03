@@ -2,6 +2,17 @@
 > Single source of truth for all builds — auto-updated on every push, with detailed session notes below.
 > Read this before touching any module.
 ## Build 175 · 6ccaebc · 2026-06-01 19:21 UTC
+## Build 338 · 8fdb1af · 2026-06-03 00:38 UTC
+
+Commit: fix: block giver cancel on ONGOING ride, fix CAN-08 test seat-freed flow
+Author: Srinivas Reddy
+
+Files changed:
+- apps/api/src/modules/rides/rides.service.ts
+- tests/e2e-api-cancellation.ts
+
+---
+
 ## Build 336 · 512d320 · 2026-06-02 19:13 UTC
 
 Commit: feat: show gender warning on search when women-only rides exist but gender not set
