@@ -92,6 +92,7 @@ enum NotificationType {
   SOS_ALERT
   RATING_RECEIVED
   COMPLAINT_FILED
+  QUICK_MESSAGE
   GENERIC
 }
 

@@ -137,7 +137,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     // Raghu checks requests page
     await loginUI(page, 'raghu@raghu.com');
     await page.goto('/requests');
-    await expect(page.getByText(/rejected/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/rejected/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('seeker cancels confirmed request — seat is freed', async ({ page }) => {
@@ -146,7 +146,13 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
 
     // Seeker search page should show "Request Seat" button again
     await loginUI(page, 'seeker');
+    // Register listener before goto so the auto-search response is captured
+    const autoSearchDone = page.waitForResponse(
+      r => r.url().includes('/rides/search') && r.status() === 200,
+      { timeout: 10_000 },
+    );
     await page.goto('/rides/search');
+    await autoSearchDone; // wait for today's auto-search to finish before triggering manual search
     await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);

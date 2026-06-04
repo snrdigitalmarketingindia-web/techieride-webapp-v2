@@ -74,7 +74,7 @@ test.describe('💬 Quick Messages Flow', () => {
 
     await loginUI(page, 'seeker');
     await page.locator('button[aria-label="Notifications"]').click();
-    await expect(page.getByText(/message|quick|on my way|route/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/says:|arrived|on my way|message|quick|route/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('QM-04: invalid message key rejected', async () => {

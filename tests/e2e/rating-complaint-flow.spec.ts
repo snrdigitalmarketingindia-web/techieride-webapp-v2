@@ -121,7 +121,7 @@ test.describe('⭐ Rating & Complaint Flow', () => {
   test('RF-06: seeker can file complaint against giver', async () => {
     const result = await api(seekerToken, 'post', '/complaints', {
       reportedId: giverUserId, rideId: completedRideId,
-      reason: 'RECKLESS_DRIVING', description: 'Test complaint for QA',
+      reason: 'UNSAFE_DRIVING', description: 'Test complaint for QA',
     });
     expect([200, 201]).toContain(result.statusCode ?? result.status ?? 201);
   });
