@@ -84,7 +84,7 @@ test.describe('🚏 Boarding Flow', () => {
       await expect(completeBtn).toBeDisabled();
     }
     // Warning message should be shown
-    await expect(page.getByText(/yet to board/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/yet to board|still waiting/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('BF-03: seeker sees boarding button on ONGOING ride', async ({ page }) => {

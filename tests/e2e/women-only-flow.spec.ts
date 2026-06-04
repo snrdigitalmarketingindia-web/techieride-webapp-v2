@@ -78,7 +78,9 @@ test.describe('👩 Women-Only Ride Flow', () => {
     const result = await api(femaleToken, 'post', '/ride-requests', {
       rideId: womenRideId, pickupName: 'Kondapur Metro, Hyderabad',
     });
-    expect([200, 201]).toContain(result.statusCode ?? result.status ?? 201);
+    // API returns {requestId, status: "PENDING"} on success, or {statusCode, message} on error
+    const reqId = result.requestId ?? result.data?.id ?? result.id;
+    expect(reqId).toBeTruthy();
   });
 
   test('WO-05: male seeker blocked from requesting women-only ride', async () => {

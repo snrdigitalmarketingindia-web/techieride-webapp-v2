@@ -7,7 +7,7 @@
  */
 
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, clearSeekerRequests, apiLogin, API } from './helpers';
 
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -41,6 +41,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
     await clearActiveRides(giverToken);
+    await clearSeekerRequests(seekerToken);
 
     // Get giver's vehicle
     const vehicles = await apiCall(giverToken, 'get', '/vehicles/my');
@@ -53,11 +54,13 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(9, 0, 0, 0);
 
+    // Coords match the search page defaults (17.4401/78.3489 origin, 17.4489/78.3696 dest)
+    // so the ride appears within the 500m search radius when seeker searches with defaults
     const created = await apiCall(giverToken, 'post', '/rides', {
       originName: 'Kondapur, Hyderabad',
-      originLat: 17.4639, originLng: 78.3674,
+      originLat: 17.4401, originLng: 78.3489,
       destinationName: 'HITEC City, Hyderabad',
-      destinationLat: 17.4486, destinationLng: 78.3908,
+      destinationLat: 17.4489, destinationLng: 78.3696,
       departureDate: tomorrow.toISOString().split('T')[0],
       departureTime: '09:00',
       totalSeats: 3,

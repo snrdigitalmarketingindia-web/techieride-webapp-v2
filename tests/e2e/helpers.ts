@@ -74,6 +74,29 @@ export async function clearActiveRides(giverToken: string) {
   await ctx.dispose();
 }
 
+/**
+ * Cancel all active (PENDING or CONFIRMED) ride requests for a seeker.
+ * Call after clearActiveRides in any beforeAll that uses the seeker account,
+ * to prevent leftover CONFIRMED requests from blocking new request creation (409).
+ */
+export async function clearSeekerRequests(seekerToken: string) {
+  const ctx = await playwrightRequest.newContext();
+  const res = await ctx.get(`${API}/ride-requests/mine`, {
+    headers: { Authorization: `Bearer ${seekerToken}` },
+  });
+  const body = await res.json();
+  const requests: any[] = body.data ?? body;
+  if (!Array.isArray(requests)) { await ctx.dispose(); return; }
+  for (const req of requests) {
+    if (req.status === 'PENDING' || req.status === 'CONFIRMED') {
+      await ctx.patch(`${API}/ride-requests/${req.id}/cancel`, {
+        headers: { Authorization: `Bearer ${seekerToken}` },
+      }).catch(() => {});
+    }
+  }
+  await ctx.dispose();
+}
+
 // ── Login via UI (email + password) ──────────────────────────────
 export async function loginUI(page: Page, emailOrKey: string) {
   // Accept either a key ('admin', 'giver', 'seeker') or a direct email

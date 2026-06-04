@@ -4,7 +4,7 @@
  * QA Architect coverage: post-ride interactions
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, clearSeekerRequests, apiLogin, API } from './helpers';
 
 
 async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: string, data?: object) {
@@ -32,6 +32,7 @@ test.describe('⭐ Rating & Complaint Flow', () => {
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
     adminToken = await apiLogin(ACCOUNTS.admin.email);
     await clearActiveRides(giverToken);
+    await clearSeekerRequests(seekerToken);
 
     const me = await api(giverToken, 'get', '/users/me');
     giverUserId = (me.data ?? me).id;

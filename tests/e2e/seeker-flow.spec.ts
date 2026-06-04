@@ -4,7 +4,7 @@
  * QA Architect coverage: all seeker-visible states and transitions
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, clearSeekerRequests, apiLogin, API } from './helpers';
 
 
 async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: string, data?: object) {
@@ -38,13 +38,16 @@ test.describe('🙋 Seeker Full Flow', () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
     await clearActiveRides(giverToken);
+    await clearSeekerRequests(seekerToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
     // Create and publish a ride for seeker tests
+    // Coords match the search page defaults (17.4401, 78.3489 / 17.4489, 78.3696)
+    // so the ride appears within the 500m search radius
     const created = await api(giverToken, 'post', '/rides', {
-      originName: 'Kondapur, Hyderabad', originLat: 17.46, originLng: 78.36,
-      destinationName: 'HITEC City, Hyderabad', destinationLat: 17.44, destinationLng: 78.39,
+      originName: 'Kondapur, Hyderabad', originLat: 17.4401, originLng: 78.3489,
+      destinationName: 'HITEC City, Hyderabad', destinationLat: 17.4489, destinationLng: 78.3696,
       ...tomorrow9am(), totalSeats: 3, vehicleId,
     });
     rideId = (created.data ?? created).id;
@@ -164,7 +167,8 @@ test.describe('🙋 Seeker Full Flow', () => {
   test('SF-12: seeker cannot access giver-only create ride page', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/rides/create');
-    // Should be redirected or show access denied
+    // Auth store fetches user async then router.replace('/dashboard') fires — wait for it
+    await page.waitForURL(/\/(dashboard|login)/, { timeout: 6_000 }).catch(() => {});
     const url = page.url();
     const body = await page.locator('body').innerText();
     const blocked = url.includes('dashboard') || url.includes('login') || body.includes('not authorized') || body.includes('access denied') || body.includes('become a giver');

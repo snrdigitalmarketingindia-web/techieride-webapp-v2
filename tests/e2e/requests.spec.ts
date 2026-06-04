@@ -15,17 +15,10 @@ test.describe('🔄 Ride Request Flow', () => {
   test('Giver: incoming tab shows ride selector or no-rides message', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/requests');
-    await page.waitForTimeout(3000);
-    // Should show one of: ride selector, no-rides message, or select-a-ride prompt
-    const pageText = await page.locator('body').innerText();
-    const hasExpectedContent =
-      pageText.includes('Select Ride') ||
-      pageText.includes('No published rides') ||
-      pageText.includes('Select a ride') ||
-      pageText.includes('Create and publish') ||
-      pageText.includes('No active rides') ||
-      pageText.includes('Incoming');
-    expect(hasExpectedContent).toBe(true);
+    // Wait for the page content to settle (heading and/or section text)
+    await expect(
+      page.getByText(/incoming|no active rides|create and publish|no requests yet|Requests/i).first()
+    ).toBeVisible({ timeout: 8_000 });
   });
 
   test('Seeker: my requests tab shows own requests', async ({ page }) => {

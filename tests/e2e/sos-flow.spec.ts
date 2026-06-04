@@ -4,7 +4,7 @@
  * QA Architect coverage: safety-critical SOS scenarios
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, clearSeekerRequests, apiLogin, API } from './helpers';
 
 
 async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: string, data?: object) {
@@ -28,6 +28,7 @@ test.describe('🆘 SOS Flow', () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
     await clearActiveRides(giverToken);
+    await clearSeekerRequests(seekerToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
 
@@ -94,13 +95,15 @@ test.describe('🆘 SOS Flow', () => {
 
   test.afterAll(async () => {
     if (ongoingRideId) {
-      // Try to complete or cancel
-      const parts = await api(giverToken, 'get', `/rides/${ongoingRideId}/participants`).catch(() => ({ data: [] }));
-      const pList = (parts.data ?? parts) as any[];
+      // Get participants from the ride object (no separate /participants endpoint)
+      const givenRides = await api(giverToken, 'get', '/rides/given').catch(() => []);
+      const rides: any[] = Array.isArray(givenRides) ? givenRides : (givenRides.data ?? []);
+      const ride = rides.find((r: any) => r.id === ongoingRideId);
+      const pList: any[] = Array.isArray(ride?.participants) ? ride.participants : [];
       for (const p of pList) {
-        const pId = p.seekerId ?? p.id;
-        await api(giverToken, 'patch', `/rides/${ongoingRideId}/board/${pId}`).catch(() => {});
-        await api(giverToken, 'patch', `/rides/${ongoingRideId}/deboard/${pId}`).catch(() => {});
+        if (p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED') {
+          await api(giverToken, 'patch', `/rides/${ongoingRideId}/no-show/${p.seekerId}`).catch(() => {});
+        }
       }
       await api(giverToken, 'patch', `/rides/${ongoingRideId}/complete`).catch(() => {});
     }

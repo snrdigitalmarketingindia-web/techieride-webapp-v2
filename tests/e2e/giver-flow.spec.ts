@@ -4,7 +4,7 @@
  * QA Architect coverage: all giver-visible states and transitions
  */
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, clearSeekerRequests, apiLogin, API } from './helpers';
 
 
 async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: string, data?: object) {
@@ -34,6 +34,7 @@ test.describe('🚗 Giver Full Flow', () => {
     giverToken = await apiLogin(ACCOUNTS.giver.email);
     seekerToken = await apiLogin(ACCOUNTS.seeker.email);
     await clearActiveRides(giverToken);
+    await clearSeekerRequests(seekerToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
     vehicleId = (vehicles.data ?? vehicles)[0]?.id;
   });

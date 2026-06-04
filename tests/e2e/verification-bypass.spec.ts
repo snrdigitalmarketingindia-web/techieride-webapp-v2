@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginUI, ACCOUNTS } from './helpers';
+import { loginUI, ACCOUNTS, clearActiveRides, apiLogin } from './helpers';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // VB tests: verification bypass guards
@@ -79,14 +79,9 @@ test.describe('🛡️ Verification Bypass — Approved giver CAN publish (VB-04
       return;
     }
 
-    // Cancel any existing active rides so we can publish a fresh one
-    const existingRidesRes = await page.request.get(`${apiBase}/rides/given?status=PUBLISHED`, { headers: authHeaders });
-    if (existingRidesRes.status() === 200) {
-      const existingRides = await existingRidesRes.json();
-      for (const ride of existingRides) {
-        await page.request.patch(`${apiBase}/rides/${ride.id}/cancel`, { headers: authHeaders }).catch(() => {});
-      }
-    }
+    // Cancel/complete all active rides (PUBLISHED + ONGOING) so we can publish a fresh one
+    const giverToken = await apiLogin(ACCOUNTS.giver.email);
+    await clearActiveRides(giverToken);
 
     // Create a DRAFT ride
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
