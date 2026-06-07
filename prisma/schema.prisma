@@ -287,11 +287,14 @@ model Vehicle {
   year         Int?
   color        String?
   plateNumber  String   @unique
-  rcUrl        String?
-  rcVerified   Boolean  @default(false)
-  totalSeats   Int
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  rcUrl           String?
+  rcVerified      Boolean  @default(false)
+  rcMatchStatus   String?  // MATCHED | MISMATCH | UNREADABLE
+  rcParsedData    Json?    // raw fields extracted by Gemini from the RC image
+  rcMismatchNote  String?  // human-readable description if MISMATCH
+  totalSeats      Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
 
   rideGiver        RideGiver         @relation(fields: [rideGiverId], references: [id], onDelete: Cascade)
   rides            Ride[]

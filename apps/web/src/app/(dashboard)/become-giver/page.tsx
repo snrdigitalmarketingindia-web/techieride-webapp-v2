@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
-import { verificationApi, vehiclesApi, api } from '@/lib/api';
+import { verificationApi, vehiclesApi, uploadsApi, api } from '@/lib/api';
 import { convertToWebp } from '@/lib/convertToWebp';
 
 const STEPS = ['Requirements', 'Documents', 'Vehicle', 'Submit'];
@@ -58,6 +58,8 @@ export default function BecomeGiverPage() {
   const [step, setStep] = useState(0);
   const [uploading, setUploading] = useState<string | null>(null);
   const [docs, setDocs] = useState({ drivingLicenseUrl: '', rcUrl: '' });
+  const [rcParsedData, setRcParsedData] = useState<Record<string, any> | null>(null);
+  const [rcParsing, setRcParsing] = useState(false);
   const [vehicle, setVehicle] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: '4' });
   const [vehicleSaved, setVehicleSaved] = useState(false);
   const [minioAvailable, setMinioAvailable] = useState<boolean | null>(null);
@@ -124,6 +126,38 @@ export default function BecomeGiverPage() {
       };
       const key = keyMap[docType];
       if (key) setDocs(prev => ({ ...prev, [key]: url }));
+
+      // After RC upload — parse it with Gemini to extract vehicle details
+      if (docType === 'rc') {
+        setRcParsing(true);
+        setRcParsedData(null);
+        try {
+          const { data: parseResult } = await uploadsApi.parseRc(url);
+          if (!parseResult.readable) {
+            // Block proceeding — ask user to re-upload
+            setDocs(prev => ({ ...prev, rcUrl: '' }));
+            setError(
+              `⚠️ Your RC image is not clear enough to read${parseResult.reason ? ` (${parseResult.reason})` : ''}. ` +
+              `Please re-upload a well-lit, flat photo where all text is clearly visible.`
+            );
+          } else {
+            // Pre-fill vehicle form with extracted data
+            const d = parseResult.data;
+            setRcParsedData(d);
+            setVehicle(prev => ({
+              make:        d.make        || prev.make,
+              model:       d.model       || prev.model,
+              color:       d.color       || prev.color,
+              plateNumber: d.plateNumber || prev.plateNumber,
+              totalSeats:  d.totalSeats  ? String(d.totalSeats) : prev.totalSeats,
+            }));
+          }
+        } catch {
+          // Parsing failed silently — user can still fill form manually
+        } finally {
+          setRcParsing(false);
+        }
+      }
     } catch {
       setError('Upload failed. Make sure document storage is running.');
     } finally {
@@ -142,7 +176,7 @@ export default function BecomeGiverPage() {
       // Auto-link the RC uploaded in Step 1 to this vehicle — no need to re-upload later
       const vehicleId = created.data?.id;
       if (vehicleId && docs.rcUrl) {
-        await vehiclesApi.updateRc(vehicleId, docs.rcUrl);
+        await vehiclesApi.updateRc(vehicleId, docs.rcUrl, rcParsedData);
       }
       setVehicleSaved(true);
     } catch (e: any) {
@@ -281,6 +315,16 @@ export default function BecomeGiverPage() {
               disabled={minioAvailable === false}
               onFile={handleFile}
             />
+            {rcParsing && (
+              <p className="text-xs text-brand-600 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
+                🔍 Reading your RC… vehicle details will be filled automatically.
+              </p>
+            )}
+            {!rcParsing && rcParsedData && docs.rcUrl && (
+              <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                ✅ RC read successfully — vehicle details pre-filled in Step 3. Please review them.
+              </p>
+            )}
           </div>
 
           <div className="flex gap-2">
@@ -303,6 +347,12 @@ export default function BecomeGiverPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="font-semibold text-gray-900">Add your vehicle</h2>
+
+            {rcParsedData && !vehicleSaved && (
+              <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-700">
+                ✨ Details auto-filled from your RC. Review carefully and correct anything that looks wrong before saving.
+              </div>
+            )}
 
             {vehicleSaved ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">

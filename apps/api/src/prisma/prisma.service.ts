@@ -30,6 +30,18 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         sql: `ALTER TYPE "RequestStatus" ADD VALUE IF NOT EXISTS 'COMPLETED'`,
       },
       {
+        name: 'add rcMatchStatus to vehicles',
+        sql: `ALTER TABLE "vehicles" ADD COLUMN IF NOT EXISTS "rcMatchStatus" TEXT`,
+      },
+      {
+        name: 'add rcParsedData to vehicles',
+        sql: `ALTER TABLE "vehicles" ADD COLUMN IF NOT EXISTS "rcParsedData" JSONB`,
+      },
+      {
+        name: 'add rcMismatchNote to vehicles',
+        sql: `ALTER TABLE "vehicles" ADD COLUMN IF NOT EXISTS "rcMismatchNote" TEXT`,
+      },
+      {
         name: 'fix stuck CONFIRMED requests on COMPLETED rides',
         sql: `UPDATE "RideRequest" rr
               SET status = 'COMPLETED'

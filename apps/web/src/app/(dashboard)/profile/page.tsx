@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
-import { vehiclesApi, verificationApi, api, usersApi } from '@/lib/api';
+import { vehiclesApi, verificationApi, uploadsApi, api, usersApi } from '@/lib/api';
 import { convertToWebp } from '@/lib/convertToWebp';
 
 const ECO_BADGES: Record<string, { icon: string; label: string; color: string }> = {
@@ -26,6 +26,7 @@ export default function ProfilePage() {
   const [addVehicle, setAddVehicle] = useState(false);
   const [vForm, setVForm] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
   const [newVehicleRcUrl, setNewVehicleRcUrl] = useState<string | null>(null);
+  const [newVehicleRcParsedData, setNewVehicleRcParsedData] = useState<Record<string, any> | null>(null);
   const [vehicleRcUploading, setVehicleRcUploading] = useState(false);
   const [perVehicleRcUploading, setPerVehicleRcUploading] = useState<string | null>(null); // vehicleId
   const [loading, setLoading] = useState(false);
@@ -179,13 +180,14 @@ export default function ProfilePage() {
       const created = await vehiclesApi.create(vForm);
       const vehicleId = created.data?.id;
       if (vehicleId && newVehicleRcUrl) {
-        await vehiclesApi.updateRc(vehicleId, newVehicleRcUrl);
+        await vehiclesApi.updateRc(vehicleId, newVehicleRcUrl, newVehicleRcParsedData);
       }
       const r = await vehiclesApi.getMine();
       setVehicles(r.data);
       setAddVehicle(false);
       setVForm({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
       setNewVehicleRcUrl(null);
+      setNewVehicleRcParsedData(null);
     } finally {
       setLoading(false);
     }
@@ -197,9 +199,28 @@ export default function ProfilePage() {
     setVehicleRcUploading(true);
     try {
       const url = await uploadFile(file, 'rc');
+      // Parse RC for quality + auto-fill
+      const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
+      if (parseResult && !parseResult.readable) {
+        alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
+        e.target.value = '';
+        return;
+      }
       setNewVehicleRcUrl(url);
+      if (parseResult?.data) {
+        const d = parseResult.data;
+        setVForm(f => ({
+          ...f,
+          make:        d.make        || f.make,
+          model:       d.model       || f.model,
+          color:       d.color       || f.color,
+          plateNumber: d.plateNumber || f.plateNumber,
+          totalSeats:  d.totalSeats  ?? f.totalSeats,
+        }));
+        setNewVehicleRcParsedData(d);
+      }
     } catch {
-      alert('RC upload failed. Make sure MinIO is running.');
+      alert('RC upload failed. Make sure storage is available.');
     } finally {
       setVehicleRcUploading(false);
       e.target.value = '';
@@ -212,11 +233,18 @@ export default function ProfilePage() {
     setPerVehicleRcUploading(vehicleId);
     try {
       const url = await uploadFile(file, 'rc');
-      await vehiclesApi.updateRc(vehicleId, url);
+      // Parse RC for quality check
+      const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
+      if (parseResult && !parseResult.readable) {
+        alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
+        e.target.value = '';
+        return;
+      }
+      await vehiclesApi.updateRc(vehicleId, url, parseResult?.data ?? null);
       const r = await vehiclesApi.getMine();
       setVehicles(r.data);
     } catch {
-      alert('RC upload failed. Make sure MinIO is running.');
+      alert('RC upload failed. Make sure storage is available.');
     } finally {
       setPerVehicleRcUploading(null);
       e.target.value = '';
@@ -545,10 +573,18 @@ export default function ProfilePage() {
                     </div>
                     {v.rcVerified
                       ? <span className="text-xs text-green-600 font-medium">✅ RC Verified</span>
-                      : v.rcUrl
-                        ? <span className="text-xs text-amber-600 font-medium">⏳ RC Pending</span>
-                        : <span className="text-xs text-red-500 font-medium">❌ No RC</span>}
+                      : v.rcMatchStatus === 'MISMATCH'
+                        ? <span className="text-xs text-red-600 font-medium">⚠️ RC Mismatch</span>
+                        : v.rcUrl
+                          ? <span className="text-xs text-amber-600 font-medium">⏳ RC Pending</span>
+                          : <span className="text-xs text-red-500 font-medium">❌ No RC</span>}
                   </div>
+                  {/* Mismatch warning */}
+                  {v.rcMatchStatus === 'MISMATCH' && v.rcMismatchNote && (
+                    <p className="text-xs text-red-600 bg-red-50 rounded-lg px-2 py-1">
+                      ⚠️ {v.rcMismatchNote}. Please re-upload the correct RC or contact support.
+                    </p>
+                  )}
                   {/* Show upload RC button if not verified yet */}
                   {!v.rcVerified && (
                     <div className="flex items-center gap-2">

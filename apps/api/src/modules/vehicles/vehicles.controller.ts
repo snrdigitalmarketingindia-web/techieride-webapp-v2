@@ -20,8 +20,9 @@ export class VehiclesController {
     @Param('id') id: string,
     @CurrentUser('id') userId: string,
     @Body('rcUrl') rcUrl: string,
+    @Body('parsedData') parsedData?: Record<string, any>,
   ) {
-    return this.service.updateRcUrl(id, userId, rcUrl);
+    return this.service.updateRcUrl(id, userId, rcUrl, parsedData ?? null);
   }
   @Delete(':id') remove(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.service.remove(id, userId);

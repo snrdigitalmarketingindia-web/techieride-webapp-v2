@@ -105,10 +105,15 @@ export const requestsApi = {
 };
 
 // ─── Vehicles ─────────────────────────────────────────
+export const uploadsApi = {
+  parseRc: (imageUrl: string) => api.post('/uploads/parse-rc', { imageUrl }),
+};
+
 export const vehiclesApi = {
   create: (data: any) => api.post('/vehicles', data),
   getMine: () => api.get('/vehicles/my'),
-  updateRc: (id: string, rcUrl: string) => api.patch(`/vehicles/${id}/rc`, { rcUrl }),
+  updateRc: (id: string, rcUrl: string, parsedData?: Record<string, any> | null) =>
+    api.patch(`/vehicles/${id}/rc`, { rcUrl, ...(parsedData ? { parsedData } : {}) }),
   remove: (id: string) => api.delete(`/vehicles/${id}`),
 };
 

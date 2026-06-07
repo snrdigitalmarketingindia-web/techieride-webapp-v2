@@ -1,6 +1,6 @@
 import {
   Controller, Post, UseInterceptors, UploadedFile,
-  BadRequestException, Query, Get,
+  BadRequestException, Query, Get, Body,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
@@ -49,5 +49,15 @@ export class UploadsController {
   async getStatus() {
     const available = await this.uploads.isAvailable();
     return { available, message: available ? 'Cloudinary storage ready' : 'Storage not available' };
+  }
+
+  /**
+   * Parse an already-uploaded RC image URL using Gemini Flash vision.
+   * Returns { readable, data } or { readable: false, reason }.
+   */
+  @Post('parse-rc')
+  async parseRc(@Body('imageUrl') imageUrl: string) {
+    if (!imageUrl) throw new BadRequestException('imageUrl is required');
+    return this.uploads.parseRcFromUrl(imageUrl);
   }
 }

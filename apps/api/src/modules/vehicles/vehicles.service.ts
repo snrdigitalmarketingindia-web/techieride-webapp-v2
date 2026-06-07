@@ -27,12 +27,55 @@ export class VehiclesService {
     return this.prisma.vehicle.findMany({ where: { rideGiverId: giver.id, isActive: true } });
   }
 
-  async updateRcUrl(vehicleId: string, userId: string, rcUrl: string) {
+  async updateRcUrl(
+    vehicleId: string,
+    userId: string,
+    rcUrl: string,
+    parsedData?: Record<string, any> | null,
+  ) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) throw new ForbiddenException();
     const vehicle = await this.prisma.vehicle.findFirst({ where: { id: vehicleId, rideGiverId: giver.id } });
     if (!vehicle) throw new NotFoundException();
-    return this.prisma.vehicle.update({ where: { id: vehicleId }, data: { rcUrl } });
+
+    // Mismatch detection — only when parsedData is provided
+    let rcMatchStatus: string | null = null;
+    let rcMismatchNote: string | null = null;
+
+    if (parsedData) {
+      const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[\s\-_]/g, '');
+
+      const parsedPlate = norm(parsedData.plateNumber);
+      const vehiclePlate = norm(vehicle.plateNumber);
+      const parsedMake  = norm(parsedData.make);
+      const vehicleMake = norm(vehicle.make);
+      const parsedModel = norm(parsedData.model);
+      const vehicleModel = norm(vehicle.model);
+
+      const plateMatch = parsedPlate && parsedPlate === vehiclePlate;
+      const makeMatch  = !parsedMake  || parsedMake.includes(vehicleMake) || vehicleMake.includes(parsedMake);
+      const modelMatch = !parsedModel || parsedModel.includes(vehicleModel) || vehicleModel.includes(parsedModel);
+
+      if (!plateMatch && parsedPlate) {
+        rcMatchStatus  = 'MISMATCH';
+        rcMismatchNote = `RC plate "${parsedData.plateNumber}" does not match vehicle plate "${vehicle.plateNumber}"`;
+      } else if ((!makeMatch || !modelMatch) && (parsedMake || parsedModel)) {
+        rcMatchStatus  = 'MISMATCH';
+        rcMismatchNote = `RC shows "${parsedData.make || ''} ${parsedData.model || ''}".trim() but vehicle is "${vehicle.make} ${vehicle.model}"`;
+      } else {
+        rcMatchStatus = 'MATCHED';
+      }
+    }
+
+    return this.prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: {
+        rcUrl,
+        ...(parsedData        ? { rcParsedData: parsedData }       : {}),
+        ...(rcMatchStatus     ? { rcMatchStatus }                   : {}),
+        ...(rcMismatchNote    ? { rcMismatchNote }                  : {}),
+      },
+    });
   }
 
   async remove(vehicleId: string, userId: string) {
