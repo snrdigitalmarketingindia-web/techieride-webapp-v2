@@ -51,6 +51,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  // ── Public health endpoint (no auth) — used by UptimeRobot to keep Render awake
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/health', (_req: any, res: any) => {
+    res.status(200).json({ status: 'ok', ts: new Date().toISOString() });
+  });
+
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Techie Ride API running on http://localhost:${port}/api/v1`);
