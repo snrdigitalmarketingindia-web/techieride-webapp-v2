@@ -22,21 +22,21 @@ const saveLastRoute = (route: object) => {
   try { localStorage.setItem(PREFS_ROUTE_KEY, JSON.stringify(route)); } catch {}
 };
 
-// Returns now+35min rounded up to the nearest 5 min as "HH:MM"
-// (35 min gives comfortable buffer above the 30-min minimum)
+// Returns now+20min rounded up to the nearest 5 min as "HH:MM"
+// (20 min gives comfortable buffer above the 15-min minimum)
 const defaultDepartureTime = () => {
   const d = new Date();
-  d.setMinutes(d.getMinutes() + 35);
+  d.setMinutes(d.getMinutes() + 20);
   const m = Math.ceil(d.getMinutes() / 5) * 5;
   if (m >= 60) { d.setHours(d.getHours() + 1); d.setMinutes(0); }
   else { d.setMinutes(m); }
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
-// Returns true if selected date+time is at least 30 minutes from now
-const isAtLeast30MinAhead = (date: string, time: string) => {
+// Returns true if selected date+time is at least 15 minutes from now
+const isAtLeast15MinAhead = (date: string, time: string) => {
   const departure = new Date(`${date}T${time}:00`);
-  return departure.getTime() - Date.now() >= 30 * 60 * 1000;
+  return departure.getTime() - Date.now() >= 15 * 60 * 1000;
 };
 
 // Determine commute direction based on current IST hour
@@ -140,8 +140,8 @@ export default function CreateRidePage() {
   const submit = async () => {
     if (!form.vehicleId) { setError('Please select a vehicle'); return; }
     if (!form.originName || !form.destinationName) { setError('Please fill in origin and destination'); return; }
-    if (!isAtLeast30MinAhead(form.departureDate, form.departureTime)) {
-      setError('Departure time must be at least 30 minutes from now'); return;
+    if (!isAtLeast15MinAhead(form.departureDate, form.departureTime)) {
+      setError('Departure time must be at least 15 minutes from now'); return;
     }
     setLoading(true);
     setError('');
@@ -221,11 +221,28 @@ export default function CreateRidePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4">
-          {locationSource !== 'blank' && (
+          {/* Profile-based quick-fill chips */}
+          {((user as any)?.homeLocation || (user as any)?.officeLocation) && (
+            <div className="flex flex-wrap gap-2">
+              {(user as any)?.homeLocation && (user as any)?.officeLocation && (
+                <>
+                  <button type="button"
+                    onClick={() => { update('originName', (user as any).homeLocation); update('destinationName', (user as any).officeLocation); }}
+                    className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition">
+                    🏠→🏢 Home to Office
+                  </button>
+                  <button type="button"
+                    onClick={() => { update('originName', (user as any).officeLocation); update('destinationName', (user as any).homeLocation); }}
+                    className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition">
+                    🏢→🏠 Office to Home
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+          {locationSource !== 'blank' && !((user as any)?.homeLocation && (user as any)?.officeLocation) && (
             <p className="text-xs text-brand-600 bg-brand-50 border border-brand-100 rounded-lg px-3 py-1.5">
-              {locationSource === 'profile'
-                ? `✨ Auto-filled from your profile (${getCommuteDirection() === 'morning' ? 'morning: Home → Office' : 'evening: Office → Home'}). Edit freely.`
-                : '🔁 Pre-filled from your last ride route. Edit freely.'}
+              🔁 Pre-filled from your last ride route. Edit freely.
             </p>
           )}
           <div>
@@ -246,18 +263,18 @@ export default function CreateRidePage() {
           <div>
             <label className="text-sm font-medium text-gray-700">🕐 Departure Time</label>
             <input type="time" value={form.departureTime} onChange={(e) => update('departureTime', e.target.value)} className={`${inputCls} mt-1`} />
-            {!isAtLeast30MinAhead(form.departureDate, form.departureTime) && (
-              <p className="text-xs text-red-500 mt-1">⚠️ Must be at least 30 minutes from now</p>
+            {!isAtLeast15MinAhead(form.departureDate, form.departureTime) && (
+              <p className="text-xs text-red-500 mt-1">⚠️ Must be at least 15 minutes from now</p>
             )}
           </div>
         </div>
 
         <div>
           <label className="text-sm font-medium text-gray-700">Seats to Offer</label>
-          <div className="flex gap-2 mt-1">
-            {[1, 2, 3, 4].map((n) => (
+          <div className="flex gap-2 mt-1 flex-wrap">
+            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
               <button key={n} onClick={() => update('totalSeats', n)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition ${form.totalSeats === n ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
+                className={`w-10 py-2 rounded-lg text-sm font-medium border transition ${form.totalSeats === n ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                 {n}
               </button>
             ))}

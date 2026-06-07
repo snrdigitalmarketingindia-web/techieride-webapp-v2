@@ -421,6 +421,47 @@ export default function RideSearchPage() {
 
       {/* Search form */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        {/* Saved location quick-fills */}
+        {((user as any)?.homeLocation || (user as any)?.officeLocation) && (
+          <div className="flex flex-wrap gap-2">
+            {(user as any)?.homeLocation && (user as any)?.officeLocation && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, originName: (user as any).homeLocation, destinationName: (user as any).officeLocation }))}
+                  className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition"
+                >
+                  🏠→🏢 Home to Office
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, originName: (user as any).officeLocation, destinationName: (user as any).homeLocation }))}
+                  className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition"
+                >
+                  🏢→🏠 Office to Home
+                </button>
+              </>
+            )}
+            {(user as any)?.homeLocation && !(user as any)?.officeLocation && (
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, originName: (user as any).homeLocation }))}
+                className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition"
+              >
+                🏠 Fill Home
+              </button>
+            )}
+            {(user as any)?.officeLocation && !(user as any)?.homeLocation && (
+              <button
+                type="button"
+                onClick={() => setForm((f) => ({ ...f, originName: (user as any).officeLocation }))}
+                className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition"
+              >
+                🏢 Fill Office
+              </button>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-gray-600">📍 Pickup area</label>
