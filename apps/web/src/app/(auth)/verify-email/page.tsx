@@ -71,8 +71,8 @@ function VerifyEmailContent() {
             </Link>
             <div className="border-t border-gray-100 pt-4 mt-2">
               <p className="text-xs text-gray-500 mb-2">Can't access your company email?</p>
-              <Link href="/dashboard" className="text-sm text-brand-600 hover:underline font-medium">
-                Log in and request a manual exception →
+              <Link href="/exception-verification" className="text-sm text-brand-600 hover:underline font-medium">
+                Request a manual exception →
               </Link>
             </div>
           </>
