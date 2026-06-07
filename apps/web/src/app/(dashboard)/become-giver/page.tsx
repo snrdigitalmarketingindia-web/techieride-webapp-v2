@@ -166,8 +166,10 @@ export default function BecomeGiverPage() {
         setRcParsedData(null);
         try {
           const { data: parseResult } = await uploadsApi.parseRc(url);
-          if (!parseResult.readable) {
-            // Block proceeding — ask user to re-upload
+          const serviceUnavailable = !parseResult.readable &&
+            parseResult.reason === 'RC parsing service not configured';
+          if (!parseResult.readable && !serviceUnavailable) {
+            // Block proceeding — ask user to re-upload a clearer image
             setDocs(prev => ({ ...prev, rcUrl: '' }));
             setError(
               `⚠️ Your RC image is not clear enough to read${parseResult.reason ? ` (${parseResult.reason})` : ''}. ` +
@@ -267,7 +269,7 @@ export default function BecomeGiverPage() {
     );
   }
 
-  const canProceedStep1 = docs.drivingLicenseUrl && docs.rcUrl;
+  const canProceedStep1 = docs.drivingLicenseUrl && docs.rcUrl && !rcParsing;
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -374,7 +376,7 @@ export default function BecomeGiverPage() {
               ← Back
             </button>
             <button
-              onClick={() => { if (!canProceedStep1) { setError('Please upload both documents to continue'); return; } setError(''); setStep(2); }}
+              onClick={() => { if (!canProceedStep1) { setError(rcParsing ? 'Please wait — reading your RC…' : 'Please upload both documents to continue'); return; } setError(''); setStep(2); }}
               disabled={!canProceedStep1}
               className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition">
               Next →

@@ -29,7 +29,6 @@ export class UploadsService {
     docType: 'employee_id' | 'driving_license' | 'rc' | 'profile_photo',
   ): Promise<string> {
     const folder = `techieride/${docType}/${userId}`;
-    const publicId = `${folder}/${uuidv4()}`;
 
     const result = await new Promise<UploadApiResponse>((resolve, reject) => {
       cloudinary.uploader.upload_stream(

@@ -289,9 +289,8 @@ model Vehicle {
   plateNumber  String   @unique
   rcUrl           String?
   rcVerified      Boolean  @default(false)
-  rcMatchStatus   String?  // MATCHED | MISMATCH | UNREADABLE
+  rcMatchStatus   String?  // MATCHED (set when RC is successfully verified to match vehicle)
   rcParsedData    Json?    // raw fields extracted by Gemini from the RC image
-  rcMismatchNote  String?  // human-readable description if MISMATCH
   totalSeats      Int
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())

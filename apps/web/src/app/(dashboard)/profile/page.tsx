@@ -228,7 +228,9 @@ export default function ProfilePage() {
       const url = await uploadFile(file, 'rc');
       // Parse RC for quality + auto-fill
       const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
-      if (parseResult && !parseResult.readable) {
+      const serviceUnavailable = parseResult && !parseResult.readable &&
+        parseResult.reason === 'RC parsing service not configured';
+      if (parseResult && !parseResult.readable && !serviceUnavailable) {
         alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
         e.target.value = '';
         return;
@@ -262,7 +264,9 @@ export default function ProfilePage() {
       const url = await uploadFile(file, 'rc');
       // Parse RC for quality check
       const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
-      if (parseResult && !parseResult.readable) {
+      const serviceUnavailable = parseResult && !parseResult.readable &&
+        parseResult.reason === 'RC parsing service not configured';
+      if (parseResult && !parseResult.readable && !serviceUnavailable) {
         alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
         e.target.value = '';
         return;
