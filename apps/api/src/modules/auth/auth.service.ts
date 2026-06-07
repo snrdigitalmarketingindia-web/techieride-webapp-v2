@@ -6,6 +6,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { isAllowedDomain } from '../../config/allowed-domains';
@@ -38,6 +39,12 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email: emailLower } });
     if (existing) throw new ConflictException('An account with this email already exists');
 
+    // Check phone uniqueness upfront so we return a 409, not a 500 from Prisma P2002
+    if (dto.phone) {
+      const phoneExists = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
+      if (phoneExists) throw new ConflictException('This phone number is already registered to another account');
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const emailVerificationToken = randomBytes(32).toString('hex');
     const emailVerificationExpiry = new Date(
@@ -45,7 +52,9 @@ export class AuthService {
     );
 
     // Everyone starts as RIDE_SEEKER — role upgrades happen post-verification
-    const user = await this.prisma.user.create({
+    let user: any;
+    try {
+    user = await this.prisma.user.create({
       data: {
         email: emailLower,
         personalEmail: dto.personalEmail?.toLowerCase().trim() || null,
@@ -66,6 +75,15 @@ export class AuthService {
         accountStatus: 'EMAIL_VERIFICATION_PENDING',
       },
     });
+    } catch (e: any) {
+      // P2002 = unique constraint — race condition between the pre-check and the insert
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        const field = (e.meta?.target as string[] | undefined)?.[0] ?? 'field';
+        if (field === 'phone') throw new ConflictException('This phone number is already registered');
+        throw new ConflictException('An account with this email already exists');
+      }
+      throw e;
+    }
 
     // All users get a seeker profile by default
     await this.prisma.rideSeeker.create({ data: { userId: user.id } });

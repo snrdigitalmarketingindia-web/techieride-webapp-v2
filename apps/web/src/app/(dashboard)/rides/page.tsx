@@ -223,17 +223,30 @@ export default function MyRidesPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
           <div className="text-4xl mb-2">{tab === 'given' ? '🚗' : '🧳'}</div>
           <p className="text-gray-500 text-sm">No {tab === 'given' ? 'rides offered' : 'rides taken'} yet</p>
+          {/* Giver: rides=[] means only completed/cancelled exist — let them load history */}
+          {tab === 'given' && (
+            <button onClick={() => {
+              setShowHistory(true);
+              ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+            }} className="mt-3 text-xs text-brand-600 hover:underline">🕐 Load ride history</button>
+          )}
+          {tab === 'taken' && (
+            <p className="mt-2 text-xs text-gray-400">
+              Completed rides appear here after your Ride Giver marks the ride done.{' '}
+              <a href="/requests" className="text-brand-600 hover:underline">View all your seat requests →</a>
+            </p>
+          )}
         </div>
       ) : rides.filter((r: any) => tab === 'given'
             ? ['PUBLISHED','ONGOING'].includes(r.status) && !r.archivedAt
             : ['PUBLISHED','ONGOING'].includes(r.status) && !r.archivedAt
-          ).length === 0 && !showHistory ? (
+          ).length === 0 && tab === 'given' && !showHistory ? (
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
           <div className="text-3xl mb-2">✅</div>
           <p className="text-gray-500 text-sm">No active rides</p>
           <button onClick={() => {
             setShowHistory(true);
-            if (tab === 'given') ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+            ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
           }} className="mt-2 text-xs text-brand-600 hover:underline">
             Show history →
           </button>
@@ -259,30 +272,32 @@ export default function MyRidesPage() {
               : tab === 'given'
                 ? rides.filter(isActiveForGiver)
                 : rides.filter(isActiveForSeeker);
-            const hiddenCount = rides.length - visibleRides.length;
+            // hiddenCount only applies to the given tab — taken tab always shows all rides
+            const hiddenCount = tab === 'given' ? rides.length - visibleRides.length : 0;
             return (<>
-              {hiddenCount > 0 && !showHistory && (
+              {tab === 'given' && hiddenCount > 0 && !showHistory && (
                 <button
                   onClick={() => {
                     setShowHistory(true);
-                    if (tab === 'given') ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+                    ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
                   }}
                   className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition"
                 >
                   🕐 {hiddenCount} past ride{hiddenCount > 1 ? 's' : ''} in history — tap to view
                 </button>
               )}
-              {visibleRides.length === 0 && hiddenCount > 0 && (
+              {tab === 'given' && visibleRides.length === 0 && hiddenCount > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                   <p className="text-gray-500 text-sm">No active rides</p>
-                  <button onClick={() => setShowHistory(true)} className="mt-2 text-xs text-brand-600 hover:underline">
+                  <button onClick={() => { setShowHistory(true); ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; }); }} className="mt-2 text-xs text-brand-600 hover:underline">
                     Show {hiddenCount} completed / cancelled
                   </button>
                 </div>
               )}
             </>);
           })()}
-          {(showHistory ? rides : rides.filter((r: any) => !['COMPLETED', 'CANCELLED'].includes(r.status))).map((ride) => {
+          {/* Taken tab: always show all rides incl. history. Given tab: respect showHistory toggle. */}
+          {(tab === 'taken' || showHistory ? rides : rides.filter((r: any) => !['COMPLETED', 'CANCELLED'].includes(r.status))).map((ride, idx, arr) => {
             // Pending requests section for giver PUBLISHED rides
             const pendingReqs = tab === 'given' && ride.status === 'PUBLISHED'
               ? (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING')
@@ -523,13 +538,23 @@ export default function MyRidesPage() {
               </div>
             );
 
+            const isTerminalRide = ['COMPLETED', 'CANCELLED'].includes(ride.status);
+            // Show a "Past Rides" divider before the first terminal ride in the taken tab (when mixed with active)
+            const prevRide = arr[idx - 1];
+            const showPastDivider = tab === 'taken' && isTerminalRide && prevRide && !['COMPLETED', 'CANCELLED'].includes(prevRide.status);
             return (
-              <RideCard
-                key={ride.id}
-                ride={ride}
-                viewAs={tab === 'given' ? 'giver' : 'seeker'}
-                actions={actions}
-              />
+              <div key={ride.id}>
+                {showPastDivider && (
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-3 mb-1 px-1">🕐 Past Rides</p>
+                )}
+                <div className={isTerminalRide ? 'opacity-55' : ''}>
+                  <RideCard
+                    ride={ride}
+                    viewAs={tab === 'given' ? 'giver' : 'seeker'}
+                    actions={actions}
+                  />
+                </div>
+              </div>
             );
           })}
         </div>
