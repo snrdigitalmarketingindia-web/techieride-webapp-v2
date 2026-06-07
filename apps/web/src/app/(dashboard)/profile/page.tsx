@@ -513,27 +513,29 @@ function FileUploadField({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
-      <div>
-        <p className="text-sm font-medium text-gray-700">{label}</p>
-        {uploaded && <p className="text-xs text-green-600 mt-0.5">✅ Uploaded</p>}
+    <>
+      <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2.5">
+        <div>
+          <p className="text-sm font-medium text-gray-700">{label}</p>
+          {uploaded && <p className="text-xs text-green-600 mt-0.5">✅ Uploaded</p>}
+        </div>
+        <input ref={inputRef} type="file" accept="image/*" onChange={onChange} className="hidden" />
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={!!disabled || uploading}
+          className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+            uploaded
+              ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+              : disabled
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              : 'bg-brand-600 text-white hover:bg-brand-700'
+          }`}
+        >
+          {uploading ? '⏳ Uploading...' : uploaded ? 'Replace' : 'Upload'}
+        </button>
       </div>
-      <input ref={inputRef} type="file" accept="image/*" onChange={onChange} className="hidden" />
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={!!disabled || uploading}
-        className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
-          uploaded
-            ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-            : disabled
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-brand-600 text-white hover:bg-brand-700'
-        }`}
-      >
-        {uploading ? '⏳ Uploading...' : uploaded ? 'Replace' : 'Upload'}
-      </button>
-    </div>
-    <p className="text-xs text-gray-400 mt-1">📷 Images only (jpg, png, heic etc.) — PDFs not accepted</p>
+      <p className="text-xs text-gray-400 mt-1">📷 Images only (jpg, png, heic etc.) — PDFs not accepted</p>
+    </>
   );
 }
