@@ -101,7 +101,8 @@ async function run() {
       const giver = await freshGiver('parse_rc');
       const r = await giver.client.post('/uploads/parse-rc', { imageUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg' });
       // In CI there is no GEMINI_API_KEY — service must return 200 with readable:false (not crash/401/500)
-      assert(r.status === 200, `Expected 200 from parse-rc, got ${r.status}`);
+      // NestJS @Post() returns 201 by default; this endpoint returns 201
+      assert([200, 201].includes(r.status), `Expected 200/201 from parse-rc, got ${r.status}`);
       assert(typeof r.data.readable === 'boolean', `Expected boolean readable field, got ${JSON.stringify(r.data)}`);
       if (!r.data.readable) {
         assert(typeof r.data.reason === 'string', `Expected reason string when not readable, got ${JSON.stringify(r.data)}`);
@@ -957,17 +958,19 @@ async function run() {
     const seeker19 = await freshSeeker('rad-s');
 
     await test('Default 10 km radius returns the nearby ride', async () => {
+      // Use limit=100 — earlier suites create many rides at same coords; default limit=20 fills up
       const r = await seeker19.client.get('/rides/search', {
         params: {
           originLat: 17.44, originLng: 78.34,
           destinationLat: 17.45, destinationLng: 78.36,
           date: tomorrow19,
+          limit: 100,
         },
       });
       assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
       assert(Array.isArray(r.data), `Expected array from search, got: ${JSON.stringify(r.data).slice(0,200)}`);
       assert(r.data.some((rd: any) => rd.id === rideId19),
-        `Ride ${rideId19} not in results. Count:${r.data.length} IDs:${r.data.map((rd: any) => rd.id).slice(0,5).join(',')}`);
+        `Ride ${rideId19} not in results (${r.data.length} total). IDs:${r.data.map((rd: any) => rd.id).slice(0,5).join(',')}`);
     });
 
     await test('Explicit radiusMeters=500 filters out far ride (coords 1° away)', async () => {
