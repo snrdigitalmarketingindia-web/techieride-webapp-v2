@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { vehiclesApi, verificationApi, api, usersApi } from '@/lib/api';
+import { convertToWebp } from '@/lib/convertToWebp';
 
 const ECO_BADGES: Record<string, { icon: string; label: string; color: string }> = {
   SEED:   { icon: '🌱', label: 'Seed',   color: 'bg-gray-100 text-gray-700' },
@@ -115,8 +116,9 @@ export default function ProfilePage() {
   }, []);
 
   const uploadFile = async (file: File, docType: string): Promise<string> => {
+    const webp = await convertToWebp(file);
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', webp);
     const { data } = await api.post(`/uploads/document?type=${docType}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -516,7 +518,7 @@ function FileUploadField({
         <p className="text-sm font-medium text-gray-700">{label}</p>
         {uploaded && <p className="text-xs text-green-600 mt-0.5">✅ Uploaded</p>}
       </div>
-      <input ref={inputRef} type="file" accept="image/*,.pdf" onChange={onChange} className="hidden" />
+      <input ref={inputRef} type="file" accept="image/*" onChange={onChange} className="hidden" />
       <button
         type="button"
         onClick={() => inputRef.current?.click()}

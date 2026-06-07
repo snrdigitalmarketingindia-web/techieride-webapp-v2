@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { authApi, api } from '@/lib/api';
+import { convertToWebp } from '@/lib/convertToWebp';
 
 const inputCls = 'w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
 
@@ -49,11 +50,12 @@ export default function ExceptionVerificationPage() {
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const raw = e.target.files?.[0];
+    if (!raw) return;
     setUploading(true);
     setError('');
     try {
+      const file = await convertToWebp(raw);
       const form = new FormData();
       form.append('file', file);
       const { data } = await api.post('/uploads/document?type=employee_id', form, {
@@ -196,7 +198,7 @@ export default function ExceptionVerificationPage() {
                 ? <p className="text-xs text-green-600 font-medium">✅ Uploaded</p>
                 : <p className="text-xs text-gray-500">Upload a clear photo of your company ID card (front side)</p>}
             </div>
-            <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileUpload} />
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}

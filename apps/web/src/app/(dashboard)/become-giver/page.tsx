@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { verificationApi, vehiclesApi, api } from '@/lib/api';
+import { convertToWebp } from '@/lib/convertToWebp';
 
 const STEPS = ['Requirements', 'Documents', 'Vehicle', 'Submit'];
 
@@ -29,7 +30,7 @@ function UploadField({
         {hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
         {uploaded && <p className="text-xs text-green-600 mt-1">✅ Uploaded</p>}
       </div>
-      <input ref={ref} type="file" accept="image/*,.pdf" className="hidden"
+      <input ref={ref} type="file" accept="image/*" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) { onFile(f, docType); e.target.value = ''; } }} />
       <button
         type="button"
@@ -100,8 +101,9 @@ export default function BecomeGiverPage() {
   }
 
   const uploadFile = async (file: File, docType: string): Promise<string> => {
+    const webp = await convertToWebp(file);
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', webp);
     const { data } = await api.post(`/uploads/document?type=${docType}`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
