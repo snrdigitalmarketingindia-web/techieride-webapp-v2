@@ -365,7 +365,7 @@ export default function RideSearchPage() {
 
   // Cancel existing request then create the new one (called from ConflictModal confirm)
   const handleConflictReplace = async () => {
-    if (!conflictReq || !pendingBoardingData || !boardingRide === undefined) return;
+    if (!conflictReq || !pendingBoardingData) return;
     // Cancel the old request
     await requestsApi.cancel(conflictReq.id, 'Switched to a different ride');
     // Remove old ride from requestedMap
