@@ -9,6 +9,39 @@ import { convertToWebp } from '@/lib/convertToWebp';
 
 const STEPS = ['Requirements', 'Documents', 'Vehicle', 'Submit'];
 
+// Returns a human-readable mismatch message, or null if everything matches.
+// parsedData = what Gemini extracted from the RC image
+// form = what the user filled in
+function getRcMismatch(
+  parsedData: Record<string, any>,
+  form: { make: string; model: string; plateNumber: string },
+): string | null {
+  const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[\s\-_]/g, '');
+
+  const parsedPlate  = norm(parsedData.plateNumber);
+  const enteredPlate = norm(form.plateNumber);
+
+  if (parsedPlate && enteredPlate && parsedPlate !== enteredPlate) {
+    return `Your RC shows plate "${parsedData.plateNumber}" but you entered "${form.plateNumber}".`;
+  }
+
+  const parsedMake   = norm(parsedData.make);
+  const enteredMake  = norm(form.make);
+  const parsedModel  = norm(parsedData.model);
+  const enteredModel = norm(form.model);
+
+  const makeOk  = !parsedMake  || parsedMake.includes(enteredMake)  || enteredMake.includes(parsedMake);
+  const modelOk = !parsedModel || parsedModel.includes(enteredModel) || enteredModel.includes(parsedModel);
+
+  if (!makeOk || !modelOk) {
+    const rcVehicle      = [parsedData.make, parsedData.model].filter(Boolean).join(' ');
+    const enteredVehicle = [form.make, form.model].filter(Boolean).join(' ');
+    return `Your RC is for "${rcVehicle}" but you entered "${enteredVehicle}".`;
+  }
+
+  return null;
+}
+
 // ── Reusable upload field ──────────────────────────────────────────────────
 function UploadField({
   label, hint, docType, url, uploading, disabled, onFile,
@@ -170,6 +203,14 @@ export default function BecomeGiverPage() {
     if (!vehicle.make || !vehicle.model || !vehicle.plateNumber) {
       setError('Please fill in make, model, and plate number');
       return;
+    }
+    // Block save if RC parsed data doesn't match what user filled
+    if (rcParsedData) {
+      const mismatch = getRcMismatch(rcParsedData, vehicle);
+      if (mismatch) {
+        setError(`⚠️ ${mismatch} Please correct the details to match your RC before saving.`);
+        return;
+      }
     }
     try {
       const created = await vehiclesApi.create({ ...vehicle, totalSeats: parseInt(vehicle.totalSeats) });

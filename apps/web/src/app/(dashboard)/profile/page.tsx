@@ -5,6 +5,25 @@ import { useAuthStore } from '@/store/auth.store';
 import { vehiclesApi, verificationApi, uploadsApi, api, usersApi } from '@/lib/api';
 import { convertToWebp } from '@/lib/convertToWebp';
 
+// Returns a mismatch message or null if RC data matches vehicle form
+function getRcMismatch(
+  parsedData: Record<string, any>,
+  form: { make: string; model: string; plateNumber: string },
+): string | null {
+  const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[\s\-_]/g, '');
+  const parsedPlate  = norm(parsedData.plateNumber);
+  const enteredPlate = norm(form.plateNumber);
+  if (parsedPlate && enteredPlate && parsedPlate !== enteredPlate) {
+    return `Your RC shows plate "${parsedData.plateNumber}" but you entered "${form.plateNumber}".`;
+  }
+  const makeOk  = !norm(parsedData.make)  || norm(parsedData.make).includes(norm(form.make))  || norm(form.make).includes(norm(parsedData.make));
+  const modelOk = !norm(parsedData.model) || norm(parsedData.model).includes(norm(form.model)) || norm(form.model).includes(norm(parsedData.model));
+  if (!makeOk || !modelOk) {
+    return `Your RC is for "${[parsedData.make, parsedData.model].filter(Boolean).join(' ')}" but you entered "${form.make} ${form.model}".`;
+  }
+  return null;
+}
+
 const ECO_BADGES: Record<string, { icon: string; label: string; color: string }> = {
   SEED:   { icon: '🌱', label: 'Seed',   color: 'bg-gray-100 text-gray-700' },
   SPROUT: { icon: '🌿', label: 'Sprout', color: 'bg-green-100 text-green-700' },
@@ -175,6 +194,14 @@ export default function ProfilePage() {
   };
 
   const submitVehicle = async () => {
+    // Block save if RC parsed data doesn't match what user filled
+    if (newVehicleRcParsedData) {
+      const mismatch = getRcMismatch(newVehicleRcParsedData, vForm);
+      if (mismatch) {
+        alert(`⚠️ ${mismatch} Please correct the details to match your RC before saving.`);
+        return;
+      }
+    }
     setLoading(true);
     try {
       const created = await vehiclesApi.create(vForm);
@@ -573,18 +600,10 @@ export default function ProfilePage() {
                     </div>
                     {v.rcVerified
                       ? <span className="text-xs text-green-600 font-medium">✅ RC Verified</span>
-                      : v.rcMatchStatus === 'MISMATCH'
-                        ? <span className="text-xs text-red-600 font-medium">⚠️ RC Mismatch</span>
-                        : v.rcUrl
-                          ? <span className="text-xs text-amber-600 font-medium">⏳ RC Pending</span>
-                          : <span className="text-xs text-red-500 font-medium">❌ No RC</span>}
+                      : v.rcUrl
+                        ? <span className="text-xs text-amber-600 font-medium">⏳ RC Pending</span>
+                        : <span className="text-xs text-red-500 font-medium">❌ No RC</span>}
                   </div>
-                  {/* Mismatch warning */}
-                  {v.rcMatchStatus === 'MISMATCH' && v.rcMismatchNote && (
-                    <p className="text-xs text-red-600 bg-red-50 rounded-lg px-2 py-1">
-                      ⚠️ {v.rcMismatchNote}. Please re-upload the correct RC or contact support.
-                    </p>
-                  )}
                   {/* Show upload RC button if not verified yet */}
                   {!v.rcVerified && (
                     <div className="flex items-center gap-2">

@@ -76,27 +76,15 @@ export default function AdminVehiclesPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-gray-900">{veh.make} {veh.model} · {veh.color}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      veh.rcVerified ? 'bg-green-100 text-green-700' :
-                      veh.rcMatchStatus === 'MISMATCH' ? 'bg-red-100 text-red-700' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>
-                      {veh.rcVerified ? '✅ RC Verified' :
-                       veh.rcMatchStatus === 'MISMATCH' ? '⚠️ RC Mismatch' :
-                       '⏳ RC Pending'}
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${veh.rcVerified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {veh.rcVerified ? '✅ RC Verified' : '⏳ RC Pending'}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 mt-0.5">Plate: <span className="font-mono font-medium">{veh.plateNumber}</span> · {veh.totalSeats} seats</p>
                   <p className="text-sm text-gray-500 mt-0.5">
                     Giver: <span className="font-medium">{veh.rideGiver?.user?.fullName}</span> · {veh.rideGiver?.user?.email}
                   </p>
-                  {/* Mismatch alert — shown prominently for admin */}
-                  {veh.rcMatchStatus === 'MISMATCH' && veh.rcMismatchNote && (
-                    <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
-                      ⚠️ <strong>Mismatch detected:</strong> {veh.rcMismatchNote}
-                    </div>
-                  )}
-                  {/* Show what RC was parsed as */}
+                  {/* Show what RC was parsed as — so admin can cross-check the physical document */}
                   {veh.rcParsedData && (
                     <div className="mt-1 text-xs text-gray-400">
                       RC reads: {[veh.rcParsedData.make, veh.rcParsedData.model, veh.rcParsedData.plateNumber, veh.rcParsedData.color].filter(Boolean).join(' · ')}
