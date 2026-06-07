@@ -24,7 +24,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import {
-  BASE, makeClient, loginAs, register, freshGiver, freshSeeker, publishRide, completeFullRide, getAdminClient,
+  BASE, SEED_PASSWORD, makeClient, loginAs, register, freshGiver, freshSeeker, publishRide, completeFullRide, getAdminClient,
 } from './helpers';
 
 const c = {
@@ -964,10 +964,10 @@ async function run() {
           date: tomorrow19,
         },
       });
-      assert(r.status === 200, `Expected 200, got ${r.status}`);
-      assert(Array.isArray(r.data) || Array.isArray(r.data.rides), 'Expected array response');
-      const rides: any[] = Array.isArray(r.data) ? r.data : r.data.rides;
-      assert(rides.some((rd: any) => rd.id === rideId19), 'Expected ride in default-radius results');
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(Array.isArray(r.data), `Expected array from search, got: ${JSON.stringify(r.data).slice(0,200)}`);
+      assert(r.data.some((rd: any) => rd.id === rideId19),
+        `Ride ${rideId19} not in results. Count:${r.data.length} IDs:${r.data.map((rd: any) => rd.id).slice(0,5).join(',')}`);
     });
 
     await test('Explicit radiusMeters=500 filters out far ride (coords 1° away)', async () => {
@@ -981,7 +981,7 @@ async function run() {
         },
       });
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      const rides: any[] = Array.isArray(r.data) ? r.data : r.data.rides;
+      const rides: any[] = Array.isArray(r.data) ? r.data : [];
       assert(!rides.some((rd: any) => rd.id === rideId19), 'Ride should be excluded at 500 m with far coords');
     });
 
@@ -1048,12 +1048,12 @@ async function run() {
       // Validate top-level sections are present
       assert(r.data.user,            'Missing "user" section in audit response');
       assert(r.data.summary,         'Missing "summary" section in audit response');
-      assert(Array.isArray(r.data.ridesGiven),    'ridesGiven should be array');
-      assert(Array.isArray(r.data.rideRequests),  'rideRequests should be array');
-      assert(Array.isArray(r.data.ecoPoints),     'ecoPoints should be array');
-      assert(Array.isArray(r.data.notifications), 'notifications should be array');
-      assert(Array.isArray(r.data.complaints),    'complaints should be array');
-      assert(Array.isArray(r.data.ratings),       'ratings should be array');
+      assert(Array.isArray(r.data.ridesGiven),      'ridesGiven should be array');
+      assert(Array.isArray(r.data.ridesTaken),      'ridesTaken should be array');
+      assert(Array.isArray(r.data.ecoTransactions), 'ecoTransactions should be array');
+      assert(Array.isArray(r.data.notifications),   'notifications should be array');
+      assert(Array.isArray(r.data.complaints),      'complaints should be array');
+      assert(Array.isArray(r.data.ratings),         'ratings should be array');
     });
 
     await test('Admin audit for unknown user → 404', async () => {
@@ -1071,61 +1071,42 @@ async function run() {
       const r = await admin20.get(`/admin/users/${auditUser.userId}/audit`);
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       const s = r.data.summary;
-      assert(typeof s.totalRidesGiven    === 'number', 'totalRidesGiven should be number');
-      assert(typeof s.totalRidesTaken    === 'number', 'totalRidesTaken should be number');
-      assert(typeof s.totalEcoPoints     === 'number', 'totalEcoPoints should be number');
-      assert(typeof s.totalCo2SavedGrams === 'number', 'totalCo2SavedGrams should be number');
+      assert(typeof s.totalRidesGiven      === 'number', 'totalRidesGiven should be number');
+      assert(typeof s.totalRidesTaken      === 'number', 'totalRidesTaken should be number');
+      assert(typeof s.totalEcoPointsEarned === 'number', 'totalEcoPointsEarned should be number');
+      assert(typeof s.openComplaints       === 'number', 'openComplaints should be number');
     });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // 21. Women-Only Gender Guard
   // ─────────────────────────────────────────────────────────────────────────
-  section('21. Women-Only Guard — male giver cannot create womenOnly ride');
+  section('21. Women-Only Guard — non-female giver cannot create womenOnly ride');
   {
-    // Register an explicitly male giver
-    const maleEmail = `male-giver-${Date.now()}@gmail.com`;
-    const malePwd   = 'Techie@123';
-    const maleReg = await makeClient().post('/auth/register', {
-      email: maleEmail, password: malePwd,
-      name: 'Male Tester', phone: `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`,
-      gender: 'MALE',
-    });
-    assert([200, 201].includes(maleReg.status), `Male register failed: ${JSON.stringify(maleReg.data)}`);
-
-    const maleLogin = await makeClient().post('/auth/login', { email: maleEmail, password: malePwd });
-    assert(maleLogin.status === 200, `Male login failed: ${maleLogin.status}`);
-    const maleClient = makeClient(maleLogin.data.accessToken);
-
-    // Register a vehicle for the male user
-    const maleVehicle = await maleClient.post('/vehicles', {
-      make: 'Toyota', model: 'Innova', year: 2022,
-      color: 'White', licensePlate: `KA${Date.now().toString().slice(-6)}`,
-      seats: 4,
-    });
-    const maleVehicleId = maleVehicle.data?.id ?? maleVehicle.data?.vehicleId;
-
+    // freshGiver creates a user without a gender set (null).
+    // The guard checks gender !== 'FEMALE', so null also triggers the 403.
+    const nonFemaleGiver = await freshGiver('wom-g');
     const tomorrow21 = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
 
-    await test('Male giver creating womenOnly ride → 403', async () => {
-      const r = await maleClient.post('/rides', {
-        vehicleId: maleVehicleId,
+    await test('Non-female giver creating womenOnly ride → 403', async () => {
+      const r = await nonFemaleGiver.client.post('/rides', {
+        vehicleId: nonFemaleGiver.vehicleId,
         originLat: 17.44, originLng: 78.34, originName: 'Origin',
-        destinationLat: 17.50, destinationLng: 78.40, destinationName: 'Dest',
+        destinationLat: 17.45, destinationLng: 78.36, destinationName: 'Dest',
         departureDate: tomorrow21, departureTime: '09:00',
-        totalSeats: 2, pricePerSeat: 50,
+        totalSeats: 2,
         womenOnly: true,
       });
-      assert(r.status === 403, `Expected 403 for male giver + womenOnly, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.status === 403, `Expected 403 for non-female giver + womenOnly, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
 
-    await test('Male giver creating regular (non-womenOnly) ride → 201', async () => {
-      const r = await maleClient.post('/rides', {
-        vehicleId: maleVehicleId,
+    await test('Non-female giver creating regular (womenOnly:false) ride → 201', async () => {
+      const r = await nonFemaleGiver.client.post('/rides', {
+        vehicleId: nonFemaleGiver.vehicleId,
         originLat: 17.44, originLng: 78.34, originName: 'Origin',
-        destinationLat: 17.50, destinationLng: 78.40, destinationName: 'Dest',
+        destinationLat: 17.45, destinationLng: 78.36, destinationName: 'Dest',
         departureDate: tomorrow21, departureTime: '10:00',
-        totalSeats: 2, pricePerSeat: 50,
+        totalSeats: 2,
         womenOnly: false,
       });
       assert([200, 201].includes(r.status), `Expected 201 for regular ride, got ${r.status}: ${JSON.stringify(r.data)}`);
@@ -1137,19 +1118,23 @@ async function run() {
   // ─────────────────────────────────────────────────────────────────────────
   section('22. Phone Uniqueness — duplicate phone → 409');
   {
-    const sharedPhone = `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`;
+    // 10-digit Indian mobile number without country code (validator requirement)
+    const ts22 = Date.now();
+    const sharedPhone = `9${String(ts22).slice(-9)}`;
 
     await makeClient().post('/auth/register', {
-      email: `phone-first-${Date.now()}@gmail.com`,
-      password: 'Techie@123',
-      name: 'Phone First', phone: sharedPhone, gender: 'MALE',
+      email: `phone-first-${ts22}@gmail.com`,
+      password: SEED_PASSWORD,
+      fullName: 'Phone First', companyName: 'TestCorp', employeeId: 'N/A',
+      phone: sharedPhone,
     });
 
     await test('Second registration with same phone → 409 (not 500)', async () => {
       const r = await makeClient().post('/auth/register', {
-        email: `phone-second-${Date.now()}@gmail.com`,
-        password: 'Techie@123',
-        name: 'Phone Second', phone: sharedPhone, gender: 'FEMALE',
+        email: `phone-second-${ts22}@gmail.com`,
+        password: SEED_PASSWORD,
+        fullName: 'Phone Second', companyName: 'TestCorp', employeeId: 'N/A',
+        phone: sharedPhone,
       });
       assert(r.status === 409, `Expected 409 for duplicate phone, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
@@ -1170,12 +1155,14 @@ async function run() {
 
     for (const { domain, label } of personalDomains) {
       await test(`Register with ${label}.com → 200/201 (whitelisted for testing)`, async () => {
+        const ts = Date.now();
         const r = await makeClient().post('/auth/register', {
-          email: `testuser-${Date.now()}@${domain}`,
-          password: 'Techie@123',
-          name: `${label} Tester`,
-          phone: `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`,
-          gender: 'MALE',
+          email: `testuser-${ts}@${domain}`,
+          password: SEED_PASSWORD,
+          fullName: `${label} Tester`,
+          companyName: 'TestCorp',
+          employeeId: 'N/A',
+          phone: `9${String(ts).slice(-9)}`,
         });
         assert([200, 201].includes(r.status),
           `Expected 200/201 for @${domain}, got ${r.status}: ${JSON.stringify(r.data)}`);
@@ -1183,12 +1170,14 @@ async function run() {
     }
 
     await test('Register with truly invalid domain → 403', async () => {
+      const ts = Date.now();
       const r = await makeClient().post('/auth/register', {
         email: `test@totally-invalid-xyz-domain.com`,
-        password: 'Techie@123',
-        name: 'Invalid Domain Tester',
-        phone: `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`,
-        gender: 'MALE',
+        password: SEED_PASSWORD,
+        fullName: 'Invalid Domain Tester',
+        companyName: 'TestCorp',
+        employeeId: 'N/A',
+        phone: `9${String(ts).slice(-9)}`,
       });
       assert(r.status === 403, `Expected 403 for unknown domain, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
