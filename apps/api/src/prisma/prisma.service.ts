@@ -25,6 +25,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         name: 'add archivedAt to Ride',
         sql: `ALTER TABLE "Ride" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)`,
       },
+      {
+        name: 'fix stuck CONFIRMED requests on COMPLETED rides',
+        sql: `UPDATE "RideRequest" rr
+              SET status = 'COMPLETED'
+              FROM "Ride" r
+              WHERE rr."rideId" = r.id
+                AND rr.status = 'CONFIRMED'
+                AND r.status = 'COMPLETED'`,
+      },
     ];
 
     for (const m of migrations) {

@@ -319,6 +319,12 @@ export class RidesService {
         where: { id: rideId },
         data: { status: RideStatus.COMPLETED, completedAt: new Date() },
       }),
+      // Mark CONFIRMED requests as COMPLETED so seekers are freed to request new rides
+      this.prisma.rideRequest.updateMany({
+        where: { rideId, status: 'CONFIRMED' },
+        data: { status: 'COMPLETED' },
+      }),
+      // Reject any still-PENDING requests
       this.prisma.rideRequest.updateMany({
         where: { rideId, status: 'PENDING' },
         data: { status: 'REJECTED', cancelReason: 'Ride has been completed' },
