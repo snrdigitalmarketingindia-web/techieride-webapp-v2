@@ -108,6 +108,7 @@ export const requestsApi = {
 export const vehiclesApi = {
   create: (data: any) => api.post('/vehicles', data),
   getMine: () => api.get('/vehicles/my'),
+  updateRc: (id: string, rcUrl: string) => api.patch(`/vehicles/${id}/rc`, { rcUrl }),
   remove: (id: string) => api.delete(`/vehicles/${id}`),
 };
 

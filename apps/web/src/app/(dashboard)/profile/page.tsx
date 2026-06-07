@@ -25,6 +25,9 @@ export default function ProfilePage() {
   const [verStatus, setVerStatus] = useState<any>(null);
   const [addVehicle, setAddVehicle] = useState(false);
   const [vForm, setVForm] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
+  const [newVehicleRcUrl, setNewVehicleRcUrl] = useState<string | null>(null);
+  const [vehicleRcUploading, setVehicleRcUploading] = useState(false);
+  const [perVehicleRcUploading, setPerVehicleRcUploading] = useState<string | null>(null); // vehicleId
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocs>({});
@@ -173,13 +176,50 @@ export default function ProfilePage() {
   const submitVehicle = async () => {
     setLoading(true);
     try {
-      await vehiclesApi.create(vForm);
+      const created = await vehiclesApi.create(vForm);
+      const vehicleId = created.data?.id;
+      if (vehicleId && newVehicleRcUrl) {
+        await vehiclesApi.updateRc(vehicleId, newVehicleRcUrl);
+      }
       const r = await vehiclesApi.getMine();
       setVehicles(r.data);
       setAddVehicle(false);
       setVForm({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
+      setNewVehicleRcUrl(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNewVehicleRcChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVehicleRcUploading(true);
+    try {
+      const url = await uploadFile(file, 'rc');
+      setNewVehicleRcUrl(url);
+    } catch {
+      alert('RC upload failed. Make sure MinIO is running.');
+    } finally {
+      setVehicleRcUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handlePerVehicleRcChange = async (e: React.ChangeEvent<HTMLInputElement>, vehicleId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPerVehicleRcUploading(vehicleId);
+    try {
+      const url = await uploadFile(file, 'rc');
+      await vehiclesApi.updateRc(vehicleId, url);
+      const r = await vehiclesApi.getMine();
+      setVehicles(r.data);
+    } catch {
+      alert('RC upload failed. Make sure MinIO is running.');
+    } finally {
+      setPerVehicleRcUploading(null);
+      e.target.value = '';
     }
   };
 
@@ -471,6 +511,18 @@ export default function ProfilePage() {
                 {[2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} seats</option>)}
               </select>
             </div>
+            {/* RC Upload — required for vehicle verification */}
+            <div>
+              <FileUploadField
+                label="Vehicle RC (Registration Certificate)"
+                docType="rc"
+                uploaded={!!newVehicleRcUrl}
+                uploading={vehicleRcUploading}
+                disabled={!minioAvailable}
+                onChange={handleNewVehicleRcChange}
+              />
+              <p className="text-xs text-amber-600 mt-1">⚠️ RC required for admin verification. You can add it later too.</p>
+            </div>
             <button onClick={submitVehicle} disabled={loading}
               className="w-full bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
               {loading ? 'Adding...' : 'Add Vehicle'}
@@ -482,17 +534,45 @@ export default function ProfilePage() {
           <p className="text-sm text-gray-500 text-center py-4">No vehicles added yet</p>
         ) : (
           <div className="space-y-2">
-            {vehicles.map(v => (
-              <div key={v.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{v.make} {v.model}</p>
-                  <p className="text-xs text-gray-500">{v.plateNumber} · {v.color} · {v.totalSeats} seats</p>
+            {vehicles.map(v => {
+              const rcInputId = `rc-upload-${v.id}`;
+              return (
+                <div key={v.id} className="p-3 bg-gray-50 rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{v.make} {v.model}</p>
+                      <p className="text-xs text-gray-500">{v.plateNumber} · {v.color} · {v.totalSeats} seats</p>
+                    </div>
+                    {v.rcVerified
+                      ? <span className="text-xs text-green-600 font-medium">✅ RC Verified</span>
+                      : v.rcUrl
+                        ? <span className="text-xs text-amber-600 font-medium">⏳ RC Pending</span>
+                        : <span className="text-xs text-red-500 font-medium">❌ No RC</span>}
+                  </div>
+                  {/* Show upload RC button if not verified yet */}
+                  {!v.rcVerified && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        id={rcInputId}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={e => handlePerVehicleRcChange(e, v.id)}
+                      />
+                      <button
+                        type="button"
+                        disabled={!minioAvailable || perVehicleRcUploading === v.id}
+                        onClick={() => document.getElementById(rcInputId)?.click()}
+                        className="text-xs px-3 py-1.5 rounded-lg font-medium transition bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {perVehicleRcUploading === v.id ? '⏳ Uploading...' : v.rcUrl ? '🔄 Replace RC' : '📄 Upload RC'}
+                      </button>
+                      {v.rcUrl && <span className="text-xs text-gray-400">Waiting for admin approval</span>}
+                    </div>
+                  )}
                 </div>
-                {v.rcVerified
-                  ? <span className="text-xs text-green-600 font-medium">✅ RC Verified</span>
-                  : <span className="text-xs text-amber-600 font-medium">⏳ RC Pending</span>}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>}
