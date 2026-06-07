@@ -4,22 +4,38 @@
 
 ## 1. Signup & Email Verification Flow
 
+> **Note:** Personal email domains (gmail.com, yahoo.com, etc.) are temporarily
+> allowed for testing. Before restricting to corporate-only, remove them from
+> `apps/api/src/config/allowed-domains.ts`.
+
 ```mermaid
 flowchart TD
-    A([User visits /signup]) --> B[Fills registration form\ncompany email + personal email]
-    B --> C{Domain allowed?}
-    C -- No --> D[❌ Rejected\nOnly IT company emails]
-    C -- Yes --> E[Account created\nstatus: EMAIL_VERIFICATION_PENDING]
-    E --> F[Verification email sent\nto company email]
-    E --> G{Personal email\nprovided?}
-    G -- Yes --> H[Verification email sent\nto personal email]
-    G -- No --> I[Skip]
-    F --> J[User clicks link in\ncompany email]
-    H --> K[User clicks link in\npersonal email]
-    K --> L[personalEmailVerified = true\n✅ badge shown on profile]
-    J --> M[emailStatus = VERIFIED\nstatus: DOCUMENT_VERIFICATION_PENDING]
-    M --> N[User uploads Employee ID\non profile page]
-    N --> O[Admin reviews\nverification queue]
+    A([User visits /signup]) --> B[Fills registration form\ncompany email, phone,\npersonal email, gender,\nemergency contact]
+    B --> C{Domain allowed?\ncorporate or temp-whitelisted}
+    C -- No --> D[❌ 403 Rejected\nOnly IT company emails]
+    C -- Yes --> E{Email already\nregistered?}
+    E -- Yes --> E2[❌ 409 Email already exists]
+    E -- No --> F{Phone provided\n& already registered?}
+    F -- Yes --> F2[❌ 409 Phone already registered]
+    F -- No --> G[Account created\nrole: RIDE_SEEKER\nstatus: EMAIL_VERIFICATION_PENDING\nRideSeeker profile created]
+    G --> H{Emergency contact\nprovided?}
+    H -- Yes --> H2[EmergencyContact record saved]
+    H -- No --> H3[Skip]
+    H2 & H3 --> I{NODE_ENV?}
+    I -- development --> J[Email auto-verified ✅\nstatus: DOCUMENT_VERIFICATION_PENDING\nno email sent]
+    I -- production --> K[Verification email sent\nto company email]
+    K --> L[User clicks link in\ncompany email]
+    L --> M{Token valid\n& not expired?}
+    M -- No --> N[❌ Invalid / expired link\nResend available]
+    M -- Yes --> O[emailStatus: VERIFIED\nstatus: DOCUMENT_VERIFICATION_PENDING\nWelcome email sent]
+    J --> O
+    O --> P{Personal email\nprovided?}
+    P -- Yes --> Q[Verification email sent\nto personal email\nnon-blocking]
+    Q --> R[User clicks personal\nemail link]
+    R --> S[personalEmailVerified = true\n✅ badge shown on profile]
+    P -- No --> T[Skip]
+    O --> U[User uploads Employee ID\non profile page]
+    U --> V[Admin reviews\nverification queue]
 ```
 
 ---
@@ -61,7 +77,12 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A([Giver creates ride]) --> B[status: DRAFT]
+    A([Giver creates ride]) --> AA{womenOnly flag set?}
+    AA -- Yes --> AB{Giver gender = FEMALE?}
+    AB -- No --> AC[❌ 403 Only female Givers\ncan create women-only rides]
+    AB -- Yes --> B
+    AA -- No --> B
+    B[status: DRAFT]
     B --> C{RC verified?}
     C -- No --> D[❌ Cannot publish\nRC approval required]
     C -- Yes --> E[Giver publishes ride]
