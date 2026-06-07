@@ -97,6 +97,62 @@ async function run() {
   // ── 2. UPLOADS ────────────────────────────────────────────────────────────
   section('2. Upload Service');
   {
+    await test('POST /uploads/parse-rc — returns readable:false with reason when GEMINI_API_KEY not set (CI)', async () => {
+      const giver = await freshGiver('parse_rc');
+      const r = await giver.client.post('/uploads/parse-rc', { imageUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg' });
+      // In CI there is no GEMINI_API_KEY — service must return 200 with readable:false (not crash/401/500)
+      assert(r.status === 200, `Expected 200 from parse-rc, got ${r.status}`);
+      assert(typeof r.data.readable === 'boolean', `Expected boolean readable field, got ${JSON.stringify(r.data)}`);
+      if (!r.data.readable) {
+        assert(typeof r.data.reason === 'string', `Expected reason string when not readable, got ${JSON.stringify(r.data)}`);
+      }
+    });
+
+    await test('PATCH /vehicles/:id/rc — owner can update RC URL without parsedData', async () => {
+      const giver = await freshGiver('rc_update');
+      const ts = Date.now();
+      const veh = await giver.client.post('/vehicles', {
+        make: 'Maruti', model: 'Swift', color: 'Red',
+        plateNumber: `TS${ts.toString().slice(-5)}R`, totalSeats: 4,
+      });
+      assert(veh.status === 201, `Vehicle creation failed: ${veh.status}`);
+      const vehicleId = (veh.data?.data ?? veh.data).id;
+      const r = await giver.client.patch(`/vehicles/${vehicleId}/rc`, {
+        rcUrl: 'https://mock.storage/rc.jpg',
+      });
+      assert([200, 201].includes(r.status), `Expected 200/201 for RC update, got ${r.status}`);
+    });
+
+    await test('Create vehicle with totalSeats = 7 (max) → 201', async () => {
+      const giver = await freshGiver('seats7_veh');
+      const ts = Date.now();
+      const r = await giver.client.post('/vehicles', {
+        make: 'Toyota', model: 'Innova Crysta', color: 'White',
+        plateNumber: `TS${ts.toString().slice(-5)}S`, totalSeats: 7,
+      });
+      assert(r.status === 201, `Expected 201 for totalSeats=7, got ${r.status}`);
+    });
+
+    await test('Create ride with totalSeats = 7 (max) → 201', async () => {
+      const giver = await freshGiver('seats7_ride');
+      const ts = Date.now();
+      const veh = await giver.client.post('/vehicles', {
+        make: 'Toyota', model: 'Innova', color: 'Silver',
+        plateNumber: `TS${ts.toString().slice(-5)}T`, totalSeats: 7,
+      });
+      const vehicleId = (veh.data?.data ?? veh.data).id;
+      // Admin verify vehicle so giver can publish
+      await admin.patch(`/admin/vehicles/${vehicleId}/verify`).catch(() => {});
+      const r = await giver.client.post('/rides', {
+        vehicleId,
+        originName: 'Kondapur', destinationName: 'HITEC City',
+        originLat: 17.47, originLng: 78.35, destinationLat: 17.45, destinationLng: 78.38,
+        departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        departureTime: '09:00', totalSeats: 7,
+      });
+      assert(r.status === 201, `Expected 201 for totalSeats=7 ride, got ${r.status}`);
+    });
+
     await test('GET /uploads/status returns availability flag', async () => {
       const r = await admin.get('/uploads/status');
       assert(r.status === 200, `Expected 200, got ${r.status}`);

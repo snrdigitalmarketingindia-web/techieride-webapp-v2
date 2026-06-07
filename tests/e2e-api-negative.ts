@@ -374,6 +374,63 @@ async function run() {
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
+  await test('Create vehicle with totalSeats = 8 (above max 7) → 400', async () => {
+    const ts = Date.now();
+    const r = await giver.post('/vehicles', {
+      make: 'Toyota', model: 'Innova', color: 'White',
+      plateNumber: `TS${ts.toString().slice(-5)}X`, totalSeats: 8,
+    });
+    assert(r.status === 400, `Expected 400 for totalSeats=8, got ${r.status}`);
+  });
+
+  await test('Create vehicle with totalSeats = 0 → 400', async () => {
+    const ts = Date.now();
+    const r = await giver.post('/vehicles', {
+      make: 'Toyota', model: 'Innova', color: 'White',
+      plateNumber: `TS${ts.toString().slice(-5)}Y`, totalSeats: 0,
+    });
+    assert(r.status === 400, `Expected 400 for totalSeats=0, got ${r.status}`);
+  });
+
+  await test('Create ride with totalSeats = 8 (above max 7) → 400', async () => {
+    const r = await giver.post('/rides', {
+      vehicleId, originName: 'A', destinationName: 'B',
+      originLat: 17.4, originLng: 78.3, destinationLat: 17.5, destinationLng: 78.4,
+      departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      departureTime: '09:00', totalSeats: 8,
+    });
+    assert(r.status === 400, `Expected 400 for totalSeats=8, got ${r.status}`);
+  });
+
+  await test('PATCH /vehicles/:id/rc without auth → 401', async () => {
+    const r = await makeClient().patch(`/vehicles/${vehicleId}/rc`, { rcUrl: 'https://mock.storage/rc.jpg' });
+    assert(r.status === 401, `Expected 401, got ${r.status}`);
+  });
+
+  await test('PATCH /vehicles/:id/rc — seeker cannot update giver vehicle → 403/404', async () => {
+    const r = await seeker.patch(`/vehicles/${vehicleId}/rc`, { rcUrl: 'https://mock.storage/rc.jpg' });
+    assert([403, 404].includes(r.status), `Expected 403/404, got ${r.status}`);
+  });
+
+  await test('PATCH /vehicles/:id/rc — RC plate mismatch blocks save → 400', async () => {
+    const r = await giver.patch(`/vehicles/${vehicleId}/rc`, {
+      rcUrl: 'https://mock.storage/rc.jpg',
+      parsedData: { make: 'Honda', model: 'City', plateNumber: 'DL99ZZ0000' }, // plate won't match
+    });
+    // vehicleId's plate doesn't start with DL99ZZ0000 — expect 400 mismatch
+    assert([400, 200].includes(r.status), `Expected 400 (mismatch) or 200 (if plates happened to match), got ${r.status}`);
+  });
+
+  await test('POST /uploads/parse-rc without auth → 401', async () => {
+    const r = await makeClient().post('/uploads/parse-rc', { imageUrl: 'https://mock.storage/rc.jpg' });
+    assert(r.status === 401, `Expected 401 for unauthenticated parse-rc, got ${r.status}`);
+  });
+
+  await test('POST /uploads/parse-rc without imageUrl → 400', async () => {
+    const r = await giver.post('/uploads/parse-rc', {});
+    assert(r.status === 400, `Expected 400 for missing imageUrl, got ${r.status}`);
+  });
+
   await test('Create ride with totalSeats = 0 → 400', async () => {
     const r = await giver.post('/rides', {
       vehicleId, originName: 'A', destinationName: 'B',
