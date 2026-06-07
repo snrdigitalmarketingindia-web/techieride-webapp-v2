@@ -10,13 +10,14 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING:   'bg-yellow-100 text-yellow-700',
   HOLD:      'bg-purple-100 text-purple-700',
   CONFIRMED: 'bg-green-100 text-green-700',
+  COMPLETED: 'bg-blue-100 text-blue-600',
   REJECTED:  'bg-red-100 text-red-600',
   CANCELLED: 'bg-gray-100 text-gray-500',
   NO_SHOW:   'bg-orange-100 text-orange-700',
 };
 
 const STATUS_ICONS: Record<string, string> = {
-  PENDING: '⏳', HOLD: '🔒', CONFIRMED: '🎉',  // HOLD kept for legacy display only
+  PENDING: '⏳', HOLD: '🔒', CONFIRMED: '🎉', COMPLETED: '✅',
   REJECTED: '❌', CANCELLED: '🚫', NO_SHOW: '👻',
 };
 
@@ -166,7 +167,7 @@ function GiverView() {
                 {others.map((req) => {
                   const name = req.seeker?.user?.fullName;
                   const company = req.seeker?.user?.companyName;
-                  const isTerminal = ['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(req.status);
+                  const isTerminal = ['CANCELLED', 'REJECTED', 'NO_SHOW', 'COMPLETED'].includes(req.status);
                   return (
                     <div key={req.id} className={`px-4 py-3 flex items-center gap-3 ${isTerminal ? 'opacity-40' : 'opacity-70'}`}>
                       <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-bold text-gray-400 shrink-0">
@@ -249,7 +250,7 @@ function SeekerView() {
   return (
     <div className="space-y-3">
       {requests.map((req) => {
-        const isTerminal = ['CANCELLED', 'REJECTED', 'NO_SHOW'].includes(req.status);
+        const isTerminal = ['CANCELLED', 'REJECTED', 'NO_SHOW', 'COMPLETED'].includes(req.status);
         const route = req.ride?.originName && req.ride?.destinationName
           ? `${req.ride.originName} → ${req.ride.destinationName}`
           : 'Unknown Route';
