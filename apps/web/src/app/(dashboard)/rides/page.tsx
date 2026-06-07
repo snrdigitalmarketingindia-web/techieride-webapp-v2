@@ -19,6 +19,11 @@ export default function MyRidesPage() {
   const [loading, setLoading] = useState(true);
   const [hasActiveRide, setHasActiveRide] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // Period filter
+  type Period = 'all' | 'today' | 'week' | 'month' | 'custom';
+  const [period, setPeriod] = useState<Period>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo]   = useState('');
   // Giver: pending requests per ride  { rideId: req[] }
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [processing, setProcessing] = useState<string | null>(null);
@@ -150,6 +155,46 @@ export default function MyRidesPage() {
     setRides((prev) => prev.map((r) => r.id === rideId ? { ...r, status: 'COMPLETED' } : r));
   };
 
+  // ── Period filter helpers ──────────────────────────────────────────────────
+  const toIST = (d: Date) =>
+    new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+
+  const applyPeriod = (allRides: any[]): any[] => {
+    if (period === 'all') return allRides;
+    const now   = toIST(new Date());
+    const today = new Date(now); today.setHours(0, 0, 0, 0);
+
+    const inRange = (ride: any, from: Date, to: Date) => {
+      const dep = ride.departureDate ? new Date(ride.departureDate) : null;
+      if (!dep) return false;
+      const depDay = new Date(dep.toISOString().split('T')[0] + 'T00:00:00');
+      return depDay >= from && depDay <= to;
+    };
+
+    if (period === 'today') {
+      const end = new Date(today); end.setHours(23, 59, 59, 999);
+      return allRides.filter((r) => inRange(r, today, end));
+    }
+    if (period === 'week') {
+      const day = today.getDay();
+      const diffToMon = (day === 0 ? -6 : 1 - day);
+      const mon = new Date(today); mon.setDate(today.getDate() + diffToMon);
+      const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23, 59, 59, 999);
+      return allRides.filter((r) => inRange(r, mon, sun));
+    }
+    if (period === 'month') {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end   = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+      return allRides.filter((r) => inRange(r, start, end));
+    }
+    if (period === 'custom' && customFrom && customTo) {
+      const from = new Date(customFrom + 'T00:00:00');
+      const to   = new Date(customTo   + 'T23:59:59');
+      return allRides.filter((r) => inRange(r, from, to));
+    }
+    return allRides;
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -197,6 +242,56 @@ export default function MyRidesPage() {
         </div>
       )}
 
+      {/* Period filter tabs */}
+      <div className="space-y-2">
+        <div className="flex gap-1.5 flex-wrap">
+          {(['all', 'today', 'week', 'month', 'custom'] as const).map((p) => {
+            const labels: Record<string, string> = {
+              all: 'All', today: 'Today', week: 'This Week', month: 'This Month', custom: '📅 Custom',
+            };
+            return (
+              <button
+                key={p}
+                onClick={() => {
+                  setPeriod(p);
+                  // Any period other than 'all' should include history so past rides are visible
+                  if (p !== 'all' && !showHistory) {
+                    setShowHistory(true);
+                    if (tab === 'given') ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+                  }
+                }}
+                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition ${
+                  period === p
+                    ? 'bg-brand-600 text-white border-brand-600'
+                    : 'border-gray-300 text-gray-500 hover:border-brand-400 hover:text-brand-600'
+                }`}
+              >
+                {labels[p]}
+              </button>
+            );
+          })}
+        </div>
+        {/* Custom date range inputs */}
+        {period === 'custom' && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <input
+              type="date"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              className="text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            />
+            <span className="text-xs text-gray-400">to</span>
+            <input
+              type="date"
+              value={customTo}
+              min={customFrom}
+              onChange={(e) => setCustomTo(e.target.value)}
+              className="text-xs border border-gray-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-brand-400"
+            />
+          </div>
+        )}
+      </div>
+
       {/* Seeker: awaiting approval — shown even when rides list is empty */}
       {!loading && tab === 'taken' && myRequests.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
@@ -219,6 +314,12 @@ export default function MyRidesPage() {
 
       {loading ? (
         <div className="text-center py-10 text-gray-400">Loading...</div>
+      ) : rides.length > 0 && applyPeriod(rides).length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
+          <div className="text-3xl mb-2">🔍</div>
+          <p className="text-gray-500 text-sm">No rides found for this period</p>
+          <button onClick={() => setPeriod('all')} className="mt-2 text-xs text-brand-600 hover:underline">Clear filter →</button>
+        </div>
       ) : rides.length === 0 ? (
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
           <div className="text-4xl mb-2">{tab === 'given' ? '🚗' : '🧳'}</div>
@@ -267,13 +368,14 @@ export default function MyRidesPage() {
               // fallback: show PUBLISHED/ONGOING rides the seeker is a participant on
               return ['PUBLISHED', 'ONGOING'].includes(r.status) && !r.archivedAt;
             };
+            const periodRides = applyPeriod(rides);
             const visibleRides = showHistory
-              ? rides
+              ? periodRides
               : tab === 'given'
-                ? rides.filter(isActiveForGiver)
-                : rides.filter(isActiveForSeeker);
+                ? periodRides.filter(isActiveForGiver)
+                : periodRides.filter(isActiveForSeeker);
             // hiddenCount only applies to the given tab — taken tab always shows all rides
-            const hiddenCount = tab === 'given' ? rides.length - visibleRides.length : 0;
+            const hiddenCount = tab === 'given' ? periodRides.length - visibleRides.length : 0;
             return (<>
               {tab === 'given' && hiddenCount > 0 && !showHistory && (
                 <button
@@ -297,7 +399,7 @@ export default function MyRidesPage() {
             </>);
           })()}
           {/* Taken tab: always show all rides incl. history. Given tab: respect showHistory toggle. */}
-          {(tab === 'taken' || showHistory ? rides : rides.filter((r: any) => !['COMPLETED', 'CANCELLED'].includes(r.status))).map((ride, idx, arr) => {
+          {(tab === 'taken' || showHistory ? applyPeriod(rides) : applyPeriod(rides).filter((r: any) => !['COMPLETED', 'CANCELLED'].includes(r.status))).map((ride, idx, arr) => {
             // Pending requests section for giver PUBLISHED rides
             const pendingReqs = tab === 'given' && ride.status === 'PUBLISHED'
               ? (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING')

@@ -900,7 +900,7 @@ export class RidesService {
           orderBy: { createdAt: 'asc' },
         },
       },
-      orderBy: { departureDate: 'desc' },
+      orderBy: [{ departureDate: 'desc' }, { createdAt: 'desc' }],
     });
   }
 
@@ -921,7 +921,7 @@ export class RidesService {
           },
         },
       },
-      orderBy: { ride: { departureDate: 'desc' } },
+      orderBy: [{ ride: { departureDate: 'desc' } }, { ride: { createdAt: 'desc' } }],
     });
     return participants.map((p) => p.ride);
   }
