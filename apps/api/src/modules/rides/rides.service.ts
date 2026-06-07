@@ -114,6 +114,15 @@ export class RidesService {
       );
     }
 
+    // Enforce: departure must be at least 30 minutes from now
+    const [dh, dm] = ride.departureTime.split(':').map(Number);
+    const departureAt = new Date(ride.departureDate);
+    departureAt.setHours(dh, dm, 0, 0);
+    const thirtyMinFromNow = new Date(Date.now() + 30 * 60 * 1000);
+    if (departureAt < thirtyMinFromNow) {
+      throw new BadRequestException('Departure time must be at least 30 minutes from now');
+    }
+
     // Block if giver already has an active ride
     const activeRide = await this.prisma.ride.findFirst({
       where: {

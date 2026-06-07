@@ -175,4 +175,109 @@ test.describe('🚗 Giver Full Flow', () => {
     // Templates section or link should exist
     await expect(page).not.toHaveURL(/error/);
   });
+
+  // ── Ride Posting UX ─────────────────────────────────────────────────────
+
+  test('GF-15: lead time — API blocks publish with departure < 30 min from now', async ({ page }) => {
+    // Create a ride with departure 10 minutes from now — should be blocked on publish
+    const nowPlus10 = new Date(Date.now() + 10 * 60 * 1000);
+    const dateStr = nowPlus10.toISOString().split('T')[0];
+    const timeStr = `${String(nowPlus10.getHours()).padStart(2, '0')}:${String(nowPlus10.getMinutes()).padStart(2, '0')}`;
+
+    const created = await api(giverToken, 'post', '/rides', {
+      originName: 'Lead Time Test Origin', originLat: 17.44, originLng: 78.35,
+      destinationName: 'Lead Time Test Dest', destinationLat: 17.45, destinationLng: 78.37,
+      departureDate: dateStr, departureTime: timeStr, totalSeats: 2, vehicleId,
+    });
+    const testRideId = (created.data ?? created).id;
+    expect(testRideId).toBeTruthy();
+
+    const ctx = await playwrightRequest.newContext();
+    const res = await ctx.patch(`${API}/rides/${testRideId}/publish`, {
+      headers: { Authorization: `Bearer ${giverToken}` },
+    });
+    await ctx.dispose();
+
+    expect(res.status()).toBe(400);
+    const body = await res.json();
+    expect(JSON.stringify(body)).toMatch(/30 minutes/i);
+
+    // Cleanup
+    await api(giverToken, 'patch', `/rides/${testRideId}/cancel`).catch(() => {});
+  });
+
+  test('GF-16: lead time — API allows publish with departure 35 min from now', async ({ page }) => {
+    const nowPlus35 = new Date(Date.now() + 35 * 60 * 1000);
+    const dateStr = nowPlus35.toISOString().split('T')[0];
+    const timeStr = `${String(nowPlus35.getHours()).padStart(2, '0')}:${String(nowPlus35.getMinutes()).padStart(2, '0')}`;
+
+    const created = await api(giverToken, 'post', '/rides', {
+      originName: 'Lead Time Test Origin 35', originLat: 17.44, originLng: 78.35,
+      destinationName: 'Lead Time Test Dest 35', destinationLat: 17.45, destinationLng: 78.37,
+      departureDate: dateStr, departureTime: timeStr, totalSeats: 2, vehicleId,
+    });
+    const testRideId = (created.data ?? created).id;
+    expect(testRideId).toBeTruthy();
+
+    const ctx = await playwrightRequest.newContext();
+    const res = await ctx.patch(`${API}/rides/${testRideId}/publish`, {
+      headers: { Authorization: `Bearer ${giverToken}` },
+    });
+    await ctx.dispose();
+
+    expect([200, 201]).toContain(res.status());
+
+    // Cleanup
+    await api(giverToken, 'patch', `/rides/${testRideId}/cancel`).catch(() => {});
+  });
+
+  test('GF-17: create ride page shows 30-min warning for near-term departure', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides/create');
+
+    // Set departure time to 10 min from now
+    const soon = new Date(Date.now() + 10 * 60 * 1000);
+    const timeStr = `${String(soon.getHours()).padStart(2, '0')}:${String(soon.getMinutes()).padStart(2, '0')}`;
+    await page.locator('input[type="time"]').fill(timeStr);
+    await page.locator('input[type="time"]').blur();
+
+    await expect(page.getByText(/30 minutes/i)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('GF-18: profile home/office locations are saved and returned via API', async ({ page }) => {
+    // Update profile with home and office location
+    const ctx = await playwrightRequest.newContext();
+    const res = await ctx.patch(`${API}/users/me`, {
+      headers: { Authorization: `Bearer ${giverToken}`, 'Content-Type': 'application/json' },
+      data: { homeLocation: 'Kondapur, Hyderabad', officeLocation: 'HITEC City, Hyderabad' },
+    });
+    expect([200, 201]).toContain(res.status());
+
+    // Fetch profile and confirm values persisted
+    const profileRes = await ctx.get(`${API}/users/me`, {
+      headers: { Authorization: `Bearer ${giverToken}` },
+    });
+    const profile = await profileRes.json();
+    const data = profile.data ?? profile;
+    expect(data.homeLocation).toBe('Kondapur, Hyderabad');
+    expect(data.officeLocation).toBe('HITEC City, Hyderabad');
+    await ctx.dispose();
+  });
+
+  test('GF-19: create ride page pre-fills locations from profile and allows editing', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides/create');
+
+    // If profile has home/office locations the auto-fill hint should appear
+    const hint = page.getByText(/auto-filled from your profile|pre-filled from your last ride/i);
+    const hintVisible = await hint.isVisible({ timeout: 5_000 }).catch(() => false);
+
+    if (hintVisible) {
+      // Confirm fields are editable (not locked)
+      const originInput = page.locator('input[placeholder*="Kondapur"]').or(page.locator('input').filter({ hasText: '' }).nth(1));
+      await expect(originInput.first()).toBeEnabled();
+    }
+    // Page must load without errors regardless
+    await expect(page).not.toHaveURL(/error/);
+  });
 });

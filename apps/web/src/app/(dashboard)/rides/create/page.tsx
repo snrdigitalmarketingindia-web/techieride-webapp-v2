@@ -15,21 +15,39 @@ const savePrefs = (prefs: object) => {
   try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {}
 };
 
-// Returns now+1h rounded up to the nearest 15 min as "HH:MM"
+const loadLastRoute = () => {
+  try { return JSON.parse(localStorage.getItem(PREFS_ROUTE_KEY) || 'null'); } catch { return null; }
+};
+const saveLastRoute = (route: object) => {
+  try { localStorage.setItem(PREFS_ROUTE_KEY, JSON.stringify(route)); } catch {}
+};
+
+// Returns now+35min rounded up to the nearest 5 min as "HH:MM"
+// (35 min gives comfortable buffer above the 30-min minimum)
 const defaultDepartureTime = () => {
   const d = new Date();
-  d.setHours(d.getHours() + 1);
-  const m = Math.ceil(d.getMinutes() / 15) * 15;
+  d.setMinutes(d.getMinutes() + 35);
+  const m = Math.ceil(d.getMinutes() / 5) * 5;
   if (m >= 60) { d.setHours(d.getHours() + 1); d.setMinutes(0); }
   else { d.setMinutes(m); }
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 };
 
-// Returns true if selected date+time is at least 1 hour from now
-const isAtLeastOneHourAhead = (date: string, time: string) => {
+// Returns true if selected date+time is at least 30 minutes from now
+const isAtLeast30MinAhead = (date: string, time: string) => {
   const departure = new Date(`${date}T${time}:00`);
-  return departure.getTime() - Date.now() >= 60 * 60 * 1000;
+  return departure.getTime() - Date.now() >= 30 * 60 * 1000;
 };
+
+// Determine commute direction based on current IST hour
+// Morning: 04:00–13:59 → Home→Office | Evening: 14:00–23:59 → Office→Home
+const getCommuteDirection = (): 'morning' | 'evening' => {
+  const hour = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
+  const h = parseInt(hour, 10);
+  return (h >= 4 && h < 14) ? 'morning' : 'evening';
+};
+
+const PREFS_ROUTE_KEY = 'tr_last_route';
 
 export default function CreateRidePage() {
   const router = useRouter();
@@ -42,6 +60,7 @@ export default function CreateRidePage() {
 
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [activeRide, setActiveRide] = useState<any>(null);
+  const [locationSource, setLocationSource] = useState<'profile' | 'last_route' | 'blank'>('blank');
   const [form, setForm] = useState({
     vehicleId: '',
     originName: '',
@@ -61,20 +80,45 @@ export default function CreateRidePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Load saved prefs client-side (localStorage unavailable during SSR)
+  // Smart location defaults: profile home/office → last used route → blank
+  // Runs once user profile is available (client-side only)
   useEffect(() => {
-    const prefs = loadPrefs();
-    if (prefs.originName || prefs.destinationName) {
+    if (!user) return;
+
+    const home = (user as any).homeLocation as string | undefined;
+    const office = (user as any).officeLocation as string | undefined;
+    const direction = getCommuteDirection();
+
+    if (home && office) {
+      // Change 3: Smart defaults from profile locations
+      const origin = direction === 'morning' ? home : office;
+      const destination = direction === 'morning' ? office : home;
+      setForm((f) => ({ ...f, originName: origin, destinationName: destination }));
+      setLocationSource('profile');
+      return;
+    }
+
+    // Change 4: Fall back to last used route if no profile locations
+    const lastRoute = loadLastRoute();
+    if (lastRoute?.originName && lastRoute?.destinationName) {
       setForm((f) => ({
         ...f,
-        originName: prefs.originName ?? f.originName,
-        originLat: prefs.originLat ?? f.originLat,
-        originLng: prefs.originLng ?? f.originLng,
-        destinationName: prefs.destinationName ?? f.destinationName,
-        destinationLat: prefs.destinationLat ?? f.destinationLat,
-        destinationLng: prefs.destinationLng ?? f.destinationLng,
-        departureTime: prefs.departureTime ?? f.departureTime,
+        originName: lastRoute.originName,
+        originLat: lastRoute.originLat ?? f.originLat,
+        originLng: lastRoute.originLng ?? f.originLng,
+        destinationName: lastRoute.destinationName,
+        destinationLat: lastRoute.destinationLat ?? f.destinationLat,
+        destinationLng: lastRoute.destinationLng ?? f.destinationLng,
       }));
+      setLocationSource('last_route');
+    }
+  }, [user]);
+
+  // Legacy prefs: restore departure time preference only (locations now handled above)
+  useEffect(() => {
+    const prefs = loadPrefs();
+    if (prefs.departureTime) {
+      setForm((f) => ({ ...f, departureTime: prefs.departureTime }));
     }
   }, []);
 
@@ -96,8 +140,8 @@ export default function CreateRidePage() {
   const submit = async () => {
     if (!form.vehicleId) { setError('Please select a vehicle'); return; }
     if (!form.originName || !form.destinationName) { setError('Please fill in origin and destination'); return; }
-    if (!isAtLeastOneHourAhead(form.departureDate, form.departureTime)) {
-      setError('Departure time must be at least 1 hour from now'); return;
+    if (!isAtLeast30MinAhead(form.departureDate, form.departureTime)) {
+      setError('Departure time must be at least 30 minutes from now'); return;
     }
     setLoading(true);
     setError('');
@@ -122,16 +166,17 @@ export default function CreateRidePage() {
 
       await ridesApi.publish(ride.id);
 
-      // Save last-used values so they pre-fill next time
-      savePrefs({
+      // Change 4: Save last-used route (for fallback when profile has no home/office)
+      saveLastRoute({
         originName: form.originName,
         originLat: form.originLat,
         originLng: form.originLng,
         destinationName: form.destinationName,
         destinationLat: form.destinationLat,
         destinationLng: form.destinationLng,
-        departureTime: form.departureTime,
       });
+      // Save departure time preference separately
+      savePrefs({ departureTime: form.departureTime });
 
       router.push('/rides');
     } catch (e: any) {
@@ -176,6 +221,13 @@ export default function CreateRidePage() {
         </div>
 
         <div className="grid grid-cols-1 gap-4">
+          {locationSource !== 'blank' && (
+            <p className="text-xs text-brand-600 bg-brand-50 border border-brand-100 rounded-lg px-3 py-1.5">
+              {locationSource === 'profile'
+                ? `✨ Auto-filled from your profile (${getCommuteDirection() === 'morning' ? 'morning: Home → Office' : 'evening: Office → Home'}). Edit freely.`
+                : '🔁 Pre-filled from your last ride route. Edit freely.'}
+            </p>
+          )}
           <div>
             <label className="text-sm font-medium text-gray-700">📍 From (Pickup area)</label>
             <input value={form.originName} onChange={(e) => update('originName', e.target.value)} placeholder="Kondapur, Hyderabad" className={`${inputCls} mt-1`} />
@@ -194,8 +246,8 @@ export default function CreateRidePage() {
           <div>
             <label className="text-sm font-medium text-gray-700">🕐 Departure Time</label>
             <input type="time" value={form.departureTime} onChange={(e) => update('departureTime', e.target.value)} className={`${inputCls} mt-1`} />
-            {!isAtLeastOneHourAhead(form.departureDate, form.departureTime) && (
-              <p className="text-xs text-red-500 mt-1">⚠️ Must be at least 1 hour from now</p>
+            {!isAtLeast30MinAhead(form.departureDate, form.departureTime) && (
+              <p className="text-xs text-red-500 mt-1">⚠️ Must be at least 30 minutes from now</p>
             )}
           </div>
         </div>
