@@ -178,7 +178,7 @@ test.describe('🚗 Giver Full Flow', () => {
 
   // ── Ride Posting UX ─────────────────────────────────────────────────────
 
-  test('GF-15: lead time — API blocks publish with departure < 30 min from now', async ({ page }) => {
+  test('GF-15: lead time — API blocks publish with departure < 15 min from now', async ({ page }) => {
     // Create a ride with departure 10 minutes from now — should be blocked on publish
     const nowPlus10 = new Date(Date.now() + 10 * 60 * 1000);
     const dateStr = nowPlus10.toISOString().split('T')[0];
@@ -201,7 +201,7 @@ test.describe('🚗 Giver Full Flow', () => {
     await ctx.dispose();
 
     expect(res.status()).toBe(400);
-    expect(JSON.stringify(body)).toMatch(/30 minutes/i);
+    expect(JSON.stringify(body)).toMatch(/15 minutes/i);
 
     // Cleanup
     await api(giverToken, 'patch', `/rides/${testRideId}/cancel`).catch(() => {});
@@ -232,7 +232,7 @@ test.describe('🚗 Giver Full Flow', () => {
     await api(giverToken, 'patch', `/rides/${testRideId}/cancel`).catch(() => {});
   });
 
-  test('GF-17: create ride page shows 30-min warning for near-term departure', async ({ page }) => {
+  test('GF-17: create ride page shows 15-min warning for near-term departure', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides/create');
 
@@ -242,7 +242,7 @@ test.describe('🚗 Giver Full Flow', () => {
     await page.locator('input[type="time"]').fill(timeStr);
     await page.locator('input[type="time"]').blur();
 
-    await expect(page.getByText(/30 minutes/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/15 minutes/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('GF-18: profile home/office locations are saved and returned via API', async ({ page }) => {

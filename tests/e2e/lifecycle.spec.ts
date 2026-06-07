@@ -28,7 +28,7 @@
  *
  *  Group 5 — DRAFT ride cleanup
  *    LC-DR-01  DRAFT ride can be published within 3 days
- *    LC-DR-02  DRAFT ride cannot be published if departure < 30 min from now
+ *    LC-DR-02  DRAFT ride cannot be published if departure < 15 min from now
  *
  *  Group 6 — Seat count integrity
  *    LC-SC-01  availableSeats decrements on approve
@@ -475,7 +475,7 @@ test.describe('📝 Group 5 — DRAFT Ride Guards', () => {
     await req('patch', `/rides/${rideId}/cancel`, giverToken, { reason: 'cleanup' }).catch(() => {});
   });
 
-  test('LC-DR-02: DRAFT ride cannot be published with departure < 30 min from now', async () => {
+  test('LC-DR-02: DRAFT ride cannot be published with departure < 15 min from now', async () => {
     const create = await req('post', '/rides', giverToken, {
       originName: 'Soon Origin', originLat: 17.44, originLng: 78.35,
       destinationName: 'Soon Dest', destinationLat: 17.45, destinationLng: 78.37,
@@ -486,7 +486,7 @@ test.describe('📝 Group 5 — DRAFT Ride Guards', () => {
 
     const { status, body } = await req('patch', `/rides/${rideId}/publish`, giverToken);
     expect(status).toBe(400);
-    expect(JSON.stringify(body)).toMatch(/30 minutes/i);
+    expect(JSON.stringify(body)).toMatch(/15 minutes/i);
 
     // Cleanup
     await req('patch', `/rides/${rideId}/cancel`, giverToken, { reason: 'cleanup' }).catch(() => {});
