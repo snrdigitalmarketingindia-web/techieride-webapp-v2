@@ -18,9 +18,9 @@ const ACCOUNT_STATUS_COLORS: Record<string, string> = {
 };
 
 const ACCOUNT_STATUS_LABELS: Record<string, string> = {
-  DRIVER_VERIFIED: '✅ Driver Verified',
+  DRIVER_VERIFIED: '✅ Ride Giver Verified',
   EMPLOYEE_VERIFIED: '✅ Employee Verified',
-  DRIVER_VERIFICATION_PENDING: '⏳ Driver Review',
+  DRIVER_VERIFICATION_PENDING: '⏳ Ride Giver Review',
   DOCUMENT_VERIFICATION_PENDING: '⏳ Docs Pending',
   EXCEPTION_VERIFICATION_REQUESTED: '🔍 Exception Review',
   EMAIL_VERIFICATION_PENDING: '📧 Email Pending',
@@ -78,8 +78,8 @@ export default function AdminUsersPage() {
             <option value="EXCEPTION_VERIFICATION_REQUESTED">🔍 Exception Requests</option>
             <option value="DOCUMENT_VERIFICATION_PENDING">⏳ Docs Pending</option>
             <option value="EMPLOYEE_VERIFIED">✅ Employee Verified</option>
-            <option value="DRIVER_VERIFICATION_PENDING">⏳ Driver Review</option>
-            <option value="DRIVER_VERIFIED">✅ Driver Verified</option>
+            <option value="DRIVER_VERIFICATION_PENDING">⏳ Ride Giver Review</option>
+            <option value="DRIVER_VERIFIED">✅ Ride Giver Verified</option>
             <option value="REJECTED">❌ Rejected</option>
             <option value="SUSPENDED">🚫 Suspended</option>
           </select>

@@ -78,7 +78,7 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-gray-700 truncate">
               {ride.rideGiver.user.fullName}
-              <span className="text-gray-400 font-normal"> · Giver</span>
+              <span className="text-gray-400 font-normal"> · Ride Giver</span>
             </p>
           </div>
           {ride.rideGiver.user.phone && (

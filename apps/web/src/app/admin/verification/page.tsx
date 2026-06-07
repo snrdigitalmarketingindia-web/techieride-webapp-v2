@@ -6,7 +6,7 @@ import { adminApi } from '@/lib/api';
 
 const TYPE_BADGE: Record<string, { label: string; cls: string }> = {
   EMPLOYEE:  { label: '📋 Employee ID', cls: 'bg-blue-100 text-blue-700' },
-  DRIVER:    { label: '🚗 Driver Docs', cls: 'bg-purple-100 text-purple-700' },
+  DRIVER:    { label: '🚗 Ride Giver Docs', cls: 'bg-purple-100 text-purple-700' },
   EXCEPTION: { label: '🔍 Exception',   cls: 'bg-orange-100 text-orange-700' },
 };
 
@@ -62,7 +62,7 @@ export default function AdminVerificationPage() {
           <p className="text-sm text-gray-500 mt-0.5">
             {loading ? '…' : `${requests.length} pending review`}
             {!loading && grouped.EMPLOYEE.length > 0 && ` · ${grouped.EMPLOYEE.length} Employee`}
-            {!loading && grouped.DRIVER.length > 0 && ` · ${grouped.DRIVER.length} Driver`}
+            {!loading && grouped.DRIVER.length > 0 && ` · ${grouped.DRIVER.length} Ride Giver`}
             {!loading && grouped.EXCEPTION.length > 0 && ` · ${grouped.EXCEPTION.length} Exception`}
           </p>
         </div>

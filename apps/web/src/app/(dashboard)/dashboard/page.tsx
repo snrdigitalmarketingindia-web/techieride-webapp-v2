@@ -203,7 +203,7 @@ export default function DashboardPage() {
       )}
       {user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-blue-800 text-sm font-medium">🚗 Driver verification in progress</p>
+          <p className="text-blue-800 text-sm font-medium">🚗 Ride Giver verification in progress</p>
           <p className="text-blue-700 text-sm">Your driving license and RC are being reviewed.</p>
         </div>
       )}

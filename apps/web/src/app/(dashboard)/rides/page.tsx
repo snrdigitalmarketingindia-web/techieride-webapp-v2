@@ -427,7 +427,7 @@ export default function MyRidesPage() {
                           if (!myParticipant) return null;
                           return (
                             <p className="w-full text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                              🎉 Seat confirmed! <span className="font-medium">Board Now</span> button will appear once the driver starts the ride.
+                              🎉 Seat confirmed! <span className="font-medium">Board Now</span> button will appear once the Ride Giver starts the ride.
                             </p>
                           );
                         })()}
@@ -466,7 +466,7 @@ export default function MyRidesPage() {
                         })()}
                         {tab === 'taken' && ride.status === 'ONGOING' && quickMsgOpen === ride.id && (
                           <div className="w-full mt-1 p-2 bg-amber-50 border border-amber-200 rounded-lg space-y-1">
-                            <p className="text-xs font-medium text-amber-800 mb-1">Send to your driver:</p>
+                            <p className="text-xs font-medium text-amber-800 mb-1">Send to your Ride Giver:</p>
                             {[
                               { key: 'AT_PICKUP',      label: '📍 I\'m at the pickup point' },
                               { key: 'RUNNING_LATE',   label: '🙏 Running late, please wait 5 min' },

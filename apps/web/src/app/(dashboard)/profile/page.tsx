@@ -279,9 +279,9 @@ export default function ProfilePage() {
               user?.accountStatus === 'REJECTED' ? 'text-red-600' :
               user?.accountStatus === 'SUSPENDED' ? 'text-red-600' : 'text-amber-600'
             }`}>
-              {user?.accountStatus === 'DRIVER_VERIFIED' ? '✅ Driver Verified' :
+              {user?.accountStatus === 'DRIVER_VERIFIED' ? '✅ Ride Giver Verified' :
                user?.accountStatus === 'EMPLOYEE_VERIFIED' ? '✅ Employee Verified' :
-               user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' ? '⏳ Driver Review' :
+               user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' ? '⏳ Ride Giver Review' :
                user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' ? '⏳ Docs Pending' :
                user?.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED' ? '🔍 Exception Review' :
                user?.accountStatus === 'EMAIL_VERIFICATION_PENDING' ? '📧 Email Unverified' :
