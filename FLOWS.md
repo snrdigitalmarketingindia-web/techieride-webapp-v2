@@ -78,12 +78,16 @@ flowchart TD
     L --> M[Giver starts ride]
     M --> N[status: ONGOING\nAll pending requests auto-rejected]
 
-    N --> O[Boarding phase]
+    N --> O[Boarding phase\nSeekers can still request\nand be approved mid-route]
     O --> P[Each seeker: WAITING → BOARDED]
     P --> Q{All resolved?}
     Q -- No → mark no-show --> R[BOARDED → DEBOARDED\nor WAITING → NO_SHOW\n-10 ECO, -3 Trust to no-show]
     Q -- Yes --> S[Giver completes ride]
     S --> T[status: COMPLETED\nECO + Trust points awarded\nSeekers prompted to rate]
+
+    N --> NA{Giver aborts\nmid-route ⚠️}
+    NA --> NB[Requires reason\nAll WAITING/BOARDED → NO_SHOW\nTrust penalty to Giver\nAll passengers notified]
+    NB --> NC[status: CANCELLED]
 
     F --> U{Giver cancels\nbefore start}
     U --> V[status: CANCELLED\nAll CONFIRMED seekers notified\nAll PENDING requests rejected]
@@ -100,13 +104,13 @@ flowchart TD
 flowchart TD
     A([Seeker searches rides]) --> B{Gender filter}
     B -- womenOnly ride\n& no gender set --> C[⚠️ Banner shown\nSet gender in profile]
-    B -- OK --> D[Seeker views ride detail]
+    B -- OK --> D[Seeker views ride detail\nPUBLISHED or ONGOING rides visible]
     D --> E{Already requested?}
     E -- Yes --> F[Shows existing request status]
     E -- No --> G[Seeker submits request]
     G --> H[seats available check]
     H -- No seats --> I[❌ 400 Ride is full]
-    H -- Seats available --> J[Request: PENDING\nGiver notified]
+    H -- Seats available --> J[Request: PENDING\nGiver notified\nIf ONGOING: approval msg says\n'board en route']
 
     J --> K{Giver action}
     K -- Approve --> L[Request: CONFIRMED\nSeeker notified\nSeats decremented]
@@ -188,6 +192,46 @@ flowchart TD
     F & G --> H{All passengers\nresolved?}
     H -- No --> I[Giver cannot complete ride\n❌ 400 error]
     H -- Yes --> J[Giver can complete ride\nstatus: COMPLETED]
+```
+
+---
+
+## 7b. Edit Ride Flow
+
+```mermaid
+flowchart TD
+    A([Giver opens PUBLISHED ride]) --> B[Taps ✏️ Edit Ride]
+    B --> C{Ride status PUBLISHED?}
+    C -- No ONGOING/COMPLETED --> D[❌ Edit not available\nOnly PUBLISHED rides can be edited]
+    C -- Yes --> E{Departure time ≤ 15 min away?}
+    E -- Yes --> F[❌ 400 Too close to departure\nEdits locked 15 min before]
+    E -- No --> G{Active CONFIRMED requests?}
+    G -- Yes and changing seats --> H[❌ 400 Cannot reduce seats\nwith active bookings]
+    G -- No or not changing seats --> I[Giver updates fields\ndeparture time / seats / notes]
+    I --> J{Updating totalSeats?}
+    J -- Yes --> K[totalSeats AND availableSeats\nboth updated atomically]
+    J -- No --> L[Only changed fields updated]
+    K & L --> M[Ride updated ✅\nGiver sees new values]
+```
+
+---
+
+## 7c. Abort Ride Flow (Mid-Route Emergency Stop)
+
+```mermaid
+flowchart TD
+    A([Giver taps 🛑 Emergency Stop\non ONGOING ride]) --> B[Modal: Enter reason\nnon-empty required]
+    B --> C{Reason provided?}
+    C -- No --> D[❌ Button disabled\nReason required]
+    C -- Yes --> E[PATCH /rides/:id/abort]
+    E --> F{Ride is ONGOING?}
+    F -- No --> G[❌ 400 Ride not ongoing]
+    F -- Yes --> H{User is Giver or Admin?}
+    H -- No --> I[❌ 403 Forbidden]
+    H -- Yes --> J[Transaction:\nWAITING/BOARDED → NO_SHOW\nride status → CANCELLED]
+    J --> K[Trust penalty applied to Giver\nonGiverCancelledRide]
+    K --> L[All passengers notified\n'Ride aborted mid-route ⚠️']
+    L --> M[Giver redirected\nto ride history]
 ```
 
 ---

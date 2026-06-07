@@ -27,6 +27,7 @@ stateDiagram-v2
     PUBLISHED --> CANCELLED : Giver cancels / Admin cancels
 
     ONGOING --> COMPLETED : Giver marks complete
+    ONGOING --> CANCELLED : Giver aborts mid-route (emergency stop)
     ONGOING --> CANCELLED : Admin intervention (emergency)
 
     COMPLETED --> [*] : Ratings window opens (24h)
@@ -41,7 +42,8 @@ stateDiagram-v2
 | PUBLISHED | ONGOING | `PATCH /rides/:id/start` | At least 1 confirmed participant OR Giver override |
 | PUBLISHED | CANCELLED | Giver cancels or Admin cancels | — |
 | ONGOING | COMPLETED | `PATCH /rides/:id/complete` | Giver is owner |
-| ONGOING | CANCELLED | Admin only | Emergency / SOS escalation |
+| ONGOING | CANCELLED | Giver aborts (`PATCH /rides/:id/abort`) | Requires non-empty reason; marks all WAITING/BOARDED as NO_SHOW; trust penalty applied to Giver |
+| ONGOING | CANCELLED | Admin cancels | Emergency / SOS escalation |
 
 ---
 
