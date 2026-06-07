@@ -15,7 +15,9 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { NotificationType, REDIS_KEYS } from '@techieride/shared';
 
-const PENDING_EXPIRY_HOURS = 4;
+const PENDING_EXPIRY_HOURS = 2;   // Auto-expire PENDING requests after 2 hours (well before 4h archive window)
+const REQUEST_RATE_LIMIT = 5;     // Max ride requests per seeker per hour
+const REQUEST_RATE_WINDOW = 3600; // 1 hour in seconds
 
 const USER_CONTACT_SELECT = {
   id: true, fullName: true, profilePhoto: true,
@@ -69,12 +71,21 @@ export class RideRequestsService {
     const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
     if (!seeker) throw new ForbiddenException('You must be a Ride Seeker to request rides');
 
+    // Rate limit: max 5 ride requests per seeker per hour (prevents spam create→cancel loops)
+    const rateLimitKey = `req_rate:${userId}`;
+    const requestCount = await this.redis.incr(rateLimitKey);
+    if (requestCount === 1) await this.redis.expire(rateLimitKey, REQUEST_RATE_WINDOW);
+    if (requestCount > REQUEST_RATE_LIMIT) {
+      throw new BadRequestException(`Too many ride requests. You can request up to ${REQUEST_RATE_LIMIT} rides per hour.`);
+    }
+
     const ride = await this.prisma.ride.findUnique({
       where: { id: dto.rideId },
       include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } },
     });
     if (!ride) throw new NotFoundException('Ride not found');
     if (ride.status !== 'PUBLISHED') throw new BadRequestException('Ride is not available');
+    if (ride.archivedAt) throw new BadRequestException('This ride is no longer accepting requests');
     if (ride.availableSeats <= 0) throw new BadRequestException('No seats available');
 
     // Women-only gate
@@ -182,6 +193,7 @@ export class RideRequestsService {
 
     const ride = await this.prisma.ride.findUnique({ where: { id: request.rideId } });
     if (!ride) throw new NotFoundException('Ride not found');
+    if (ride.archivedAt) throw new BadRequestException('This ride has been archived and can no longer accept approvals');
 
     // Atomic conditional decrement — only succeeds if availableSeats > 0 at write time.
     // This prevents the race condition where two concurrent approvals both read seats > 0
@@ -275,6 +287,9 @@ export class RideRequestsService {
     }
     if (request.ride?.status === 'ONGOING') {
       throw new BadRequestException('Cannot cancel a request once the ride has started');
+    }
+    if (request.ride?.archivedAt) {
+      throw new BadRequestException('This ride has already passed. No changes can be made to your booking.');
     }
 
     if (request.status === 'CONFIRMED') {

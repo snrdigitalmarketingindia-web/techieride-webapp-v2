@@ -44,6 +44,7 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 
 // Auto-archive PUBLISHED/ONGOING rides 4 hours after departure — hides from active list, never cancels
 const ARCHIVE_AFTER_HOURS = 4;
+const DRAFT_EXPIRY_DAYS = 3; // Auto-delete DRAFT rides older than 3 days (never published)
 
 @Injectable()
 export class RidesService {
@@ -399,10 +400,34 @@ export class RidesService {
     if (toArchive.length === 0) return;
     this.logger.log(`📦 Auto-archiving ${toArchive.length} ride(s) — 4h past departure`);
 
+    const archiveIds = toArchive.map((r) => r.id);
+
     await this.prisma.ride.updateMany({
-      where: { id: { in: toArchive.map((r) => r.id) } },
+      where: { id: { in: archiveIds } },
       data: { archivedAt: now },
     });
+
+    // Fix #2: Immediately expire any PENDING requests on archived rides so seekers
+    // aren't left waiting for a response that will never come
+    const stalePending = await this.prisma.rideRequest.findMany({
+      where: { rideId: { in: archiveIds }, status: 'PENDING' },
+      include: { seeker: { include: { user: true } }, ride: true },
+    });
+
+    for (const req of stalePending) {
+      await this.prisma.rideRequest.update({
+        where: { id: req.id },
+        data: { status: 'REJECTED', cancelReason: 'Ride archived — request auto-expired' },
+      });
+      if (req.seeker?.userId) {
+        await this.notifications.create(req.seeker.userId, {
+          type: NotificationType.REQUEST_REJECTED,
+          title: 'Ride request expired',
+          body: `Your request for ${req.ride.originName} → ${req.ride.destinationName} has expired as the ride has passed.`,
+          data: { rideId: req.rideId, requestId: req.id },
+        });
+      }
+    }
 
     // Audit log for traceability
     for (const ride of toArchive) {
@@ -412,6 +437,21 @@ export class RidesService {
         origin: ride.originName,
         destination: ride.destinationName,
       });
+    }
+  }
+
+  // Runs daily at midnight IST — cleans up DRAFT rides older than 3 days (never published)
+  @Cron('0 0 * * *', { timeZone: 'Asia/Kolkata' })
+  async cleanupStaleDrafts() {
+    const cutoff = new Date(Date.now() - DRAFT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+    const result = await this.prisma.ride.deleteMany({
+      where: {
+        status: RideStatus.DRAFT,
+        createdAt: { lt: cutoff },
+      },
+    });
+    if (result.count > 0) {
+      this.logger.log(`🗑️ Cleaned up ${result.count} stale DRAFT ride(s) older than ${DRAFT_EXPIRY_DAYS} days`);
     }
   }
 
