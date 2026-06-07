@@ -22,8 +22,25 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   private async runSafeMigrations() {
     const migrations: { name: string; sql: string }[] = [
       {
-        name: 'add archivedAt to Ride',
-        sql: `ALTER TABLE "Ride" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)`,
+        name: 'add archivedAt to rides',
+        // Table is "rides" (@@map), NOT "Ride"
+        sql: `ALTER TABLE "rides" ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP(3)`,
+      },
+      {
+        name: 'rename deboaredAt → deboardedAt in ride_participants',
+        // Safe: only renames if the old typo column still exists
+        sql: `DO $$ BEGIN
+                IF EXISTS (
+                  SELECT 1 FROM information_schema.columns
+                  WHERE table_name = 'ride_participants' AND column_name = 'deboaredAt'
+                ) THEN
+                  ALTER TABLE "ride_participants" RENAME COLUMN "deboaredAt" TO "deboardedAt";
+                END IF;
+              END $$`,
+      },
+      {
+        name: 'add deboardedAt to ride_participants if missing',
+        sql: `ALTER TABLE "ride_participants" ADD COLUMN IF NOT EXISTS "deboardedAt" TIMESTAMP(3)`,
       },
       {
         name: 'add COMPLETED to RequestStatus enum',
@@ -39,9 +56,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       },
       {
         name: 'fix stuck CONFIRMED requests on COMPLETED rides',
-        sql: `UPDATE "RideRequest" rr
+        // Table is "ride_requests" (@@map), NOT "RideRequest"
+        sql: `UPDATE "ride_requests" rr
               SET status = 'COMPLETED'
-              FROM "Ride" r
+              FROM "rides" r
               WHERE rr."rideId" = r.id
                 AND rr.status = 'CONFIRMED'
                 AND r.status = 'COMPLETED'`,
