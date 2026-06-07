@@ -138,7 +138,12 @@ export default function BecomeGiverPage() {
       return;
     }
     try {
-      await vehiclesApi.create({ ...vehicle, totalSeats: parseInt(vehicle.totalSeats) });
+      const created = await vehiclesApi.create({ ...vehicle, totalSeats: parseInt(vehicle.totalSeats) });
+      // Auto-link the RC uploaded in Step 1 to this vehicle — no need to re-upload later
+      const vehicleId = created.data?.id;
+      if (vehicleId && docs.rcUrl) {
+        await vehiclesApi.updateRc(vehicleId, docs.rcUrl);
+      }
       setVehicleSaved(true);
     } catch (e: any) {
       const msg = e.response?.data?.message;
@@ -381,7 +386,7 @@ export default function BecomeGiverPage() {
               <div className="flex justify-between py-2">
                 <span className="text-gray-500">Vehicle</span>
                 <span className={vehicleSaved ? 'text-green-600 font-medium' : 'text-gray-400'}>
-                  {vehicleSaved ? `✅ ${vehicle.make} ${vehicle.model}` : '— (can add later)'}
+                  {vehicleSaved ? `✅ ${vehicle.make} ${vehicle.model} · RC attached` : '— (can add later)'}
                 </span>
               </div>
             </div>
