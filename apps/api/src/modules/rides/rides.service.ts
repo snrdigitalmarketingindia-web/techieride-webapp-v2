@@ -63,7 +63,6 @@ export class RidesService {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) throw new ForbiddenException('You must be a Ride Giver to create rides');
 
-
     const vehicle = await this.prisma.vehicle.findFirst({
       where: { id: dto.vehicleId, rideGiverId: giver.id, isActive: true },
     });
