@@ -236,9 +236,17 @@ test.describe('🚗 Giver Full Flow', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides/create');
 
-    // Set departure time to 10 min from now
-    const soon = new Date(Date.now() + 10 * 60 * 1000);
-    const timeStr = `${String(soon.getHours()).padStart(2, '0')}:${String(soon.getMinutes()).padStart(2, '0')}`;
+    // The form default date is IST. Compute "10 min from now" in IST so date+time
+    // are consistent regardless of the CI runner's local timezone (avoids UTC/IST
+    // midnight crossover where the time falls on tomorrow's IST date, making the
+    // departure appear 24h away and the warning never triggers).
+    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const soonIST = new Date(nowIST.getTime() + 10 * 60 * 1000);
+    const dateStr = soonIST.toLocaleDateString('en-CA');          // YYYY-MM-DD
+    const timeStr = `${String(soonIST.getHours()).padStart(2, '0')}:${String(soonIST.getMinutes()).padStart(2, '0')}`;
+
+    // Set date first, then time — ensures isAtLeast15MinAhead uses a consistent pair
+    await page.locator('input[type="date"]').fill(dateStr);
     await page.locator('input[type="time"]').fill(timeStr);
     await page.locator('input[type="time"]').blur();
 
