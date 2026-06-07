@@ -200,4 +200,10 @@ export class AdminController {
   ) {
     return this.trustScoreService.adminReinstate(id, adminId);
   }
+
+  // ── Complaint Debugger — full user audit in one call ─────────────────────
+  @Get('users/:id/audit')
+  getUserAudit(@Param('id') id: string) {
+    return this.adminService.getUserAudit(id);
+  }
 }

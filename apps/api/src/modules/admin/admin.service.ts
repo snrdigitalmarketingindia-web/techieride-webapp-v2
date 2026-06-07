@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccountStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -213,5 +213,127 @@ export class AdminService {
       this.prisma.ride.count({ where }),
     ]);
     return { data, total, page, limit };
+  }
+
+  // ── User Audit — one-shot complaint debugger ──────────────────────────────
+  async getUserAudit(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true, fullName: true, email: true, phone: true, trid: true,
+        role: true, accountStatus: true, emailStatus: true,
+        trustScore: true, trustBand: true,
+        ecoPoints: true, ecoLevel: true,
+        isActive: true, createdAt: true,
+        companyName: true, employeeId: true,
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const [
+      ridesGiven,
+      ridesTaken,
+      ecoTransactions,
+      notifications,
+      sosEvents,
+      complaints,
+      ratings,
+    ] = await Promise.all([
+      // Last 10 rides given
+      this.prisma.ride.findMany({
+        where: { rideGiver: { userId } },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, status: true, originName: true, destinationName: true,
+          departureTime: true, totalSeats: true, availableSeats: true,
+          createdAt: true,
+        },
+      }),
+
+      // Last 10 ride requests (taken)
+      this.prisma.rideRequest.findMany({
+        where: { seeker: { userId } },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, status: true, createdAt: true,
+          ride: {
+            select: {
+              id: true, originName: true, destinationName: true,
+              departureTime: true, status: true,
+            },
+          },
+        },
+      }),
+
+      // Last 20 ECO point transactions
+      this.prisma.gamificationPoint.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+        select: { id: true, points: true, eventType: true, rideId: true, createdAt: true },
+      }),
+
+      // Last 10 notifications
+      this.prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { id: true, title: true, body: true, type: true, isRead: true, createdAt: true },
+      }),
+
+      // Last 5 SOS events
+      this.prisma.sosEvent.findMany({
+        where: { userId },
+        orderBy: { triggeredAt: 'desc' },
+        take: 5,
+        select: { id: true, rideId: true, lat: true, lng: true, triggeredAt: true },
+      }),
+
+      // Complaints filed against this user
+      this.prisma.complaint.findMany({
+        where: { reportedId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, status: true, description: true, createdAt: true,
+          reporter: { select: { fullName: true, email: true } },
+        reported: { select: { fullName: true, email: true } },
+        },
+      }),
+
+      // Last 10 ratings received
+      this.prisma.rideRating.findMany({
+        where: { rateeId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: {
+          id: true, score: true, comment: true, rideId: true, createdAt: true,
+          rater: { select: { fullName: true } },
+        },
+      }),
+    ]);
+
+    return {
+      user,
+      summary: {
+        totalRidesGiven: await this.prisma.ride.count({ where: { rideGiver: { userId } } }),
+        totalRidesTaken: await this.prisma.rideRequest.count({ where: { seeker: { userId }, status: 'CONFIRMED' } }),
+        totalEcoPointsEarned: ecoTransactions.reduce((s, t) => s + (t.points > 0 ? t.points : 0), 0),
+        totalEcoPointsLost: ecoTransactions.reduce((s, t) => s + (t.points < 0 ? t.points : 0), 0),
+        openComplaints: complaints.filter(c => c.status === 'OPEN').length,
+        averageRating: ratings.length
+          ? Math.round((ratings.reduce((s, r) => s + r.score, 0) / ratings.length) * 10) / 10
+          : null,
+      },
+      ridesGiven,
+      ridesTaken,
+      ecoTransactions,
+      notifications,
+      sosEvents,
+      complaints,
+      ratings,
+    };
   }
 }
