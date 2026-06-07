@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../../config/redis.module';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class GamificationService {
+  private readonly logger = new Logger(GamificationService.name);
+
   constructor(
     private prisma: PrismaService,
     @Inject(REDIS_CLIENT) private redis: Redis,
@@ -66,7 +68,19 @@ export class GamificationService {
       }),
     ]);
 
-    await this.recalculateLevel(userId);
+    // Level recalc and cache invalidation are best-effort — never let them
+    // block or undo the point award already committed above.
+    try {
+      await this.recalculateLevel(userId);
+    } catch (e: any) {
+      this.logger.error(`recalculateLevel failed for ${userId}: ${e.message}`);
+    }
+    try {
+      // Invalidate both leaderboard caches so rankings reflect the new points immediately
+      await this.redis.del('leaderboard:monthly', 'leaderboard:alltime');
+    } catch (e: any) {
+      this.logger.warn(`Leaderboard cache invalidation failed: ${e.message}`);
+    }
   }
 
   async recalculateLevel(userId: string) {

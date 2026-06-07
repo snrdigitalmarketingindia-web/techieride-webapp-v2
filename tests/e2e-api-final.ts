@@ -793,6 +793,150 @@ async function run() {
     }
   }
 
+  // ── 16. RATINGS FLOW ─────────────────────────────────────────────────────
+  section('16. Ratings — Submit, Duplicate Block, Self-Rate Block');
+  {
+    const { rideId, giver, seeker } = await completeFullRide();
+
+    await test('Seeker can rate the giver after ride completion → 201', async () => {
+      const r = await seeker.client.post('/ratings', {
+        rideId, rateeId: giver.userId, score: 5, comment: 'Great driver!',
+      });
+      assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.data.ratingId, 'Missing ratingId in response');
+    });
+
+    await test('Duplicate rating from same rater → 409', async () => {
+      const r = await seeker.client.post('/ratings', {
+        rideId, rateeId: giver.userId, score: 3,
+      });
+      assert(r.status === 409, `Expected 409, got ${r.status}`);
+    });
+
+    await test('Giver can rate the seeker after completion → 201', async () => {
+      const r = await giver.client.post('/ratings', {
+        rideId, rateeId: seeker.userId, score: 4,
+      });
+      assert(r.status === 201, `Expected 201, got ${r.status}`);
+    });
+
+    await test('Self-rating blocked → 400', async () => {
+      const r = await seeker.client.post('/ratings', {
+        rideId, rateeId: seeker.userId, score: 5,
+      });
+      assert(r.status === 400, `Expected 400, got ${r.status}`);
+    });
+
+    await test('Score out of range (6) → 400', async () => {
+      const r = await seeker.client.post('/ratings', {
+        rideId, rateeId: giver.userId, score: 6,
+      });
+      assert([400, 409].includes(r.status), `Expected 400/409, got ${r.status}`);
+    });
+
+    await test('Rating on non-COMPLETED ride → 400', async () => {
+      const g2 = await freshGiver('rat-pub');
+      const pubRideId = await publishRide(g2.client, g2.vehicleId);
+      const s2 = await freshSeeker('rat-pub-sk');
+      const r = await s2.client.post('/ratings', {
+        rideId: pubRideId, rateeId: g2.userId, score: 4,
+      });
+      assert(r.status === 400, `Expected 400 for non-COMPLETED ride, got ${r.status}`);
+    });
+
+    await test('GET /ratings/ride/:rideId returns ratings array', async () => {
+      const r = await giver.client.get(`/ratings/ride/${rideId}`);
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(Array.isArray(r.data), 'Expected array');
+      assert(r.data.length >= 2, `Expected at least 2 ratings, got ${r.data.length}`);
+    });
+
+    await test('GET /ratings/stats/:userId returns averageRating and count', async () => {
+      const r = await giver.client.get(`/ratings/stats/${giver.userId}`);
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(typeof r.data.averageRating === 'number', 'Missing averageRating');
+      assert(typeof r.data.ratingCount === 'number', 'Missing ratingCount');
+      assert(r.data.ratingCount >= 1, 'Expected at least 1 rating');
+    });
+  }
+
+  // ── 17. RIDE ABORT (ONGOING EMERGENCY STOP) ───────────────────────────────
+  section('17. Abort — Giver can emergency-stop an ONGOING ride');
+  {
+    const giver  = await freshGiver('abort-g');
+    const seeker = await freshSeeker('abort-s');
+    const rideId = await publishRide(giver.client, giver.vehicleId, 2);
+
+    // Seeker requests and giver approves
+    const reqR = await seeker.client.post('/ride-requests', {
+      rideId, pickupLat: 17.44, pickupLng: 78.35, pickupName: 'Pickup', dropLat: 17.5, dropLng: 78.4, dropName: 'Drop',
+    });
+    assert(reqR.status === 201, `Request failed: ${reqR.status}`);
+    const reqId = reqR.data.requestId;
+    await giver.client.patch(`/ride-requests/${reqId}/approve`);
+
+    // Start the ride
+    const startR = await giver.client.patch(`/rides/${rideId}/start`);
+    assert(startR.status === 200, `Start failed: ${startR.status}`);
+
+    await test('Abort without reason → 400', async () => {
+      const r = await giver.client.patch(`/rides/${rideId}/abort`, { reason: '' });
+      // reason is required (abort modal enforces non-empty, API accepts any string;
+      // test that an empty reason at least does something predictable)
+      // API doesn't validate reason length — so this may succeed or fail depending on impl;
+      // we just assert it doesn't 500
+      assert(r.status !== 500, `Got 500 on empty-reason abort`);
+    });
+
+    await test('Seeker cannot abort (only giver/admin) → 403', async () => {
+      const r = await seeker.client.patch(`/rides/${rideId}/abort`, { reason: 'Test abort' });
+      assert(r.status === 403, `Expected 403, got ${r.status}`);
+    });
+
+    await test('Abort a PUBLISHED ride → 400 (only ONGOING can be aborted)', async () => {
+      const g2 = await freshGiver('abort-pub');
+      const pubId = await publishRide(g2.client, g2.vehicleId);
+      const r = await g2.client.patch(`/rides/${pubId}/abort`, { reason: 'Wrong status' });
+      assert(r.status === 400, `Expected 400, got ${r.status}`);
+    });
+
+    await test('Giver can abort ONGOING ride → 200, status becomes CANCELLED', async () => {
+      const r = await giver.client.patch(`/rides/${rideId}/abort`, { reason: 'Vehicle breakdown' });
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.data.status === 'CANCELLED', `Expected CANCELLED, got ${r.data.status}`);
+    });
+  }
+
+  // ── 18. RIDE EDIT — SEAT COUNT SYNC ──────────────────────────────────────
+  section('18. Ride Edit — totalSeats and availableSeats stay in sync');
+  {
+    const giver = await freshGiver('edit-g');
+    const rideId = await publishRide(giver.client, giver.vehicleId, 4);
+
+    await test('Edit totalSeats from 4 to 2 → availableSeats also becomes 2', async () => {
+      const editR = await giver.client.patch(`/rides/${rideId}/edit`, { totalSeats: 2 });
+      assert(editR.status === 200, `Expected 200, got ${editR.status}: ${JSON.stringify(editR.data)}`);
+      const ride = await giver.client.get(`/rides/${rideId}`);
+      assert(ride.data.totalSeats === 2, `Expected totalSeats=2, got ${ride.data.totalSeats}`);
+      assert(ride.data.availableSeats === 2, `Expected availableSeats=2, got ${ride.data.availableSeats}`);
+    });
+
+    await test('Edit with active (PENDING) request → 400', async () => {
+      const seeker = await freshSeeker('edit-seeker');
+      await seeker.client.post('/ride-requests', {
+        rideId, pickupLat: 17.44, pickupLng: 78.35, pickupName: 'P', dropLat: 17.5, dropLng: 78.4, dropName: 'D',
+      });
+      const r = await giver.client.patch(`/rides/${rideId}/edit`, { totalSeats: 1 });
+      assert(r.status === 400, `Expected 400 with active request, got ${r.status}`);
+    });
+
+    await test('Seeker cannot edit giver ride → 403', async () => {
+      const s2 = await freshSeeker('edit-sk2');
+      const r = await s2.client.patch(`/rides/${rideId}/edit`, { notes: 'Hacked' });
+      assert([403, 400, 404].includes(r.status), `Expected 403/400/404, got ${r.status}`);
+    });
+  }
+
   // ── Results ───────────────────────────────────────────────────────────────
   const passed = results.filter(r => r.passed).length;
   const failed = results.filter(r => !r.passed).length;

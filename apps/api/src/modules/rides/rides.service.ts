@@ -278,7 +278,7 @@ export class RidesService {
 
     await this.prisma.rideParticipant.update({
       where: { id: participant.id },
-      data: { boardingStatus: 'DEBOARDED', deboaredAt: new Date() },
+      data: { boardingStatus: 'DEBOARDED', deboardedAt: new Date() },
     });
 
     // Notify giver
@@ -332,33 +332,54 @@ export class RidesService {
     ]);
 
     // Award ECO + Trust points
+    // Only award seekers who actually boarded and deboarded — NO_SHOW passengers didn't ride
     const participants = await this.prisma.rideParticipant.findMany({
       where: { rideId },
       include: { seeker: { include: { user: true } } },
     });
+    const boardedParticipants = participants.filter(p => p.boardingStatus === 'DEBOARDED');
 
-    await this.gamification.awardRideCompletion(
-      ride.rideGiverId,
-      rideId,
-      'giver',
-      ride.estimatedDistanceKm || 0,
-      participants.length,
-    );
-    await this.trustScore.onRideCompletedGiver(ride.rideGiverId, rideId);
-
-    for (const p of participants) {
+    // Giver points: isolate so a failure doesn't block seeker awards
+    try {
       await this.gamification.awardRideCompletion(
-        p.seekerId,
+        ride.rideGiverId,
         rideId,
-        'seeker',
+        'giver',
         ride.estimatedDistanceKm || 0,
-        1,
+        boardedParticipants.length,
       );
-      await this.trustScore.onRideCompletedSeeker(p.seekerId, rideId);
+      await this.trustScore.onRideCompletedGiver(ride.rideGiverId, rideId);
+    } catch (e: any) {
+      this.logger.error(`Gamification/trust failed for giver ${ride.rideGiverId}: ${e.message}`);
+    }
+
+    for (const p of boardedParticipants) {
+      try {
+        await this.gamification.awardRideCompletion(
+          p.seekerId,
+          rideId,
+          'seeker',
+          ride.estimatedDistanceKm || 0,
+          1,
+        );
+        await this.trustScore.onRideCompletedSeeker(p.seekerId, rideId);
+      } catch (e: any) {
+        this.logger.error(`Gamification/trust failed for seeker ${p.seekerId}: ${e.message}`);
+      }
       await this.notifications.create(p.seeker.userId, {
         type: NotificationType.RIDE_COMPLETED,
         title: 'Ride completed! Rate your experience',
-        body: `How was your ride with ${ride.originName} → ${ride.destinationName}?`,
+        body: `How was your ride on ${ride.originName} → ${ride.destinationName}?`,
+        data: { rideId },
+      });
+    }
+
+    // Notify no-show passengers separately (they didn't ride, so no rating prompt)
+    for (const p of participants.filter(p => p.boardingStatus === 'NO_SHOW')) {
+      await this.notifications.create(p.seeker.userId, {
+        type: NotificationType.RIDE_COMPLETED,
+        title: 'Ride completed',
+        body: `The ride on ${ride.originName} → ${ride.destinationName} has ended.`,
         data: { rideId },
       });
     }
@@ -505,6 +526,61 @@ export class RidesService {
 
       this.logger.log(`⏰ Sent departure reminder for ride ${ride.id}`);
     }
+  }
+
+  // Emergency abort for an ONGOING ride — marks all WAITING/BOARDED participants as NO_SHOW,
+  // increments seats back, sets ride to CANCELLED, and notifies all confirmed passengers.
+  async abort(rideId: string, userId: string, reason: string) {
+    const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
+    const user  = await this.prisma.user.findUnique({ where: { id: userId } });
+    const ride  = await this.prisma.ride.findUnique({ where: { id: rideId } });
+    if (!ride) throw new NotFoundException('Ride not found');
+
+    const isOwner = giver && ride.rideGiverId === giver.id;
+    const isAdmin = user?.role === 'ADMIN';
+    if (!isOwner && !isAdmin) throw new ForbiddenException();
+
+    if (ride.status !== RideStatus.ONGOING) {
+      throw new BadRequestException('Only ONGOING rides can be aborted. Use cancel for PUBLISHED rides.');
+    }
+
+    const participants = await this.prisma.rideParticipant.findMany({
+      where: { rideId },
+      include: { seeker: { include: { user: true } } },
+    });
+
+    // Mark unresolved participants as NO_SHOW so seats are freed
+    for (const p of participants) {
+      if (p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED') {
+        await this.prisma.$transaction([
+          this.prisma.rideParticipant.update({
+            where: { id: p.id },
+            data: { boardingStatus: 'NO_SHOW' },
+          }),
+          this.prisma.rideRequest.updateMany({
+            where: { rideId, seekerId: p.seekerId, status: 'CONFIRMED' },
+            data: { status: 'CANCELLED', cancelReason: reason || 'Ride aborted by giver' },
+          }),
+        ]);
+      }
+    }
+
+    const updated = await this.prisma.ride.update({
+      where: { id: rideId },
+      data: { status: RideStatus.CANCELLED, cancelledAt: new Date(), cancelReason: reason },
+    });
+
+    // Notify all confirmed passengers
+    for (const p of participants) {
+      await this.notifications.create(p.seeker.userId, {
+        type: NotificationType.RIDE_CANCELLED,
+        title: 'Ride aborted mid-route ⚠️',
+        body: `Your ride on ${ride.originName} → ${ride.destinationName} was stopped${reason ? `: ${reason}` : ''}. Sorry for the inconvenience.`,
+        data: { rideId },
+      });
+    }
+
+    return updated;
   }
 
   async cancel(rideId: string, userId: string, reason: string) {

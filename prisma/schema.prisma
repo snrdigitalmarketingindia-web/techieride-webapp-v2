@@ -421,7 +421,7 @@ model RideParticipant {
   dropName       String?
   boardingStatus BoardingStatus @default(WAITING)
   boardedAt      DateTime?
-  deboaredAt     DateTime?
+  deboardedAt    DateTime?
   createdAt      DateTime       @default(now())
 
   ride    Ride        @relation(fields: [rideId], references: [id], onDelete: Cascade)

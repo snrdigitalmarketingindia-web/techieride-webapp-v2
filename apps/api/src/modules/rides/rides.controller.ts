@@ -89,6 +89,15 @@ export class RidesController {
     return this.ridesService.deboard(id, userId);
   }
 
+  @Patch(':id/abort')
+  abort(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body('reason') reason: string,
+  ) {
+    return this.ridesService.abort(id, userId, reason);
+  }
+
   @Patch(':id/cancel')
   cancel(
     @Param('id') id: string,

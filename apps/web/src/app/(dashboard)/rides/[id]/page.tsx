@@ -56,6 +56,10 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [showAbortModal, setShowAbortModal] = useState(false);
+  const [abortReason, setAbortReason] = useState('');
+  const [showEditSheet, setShowEditSheet] = useState(false);
+  const [editFields, setEditFields] = useState<{ totalSeats?: number; notes?: string; departureTime?: string }>({});
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingTarget, setRatingTarget] = useState<{ id: string; name: string } | null>(null);
   const [ratingScore, setRatingScore] = useState(0);
@@ -105,6 +109,34 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       await reloadRide();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to complete ride');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleAbort = async () => {
+    setActionLoading('abort');
+    setError('');
+    try {
+      await ridesApi.abort(params.id, abortReason);
+      setShowAbortModal(false);
+      await reloadRide();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to abort ride');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleEdit = async () => {
+    setActionLoading('edit');
+    setError('');
+    try {
+      await ridesApi.edit(params.id, editFields);
+      setShowEditSheet(false);
+      await reloadRide();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to save changes');
     } finally {
       setActionLoading(null);
     }
@@ -461,18 +493,26 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
         {isMyRide ? (
           <div className="flex gap-2">
             {ride.status === 'PUBLISHED' && (
-              <>
-                <Link href={`/requests?rideId=${params.id}`}
-                  className="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow">
-                  📥 View Requests
-                </Link>
+              <div className="flex flex-col gap-2 w-full">
+                <div className="flex gap-2">
+                  <Link href={`/requests?rideId=${params.id}`}
+                    className="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow">
+                    📥 View Requests
+                  </Link>
+                  <button
+                    onClick={async () => { await ridesApi.start(params.id); await reloadRide(); }}
+                    className="flex-1 bg-brand-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-brand-700 transition shadow"
+                  >
+                    ▶ Start Ride
+                  </button>
+                </div>
                 <button
-                  onClick={async () => { await ridesApi.start(params.id); router.refresh(); }}
-                  className="flex-1 bg-brand-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-brand-700 transition shadow"
+                  onClick={() => { setEditFields({ totalSeats: ride.totalSeats, notes: ride.notes ?? '', departureTime: ride.departureTime }); setShowEditSheet(true); }}
+                  className="w-full bg-white border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
                 >
-                  ▶ Start Ride
+                  ✏️ Edit Ride Details
                 </button>
-              </>
+              </div>
             )}
             {ride.status === 'ONGOING' && (() => {
               const allResolved = ride.participants?.every(
@@ -482,18 +522,26 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                 (p: any) => p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED'
               );
               return (
-                <div className="flex gap-2 w-full">
-                  <Link href={`/tracking/${params.id}?giver=true`}
-                    className="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow">
-                    📡 Location
-                  </Link>
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex gap-2 w-full">
+                    <Link href={`/tracking/${params.id}?giver=true`}
+                      className="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow">
+                      📡 Location
+                    </Link>
+                    <button
+                      onClick={handleComplete}
+                      disabled={!allResolved || actionLoading === 'complete'}
+                      title={hasUnresolved ? 'All passengers must deboard or be marked no-show first' : ''}
+                      className="flex-1 bg-brand-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition shadow"
+                    >
+                      {actionLoading === 'complete' ? '…' : allResolved ? '✅ Complete Ride' : '🔒 Complete Ride'}
+                    </button>
+                  </div>
                   <button
-                    onClick={handleComplete}
-                    disabled={!allResolved || actionLoading === 'complete'}
-                    title={hasUnresolved ? 'All passengers must deboard or be marked no-show first' : ''}
-                    className="flex-1 bg-brand-600 text-white py-3 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition shadow"
+                    onClick={() => { setAbortReason(''); setShowAbortModal(true); }}
+                    className="w-full bg-white border border-red-300 text-red-600 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition"
                   >
-                    {actionLoading === 'complete' ? '…' : allResolved ? '✅ Complete Ride' : '🔒 Complete Ride'}
+                    🛑 Emergency Stop (abort ride)
                   </button>
                 </div>
               );
@@ -649,6 +697,73 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       )}
+      {/* Abort modal */}
+      {showAbortModal && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-end" onClick={() => setShowAbortModal(false)}>
+          <div className="bg-white rounded-t-2xl w-full p-6 space-y-4 max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-red-700">🛑 Abort ride?</h3>
+              <button onClick={() => setShowAbortModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <p className="text-sm text-gray-500">This will cancel the ride immediately and notify all passengers. Use only for emergencies.</p>
+            <textarea
+              value={abortReason}
+              onChange={e => setAbortReason(e.target.value)}
+              placeholder="Reason (e.g. vehicle breakdown, emergency)"
+              rows={3}
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+            />
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <button
+              onClick={handleAbort}
+              disabled={!abortReason.trim() || actionLoading === 'abort'}
+              className="w-full bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 disabled:opacity-50 transition"
+            >
+              {actionLoading === 'abort' ? 'Aborting…' : 'Yes, abort this ride'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit ride sheet */}
+      {showEditSheet && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-end" onClick={() => setShowEditSheet(false)}>
+          <div className="bg-white rounded-t-2xl w-full p-6 space-y-4 max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">✏️ Edit Ride</h3>
+              <button onClick={() => setShowEditSheet(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Departure time</label>
+                <input type="time" value={editFields.departureTime || ''}
+                  onChange={e => setEditFields(f => ({ ...f, departureTime: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Available seats (excl. driver)</label>
+                <select value={editFields.totalSeats || ''}
+                  onChange={e => setEditFields(f => ({ ...f, totalSeats: Number(e.target.value) }))}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500">
+                  {[1,2,3,4,5,6].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600 block mb-1">Notes (optional)</label>
+                <textarea value={editFields.notes || ''} onChange={e => setEditFields(f => ({ ...f, notes: e.target.value }))}
+                  rows={2} placeholder="Any instructions for passengers"
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+              </div>
+            </div>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <button onClick={handleEdit} disabled={actionLoading === 'edit'}
+              className="w-full bg-brand-600 text-white py-3 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition">
+              {actionLoading === 'edit' ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Rating modal */}
       {showRatingModal && ratingTarget && (
         <div className="fixed inset-0 bg-black/40 z-40 flex items-end" onClick={() => setShowRatingModal(false)}>
