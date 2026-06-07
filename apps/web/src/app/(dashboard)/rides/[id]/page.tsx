@@ -53,9 +53,17 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [dropName, setDropName] = useState('');
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   const reloadRide = () =>
     ridesApi.getById(params.id).then(r => setRide(r.data)).catch(() => {});
+
+  const reloadPending = () =>
+    requestsApi.getIncoming(params.id)
+      .then(res => setPendingRequests((res.data ?? []).filter((r: any) => r.status === 'PENDING')))
+      .catch(() => {});
 
   useEffect(() => {
     ridesApi.getById(params.id)
@@ -63,6 +71,12 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       .catch(() => router.push('/rides/search'))
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  useEffect(() => {
+    if (ride?.rideGiver?.userId === user?.id && ride?.status === 'PUBLISHED') {
+      reloadPending();
+    }
+  }, [ride?.id, user?.id]);
 
   const handleNoShow = async (seekerUserId: string) => {
     setActionLoading(`noshow-${seekerUserId}`);
@@ -111,6 +125,32 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       await reloadRide();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to deboard');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApproveRequest = async (reqId: string) => {
+    setActionLoading(`approve-${reqId}`);
+    try {
+      await requestsApi.approve(reqId);
+      await Promise.all([reloadRide(), reloadPending()]);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to approve');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleRejectRequest = async (reqId: string) => {
+    setActionLoading(`reject-${reqId}`);
+    try {
+      await requestsApi.reject(reqId, rejectReason || undefined);
+      setRejectingReqId(null);
+      setRejectReason('');
+      await reloadPending();
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to reject');
     } finally {
       setActionLoading(null);
     }
@@ -287,6 +327,68 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
           </div>
         )}
       </div>
+
+      {/* Pending seat requests — giver only, PUBLISHED ride */}
+      {isMyRide && ride.status === 'PUBLISHED' && pendingRequests.length > 0 && (
+        <div className="bg-white rounded-xl border border-amber-200 p-4">
+          <p className="text-sm font-semibold text-amber-700 mb-3">
+            📥 Pending Requests ({pendingRequests.length})
+          </p>
+          <div className="space-y-3">
+            {pendingRequests.map((req: any) => (
+              <div key={req.id} className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700 shrink-0">
+                    {req.seeker?.user?.fullName?.[0] ?? '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {req.seeker?.user?.fullName ?? 'Seeker'}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {req.seeker?.user?.companyName ?? ''}
+                      {req.pickupName ? ` · 📍 ${req.pickupName}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleApproveRequest(req.id)}
+                    disabled={actionLoading === `approve-${req.id}` || actionLoading === `reject-${req.id}`}
+                    className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0"
+                  >
+                    {actionLoading === `approve-${req.id}` ? '…' : '✅ Approve'}
+                  </button>
+                  <button
+                    onClick={() => { setRejectingReqId(req.id); setRejectReason(''); }}
+                    disabled={!!actionLoading}
+                    className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0"
+                  >
+                    ❌ Reject
+                  </button>
+                </div>
+                {rejectingReqId === req.id && (
+                  <div className="flex gap-2 pl-11">
+                    <input
+                      autoFocus
+                      value={rejectReason}
+                      onChange={e => setRejectReason(e.target.value)}
+                      placeholder="Reason (optional)"
+                      className="flex-1 text-xs px-2.5 py-1.5 border border-red-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-400"
+                    />
+                    <button
+                      onClick={() => handleRejectRequest(req.id)}
+                      disabled={actionLoading === `reject-${req.id}`}
+                      className="text-xs bg-red-600 text-white px-2.5 py-1.5 rounded-lg hover:bg-red-700 disabled:opacity-50 shrink-0"
+                    >
+                      {actionLoading === `reject-${req.id}` ? '…' : 'Confirm'}
+                    </button>
+                    <button onClick={() => setRejectingReqId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1">Cancel</button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Participants / boarding status */}
       {ride.participants?.length > 0 && (
