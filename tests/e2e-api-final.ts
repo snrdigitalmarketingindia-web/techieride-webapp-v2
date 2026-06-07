@@ -701,9 +701,15 @@ async function run() {
     assert(startR.status === 200, `Expected 200 starting ride, got ${startR.status}: ${JSON.stringify(startR.data)}`);
 
     await test('Search returns the ONGOING ride', async () => {
-      // Use a very broad search — date window doesn't matter; ONGOING rides with seats are included
+      // ONGOING rides bypass the date filter — search with today's date and the ride's coordinates.
+      // publishRide uses originLat:17.44,originLng:78.34,destLat:17.45,destLng:78.36
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
       const r = await seeker.client.get('/rides/search', {
-        params: { origin: '', destination: '', date: new Date().toISOString().split('T')[0] },
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          date: tomorrow,
+        },
       });
       assert(r.status === 200, `Expected 200 from search, got ${r.status}`);
       const found = r.data.find((rd: any) => rd.id === rideId);

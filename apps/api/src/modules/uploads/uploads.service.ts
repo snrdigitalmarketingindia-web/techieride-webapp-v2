@@ -75,11 +75,11 @@ export class UploadsService {
       return { readable: false, reason: 'RC parsing service not configured' };
     }
 
-    // Fetch image bytes from Cloudinary URL
+    // Fetch image bytes from Cloudinary URL (10s timeout — guards against hangs in CI/test envs)
     let imageBase64: string;
     let mimeType: string;
     try {
-      const resp = await fetch(imageUrl);
+      const resp = await fetch(imageUrl, { signal: AbortSignal.timeout(10_000) });
       if (!resp.ok) throw new Error(`Failed to fetch image: ${resp.status}`);
       const contentType = resp.headers.get('content-type') || 'image/jpeg';
       mimeType = contentType.split(';')[0].trim();

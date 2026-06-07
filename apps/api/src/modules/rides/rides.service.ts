@@ -539,6 +539,10 @@ export class RidesService {
   // Emergency abort for an ONGOING ride — marks all WAITING/BOARDED participants as NO_SHOW,
   // increments seats back, sets ride to CANCELLED, and notifies all confirmed passengers.
   async abort(rideId: string, userId: string, reason: string) {
+    if (!reason?.trim()) {
+      throw new BadRequestException('Abort reason is required and cannot be empty');
+    }
+
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     const user  = await this.prisma.user.findUnique({ where: { id: userId } });
     const ride  = await this.prisma.ride.findUnique({ where: { id: rideId } });
@@ -804,18 +808,19 @@ export class RidesService {
       requesterGender = user?.gender ?? null;
     }
 
-    const rides = await this.prisma.ride.findMany({
+    const genderFilter = requesterGender !== 'FEMALE' ? { womenOnly: false } : {};
+
+    // PUBLISHED rides: apply date window filter (departure day must match search date)
+    const publishedRides = await this.prisma.ride.findMany({
       where: {
-        // Include ONGOING rides — seeker may board mid-route while giver is en route to their pickup
-        status: { in: [RideStatus.PUBLISHED, RideStatus.ONGOING] },
+        status: RideStatus.PUBLISHED,
         departureDate: {
           gte: new Date(dto.date),
           lt: new Date(new Date(dto.date).getTime() + 86400000),
         },
         availableSeats: { gt: 0 },
         archivedAt: null,
-        // Hide womenOnly rides from non-FEMALE users
-        ...(requesterGender !== 'FEMALE' ? { womenOnly: false } : {}),
+        ...genderFilter,
       },
       include: {
         rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
@@ -823,19 +828,46 @@ export class RidesService {
       },
     });
 
-    return rides
-      .map((ride) => {
-        const distFromOrigin = haversineMeters(
-          dto.originLat, dto.originLng,
-          ride.originLat, ride.originLng,
-        );
-        const distFromDest = haversineMeters(
-          dto.destinationLat, dto.destinationLng,
-          ride.destinationLat, ride.destinationLng,
-        );
-        return { ...ride, distanceFromOriginM: Math.round(distFromOrigin), distanceFromDestinationM: Math.round(distFromDest) };
-      })
-      .filter((r) => r.distanceFromOriginM <= 500 && r.distanceFromDestinationM <= 500)
+    // ONGOING rides: bypass date filter — ride is already in progress, departure date is irrelevant.
+    // Seeker boards mid-route so origin distance is also irrelevant — only include, let seeker decide.
+    const ongoingRides = await this.prisma.ride.findMany({
+      where: {
+        status: RideStatus.ONGOING,
+        availableSeats: { gt: 0 },
+        archivedAt: null,
+        ...genderFilter,
+      },
+      include: {
+        rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
+        vehicle: true,
+      },
+    });
+
+    const originLat = Number(dto.originLat) || 0;
+    const originLng = Number(dto.originLng) || 0;
+    const destLat   = Number(dto.destinationLat) || 0;
+    const destLng   = Number(dto.destinationLng) || 0;
+    const hasCoords = originLat !== 0 || originLng !== 0 || destLat !== 0 || destLng !== 0;
+
+    const withDistances = (rides: typeof publishedRides, skipOriginFilter = false) =>
+      rides
+        .map((ride) => {
+          const distFromOrigin = haversineMeters(originLat, originLng, ride.originLat, ride.originLng);
+          const distFromDest   = haversineMeters(destLat,   destLng,   ride.destinationLat, ride.destinationLng);
+          return { ...ride, distanceFromOriginM: Math.round(distFromOrigin), distanceFromDestinationM: Math.round(distFromDest) };
+        })
+        .filter((r) => {
+          if (!hasCoords) return true; // no coordinates provided — return all (used in tests / admin views)
+          if (skipOriginFilter) return r.distanceFromDestinationM <= 2000; // ONGOING: only destination proximity matters
+          return r.distanceFromOriginM <= 500 && r.distanceFromDestinationM <= 500;
+        });
+
+    const results = [
+      ...withDistances(publishedRides, false),
+      ...withDistances(ongoingRides, true),
+    ];
+
+    return results
       .sort((a, b) => a.distanceFromOriginM - b.distanceFromOriginM)
       .slice((dto.page - 1) * dto.limit, dto.page * dto.limit);
   }
