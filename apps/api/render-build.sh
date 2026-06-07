@@ -9,6 +9,9 @@ echo "📁 Repo root: $(pwd)"
 # Install everything including devDeps (needed for nest build, tsc)
 NODE_ENV=development npm install
 
+echo "🔧 Generating Prisma client..."
+npx prisma generate --schema=./prisma/schema.prisma
+
 echo "🔨 Building API..."
 cd apps/api
 NODE_ENV=development npm run build
