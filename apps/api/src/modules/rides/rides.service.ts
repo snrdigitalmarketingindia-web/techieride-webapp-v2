@@ -679,11 +679,11 @@ export class RidesService {
       throw new BadRequestException('Only PUBLISHED rides can be edited');
     }
 
-    // Must be more than 30 minutes before departure
+    // Must be more than 15 minutes before departure (same threshold as publish)
     const departureDateTime = new Date(`${ride.departureDate.toISOString().split('T')[0]}T${ride.departureTime}:00`);
-    const thirtyMinBefore = new Date(departureDateTime.getTime() - 30 * 60 * 1000);
-    if (new Date() > thirtyMinBefore) {
-      throw new BadRequestException('Rides can only be edited up to 30 minutes before departure');
+    const fifteenMinBefore = new Date(departureDateTime.getTime() - 15 * 60 * 1000);
+    if (new Date() > fifteenMinBefore) {
+      throw new BadRequestException('Rides can only be edited up to 15 minutes before departure');
     }
 
     // No active seekers allowed
@@ -701,7 +701,7 @@ export class RidesService {
         ...(updates.destinationName && { destinationName: updates.destinationName }),
         ...(updates.departureDate && { departureDate: new Date(updates.departureDate) }),
         ...(updates.departureTime && { departureTime: updates.departureTime }),
-        ...(updates.totalSeats && { totalSeats: updates.totalSeats }),
+        ...(updates.totalSeats && { totalSeats: updates.totalSeats, availableSeats: updates.totalSeats }),
         ...(updates.notes !== undefined && { notes: updates.notes }),
       },
     });

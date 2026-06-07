@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ContactCard } from '@/components/ui/ContactCard';
 import dynamic from 'next/dynamic';
-import { ridesApi, requestsApi } from '@/lib/api';
+import { ridesApi, requestsApi, ratingsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
 const BOARDING_COLORS: Record<string, string> = {
@@ -56,6 +56,12 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingTarget, setRatingTarget] = useState<{ id: string; name: string } | null>(null);
+  const [ratingScore, setRatingScore] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingDone, setRatingDone] = useState<Record<string, boolean>>({});
 
   const reloadRide = () =>
     ridesApi.getById(params.id).then(r => setRide(r.data)).catch(() => {});
@@ -127,6 +133,27 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       setError(e.response?.data?.message || 'Failed to deboard');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const openRating = (id: string, name: string) => {
+    setRatingTarget({ id, name });
+    setRatingScore(0);
+    setRatingComment('');
+    setShowRatingModal(true);
+  };
+
+  const submitRating = async () => {
+    if (!ratingTarget || ratingScore < 1) return;
+    setRatingSubmitting(true);
+    try {
+      await ratingsApi.submit({ rideId: params.id, rateeId: ratingTarget.id, score: ratingScore, comment: ratingComment || undefined });
+      setRatingDone(prev => ({ ...prev, [ratingTarget.id]: true }));
+      setShowRatingModal(false);
+    } catch (e: any) {
+      setError(e.response?.data?.message || 'Failed to submit rating');
+    } finally {
+      setRatingSubmitting(false);
     }
   };
 
@@ -541,6 +568,41 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
         })() : null}
       </div>
 
+      {/* Rate participants — shown on COMPLETED rides */}
+      {ride.status === 'COMPLETED' && user && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+          <h3 className="font-semibold text-gray-800 text-sm">⭐ Rate your ride</h3>
+          {/* Seeker rates the giver */}
+          {!isMyRide && alreadyParticipant && ride.rideGiver?.userId && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Rate {ride.rideGiver?.user?.fullName?.split(' ')[0] ?? 'Giver'} (Ride Giver)</span>
+              {ratingDone[ride.rideGiver.userId] ? (
+                <span className="text-xs text-green-600 font-medium">✅ Rated</span>
+              ) : (
+                <button onClick={() => openRating(ride.rideGiver.userId, ride.rideGiver?.user?.fullName ?? 'Giver')}
+                  className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+                  Rate
+                </button>
+              )}
+            </div>
+          )}
+          {/* Giver rates each seeker */}
+          {isMyRide && ride.participants?.map((p: any) => (
+            <div key={p.seeker?.userId} className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">{p.seeker?.user?.fullName ?? 'Passenger'}</span>
+              {ratingDone[p.seeker?.userId] ? (
+                <span className="text-xs text-green-600 font-medium">✅ Rated</span>
+              ) : (
+                <button onClick={() => openRating(p.seeker.userId, p.seeker?.user?.fullName ?? 'Passenger')}
+                  className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 transition">
+                  Rate
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Request seat sheet */}
       {showRequestSheet && (
         <div className="fixed inset-0 bg-black/40 z-40 flex items-end" onClick={() => setShowRequestSheet(false)}>
@@ -583,6 +645,45 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
               className="w-full bg-brand-600 text-white py-3 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition"
             >
               {requesting ? 'Sending...' : 'Send Seat Request'}
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Rating modal */}
+      {showRatingModal && ratingTarget && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-end" onClick={() => setShowRatingModal(false)}>
+          <div className="bg-white rounded-t-2xl w-full p-6 space-y-4 max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Rate {ratingTarget.name}</h3>
+              <button onClick={() => setShowRatingModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            <div className="flex gap-2 justify-center">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button key={star} onClick={() => setRatingScore(star)}
+                  className={`text-3xl transition ${star <= ratingScore ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}>
+                  ★
+                </button>
+              ))}
+            </div>
+            {ratingScore > 0 && (
+              <p className="text-center text-xs text-gray-500">
+                {['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][ratingScore]}
+              </p>
+            )}
+            <textarea
+              value={ratingComment}
+              onChange={e => setRatingComment(e.target.value)}
+              placeholder="Leave a comment (optional)"
+              rows={3}
+              className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+            />
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <button
+              onClick={submitRating}
+              disabled={ratingScore < 1 || ratingSubmitting}
+              className="w-full bg-brand-600 text-white py-3 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition"
+            >
+              {ratingSubmitting ? 'Submitting...' : 'Submit Rating'}
             </button>
           </div>
         </div>

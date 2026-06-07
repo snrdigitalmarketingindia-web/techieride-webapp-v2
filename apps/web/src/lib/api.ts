@@ -168,6 +168,14 @@ export const quickMessagesApi = {
     api.get(`/rides/${rideId}/quick-message/options`),
 };
 
+// ─── Ratings ──────────────────────────────────────────
+export const ratingsApi = {
+  submit: (data: { rideId: string; rateeId: string; score: number; comment?: string }) =>
+    api.post('/ratings', data),
+  getRideRatings: (rideId: string) => api.get(`/ratings/ride/${rideId}`),
+  getUserStats: (userId: string) => api.get(`/ratings/stats/${userId}`),
+};
+
 // ─── Complaints ───────────────────────────────────────
 export const complaintsApi = {
   file: (data: { reportedId: string; rideId?: string; reason: string; description?: string }) =>
