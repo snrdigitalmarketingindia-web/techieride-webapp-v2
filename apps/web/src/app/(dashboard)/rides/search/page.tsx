@@ -163,6 +163,75 @@ function BoardingModal({
   );
 }
 
+// ── Conflict / Replace Modal ──────────────────────────────────────────────────
+function ConflictModal({
+  existingReq,
+  newRide,
+  onConfirm,
+  onClose,
+}: {
+  existingReq: any;        // the current active request (has .ride, .status, .id)
+  newRide: any;            // the ride the seeker wants to join
+  onConfirm: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const existing = existingReq?.ride;
+  const statusLabel = existingReq?.status === 'CONFIRMED' ? '✅ Confirmed' : '⏳ Pending';
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-xl">
+        <h2 className="text-base font-bold text-gray-900">Switch Ride?</h2>
+        <p className="text-sm text-gray-600">
+          You already have an active request on another ride. You can only have one active request at a time.
+        </p>
+
+        {/* Existing ride */}
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 space-y-1">
+          <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">Current request ({statusLabel})</p>
+          <p className="text-sm font-medium text-gray-800 truncate">
+            {existing?.originName ?? '—'} → {existing?.destinationName ?? '—'}
+          </p>
+          <p className="text-xs text-gray-500">
+            📅 {existing?.departureDate ? new Date(existing.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''} · 🕐 {existing?.departureTime ?? ''}
+          </p>
+        </div>
+
+        {/* Arrow */}
+        <p className="text-center text-xs text-gray-400 font-medium">↓ cancel this & join instead ↓</p>
+
+        {/* New ride */}
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 space-y-1">
+          <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">New ride</p>
+          <p className="text-sm font-medium text-gray-800 truncate">
+            {newRide?.originName ?? '—'} → {newRide?.destinationName ?? '—'}
+          </p>
+          <p className="text-xs text-gray-500">
+            📅 {newRide?.departureDate ? new Date(newRide.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''} · 🕐 {newRide?.departureTime ?? ''}
+          </p>
+        </div>
+
+        <div className="flex gap-3 pt-1">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+          >
+            Keep current
+          </button>
+          <button
+            onClick={async () => { setLoading(true); try { await onConfirm(); } finally { setLoading(false); } }}
+            disabled={loading}
+            className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition"
+          >
+            {loading ? 'Switching...' : '🔄 Switch ride'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function RideSearchPage() {
   const { user } = useAuthStore();
@@ -185,6 +254,9 @@ export default function RideSearchPage() {
   const [womenOnlyFilter, setWomenOnlyFilter] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
+  // set when API returns 409 — holds { existingReq, pendingData } so user can confirm switch
+  const [conflictReq, setConflictReq] = useState<any | null>(null);
+  const [pendingBoardingData, setPendingBoardingData] = useState<any | null>(null);
 
   // Load saved search prefs client-side (localStorage unavailable during SSR)
   useEffect(() => {
@@ -269,14 +341,50 @@ export default function RideSearchPage() {
     } catch (e: any) {
       const msg = e.response?.data?.message;
       const text = Array.isArray(msg) ? msg.join(', ') : msg || 'Failed to send request';
-      // 409 = already have active request — close modal, mark as pending
+      // 409 = seeker already has an active request on ANOTHER ride
+      // → fetch their existing request and show a "switch ride?" confirmation dialog
       if (e.response?.status === 409) {
-        setRequestedMap((prev) => ({ ...prev, [boardingRide.id]: 'pending' }));
-        setBoardingRide(null);
-        return;
+        try {
+          const { data: myReqs } = await requestsApi.getMine();
+          const active = (myReqs ?? []).find((r: any) =>
+            ['PENDING', 'CONFIRMED'].includes(r.status)
+          );
+          if (active) {
+            setPendingBoardingData({ ...data, rideId: boardingRide.id });
+            setConflictReq(active);
+            setBoardingRide(null); // close boarding modal
+            return;
+          }
+        } catch {
+          // fall through to generic error
+        }
       }
       throw new Error(text); // bubble up to modal's inline error
     }
+  };
+
+  // Cancel existing request then create the new one (called from ConflictModal confirm)
+  const handleConflictReplace = async () => {
+    if (!conflictReq || !pendingBoardingData || !boardingRide === undefined) return;
+    // Cancel the old request
+    await requestsApi.cancel(conflictReq.id, 'Switched to a different ride');
+    // Remove old ride from requestedMap
+    setRequestedMap((prev) => {
+      const next = { ...prev };
+      delete next[conflictReq.ride?.id];
+      return next;
+    });
+    // Create the new request
+    await requestsApi.create({
+      rideId: pendingBoardingData.rideId,
+      pickupName: pendingBoardingData.pickupName,
+      ...(pendingBoardingData.pickupLat !== undefined && { pickupLat: pendingBoardingData.pickupLat }),
+      ...(pendingBoardingData.pickupLng !== undefined && { pickupLng: pendingBoardingData.pickupLng }),
+      dropName: pendingBoardingData.dropName,
+    });
+    setRequestedMap((prev) => ({ ...prev, [pendingBoardingData.rideId]: 'sent' }));
+    setConflictReq(null);
+    setPendingBoardingData(null);
   };
 
   return (
@@ -289,6 +397,16 @@ export default function RideSearchPage() {
           ride={boardingRide}
           onConfirm={submitRequest}
           onClose={() => setBoardingRide(null)}
+        />
+      )}
+
+      {/* Conflict modal — shown when seeker already has an active request on another ride */}
+      {conflictReq && pendingBoardingData && (
+        <ConflictModal
+          existingReq={conflictReq}
+          newRide={rides.find((r) => r.id === pendingBoardingData.rideId) ?? { originName: '', destinationName: '' }}
+          onConfirm={handleConflictReplace}
+          onClose={() => { setConflictReq(null); setPendingBoardingData(null); }}
         />
       )}
 

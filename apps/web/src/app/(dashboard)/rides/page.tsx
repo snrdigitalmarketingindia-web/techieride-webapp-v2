@@ -420,6 +420,17 @@ export default function MyRidesPage() {
                             ))}
                           </div>
                         )}
+                        {tab === 'taken' && ride.status === 'PUBLISHED' && (() => {
+                          const myParticipant = (ride.participants ?? []).find(
+                            (p: any) => p.seeker?.userId === user?.id
+                          );
+                          if (!myParticipant) return null;
+                          return (
+                            <p className="w-full text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                              🎉 Seat confirmed! <span className="font-medium">Board Now</span> button will appear once the driver starts the ride.
+                            </p>
+                          );
+                        })()}
                         {tab === 'taken' && ride.status === 'ONGOING' && (() => {
                           const myParticipant = (ride.participants ?? []).find(
                             (p: any) => p.seeker?.userId === user?.id
