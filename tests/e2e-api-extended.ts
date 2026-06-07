@@ -366,10 +366,10 @@ async function run() {
   // ══════════════════════════════════════════
   section('🛡️ Input Validation');
 
-  await test('Register with non-corporate email (yahoo) → 403', async () => {
-    // gmail.com is whitelisted for testing — use yahoo.com which is never allowed
+  await test('Register with non-whitelisted email domain → 403', async () => {
+    // gmail/yahoo/outlook are temporarily whitelisted for testing; use a domain that is never whitelisted
     const r = await makeClient().post('/auth/register', {
-      email: 'test@yahoo.com', password: SEED_PASSWORD,
+      email: 'test@totally-invalid-xyz-domain.com', password: SEED_PASSWORD,
       fullName: 'Test', gender: 'MALE', phone: '9800000099',
       homeLocation: 'Kondapur, Hyderabad',
       officeLocation: 'HITEC City, Madhapur, Hyderabad',

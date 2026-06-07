@@ -943,6 +943,291 @@ async function run() {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 19. Search Radius (radiusMeters param)
+  // ─────────────────────────────────────────────────────────────────────────
+  section('19. Search Radius — radiusMeters param');
+  {
+    const giver19 = await freshGiver('rad-g');
+    const tomorrow19 = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+
+    // Publish a ride at the default test location (17.44/78.34 → 17.45/78.36)
+    const rideId19 = await publishRide(giver19.client, giver19.vehicleId, 2);
+
+    const seeker19 = await freshSeeker('rad-s');
+
+    await test('Default 10 km radius returns the nearby ride', async () => {
+      const r = await seeker19.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          date: tomorrow19,
+        },
+      });
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(Array.isArray(r.data) || Array.isArray(r.data.rides), 'Expected array response');
+      const rides: any[] = Array.isArray(r.data) ? r.data : r.data.rides;
+      assert(rides.some((rd: any) => rd.id === rideId19), 'Expected ride in default-radius results');
+    });
+
+    await test('Explicit radiusMeters=500 filters out far ride (coords 1° away)', async () => {
+      // Origin 1° away — about 111 km, well beyond 500 m
+      const r = await seeker19.client.get('/rides/search', {
+        params: {
+          originLat: 18.44, originLng: 79.34,
+          destinationLat: 18.50, destinationLng: 79.40,
+          date: tomorrow19,
+          radiusMeters: 500,
+        },
+      });
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      const rides: any[] = Array.isArray(r.data) ? r.data : r.data.rides;
+      assert(!rides.some((rd: any) => rd.id === rideId19), 'Ride should be excluded at 500 m with far coords');
+    });
+
+    await test('radiusMeters=50000 (max) is accepted → 200', async () => {
+      const r = await seeker19.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          date: tomorrow19,
+          radiusMeters: 50_000,
+        },
+      });
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('radiusMeters=50001 exceeds Max(50000) → 400', async () => {
+      const r = await seeker19.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          date: tomorrow19,
+          radiusMeters: 50_001,
+        },
+      });
+      assert(r.status === 400, `Expected 400, got ${r.status}`);
+    });
+
+    await test('radiusMeters=499 below Min(500) → 400', async () => {
+      const r = await seeker19.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          date: tomorrow19,
+          radiusMeters: 499,
+        },
+      });
+      assert(r.status === 400, `Expected 400, got ${r.status}`);
+    });
+
+    await test('radiusMeters=abc (non-numeric) → 400', async () => {
+      const r = await seeker19.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          date: tomorrow19,
+          radiusMeters: 'abc',
+        },
+      });
+      assert(r.status === 400, `Expected 400, got ${r.status}`);
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 20. Admin User Audit Endpoint
+  // ─────────────────────────────────────────────────────────────────────────
+  section('20. Admin User Audit — GET /admin/users/:id/audit');
+  {
+    const admin20 = await getAdminClient();
+    const auditUser = await freshSeeker('audit-s');
+
+    await test('Admin can fetch audit for existing user → 200 with all sections', async () => {
+      const r = await admin20.get(`/admin/users/${auditUser.userId}/audit`);
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+      // Validate top-level sections are present
+      assert(r.data.user,            'Missing "user" section in audit response');
+      assert(r.data.summary,         'Missing "summary" section in audit response');
+      assert(Array.isArray(r.data.ridesGiven),    'ridesGiven should be array');
+      assert(Array.isArray(r.data.rideRequests),  'rideRequests should be array');
+      assert(Array.isArray(r.data.ecoPoints),     'ecoPoints should be array');
+      assert(Array.isArray(r.data.notifications), 'notifications should be array');
+      assert(Array.isArray(r.data.complaints),    'complaints should be array');
+      assert(Array.isArray(r.data.ratings),       'ratings should be array');
+    });
+
+    await test('Admin audit for unknown user → 404', async () => {
+      const r = await admin20.get('/admin/users/nonexistent-user-id-999/audit');
+      assert(r.status === 404, `Expected 404, got ${r.status}`);
+    });
+
+    await test('Non-admin user cannot access audit endpoint → 403', async () => {
+      const nonAdmin = await freshSeeker('non-admin-audit');
+      const r = await nonAdmin.client.get(`/admin/users/${auditUser.userId}/audit`);
+      assert(r.status === 403, `Expected 403, got ${r.status}`);
+    });
+
+    await test('Audit summary contains correct numeric fields', async () => {
+      const r = await admin20.get(`/admin/users/${auditUser.userId}/audit`);
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      const s = r.data.summary;
+      assert(typeof s.totalRidesGiven    === 'number', 'totalRidesGiven should be number');
+      assert(typeof s.totalRidesTaken    === 'number', 'totalRidesTaken should be number');
+      assert(typeof s.totalEcoPoints     === 'number', 'totalEcoPoints should be number');
+      assert(typeof s.totalCo2SavedGrams === 'number', 'totalCo2SavedGrams should be number');
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 21. Women-Only Gender Guard
+  // ─────────────────────────────────────────────────────────────────────────
+  section('21. Women-Only Guard — male giver cannot create womenOnly ride');
+  {
+    // Register an explicitly male giver
+    const maleEmail = `male-giver-${Date.now()}@gmail.com`;
+    const malePwd   = 'Techie@123';
+    const maleReg = await makeClient().post('/auth/register', {
+      email: maleEmail, password: malePwd,
+      name: 'Male Tester', phone: `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`,
+      gender: 'MALE',
+    });
+    assert([200, 201].includes(maleReg.status), `Male register failed: ${JSON.stringify(maleReg.data)}`);
+
+    const maleLogin = await makeClient().post('/auth/login', { email: maleEmail, password: malePwd });
+    assert(maleLogin.status === 200, `Male login failed: ${maleLogin.status}`);
+    const maleClient = makeClient(maleLogin.data.accessToken);
+
+    // Register a vehicle for the male user
+    const maleVehicle = await maleClient.post('/vehicles', {
+      make: 'Toyota', model: 'Innova', year: 2022,
+      color: 'White', licensePlate: `KA${Date.now().toString().slice(-6)}`,
+      seats: 4,
+    });
+    const maleVehicleId = maleVehicle.data?.id ?? maleVehicle.data?.vehicleId;
+
+    const tomorrow21 = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+
+    await test('Male giver creating womenOnly ride → 403', async () => {
+      const r = await maleClient.post('/rides', {
+        vehicleId: maleVehicleId,
+        originLat: 17.44, originLng: 78.34, originName: 'Origin',
+        destinationLat: 17.50, destinationLng: 78.40, destinationName: 'Dest',
+        departureDate: tomorrow21, departureTime: '09:00',
+        totalSeats: 2, pricePerSeat: 50,
+        womenOnly: true,
+      });
+      assert(r.status === 403, `Expected 403 for male giver + womenOnly, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('Male giver creating regular (non-womenOnly) ride → 201', async () => {
+      const r = await maleClient.post('/rides', {
+        vehicleId: maleVehicleId,
+        originLat: 17.44, originLng: 78.34, originName: 'Origin',
+        destinationLat: 17.50, destinationLng: 78.40, destinationName: 'Dest',
+        departureDate: tomorrow21, departureTime: '10:00',
+        totalSeats: 2, pricePerSeat: 50,
+        womenOnly: false,
+      });
+      assert([200, 201].includes(r.status), `Expected 201 for regular ride, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 22. Phone Uniqueness → 409 (not 500)
+  // ─────────────────────────────────────────────────────────────────────────
+  section('22. Phone Uniqueness — duplicate phone → 409');
+  {
+    const sharedPhone = `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`;
+
+    await makeClient().post('/auth/register', {
+      email: `phone-first-${Date.now()}@gmail.com`,
+      password: 'Techie@123',
+      name: 'Phone First', phone: sharedPhone, gender: 'MALE',
+    });
+
+    await test('Second registration with same phone → 409 (not 500)', async () => {
+      const r = await makeClient().post('/auth/register', {
+        email: `phone-second-${Date.now()}@gmail.com`,
+        password: 'Techie@123',
+        name: 'Phone Second', phone: sharedPhone, gender: 'FEMALE',
+      });
+      assert(r.status === 409, `Expected 409 for duplicate phone, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 23. Personal Email Domains — Now Allowed
+  // ─────────────────────────────────────────────────────────────────────────
+  section('23. Personal Email Domains — gmail/yahoo/outlook temporarily allowed');
+  {
+    const personalDomains = [
+      { domain: 'gmail.com',    label: 'gmail' },
+      { domain: 'yahoo.com',    label: 'yahoo' },
+      { domain: 'outlook.com',  label: 'outlook' },
+      { domain: 'hotmail.com',  label: 'hotmail' },
+      { domain: 'icloud.com',   label: 'icloud' },
+    ];
+
+    for (const { domain, label } of personalDomains) {
+      await test(`Register with ${label}.com → 200/201 (whitelisted for testing)`, async () => {
+        const r = await makeClient().post('/auth/register', {
+          email: `testuser-${Date.now()}@${domain}`,
+          password: 'Techie@123',
+          name: `${label} Tester`,
+          phone: `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`,
+          gender: 'MALE',
+        });
+        assert([200, 201].includes(r.status),
+          `Expected 200/201 for @${domain}, got ${r.status}: ${JSON.stringify(r.data)}`);
+      });
+    }
+
+    await test('Register with truly invalid domain → 403', async () => {
+      const r = await makeClient().post('/auth/register', {
+        email: `test@totally-invalid-xyz-domain.com`,
+        password: 'Techie@123',
+        name: 'Invalid Domain Tester',
+        phone: `+919${Math.floor(100_000_000 + Math.random() * 899_999_999)}`,
+        gender: 'MALE',
+      });
+      assert(r.status === 403, `Expected 403 for unknown domain, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 24. Abort Empty Reason — 400
+  // ─────────────────────────────────────────────────────────────────────────
+  section('24. Abort — empty or missing reason → 400');
+  {
+    const giver24 = await freshGiver('abort-reason-g');
+    const rideId24 = await publishRide(giver24.client, giver24.vehicleId, 2);
+
+    // Start the ride → ONGOING
+    await giver24.client.patch(`/rides/${rideId24}/start`);
+
+    await test('Abort with empty string reason → 400', async () => {
+      const r = await giver24.client.patch(`/rides/${rideId24}/abort`, { reason: '' });
+      assert(r.status === 400, `Expected 400 for empty reason, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('Abort with whitespace-only reason → 400', async () => {
+      const r = await giver24.client.patch(`/rides/${rideId24}/abort`, { reason: '   ' });
+      assert(r.status === 400, `Expected 400 for whitespace reason, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('Abort with missing reason field → 400', async () => {
+      const r = await giver24.client.patch(`/rides/${rideId24}/abort`, {});
+      assert(r.status === 400, `Expected 400 for missing reason, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('Abort with valid reason → 200 (ride becomes CANCELLED)', async () => {
+      const r = await giver24.client.patch(`/rides/${rideId24}/abort`, { reason: 'Medical emergency' });
+      assert(r.status === 200, `Expected 200 for valid abort, got ${r.status}: ${JSON.stringify(r.data)}`);
+      const ride = await giver24.client.get(`/rides/${rideId24}`);
+      assert(ride.data.status === 'CANCELLED', `Expected CANCELLED, got ${ride.data.status}`);
+    });
+  }
+
   // ── Results ───────────────────────────────────────────────────────────────
   const passed = results.filter(r => r.passed).length;
   const failed = results.filter(r => !r.passed).length;
