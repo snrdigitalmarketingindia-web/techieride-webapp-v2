@@ -173,6 +173,7 @@ async function runNotificationTests() {
   });
 
   // NOT-06: All confirmed + pending seekers notified on RIDE_CANCELLED
+  // Note: giver is blocked from cancelling when CONFIRMED passengers exist — admin must cancel
   await test('NOT-06: confirmed seekers notified when giver cancels ride', async () => {
     const giver = await freshGiver('n06');
     const seeker = await freshSeeker('n06');
@@ -180,7 +181,9 @@ async function runNotificationTests() {
     const reqId = await setupApprovedRequest(giver, seeker, rideId);
     await seeker.client.patch(`/ride-requests/${reqId}/confirm`);
 
-    const cancel = await giver.client.patch(`/rides/${rideId}/cancel`);
+    // Giver cannot cancel with confirmed passengers — admin cancels instead
+    const admin = await getAdminClient();
+    const cancel = await admin.patch(`/rides/${rideId}/cancel`);
     assert(cancel.status === 200, `Cancel failed: ${JSON.stringify(cancel.data)}`);
     await assertHasNotification(seeker.client, 'RIDE_CANCELLED', 'seeker');
   });

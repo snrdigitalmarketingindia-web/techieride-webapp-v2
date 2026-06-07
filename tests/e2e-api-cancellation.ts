@@ -18,6 +18,7 @@ import {
   freshGiver,
   freshSeeker,
   publishRide,
+  getAdminClient,
 } from './helpers';
 
 // ─── Colours ──────────────────────────────────────────────────────────────────
@@ -158,22 +159,28 @@ async function runCancellationTests() {
   // ── Giver-initiated cancellations ──────────────────────────────────────────
   section('CAN — Giver Cancels Ride');
 
-  await test('CAN-05: Giver cancels ride with confirmed seeker → requests CANCELLED → 200', async () => {
+  await test('CAN-05: Giver blocked from cancelling ride with confirmed seeker → 400; admin can cancel → 200', async () => {
     const { giver, seeker, rideId, reqId } = await setupConfirmedBooking('05');
 
-    const cancel = await giver.client.patch(`/rides/${rideId}/cancel`, { reason: 'Emergency' });
-    assert(cancel.status === 200, `Ride cancel failed: ${JSON.stringify(cancel.data)}`);
+    // Giver is blocked — confirmed passenger exists
+    const giverCancel = await giver.client.patch(`/rides/${rideId}/cancel`, { reason: 'Emergency' });
+    assert(giverCancel.status === 400, `Expected 400 when giver cancels with confirmed passenger, got ${giverCancel.status}`);
+
+    // Admin can force-cancel even with confirmed passengers
+    const admin = await getAdminClient();
+    const cancel = await admin.patch(`/rides/${rideId}/cancel`, { reason: 'Admin override' });
+    assert(cancel.status === 200, `Admin ride cancel failed: ${JSON.stringify(cancel.data)}`);
 
     const mine = await seeker.client.get('/ride-requests/mine');
     const req = (mine.data as any[]).find((r: any) => r.id === reqId);
     assert(!!req, `Request not found in seeker's list`);
     assert(
       ['CANCELLED', 'REJECTED'].includes(req.status),
-      `Expected request CANCELLED after giver cancels ride, got ${req.status}`
+      `Expected request CANCELLED after admin cancels ride, got ${req.status}`
     );
   });
 
-  await test('CAN-06: Giver cancels with multiple seekers → all requests CANCELLED → 200', async () => {
+  await test('CAN-06: Giver blocked when multiple confirmed seekers exist → 400; admin cancel clears all requests → 200', async () => {
     const giver   = await freshGiver('can_06');
     const seeker1 = await freshSeeker('can_06a');
     const seeker2 = await freshSeeker('can_06b');
@@ -187,8 +194,14 @@ async function runCancellationTests() {
       await giver.client.patch(`/ride-requests/${r.data.requestId}/approve`);
     }
 
-    const cancel = await giver.client.patch(`/rides/${rideId}/cancel`, { reason: 'Car breakdown' });
-    assert(cancel.status === 200, `Ride cancel failed: ${JSON.stringify(cancel.data)}`);
+    // Giver is blocked — confirmed passengers exist
+    const giverCancel = await giver.client.patch(`/rides/${rideId}/cancel`, { reason: 'Car breakdown' });
+    assert(giverCancel.status === 400, `Expected 400 when giver cancels with confirmed passengers, got ${giverCancel.status}`);
+
+    // Admin can force-cancel
+    const admin = await getAdminClient();
+    const cancel = await admin.patch(`/rides/${rideId}/cancel`, { reason: 'Admin: Car breakdown' });
+    assert(cancel.status === 200, `Admin ride cancel failed: ${JSON.stringify(cancel.data)}`);
 
     // Both requests should be cancelled
     for (let i = 0; i < 2; i++) {

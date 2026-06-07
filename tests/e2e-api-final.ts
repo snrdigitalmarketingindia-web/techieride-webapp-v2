@@ -24,7 +24,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import {
-  BASE, makeClient, loginAs, register, freshGiver, freshSeeker, publishRide, completeFullRide,
+  BASE, makeClient, loginAs, register, freshGiver, freshSeeker, publishRide, completeFullRide, getAdminClient,
 } from './helpers';
 
 const c = {
@@ -473,8 +473,9 @@ async function run() {
     const beforeR = await seeker.client.get('/notifications');
     const before = (Array.isArray(beforeR.data) ? beforeR.data : beforeR.data.data ?? []).length;
 
-    // Giver cancels the ride
-    const cancelR = await giver.client.patch(`/rides/${rideId}/cancel`, { reason: 'Test cancellation' });
+    // Admin cancels the ride — giver is blocked from cancelling when CONFIRMED passengers exist
+    const adminClient = await getAdminClient();
+    const cancelR = await adminClient.patch(`/rides/${rideId}/cancel`, { reason: 'Test cancellation' });
     assert(cancelR.status === 200, `Cancel failed: ${JSON.stringify(cancelR.data)}`);
 
     await test('Cancelled ride returns CANCELLED status', async () => {
