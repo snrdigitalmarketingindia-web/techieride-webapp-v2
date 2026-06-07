@@ -30,7 +30,7 @@ export default function AdminDashboard() {
           <p className="text-red-800 font-semibold text-sm">🆘 {sosList.length} Active SOS Alert{sosList.length > 1 ? 's' : ''}</p>
           {sosList.map((s) => (
             <div key={s.id} className="mt-2 text-sm text-red-700">
-              {s.user?.fullName} — {new Date(s.triggeredAt).toLocaleTimeString()} — {s.lat.toFixed(4)}, {s.lng.toFixed(4)}
+              {s.user?.fullName} — {new Date(s.triggeredAt).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit' })} — {s.lat.toFixed(4)}, {s.lng.toFixed(4)}
             </div>
           ))}
         </div>

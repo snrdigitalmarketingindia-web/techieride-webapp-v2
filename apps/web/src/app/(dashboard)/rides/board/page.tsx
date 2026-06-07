@@ -6,8 +6,8 @@ import { ridesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const fmt = (d: string) => new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-const fmtShort = (d: string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+const fmt = (d: string) => new Date(d).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
+const fmtShort = (d: string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
 
 function addDays(base: Date, n: number) {
   const d = new Date(base); d.setDate(d.getDate() + n); return d;

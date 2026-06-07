@@ -201,7 +201,7 @@ export default function MyRidesPage() {
                   {req.ride?.originName ?? '?'} → {req.ride?.destinationName ?? '?'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {req.ride?.rideGiver?.user?.fullName ?? 'Giver'} · {req.ride?.departureDate ? new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''} {req.ride?.departureTime ?? ''}
+                  {req.ride?.rideGiver?.user?.fullName ?? 'Giver'} · {req.ride?.departureDate ? new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) : ''} {req.ride?.departureTime ?? ''}
                 </p>
               </div>
               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-yellow-100 text-yellow-700 shrink-0">⏳ PENDING</span>

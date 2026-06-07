@@ -146,7 +146,7 @@ export default function AdminVerificationPage() {
 
                     {/* Submitted */}
                     <td className="px-4 py-4 text-xs text-gray-400 whitespace-nowrap">
-                      {new Date(req.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {new Date(req.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                     </td>
 
                     {/* Actions */}

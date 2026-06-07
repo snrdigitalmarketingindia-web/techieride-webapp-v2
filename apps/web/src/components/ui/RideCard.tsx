@@ -32,7 +32,7 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const participants: any[] = ride.participants ?? [];
   const dateStr = ride.departureDate
-    ? new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    ? new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
     : '';
 
   return (

@@ -103,7 +103,7 @@ function GiverView() {
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  📅 {new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {ride.departureTime}
+                  📅 {new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })} · {ride.departureTime}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -255,7 +255,7 @@ function SeekerView() {
           : 'Unknown Route';
         const giverName = req.ride?.rideGiver?.user?.fullName ?? 'Giver';
         const dateStr = req.ride?.departureDate
-          ? new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+          ? new Date(req.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })
           : '';
 
         return (

@@ -95,7 +95,7 @@ export default function AdminUserDetailPage() {
         <div className="text-right text-xs text-gray-400 space-y-1">
           <p>Trust: <span className="font-semibold text-gray-700">{user.trustScore} ({user.trustBand})</span></p>
           <p>ECO: <span className="font-semibold text-gray-700">{user.ecoPoints} pts ({user.ecoLevel})</span></p>
-          <p>Joined: {new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+          <p>Joined: {new Date(user.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</p>
         </div>
       </div>
 

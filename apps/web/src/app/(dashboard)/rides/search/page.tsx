@@ -194,7 +194,7 @@ function ConflictModal({
             {existing?.originName ?? '—'} → {existing?.destinationName ?? '—'}
           </p>
           <p className="text-xs text-gray-500">
-            📅 {existing?.departureDate ? new Date(existing.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''} · 🕐 {existing?.departureTime ?? ''}
+            📅 {existing?.departureDate ? new Date(existing.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) : ''} · 🕐 {existing?.departureTime ?? ''}
           </p>
         </div>
 
@@ -208,7 +208,7 @@ function ConflictModal({
             {newRide?.originName ?? '—'} → {newRide?.destinationName ?? '—'}
           </p>
           <p className="text-xs text-gray-500">
-            📅 {newRide?.departureDate ? new Date(newRide.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''} · 🕐 {newRide?.departureTime ?? ''}
+            📅 {newRide?.departureDate ? new Date(newRide.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) : ''} · 🕐 {newRide?.departureTime ?? ''}
           </p>
         </div>
 

@@ -142,7 +142,7 @@ export default function AdminComplaintsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-400 text-xs">
-                    {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                    {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'Asia/Kolkata' })}
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -198,7 +198,7 @@ export default function AdminComplaintsPage() {
                   <p className="text-xs text-gray-400 mb-0.5">Ride context</p>
                   <p className="text-gray-800">{selected.ride.originName} → {selected.ride.destinationName}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    {new Date(selected.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {new Date(selected.ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}
                   </p>
                 </div>
               )}

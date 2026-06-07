@@ -189,7 +189,7 @@ export default function CreateRidePage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-700">📅 Date</label>
-            <input type="date" value={form.departureDate} min={new Date().toISOString().split('T')[0]} onChange={(e) => update('departureDate', e.target.value)} className={`${inputCls} mt-1`} />
+            <input type="date" value={form.departureDate} min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })} onChange={(e) => update('departureDate', e.target.value)} className={`${inputCls} mt-1`} />
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">🕐 Departure Time</label>

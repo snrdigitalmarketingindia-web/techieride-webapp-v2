@@ -300,7 +300,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
         <div className="grid grid-cols-3 gap-3 pt-2 border-t border-gray-100">
           <div className="text-center">
             <p className="text-xs text-gray-400">Date</p>
-            <p className="text-sm font-semibold text-gray-900">{new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+            <p className="text-sm font-semibold text-gray-900">{new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-gray-400">Departs</p>

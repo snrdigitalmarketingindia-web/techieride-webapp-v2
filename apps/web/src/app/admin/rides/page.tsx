@@ -78,7 +78,7 @@ export default function AdminRidesPage() {
                     {r.originName} → {r.destinationName}
                   </td>
                   <td className="px-4 py-3 text-gray-600 text-xs">
-                    {new Date(r.departureDate).toLocaleDateString()} · {r.departureTime}
+                    {new Date(r.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })} · {r.departureTime}
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {r.availableSeats}/{r.totalSeats}
