@@ -89,6 +89,12 @@ export const ALLOWED_DOMAINS: Set<string> = new Set([
   'isro.gov.in',
   'nic.in',
 
+  // ── Temporarily allowed for testing — remove before restricting to corporate only ──
+  'gmail.com',
+  'yahoo.com',
+  'outlook.com',
+  'hotmail.com',
+  'icloud.com',
 ]);
 
 /**
