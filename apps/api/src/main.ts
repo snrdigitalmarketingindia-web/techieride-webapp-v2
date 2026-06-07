@@ -50,8 +50,11 @@ async function bootstrap() {
     .setVersion('2.0')
     .addBearerAuth()
     .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  // Only expose Swagger UI in non-production environments
+  if (process.env.NODE_ENV !== 'production') {
+    const document = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api/docs', app, document);
+  }
 
   // ── Public health endpoint (no auth) — used by UptimeRobot to keep Render awake
   const httpAdapter = app.getHttpAdapter();
@@ -62,7 +65,9 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
   console.log(`🚀 Techie Ride API running on http://localhost:${port}/api/v1`);
-  console.log(`📚 Swagger docs at http://localhost:${port}/api/docs`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`📚 Swagger docs at http://localhost:${port}/api/docs`);
+  }
 
   // ── Self-ping every 10 min to prevent Render free-tier cold starts ─────────
   // Only runs in production (Render sets NODE_ENV=production)
