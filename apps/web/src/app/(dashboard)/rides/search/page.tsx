@@ -251,6 +251,7 @@ export default function RideSearchPage() {
   const [isFirstVisit, setIsFirstVisit] = useState(false);
   // rideId → 'pending' (awaiting giver) | 'sent' (just sent this session)
   const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'confirmed' | 'sent'>>({});
+  const [radiusKm, setRadiusKm] = useState(10); // default 10 km, seeker-adjustable (1–50 km)
   const [womenOnlyFilter, setWomenOnlyFilter] = useState(false);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
@@ -307,6 +308,7 @@ export default function RideSearchPage() {
         destinationLat: form.destinationLat,
         destinationLng: form.destinationLng,
         date: form.date,
+        radiusMeters: radiusKm * 1000,
       });
       setRides(data);
     } catch {
@@ -503,6 +505,26 @@ export default function RideSearchPage() {
           <input type="checkbox" checked={womenOnlyFilter} onChange={(e) => setWomenOnlyFilter(e.target.checked)} className="w-4 h-4 text-pink-600" />
           <span className="text-sm text-gray-600">👩 Show women-only rides only</span>
         </label>
+
+        {/* Search radius — seeker picks how far they'll travel to a meeting point */}
+        <div className="space-y-1">
+          <div className="flex justify-between text-sm text-gray-600">
+            <span>📍 Search radius</span>
+            <span className="font-semibold text-brand-700">{radiusKm} km</span>
+          </div>
+          <input
+            type="range"
+            min={1} max={50} step={1}
+            value={radiusKm}
+            onChange={(e) => setRadiusKm(Number(e.target.value))}
+            className="w-full accent-brand-600"
+          />
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>1 km</span>
+            <span>Default: 10 km</span>
+            <span>50 km</span>
+          </div>
+        </div>
       </div>
 
       {/* View toggle */}

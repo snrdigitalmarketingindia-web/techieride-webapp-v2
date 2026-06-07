@@ -849,6 +849,8 @@ export class RidesService {
     const destLng   = Number(dto.destinationLng) || 0;
     const hasCoords = originLat !== 0 || originLng !== 0 || destLat !== 0 || destLng !== 0;
 
+    const radius = dto.radiusMeters ?? 10_000; // default 10 km
+
     const withDistances = (rides: typeof publishedRides, skipOriginFilter = false) =>
       rides
         .map((ride) => {
@@ -858,8 +860,8 @@ export class RidesService {
         })
         .filter((r) => {
           if (!hasCoords) return true; // no coordinates provided — return all (used in tests / admin views)
-          if (skipOriginFilter) return r.distanceFromDestinationM <= 2000; // ONGOING: only destination proximity matters
-          return r.distanceFromOriginM <= 500 && r.distanceFromDestinationM <= 500;
+          if (skipOriginFilter) return r.distanceFromDestinationM <= radius; // ONGOING: only destination proximity matters
+          return r.distanceFromOriginM <= radius && r.distanceFromDestinationM <= radius;
         });
 
     const results = [
