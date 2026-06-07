@@ -194,6 +194,11 @@ export class VerificationService {
       );
     }
 
+    // ── Send contacts CSV for today's session ──────────────────────────────
+    if (decision === 'APPROVED') {
+      await this.sendTodayContactsCsv();
+    }
+
     return { status: decision, trid, accountStatus: newAccountStatus };
   }
 
@@ -216,5 +221,67 @@ export class VerificationService {
       },
       orderBy: { submittedAt: 'asc' },
     });
+  }
+
+  // ── Contacts CSV helper ──────────────────────────────────────────────────
+  // Queries all approvals for today (IST), builds contact list, sends CSV
+  private async sendTodayContactsCsv() {
+    try {
+      // Start of today in IST
+      const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const startOfDay = new Date(nowIST);
+      startOfDay.setHours(0, 0, 0, 0);
+      // Convert back to UTC for DB query
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const startUTC = new Date(startOfDay.getTime() - istOffset);
+
+      const todayApprovals = await this.prisma.verificationRequest.findMany({
+        where: {
+          status: 'APPROVED',
+          reviewedAt: { gte: startUTC },
+        },
+        include: {
+          user: {
+            include: {
+              emergencyContacts: { take: 1, orderBy: { id: 'asc' } },
+            },
+          },
+        },
+        orderBy: { reviewedAt: 'asc' },
+      });
+
+      // Deduplicate by userId (user may have both EMPLOYEE + DRIVER approvals)
+      const seen = new Set<string>();
+      const contacts = todayApprovals
+        .filter(r => {
+          if (seen.has(r.userId)) return false;
+          seen.add(r.userId);
+          return true;
+        })
+        .filter(r => r.user.trid) // only fully approved users with TRID
+        .map(r => {
+          const u = r.user;
+          const ec = u.emergencyContacts?.[0];
+          return {
+            trid: u.trid!,
+            fullName: u.fullName,
+            companyName: u.companyName,
+            email: u.email,
+            personalEmail: u.personalEmail,
+            phone: u.phone,
+            homeLocation: u.homeLocation,
+            emergencyName: ec?.name,
+            emergencyPhone: ec?.phone,
+            role: u.role === 'RIDE_GIVER' ? 'Ride Giver' : 'Ride Seeker',
+          };
+        });
+
+      if (contacts.length) {
+        await this.email.sendContactsCsv(contacts);
+      }
+    } catch (err: any) {
+      // Log but never throw — contact email failure must not break approval
+      console.error('sendTodayContactsCsv error:', err.message);
+    }
   }
 }

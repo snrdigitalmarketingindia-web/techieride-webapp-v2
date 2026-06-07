@@ -151,6 +151,100 @@ export class EmailService {
     await this.send(to, subject, html);
   }
 
+  // ── Contacts CSV email ──────────────────────────────────────────────────
+  // Called after every admin approval — sends the full day's approved contacts
+  // as a Google Contacts–compatible CSV to the contacts inbox.
+  async sendContactsCsv(
+    contacts: {
+      trid: string;
+      fullName: string;
+      companyName?: string | null;
+      email: string;
+      personalEmail?: string | null;
+      phone?: string | null;
+      homeLocation?: string | null;
+      emergencyName?: string | null;
+      emergencyPhone?: string | null;
+      role: string; // 'Ride Seeker' | 'Ride Giver'
+    }[],
+  ) {
+    if (!contacts.length) return;
+
+    const to = this.config.get<string>('CONTACTS_EMAIL', 'hydtechieride@gmail.com');
+
+    // ── Build filename: {YYYYMMDD_HHMMSS}_TR001_TR002.csv (IST) ────────────
+    const nowIST = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata', hour12: false })
+      .replace(/[,\s]/g, '_').replace(/:/g, '').replace(/__/, '_');
+    const trids = contacts.map(c => c.trid).join('_');
+    const filename = `${nowIST}_${trids}.csv`;
+
+    // ── CSV header (Google Contacts import format) ──────────────────────────
+    const CSV_HEADER = 'First Name,Middle Name,Last Name,Phonetic First Name,Phonetic Middle Name,Phonetic Last Name,Name Prefix,Name Suffix,Nickname,File As,Organization Name,Organization Title,Organization Department,Birthday,Notes,Photo,Labels,E-mail 1 - Label,E-mail 1 - Value,Phone 1 - Label,Phone 1 - Value';
+
+    const rows = contacts.map(c => {
+      // First Name: "TR2001 FirstName", Last Name: "LastName Area Company"
+      const nameParts = c.fullName.trim().split(/\s+/);
+      const firstName = `${c.trid} ${nameParts[0]}`;
+      const lastName = [nameParts.slice(1).join(' '), c.homeLocation, c.companyName]
+        .filter(Boolean).join(' ');
+
+      const notes = [
+        `Name: ${c.fullName}  ${c.companyName || ''}`,
+        `Mobile No: ${(c.phone || '').replace(/^\+91/, '')}`,
+        `Email ID: ${c.personalEmail || c.email}`,
+        c.emergencyName ? `EmergencyContPerson: ${c.emergencyName}` : null,
+        c.emergencyPhone ? `EmergencyContactNo: ${c.emergencyPhone}` : null,
+        c.homeLocation ? `Address: ${c.homeLocation}` : null,
+        `Rider/Seeker: ${c.role}`,
+      ].filter(Boolean).join('\n');
+
+      const emailVal = c.personalEmail || c.email;
+      const phoneVal = (c.phone || '').replace(/^\+91/, '');
+
+      // Wrap notes in double-quotes, escape internal quotes
+      const escapedNotes = `"${notes.replace(/"/g, '""')}"`;
+
+      return [
+        firstName, '', lastName, '', '', '', '', '', '', '',
+        c.companyName || '', '', '', '',
+        escapedNotes,
+        '', '* myContacts',
+        '* ', emailVal,
+        '', phoneVal,
+      ].join(',');
+    });
+
+    const csvContent = [CSV_HEADER, ...rows].join('\n');
+
+    // ── Email with attachment ───────────────────────────────────────────────
+    const dateLabel = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+    const subject = `📇 TechieRide New Contacts — ${dateLabel} (${contacts.length} approved)`;
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px">
+        <h3 style="color:#0d9488">📇 New Approved Contacts — ${dateLabel}</h3>
+        <p>${contacts.length} user(s) approved today. Import the attached CSV into Google Contacts.</p>
+        <ul>${contacts.map(c => `<li><strong>${c.trid}</strong> — ${c.fullName} (${c.companyName || 'N/A'}) — ${c.role}</li>`).join('')}</ul>
+        <p style="color:#9ca3af;font-size:12px">Go to <a href="https://contacts.google.com">contacts.google.com</a> → Import → select the CSV file.</p>
+      </div>`;
+
+    if (!this.resend || this.isDev) {
+      this.logger.debug(`\n📧 CONTACTS CSV (dev)\nTo: ${to}\nFile: ${filename}\nRows: ${rows.length}\n${csvContent}`);
+      return;
+    }
+    try {
+      await this.resend.emails.send({
+        from: this.from,
+        to,
+        subject,
+        html,
+        attachments: [{ filename, content: Buffer.from(csvContent).toString('base64') }],
+      });
+      this.logger.log(`📇 Contacts CSV (${filename}) sent to ${to}`);
+    } catch (err: any) {
+      this.logger.error(`Failed to send contacts CSV: ${err.message}`);
+    }
+  }
+
   // ── Internal send ───────────────────────────────────────────────────────
   private async send(to: string, subject: string, html: string) {
     if (!this.resend || this.isDev) {
