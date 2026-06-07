@@ -567,7 +567,7 @@ export default function ProfilePage() {
               <select value={vForm.totalSeats}
                 onChange={e => setVForm(f => ({ ...f, totalSeats: +e.target.value }))}
                 className={`${inputCls} mt-1`}>
-                {[2, 3, 4, 5, 6, 7].map(n => <option key={n} value={n}>{n} seats</option>)}
+                {[1, 2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''} (excl. driver)</option>)}
               </select>
             </div>
             {/* RC Upload — required for vehicle verification */}

@@ -429,8 +429,8 @@ export default function BecomeGiverPage() {
                     onChange={(e) => setVehicle(v => ({ ...v, totalSeats: e.target.value }))}
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
-                    {[2, 3, 4, 5, 6, 7].map(n => (
-                      <option key={n} value={n}>{n} seats (excluding driver)</option>
+                    {[1, 2, 3, 4, 5, 6].map(n => (
+                      <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''} (excluding driver)</option>
                     ))}
                   </select>
                 </div>

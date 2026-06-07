@@ -10,7 +10,7 @@ export class CreateRideDto {
   @IsNumber() destinationLng: number;
   @IsDateString() departureDate: string;
   @IsString() departureTime: string;
-  @IsInt() @Min(1) @Max(7) totalSeats: number;
+  @IsInt() @Min(1) @Max(6) totalSeats: number; // excludes driver — max 6 passengers (giver + 6 = 7-seater)
   @IsString() @IsOptional() notes?: string;
   @IsBoolean() @IsOptional() womenOnly?: boolean;
 }

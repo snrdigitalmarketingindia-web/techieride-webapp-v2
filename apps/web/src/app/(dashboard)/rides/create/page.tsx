@@ -272,7 +272,7 @@ export default function CreateRidePage() {
         <div>
           <label className="text-sm font-medium text-gray-700">Seats to Offer</label>
           <div className="flex gap-2 mt-1 flex-wrap">
-            {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+            {[1, 2, 3, 4, 5, 6].map((n) => (
               <button key={n} onClick={() => update('totalSeats', n)}
                 className={`w-10 py-2 rounded-lg text-sm font-medium border transition ${form.totalSeats === n ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                 {n}

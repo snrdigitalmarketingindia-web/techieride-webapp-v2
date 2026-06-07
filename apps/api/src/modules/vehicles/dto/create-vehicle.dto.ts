@@ -6,5 +6,5 @@ export class CreateVehicleDto {
   @IsInt() @IsOptional() year?: number;
   @IsString() @IsOptional() color?: string;
   @IsString() plateNumber: string;
-  @IsInt() @Min(1) @Max(7) totalSeats: number;
+  @IsInt() @Min(1) @Max(6) totalSeats: number; // excludes driver — max 6 passengers (giver + 6 = 7-seater)
 }

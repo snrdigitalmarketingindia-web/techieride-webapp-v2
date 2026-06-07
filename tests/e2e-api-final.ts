@@ -123,34 +123,33 @@ async function run() {
       assert([200, 201].includes(r.status), `Expected 200/201 for RC update, got ${r.status}`);
     });
 
-    await test('Create vehicle with totalSeats = 7 (max) → 201', async () => {
-      const giver = await freshGiver('seats7_veh');
+    await test('Create vehicle with totalSeats = 6 (max — giver + 6 passengers) → 201', async () => {
+      const giver = await freshGiver('seats6_veh');
       const ts = Date.now();
       const r = await giver.client.post('/vehicles', {
         make: 'Toyota', model: 'Innova Crysta', color: 'White',
-        plateNumber: `TS${ts.toString().slice(-5)}S`, totalSeats: 7,
+        plateNumber: `TS${ts.toString().slice(-5)}S`, totalSeats: 6,
       });
-      assert(r.status === 201, `Expected 201 for totalSeats=7, got ${r.status}`);
+      assert(r.status === 201, `Expected 201 for totalSeats=6, got ${r.status}`);
     });
 
-    await test('Create ride with totalSeats = 7 (max) → 201', async () => {
-      const giver = await freshGiver('seats7_ride');
+    await test('Create ride with totalSeats = 6 (max — giver + 6 passengers) → 201', async () => {
+      const giver = await freshGiver('seats6_ride');
       const ts = Date.now();
       const veh = await giver.client.post('/vehicles', {
         make: 'Toyota', model: 'Innova', color: 'Silver',
-        plateNumber: `TS${ts.toString().slice(-5)}T`, totalSeats: 7,
+        plateNumber: `TS${ts.toString().slice(-5)}T`, totalSeats: 6,
       });
       const vehicleId = (veh.data?.data ?? veh.data).id;
-      // Admin verify vehicle so giver can publish
       await admin.patch(`/admin/vehicles/${vehicleId}/verify`).catch(() => {});
       const r = await giver.client.post('/rides', {
         vehicleId,
         originName: 'Kondapur', destinationName: 'HITEC City',
         originLat: 17.47, originLng: 78.35, destinationLat: 17.45, destinationLng: 78.38,
         departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        departureTime: '09:00', totalSeats: 7,
+        departureTime: '09:00', totalSeats: 6,
       });
-      assert(r.status === 201, `Expected 201 for totalSeats=7 ride, got ${r.status}`);
+      assert(r.status === 201, `Expected 201 for totalSeats=6 ride, got ${r.status}`);
     });
 
     await test('GET /uploads/status returns availability flag', async () => {

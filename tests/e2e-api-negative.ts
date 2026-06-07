@@ -374,13 +374,13 @@ async function run() {
     assert(r.status === 400, `Expected 400, got ${r.status}`);
   });
 
-  await test('Create vehicle with totalSeats = 8 (above max 7) → 400', async () => {
+  await test('Create vehicle with totalSeats = 7 (above max 6) → 400', async () => {
     const ts = Date.now();
     const r = await giver.post('/vehicles', {
       make: 'Toyota', model: 'Innova', color: 'White',
-      plateNumber: `TS${ts.toString().slice(-5)}X`, totalSeats: 8,
+      plateNumber: `TS${ts.toString().slice(-5)}X`, totalSeats: 7,
     });
-    assert(r.status === 400, `Expected 400 for totalSeats=8, got ${r.status}`);
+    assert(r.status === 400, `Expected 400 for totalSeats=7 (max is 6 passengers), got ${r.status}`);
   });
 
   await test('Create vehicle with totalSeats = 0 → 400', async () => {
@@ -392,14 +392,14 @@ async function run() {
     assert(r.status === 400, `Expected 400 for totalSeats=0, got ${r.status}`);
   });
 
-  await test('Create ride with totalSeats = 8 (above max 7) → 400', async () => {
+  await test('Create ride with totalSeats = 7 (above max 6) → 400', async () => {
     const r = await giver.post('/rides', {
       vehicleId, originName: 'A', destinationName: 'B',
       originLat: 17.4, originLng: 78.3, destinationLat: 17.5, destinationLng: 78.4,
       departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-      departureTime: '09:00', totalSeats: 8,
+      departureTime: '09:00', totalSeats: 7,
     });
-    assert(r.status === 400, `Expected 400 for totalSeats=8, got ${r.status}`);
+    assert(r.status === 400, `Expected 400 for totalSeats=7 (max is 6 passengers), got ${r.status}`);
   });
 
   await test('PATCH /vehicles/:id/rc without auth → 401', async () => {
