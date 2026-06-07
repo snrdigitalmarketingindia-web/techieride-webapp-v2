@@ -28,17 +28,11 @@ services:
         value: noreply@techieride.in
       - key: APP_URL
         sync: false        # paste your Vercel URL
-      - key: MINIO_ENDPOINT
-        value: localhost
-      - key: MINIO_PORT
-        value: 9000
-      - key: MINIO_USE_SSL
-        value: false
-      - key: MINIO_ACCESS_KEY
-        value: minioadmin
-      - key: MINIO_SECRET_KEY
-        value: minioadmin
-      - key: MINIO_BUCKET_DOCUMENTS
-        value: user-documents
-      - key: MINIO_BUCKET_PHOTOS
-        value: profile-photos
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false        # paste from Cloudinary dashboard
+      - key: CLOUDINARY_API_KEY
+        sync: false        # paste from Cloudinary dashboard
+      - key: CLOUDINARY_API_SECRET
+        sync: false        # paste from Cloudinary dashboard
+      - key: GEMINI_API_KEY
+        sync: false        # paste from aistudio.google.com (free tier)
