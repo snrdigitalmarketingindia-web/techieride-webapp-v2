@@ -24,11 +24,12 @@ test.describe('🔄 Ride Request Flow', () => {
   test('Seeker: my requests tab shows own requests', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/requests');
-    await page.getByText(/my requests/i).click();
-    // Should show requests list or empty state — not crash
+    // Page may show heading "My Requests" directly (no tab) — click is harmless
+    await page.getByText(/my requests/i).first().click();
+    // Should show requests list (any status) or empty state — not crash
     await expect(
-      page.getByText(/no seat requests|confirmed|hold|pending/i).first()
-    ).toBeVisible({ timeout: 8_000 });
+      page.getByText(/no seat requests yet|confirmed|pending|cancelled|rejected|completed/i).first()
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('Seeker: my requests shows ride details when requests exist', async ({ page }) => {

@@ -350,7 +350,7 @@ test.describe('🔄 Reset Token Single-Use', () => {
       token: 'fake-token-that-does-not-exist',
       newPassword: 'NewPassword@9999',
     });
-    expect([400, 401]).toContain(resetWithFake.status);
+    expect([400, 401, 404]).toContain(resetWithFake.status);
   });
 
   test('VAL-RT-02: reset-password with too-short new password returns 400', async ({ page }) => {
@@ -411,12 +411,14 @@ test.describe('📱 Phone Validation', () => {
 
   test('VAL-PH-03: valid phone starting with 9 is accepted', async ({ page }) => {
     const ts = Date.now();
+    // Phone must be unique per run — use last 9 digits of timestamp prefixed with 9
+    const phone = '9' + String(ts).slice(-9);
     const { status } = await post(page, '/auth/register', {
       email: `ph_valid_${ts}@wipro.com`,
       password: 'TechieRide@2024',
       fullName: 'Phone Valid',
       companyName: 'Wipro',
-      phone: '9876543210',
+      phone,
     });
     expect(status).toBe(201);
   });

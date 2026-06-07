@@ -91,6 +91,7 @@ export class UsersController {
   }
 
   // ── Password change ─────────────────────────────────────────────────────
+  @AllowUnverified()
   @Post('me/change-password')
   changePassword(
     @CurrentUser('id') userId: string,
