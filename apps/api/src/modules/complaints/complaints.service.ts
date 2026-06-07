@@ -50,7 +50,7 @@ export class ComplaintsService {
         include: {
           rideGiver: { select: { userId: true } },
           requests: {
-            where: { status: { in: ['CONFIRMED', 'NO_SHOW'] } },
+            where: { status: { in: ['CONFIRMED', 'COMPLETED', 'NO_SHOW'] } },
             include: { seeker: { select: { userId: true } } },
           },
         },
