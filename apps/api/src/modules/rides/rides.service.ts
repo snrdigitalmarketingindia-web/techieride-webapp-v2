@@ -476,7 +476,8 @@ export class RidesService {
       throw new BadRequestException(`Cannot cancel a ${ride.status} ride`);
     }
 
-    // Block cancellation if any seeker has a CONFIRMED booking — they are counting on this ride
+    // Block cancellation only if a seeker's request has been CONFIRMED (accepted) by the giver.
+    // PENDING requests do NOT block — the giver hasn't committed to those seekers yet.
     if (!isAdmin) {
       const confirmedBooking = await this.prisma.rideRequest.findFirst({
         where: { rideId, status: 'CONFIRMED' },
@@ -484,7 +485,7 @@ export class RidesService {
       if (confirmedBooking) {
         throw new BadRequestException(
           'This ride cannot be cancelled because one or more passengers have confirmed seats. ' +
-          'Please contact them before cancelling, or reach out to admin for assistance.',
+          'Please contact admin for assistance.',
         );
       }
     }

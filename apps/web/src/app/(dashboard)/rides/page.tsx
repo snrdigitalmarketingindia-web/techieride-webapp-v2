@@ -224,7 +224,10 @@ export default function MyRidesPage() {
           <div className="text-4xl mb-2">{tab === 'given' ? '🚗' : '🧳'}</div>
           <p className="text-gray-500 text-sm">No {tab === 'given' ? 'rides offered' : 'rides taken'} yet</p>
         </div>
-      ) : rides.filter((r: any) => !['COMPLETED','CANCELLED'].includes(r.status) && !r.archivedAt).length === 0 && !showHistory ? (
+      ) : rides.filter((r: any) => tab === 'given'
+            ? ['PUBLISHED','ONGOING'].includes(r.status) && !r.archivedAt
+            : ['PUBLISHED','ONGOING'].includes(r.status) && !r.archivedAt
+          ).length === 0 && !showHistory ? (
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
           <div className="text-3xl mb-2">✅</div>
           <p className="text-gray-500 text-sm">No active rides</p>
@@ -240,18 +243,33 @@ export default function MyRidesPage() {
 
           {(() => {
             const TERMINAL = ['COMPLETED', 'CANCELLED'];
-            // Active list: hide completed/cancelled AND archived rides
+            // Active list definitions:
+            //   Giver  → PUBLISHED or ONGOING (not DRAFT, not terminal, not archived)
+            //   Seeker → rides where their request is PENDING or CONFIRMED
+            const isActiveForGiver = (r: any) =>
+              ['PUBLISHED', 'ONGOING'].includes(r.status) && !r.archivedAt;
+            const isActiveForSeeker = (r: any) => {
+              const myReq = myRequests.find((req: any) => req.rideId === r.id);
+              if (myReq) return ['PENDING', 'CONFIRMED'].includes(myReq.status);
+              // fallback: show PUBLISHED/ONGOING rides the seeker is a participant on
+              return ['PUBLISHED', 'ONGOING'].includes(r.status) && !r.archivedAt;
+            };
             const visibleRides = showHistory
               ? rides
-              : rides.filter((r: any) => !TERMINAL.includes(r.status) && !r.archivedAt);
+              : tab === 'given'
+                ? rides.filter(isActiveForGiver)
+                : rides.filter(isActiveForSeeker);
             const hiddenCount = rides.length - visibleRides.length;
             return (<>
               {hiddenCount > 0 && !showHistory && (
                 <button
-                  onClick={() => setShowHistory(true)}
+                  onClick={() => {
+                    setShowHistory(true);
+                    if (tab === 'given') ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+                  }}
                   className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition"
                 >
-                  + {hiddenCount} completed / cancelled ride{hiddenCount > 1 ? 's' : ''} hidden — Show History
+                  🕐 {hiddenCount} past ride{hiddenCount > 1 ? 's' : ''} in history — tap to view
                 </button>
               )}
               {visibleRides.length === 0 && hiddenCount > 0 && (
