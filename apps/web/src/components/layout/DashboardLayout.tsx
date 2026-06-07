@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <div className="flex items-center gap-6">
           <span className="text-[10px] text-gray-400 hidden sm:inline">
-            Designed by{' '}
+            A Product of{' '}
             <a href="https://www.snrdigitalmarketing.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 transition">
               SNR Digital Marketing
             </a>
