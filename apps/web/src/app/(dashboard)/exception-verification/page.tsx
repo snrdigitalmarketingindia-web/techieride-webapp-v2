@@ -212,6 +212,7 @@ export default function ExceptionVerificationPage() {
               {uploading ? '⏳ Uploading…' : companyIdUrl ? 'Replace' : 'Upload'}
             </button>
           </div>
+          <p className="text-xs text-gray-400 mt-1">📷 Images only (jpg, png, heic etc.) — PDFs not accepted</p>
         </div>
 
         <div>
