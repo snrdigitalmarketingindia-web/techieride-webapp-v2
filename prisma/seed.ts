@@ -171,7 +171,7 @@ async function main() {
   });
   await prisma.vehicle.upsert({
     where: { plateNumber: 'TS09AB5678' },
-    update: { rcVerified: true },
+    update: { rideGiverId: rahulGiver.id, rcVerified: true },
     create: { rideGiverId: rahulGiver.id, make: 'Maruti', model: 'Swift', color: 'White', plateNumber: 'TS09AB5678', totalSeats: 4, rcVerified: true },
   });
   await prisma.verificationRequest.upsert({
@@ -289,21 +289,21 @@ async function main() {
       if (acc.email === 'raju@raju.com') {
         await prisma.vehicle.upsert({
           where: { plateNumber: 'TS07RJ1234' },
-          update: { rcVerified: true },
+          update: { rideGiverId: giver.id, rcVerified: true },
           create: { rideGiverId: giver.id, make: 'Honda', model: 'City', color: 'Blue', plateNumber: 'TS07RJ1234', totalSeats: 4, rcVerified: true },
         });
       }
       if (acc.email === 'venky@venky.com') {
         await prisma.vehicle.upsert({
           where: { plateNumber: 'TS07VK5678' },
-          update: { rcVerified: true },
+          update: { rideGiverId: giver.id, rcVerified: true },
           create: { rideGiverId: giver.id, make: 'Hyundai', model: 'i20', color: 'Red', plateNumber: 'TS07VK5678', totalSeats: 4, rcVerified: true },
         });
       }
       if (acc.email === 'harish@harish.com') {
         await prisma.vehicle.upsert({
           where: { plateNumber: 'TS08HR9012' },
-          update: { rcVerified: true },
+          update: { rideGiverId: giver.id, rcVerified: true },
           create: { rideGiverId: giver.id, make: 'Toyota', model: 'Innova', color: 'Silver', plateNumber: 'TS08HR9012', totalSeats: 6, rcVerified: true },
         });
       }
