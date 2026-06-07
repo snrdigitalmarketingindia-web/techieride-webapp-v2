@@ -24,29 +24,31 @@ function UploadField({
   const ref = useRef<HTMLInputElement>(null);
   const uploaded = !!url;
   return (
-    <div className="flex items-start justify-between bg-gray-50 rounded-xl px-4 py-3 gap-3">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-800">{label}</p>
-        {hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
-        {uploaded && <p className="text-xs text-green-600 mt-1">✅ Uploaded</p>}
+    <>
+      <div className="flex items-start justify-between bg-gray-50 rounded-xl px-4 py-3 gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-800">{label}</p>
+          {hint && <p className="text-xs text-gray-500 mt-0.5">{hint}</p>}
+          {uploaded && <p className="text-xs text-green-600 mt-1">✅ Uploaded</p>}
+        </div>
+        <input ref={ref} type="file" accept="image/*" className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) { onFile(f, docType); e.target.value = ''; } }} />
+        <button
+          type="button"
+          onClick={() => ref.current?.click()}
+          disabled={disabled || uploading}
+          className={`shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+            uploading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+            uploaded ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100' :
+            disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+            'bg-brand-600 text-white hover:bg-brand-700'
+          }`}
+        >
+          {uploading ? '⏳ Uploading…' : uploaded ? 'Replace' : 'Upload'}
+        </button>
       </div>
-      <input ref={ref} type="file" accept="image/*" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) { onFile(f, docType); e.target.value = ''; } }} />
-      <button
-        type="button"
-        onClick={() => ref.current?.click()}
-        disabled={disabled || uploading}
-        className={`shrink-0 text-xs px-3 py-1.5 rounded-lg font-medium transition ${
-          uploading ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
-          uploaded ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100' :
-          disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
-          'bg-brand-600 text-white hover:bg-brand-700'
-        }`}
-      >
-        {uploading ? '⏳ Uploading…' : uploaded ? 'Replace' : 'Upload'}
-      </button>
-    </div>
-    <p className="text-xs text-gray-400 mt-1">📷 Images only (jpg, png, heic etc.) — PDFs not accepted</p>
+      <p className="text-xs text-gray-400 mt-1">📷 Images only (jpg, png, heic etc.) — PDFs not accepted</p>
+    </>
   );
 }
 
