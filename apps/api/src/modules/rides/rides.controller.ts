@@ -27,8 +27,12 @@ export class RidesController {
   }
 
   @Get('given')
-  getGiven(@CurrentUser('id') userId: string, @Query('status') status?: string) {
-    return this.ridesService.getGivenRides(userId, status);
+  getGiven(
+    @CurrentUser('id') userId: string,
+    @Query('status') status?: string,
+    @Query('history') history?: string,
+  ) {
+    return this.ridesService.getGivenRides(userId, status, history === 'true');
   }
 
   @Get('taken')

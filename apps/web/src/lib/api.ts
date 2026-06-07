@@ -89,7 +89,7 @@ export const ridesApi = {
   board: (id: string) => api.patch(`/rides/${id}/board`),
   deboard: (id: string) => api.patch(`/rides/${id}/deboard`),
   markNoShow: (rideId: string, seekerId: string) => api.patch(`/rides/${rideId}/no-show/${seekerId}`),
-  getGiven: (status?: string) => api.get('/rides/given', { params: { status } }),
+  getGiven: (status?: string, history = false) => api.get('/rides/given', { params: { status, ...(history ? { history: 'true' } : {}) } }),
   getTaken: () => api.get('/rides/taken'),
 };
 

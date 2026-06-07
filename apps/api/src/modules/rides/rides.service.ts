@@ -42,8 +42,8 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Auto-cancel PUBLISHED rides where giver never started within 30 min of departure
-const DEPARTURE_TIMEOUT_MINUTES = 60;
+// Auto-archive PUBLISHED/ONGOING rides 4 hours after departure — hides from active list, never cancels
+const ARCHIVE_AFTER_HOURS = 4;
 
 @Injectable()
 export class RidesService {
@@ -370,65 +370,44 @@ export class RidesService {
     return updated;
   }
 
-  // Runs every 30 min — auto-cancels PUBLISHED rides not started 30+ min past departure
+  // Runs every 30 min — auto-archives rides that are 4+ hours past their departure time.
+  // Does NOT cancel or change ride status — just sets archivedAt so they drop off the active list.
+  // Giver and seekers can still see them under history.
   @Cron('*/30 * * * *', { timeZone: 'Asia/Kolkata' })
-  async autoExpireUnstartedRides() {
+  async autoArchiveOldRides() {
     const now = new Date();
+    const cutoffTime = new Date(now.getTime() - ARCHIVE_AFTER_HOURS * 60 * 60 * 1000);
 
-    const published = await this.prisma.ride.findMany({
-      where: { status: RideStatus.PUBLISHED },
-      include: {
-        rideGiver: { include: { user: true } },
-        participants: { include: { seeker: { include: { user: true } } } },
+    // Find PUBLISHED or ONGOING rides whose departure was more than 4 hours ago, not yet archived
+    const staleRides = await this.prisma.ride.findMany({
+      where: {
+        status: { in: [RideStatus.PUBLISHED, RideStatus.ONGOING] },
+        archivedAt: null,
+        departureDate: { lte: cutoffTime },
       },
+      select: { id: true, departureDate: true, departureTime: true, originName: true, destinationName: true },
     });
 
-    const overdue = published.filter((ride) => {
+    // Further filter by actual departure datetime (departureDate is date-only, departureTime is "HH:MM")
+    const toArchive = staleRides.filter((ride) => {
       const [h, m] = ride.departureTime.split(':').map(Number);
       const departure = new Date(ride.departureDate);
       departure.setHours(h, m, 0, 0);
-      const cutoff = new Date(departure.getTime() + DEPARTURE_TIMEOUT_MINUTES * 60 * 1000);
-      return now > cutoff;
+      return now.getTime() - departure.getTime() >= ARCHIVE_AFTER_HOURS * 60 * 60 * 1000;
     });
 
-    if (overdue.length === 0) return;
-    this.logger.log(`⏰ Auto-cancelling ${overdue.length} unstarted ride(s) past departure + ${DEPARTURE_TIMEOUT_MINUTES}m`);
+    if (toArchive.length === 0) return;
+    this.logger.log(`📦 Auto-archiving ${toArchive.length} ride(s) — 4h past departure`);
 
-    for (const ride of overdue) {
-      await this.prisma.ride.update({
-        where: { id: ride.id },
-        data: { status: RideStatus.CANCELLED, cancelledAt: now, cancelReason: 'Ride not started — auto-cancelled' },
-      });
+    await this.prisma.ride.updateMany({
+      where: { id: { in: toArchive.map((r) => r.id) } },
+      data: { archivedAt: now },
+    });
 
-      // Notify giver
-      await this.notifications.create(ride.rideGiver.userId, {
-        type: NotificationType.RIDE_CANCELLED,
-        title: 'Your ride was auto-cancelled',
-        body: `${ride.originName} → ${ride.destinationName} was cancelled because it was not started within ${DEPARTURE_TIMEOUT_MINUTES} minutes of departure.`,
-        data: { rideId: ride.id },
-      });
-
-      // Notify each confirmed participant
-      for (const p of ride.participants) {
-        if (p.seeker?.userId) {
-          await this.notifications.create(p.seeker.userId, {
-            type: NotificationType.RIDE_CANCELLED,
-            title: 'Your ride was cancelled',
-            body: `${ride.originName} → ${ride.destinationName} on ${new Date(ride.departureDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} was not started and has been cancelled.`,
-            data: { rideId: ride.id },
-          });
-        }
-      }
-
-      // Free up pending requests too
-      await this.prisma.rideRequest.updateMany({
-        where: { rideId: ride.id, status: 'PENDING' },
-        data: { status: 'CANCELLED', cancelReason: 'Ride auto-cancelled' },
-      });
-
-      // Audit log with SYSTEM actor
-      await this.auditLog.system('RIDE_AUTO_CANCELLED', 'ride', ride.id, {
-        reason: 'Ride not started within departure timeout',
+    // Audit log for traceability
+    for (const ride of toArchive) {
+      await this.auditLog.system('RIDE_AUTO_ARCHIVED', 'ride', ride.id, {
+        reason: `Ride archived — ${ARCHIVE_AFTER_HOURS}h past departure`,
         departureTime: ride.departureTime,
         origin: ride.originName,
         destination: ride.destinationName,
@@ -497,12 +476,16 @@ export class RidesService {
       throw new BadRequestException(`Cannot cancel a ${ride.status} ride`);
     }
 
-    // Enforce: must cancel at least 1 hour before departure (admin can override)
+    // Block cancellation if any seeker has a CONFIRMED booking — they are counting on this ride
     if (!isAdmin) {
-      const departureDateTime = new Date(`${ride.departureDate.toISOString().split('T')[0]}T${ride.departureTime}:00`);
-      const oneHourBefore = new Date(departureDateTime.getTime() - 60 * 60 * 1000);
-      if (new Date() > oneHourBefore) {
-        throw new BadRequestException('Rides can only be cancelled at least 1 hour before departure');
+      const confirmedBooking = await this.prisma.rideRequest.findFirst({
+        where: { rideId, status: 'CONFIRMED' },
+      });
+      if (confirmedBooking) {
+        throw new BadRequestException(
+          'This ride cannot be cancelled because one or more passengers have confirmed seats. ' +
+          'Please contact them before cancelling, or reach out to admin for assistance.',
+        );
       }
     }
 
@@ -734,13 +717,15 @@ export class RidesService {
     return ride;
   }
 
-  async getGivenRides(userId: string, status?: string) {
+  async getGivenRides(userId: string, status?: string, includeHistory = false) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) return [];
     return this.prisma.ride.findMany({
       where: {
         rideGiverId: giver.id,
         ...(status ? { status: status as RideStatus } : {}),
+        // Active list: exclude archived rides. History view: show all (including archived)
+        ...(!includeHistory ? { archivedAt: null } : {}),
       },
       include: {
         vehicle: true,

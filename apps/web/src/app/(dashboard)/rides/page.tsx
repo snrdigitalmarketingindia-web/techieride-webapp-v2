@@ -156,7 +156,14 @@ export default function MyRidesPage() {
         <h1 className="text-xl font-bold text-gray-900">My Rides</h1>
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setShowHistory((v) => !v)}
+            onClick={() => {
+              const next = !showHistory;
+              setShowHistory(next);
+              // When showing history, re-fetch with ?history=true to include archived rides
+              if (tab === 'given') {
+                ridesApi.getGiven(undefined, next).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+              }
+            }}
             className={`text-xs px-3 py-1.5 rounded-lg border transition ${showHistory ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-500 hover:border-gray-400'}`}
           >
             {showHistory ? '🕐 Hide History' : '🕐 Show History'}
@@ -217,12 +224,15 @@ export default function MyRidesPage() {
           <div className="text-4xl mb-2">{tab === 'given' ? '🚗' : '🧳'}</div>
           <p className="text-gray-500 text-sm">No {tab === 'given' ? 'rides offered' : 'rides taken'} yet</p>
         </div>
-      ) : rides.filter((r: any) => !['COMPLETED','CANCELLED'].includes(r.status)).length === 0 && !showHistory ? (
+      ) : rides.filter((r: any) => !['COMPLETED','CANCELLED'].includes(r.status) && !r.archivedAt).length === 0 && !showHistory ? (
         <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
           <div className="text-3xl mb-2">✅</div>
           <p className="text-gray-500 text-sm">No active rides</p>
-          <button onClick={() => setShowHistory(true)} className="mt-2 text-xs text-brand-600 hover:underline">
-            Show {rides.length} completed / cancelled ride{rides.length > 1 ? 's' : ''}
+          <button onClick={() => {
+            setShowHistory(true);
+            if (tab === 'given') ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+          }} className="mt-2 text-xs text-brand-600 hover:underline">
+            Show history →
           </button>
         </div>
       ) : (
@@ -230,7 +240,10 @@ export default function MyRidesPage() {
 
           {(() => {
             const TERMINAL = ['COMPLETED', 'CANCELLED'];
-            const visibleRides = showHistory ? rides : rides.filter((r: any) => !TERMINAL.includes(r.status));
+            // Active list: hide completed/cancelled AND archived rides
+            const visibleRides = showHistory
+              ? rides
+              : rides.filter((r: any) => !TERMINAL.includes(r.status) && !r.archivedAt);
             const hiddenCount = rides.length - visibleRides.length;
             return (<>
               {hiddenCount > 0 && !showHistory && (
