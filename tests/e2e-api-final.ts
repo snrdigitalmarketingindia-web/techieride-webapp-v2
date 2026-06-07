@@ -1084,35 +1084,38 @@ async function run() {
   // ─────────────────────────────────────────────────────────────────────────
   // 21. Women-Only Gender Guard
   // ─────────────────────────────────────────────────────────────────────────
-  section('21. Women-Only Guard — non-female giver cannot create womenOnly ride');
+  section('21. Women-Only Guard — non-female seeker cannot book womenOnly ride');
   {
-    // freshGiver creates a user without a gender set (null).
-    // The guard checks gender !== 'FEMALE', so null also triggers the 403.
-    const nonFemaleGiver = await freshGiver('wom-g');
+    // Any giver (regardless of gender) can CREATE a women-only ride.
+    // The restriction is on the SEEKER side: only FEMALE seekers can request.
+    // freshGiver creates a user without gender set (null) — still allowed to create women-only rides.
+    const giver21 = await freshGiver('wom-g');
+    const seeker21 = await freshSeeker('wom-s');
     const tomorrow21 = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
 
-    await test('Non-female giver creating womenOnly ride → 403', async () => {
-      const r = await nonFemaleGiver.client.post('/rides', {
-        vehicleId: nonFemaleGiver.vehicleId,
+    // Create a women-only ride (any giver gender is allowed)
+    let womenRideId21: string;
+    await test('Any giver (no gender set) can create womenOnly ride → 201', async () => {
+      const r = await giver21.client.post('/rides', {
+        vehicleId: giver21.vehicleId,
         originLat: 17.44, originLng: 78.34, originName: 'Origin',
         destinationLat: 17.45, destinationLng: 78.36, destinationName: 'Dest',
         departureDate: tomorrow21, departureTime: '09:00',
         totalSeats: 2,
         womenOnly: true,
       });
-      assert(r.status === 403, `Expected 403 for non-female giver + womenOnly, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert([200, 201].includes(r.status), `Expected 201 for womenOnly ride creation, got ${r.status}: ${JSON.stringify(r.data)}`);
+      womenRideId21 = r.data?.id ?? r.data?.data?.id;
+      await giver21.client.patch(`/rides/${womenRideId21}/publish`);
     });
 
-    await test('Non-female giver creating regular (womenOnly:false) ride → 201', async () => {
-      const r = await nonFemaleGiver.client.post('/rides', {
-        vehicleId: nonFemaleGiver.vehicleId,
-        originLat: 17.44, originLng: 78.34, originName: 'Origin',
-        destinationLat: 17.45, destinationLng: 78.36, destinationName: 'Dest',
-        departureDate: tomorrow21, departureTime: '10:00',
-        totalSeats: 2,
-        womenOnly: false,
+    await test('Non-female seeker requesting womenOnly ride → 403', async () => {
+      // seeker21 has gender = null (not FEMALE) — should be blocked
+      const r = await seeker21.client.post('/ride-requests', {
+        rideId: womenRideId21,
+        pickupName: 'Test Pickup',
       });
-      assert([200, 201].includes(r.status), `Expected 201 for regular ride, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.status === 403, `Expected 403 for non-female seeker on womenOnly ride, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
   }
 

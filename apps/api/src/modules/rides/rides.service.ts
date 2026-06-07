@@ -63,13 +63,6 @@ export class RidesService {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) throw new ForbiddenException('You must be a Ride Giver to create rides');
 
-    // Women-only rides may only be offered by female givers
-    if (dto.womenOnly) {
-      const giverUser = await this.prisma.user.findUnique({ where: { id: userId }, select: { gender: true } });
-      if (giverUser?.gender !== 'FEMALE') {
-        throw new ForbiddenException('Only female Ride Givers can create women-only rides');
-      }
-    }
 
     const vehicle = await this.prisma.vehicle.findFirst({
       where: { id: dto.vehicleId, rideGiverId: giver.id, isActive: true },
