@@ -717,12 +717,14 @@ export class RidesService {
 
     const rides = await this.prisma.ride.findMany({
       where: {
-        status: RideStatus.PUBLISHED,
+        // Include ONGOING rides — seeker may board mid-route while giver is en route to their pickup
+        status: { in: [RideStatus.PUBLISHED, RideStatus.ONGOING] },
         departureDate: {
           gte: new Date(dto.date),
           lt: new Date(new Date(dto.date).getTime() + 86400000),
         },
         availableSeats: { gt: 0 },
+        archivedAt: null,
         // Hide womenOnly rides from non-FEMALE users
         ...(requesterGender !== 'FEMALE' ? { womenOnly: false } : {}),
       },

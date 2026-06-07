@@ -84,7 +84,9 @@ export class RideRequestsService {
       include: { rideGiver: { include: { user: { select: USER_CONTACT_SELECT } } } },
     });
     if (!ride) throw new NotFoundException('Ride not found');
-    if (ride.status !== 'PUBLISHED') throw new BadRequestException('Ride is not available');
+    // Allow requests on PUBLISHED or ONGOING rides — seeker may join mid-route
+    // while the giver is still en route to their pickup point
+    if (!['PUBLISHED', 'ONGOING'].includes(ride.status)) throw new BadRequestException('Ride is not available');
     if (ride.archivedAt) throw new BadRequestException('This ride is no longer accepting requests');
     if (ride.availableSeats <= 0) throw new BadRequestException('No seats available');
 
@@ -228,10 +230,13 @@ export class RideRequestsService {
     ]);
 
     if (seeker) {
+      const isOngoing = ride.status === 'ONGOING';
       await this.notifications.create(seeker.userId, {
         type: NotificationType.REQUEST_APPROVED,
-        title: 'Seat confirmed!',
-        body: 'Your seat has been confirmed. You\'re all set for the ride!',
+        title: 'Seat confirmed! 🎉',
+        body: isOngoing
+          ? 'Your seat is confirmed — the ride is already underway. Get ready at your pickup point!'
+          : 'Your seat has been confirmed. You\'re all set for the ride!',
         data: { requestId },
       });
     }

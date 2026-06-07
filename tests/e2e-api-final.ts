@@ -689,8 +689,71 @@ async function run() {
     });
   }
 
-  // ── 14. CONCURRENT APPROVAL RACE ──────────────────────────────────────────
-  section('14. Race Condition — Concurrent Last-Seat Approval');
+  // ── 14. ONGOING RIDE REQUEST FLOW ─────────────────────────────────────────
+  section('14. ONGOING Ride — Seeker Can Request Mid-Route');
+  {
+    const giver  = await freshGiver('ong-giver');
+    const seeker = await freshSeeker('ong-seeker');
+
+    // Publish then immediately start the ride
+    const rideId = await publishRide(giver.client, giver.vehicleId, 3);
+    const startR = await giver.client.patch(`/rides/${rideId}/start`);
+    assert(startR.status === 200, `Expected 200 starting ride, got ${startR.status}: ${JSON.stringify(startR.data)}`);
+
+    await test('Search returns the ONGOING ride', async () => {
+      // Use a very broad search — date window doesn't matter; ONGOING rides with seats are included
+      const r = await seeker.client.get('/rides/search', {
+        params: { origin: '', destination: '', date: new Date().toISOString().split('T')[0] },
+      });
+      assert(r.status === 200, `Expected 200 from search, got ${r.status}`);
+      const found = r.data.find((rd: any) => rd.id === rideId);
+      assert(found !== undefined, 'ONGOING ride not returned in search results');
+      assert(found.status === 'ONGOING', `Expected status ONGOING, got ${found.status}`);
+    });
+
+    let requestId = '';
+
+    await test('Seeker can POST a request on an ONGOING ride → 201', async () => {
+      const r = await seeker.client.post('/ride-requests', {
+        rideId,
+        pickupLat: 17.44, pickupLng: 78.35, pickupName: 'Mid-route pickup',
+        dropLat:   17.50, dropLng:   78.40, dropName:   'Destination',
+      });
+      assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.data.status === 'PENDING', `Expected PENDING, got ${r.data.status}`);
+      requestId = r.data.requestId;
+    });
+
+    await test('Giver can approve the request on an ONGOING ride → 200', async () => {
+      if (!requestId) return; // skip if prior test failed
+      const r = await giver.client.patch(`/ride-requests/${requestId}/approve`);
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.data.status === 'CONFIRMED', `Expected CONFIRMED, got ${r.data.status}`);
+    });
+
+    await test('Second request attempt on same ride → 409 (already active)', async () => {
+      const r = await seeker.client.post('/ride-requests', {
+        rideId,
+        pickupLat: 17.44, pickupLng: 78.35, pickupName: 'Mid-route pickup 2',
+        dropLat:   17.50, dropLng:   78.40, dropName:   'Destination 2',
+      });
+      assert([409, 400].includes(r.status), `Expected 409/400, got ${r.status}`);
+    });
+
+    await test('Request on COMPLETED ride → 400', async () => {
+      // Archive the ride by completing it
+      await giver.client.patch(`/rides/${rideId}/complete`);
+      const r = await seeker.client.post('/ride-requests', {
+        rideId,
+        pickupLat: 17.44, pickupLng: 78.35, pickupName: 'Too late',
+        dropLat:   17.50, dropLng:   78.40, dropName:   'Destination',
+      });
+      assert([400, 409].includes(r.status), `Expected 400/409, got ${r.status}`);
+    });
+  }
+
+  // ── 15. CONCURRENT APPROVAL RACE ──────────────────────────────────────────
+  section('15. Race Condition — Concurrent Last-Seat Approval');
   {
     const giver = await freshGiver('race_final');
     const seekerA = await freshSeeker('race_final_a');

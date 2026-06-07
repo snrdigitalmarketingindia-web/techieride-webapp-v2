@@ -599,7 +599,10 @@ export default function RideSearchPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-gray-500">
+              <div className="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+                {ride.status === 'ONGOING' && (
+                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">🚗 Ride in progress — board en route</span>
+                )}
                 {ride.womenOnly && <span className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded font-medium">👩 Women only</span>}
                 <span className="bg-gray-100 px-2 py-0.5 rounded">{ride.vehicle?.make} {ride.vehicle?.model}</span>
                 <span className="bg-gray-100 px-2 py-0.5 rounded">{ride.vehicle?.color}</span>
