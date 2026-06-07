@@ -3,6 +3,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
+import * as http from 'http';
+import * as https from 'https';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -61,5 +63,21 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`🚀 Techie Ride API running on http://localhost:${port}/api/v1`);
   console.log(`📚 Swagger docs at http://localhost:${port}/api/docs`);
+
+  // ── Self-ping every 10 min to prevent Render free-tier cold starts ─────────
+  // Only runs in production (Render sets NODE_ENV=production)
+  if (process.env.NODE_ENV === 'production') {
+    const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${port}`;
+    const pingUrl = `${selfUrl}/health`;
+    const client = pingUrl.startsWith('https') ? https : http;
+    setInterval(() => {
+      client.get(pingUrl, (res) => {
+        console.log(`🏓 Self-ping ${pingUrl} → ${res.statusCode}`);
+      }).on('error', (err) => {
+        console.warn(`⚠️  Self-ping failed: ${err.message}`);
+      });
+    }, 10 * 60 * 1000); // 10 minutes
+    console.log(`🏓 Self-ping scheduler started → ${pingUrl} every 10 min`);
+  }
 }
 bootstrap();
