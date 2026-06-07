@@ -236,16 +236,16 @@ test.describe('🚗 Giver Full Flow', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides/create');
 
-    // The form default date is IST. Compute "10 min from now" in IST so date+time
-    // are consistent regardless of the CI runner's local timezone (avoids UTC/IST
-    // midnight crossover where the time falls on tomorrow's IST date, making the
-    // departure appear 24h away and the warning never triggers).
-    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-    const soonIST = new Date(nowIST.getTime() + 10 * 60 * 1000);
-    const dateStr = soonIST.toLocaleDateString('en-CA');          // YYYY-MM-DD
-    const timeStr = `${String(soonIST.getHours()).padStart(2, '0')}:${String(soonIST.getMinutes()).padStart(2, '0')}`;
+    // Compute "10 min from now" using Node.js local time.
+    // The form's isAtLeast15MinAhead() uses new Date(`${date}T${time}:00`) which
+    // is parsed as LOCAL time in the browser. CI runner and browser both run in UTC,
+    // so using local time (UTC) for both date and time gives a consistent pair.
+    // We also fill the date input to override the form's IST-based default, which
+    // can be "tomorrow" from UTC's perspective, making the departure appear 24h away.
+    const soon = new Date(Date.now() + 10 * 60 * 1000);
+    const dateStr = soon.toLocaleDateString('en-CA');  // YYYY-MM-DD in local timezone
+    const timeStr = `${String(soon.getHours()).padStart(2, '0')}:${String(soon.getMinutes()).padStart(2, '0')}`;
 
-    // Set date first, then time — ensures isAtLeast15MinAhead uses a consistent pair
     await page.locator('input[type="date"]').fill(dateStr);
     await page.locator('input[type="time"]').fill(timeStr);
     await page.locator('input[type="time"]').blur();
