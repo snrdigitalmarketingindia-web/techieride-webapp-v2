@@ -16,7 +16,7 @@ import { CreateRequestDto } from './dto/create-request.dto';
 import { NotificationType, REDIS_KEYS } from '@techieride/shared';
 
 const PENDING_EXPIRY_HOURS = 2;   // Auto-expire PENDING requests after 2 hours (well before 4h archive window)
-const REQUEST_RATE_LIMIT = 5;     // Max ride requests per seeker per hour
+const REQUEST_RATE_LIMIT = parseInt(process.env.REQUEST_RATE_LIMIT ?? '5', 10); // Max ride requests per seeker per hour
 const REQUEST_RATE_WINDOW = 3600; // 1 hour in seconds
 
 const USER_CONTACT_SELECT = {

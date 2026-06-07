@@ -196,10 +196,11 @@ test.describe('🚗 Giver Full Flow', () => {
     const res = await ctx.patch(`${API}/rides/${testRideId}/publish`, {
       headers: { Authorization: `Bearer ${giverToken}` },
     });
+    // Read body before disposing context — disposing invalidates the response object
+    const body = await res.json();
     await ctx.dispose();
 
     expect(res.status()).toBe(400);
-    const body = await res.json();
     expect(JSON.stringify(body)).toMatch(/30 minutes/i);
 
     // Cleanup

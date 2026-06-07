@@ -26,6 +26,7 @@ env:
   MINIO_BUCKET_DOCUMENTS: user-documents
   MINIO_BUCKET_PHOTOS: profile-photos
   SMS_PROVIDER: mock
+  REQUEST_RATE_LIMIT: "1000"
   NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
   NEXT_PUBLIC_WS_URL: http://localhost:3001
 

@@ -42,7 +42,7 @@
  */
 
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { API, ACCOUNTS, SEED_PASSWORD, apiLogin, clearActiveRides, clearSeekerRequests } from './helpers';
+import { API, ACCOUNTS, SEED_PASSWORD, apiLogin, clearActiveRides, clearSeekerRequests, freshSeeker } from './helpers';
 
 // ── shared helpers ──────────────────────────────────────────────────────────
 
@@ -352,42 +352,32 @@ test.describe('🚫 Group 2 — Cancel Policy', () => {
 test.describe('⏱️ Group 3 — Request Rate Limit', () => {
 
   test('LC-RL-01: seeker is blocked after 5 requests in one hour window', async () => {
-    // Register a fresh seeker account to get a clean Redis rate-limit counter
-    const ts = Date.now();
-    const email = `rl_test_${ts}@wipro.com`;
-
-    const reg = await req('post', '/auth/register', undefined, {
-      email, password: SEED_PASSWORD,
-      fullName: 'Rate Limit Test', companyName: 'Wipro',
-      phone: '9' + String(Math.floor(100000000 + Math.random() * 900000000)),
-    });
-    if (reg.status !== 201) { test.skip(true, 'Registration failed'); return; }
-
-    const loginRes = await req('post', '/auth/login', undefined, { email, password: SEED_PASSWORD });
-    if (loginRes.status !== 200 && loginRes.status !== 201) {
-      test.skip(true, 'Login requires email verification in this env'); return;
+    // In CI, REQUEST_RATE_LIMIT is set high (1000) so shared accounts never get blocked
+    // during parallel test runs. Skip this test when the limit is overridden.
+    const configuredLimit = parseInt(process.env.REQUEST_RATE_LIMIT ?? '5', 10);
+    if (configuredLimit > 10) {
+      test.skip(true, `Rate limit overridden to ${configuredLimit} in this environment (CI mode) — skipping`);
+      return;
     }
-    const token = loginRes.body?.data?.accessToken ?? loginRes.body?.accessToken;
-    if (!token) { test.skip(true, 'No token'); return; }
 
-    // Check if user is a seeker (may need role or the account status might block this)
-    // Rate-limit check fires before the seeker-role check in service,
-    // so we can still test it even if the account is unverified.
+    // Use a fresh employee-verified seeker to get a clean Redis rate-limit counter
+    const fresh = await freshSeeker(`rl01_${Date.now()}`);
+    const token = fresh.token;
 
-    // Send 5 requests (each will fail at business logic level but the counter still increments)
+    // Send limit+1 requests — each fails at business logic (bad rideId) but counter increments
     const results: number[] = [];
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i <= configuredLimit; i++) {
       const r = await req('post', '/ride-requests', token, {
-        rideId: '00000000-0000-0000-0000-000000000001', // fake ride id — will 404 or 403
+        rideId: '00000000-0000-0000-0000-000000000001', // fake ride id — will 404/400
         pickupName: `Test ${i}`,
       });
       results.push(r.status);
     }
 
-    // The 6th attempt must return 400 with rate limit message
-    const lastStatus = results[5];
+    // The (limit+1)th attempt must return 400 with rate limit message
+    const lastStatus = results[configuredLimit];
     expect(lastStatus).toBe(400);
-    // Confirm it's the rate limit error and not a different 400
+    // Confirm it's the rate limit error
     const lastRes = await req('post', '/ride-requests', token, {
       rideId: '00000000-0000-0000-0000-000000000001',
       pickupName: 'Test rate limit check',

@@ -765,7 +765,9 @@ export class RidesService {
       where: {
         rideGiverId: giver.id,
         ...(status ? { status: status as RideStatus } : {}),
-        // Active list: exclude archived rides. History view: show all (including archived)
+        // Active list: only show PUBLISHED/ONGOING (no DRAFT/CANCELLED/COMPLETED clutter).
+        // History view shows all rides including archived and completed.
+        ...(!includeHistory && !status ? { status: { in: [RideStatus.PUBLISHED, RideStatus.ONGOING] } } : {}),
         ...(!includeHistory ? { archivedAt: null } : {}),
       },
       include: {
