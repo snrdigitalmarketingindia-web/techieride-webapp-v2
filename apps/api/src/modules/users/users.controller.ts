@@ -7,6 +7,7 @@ import { UsersService } from './users.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { AddEmergencyContactDto } from './dto/emergency-contact.dto';
+import { ChangePasswordDto } from '../auth/dto/auth.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { AllowUnverified } from '../../common/decorators/allow-unverified.decorator';
 import { AllowDocsPending } from '../../common/decorators/allow-docs-pending.decorator';
@@ -87,6 +88,15 @@ export class UsersController {
   @Post('confirm-personal-email-change')
   confirmPersonalEmailChange(@Body('token') token: string) {
     return this.usersService.confirmPersonalEmailChange(token);
+  }
+
+  // ── Password change ─────────────────────────────────────────────────────
+  @Post('me/change-password')
+  changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(userId, dto.oldPassword, dto.newPassword);
   }
 
   @Get('me/trust-score')
