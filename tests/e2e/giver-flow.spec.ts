@@ -51,7 +51,7 @@ test.describe('🚗 Giver Full Flow', () => {
     await page.goto('/rides/create');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     const btn = page.getByRole('button', { name: /publish ride/i });
-    await page.locator('input[placeholder*="Kondapur"], input[placeholder*="origin"], input[placeholder*="pickup"]').first().clear();
+    // Origin is now a MapPin button (no text input) — form starts empty, validation fires on submit
     await btn.click();
     await expect(page.getByText(/fill in|origin|vehicle|required/i).first()).toBeVisible({ timeout: 5_000 });
   });

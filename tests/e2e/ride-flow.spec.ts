@@ -186,8 +186,8 @@ test.describe('📅 My Rides — Period Filter Tabs', () => {
     await expect(page.getByRole('button', { name: /This Week/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /This Month/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /Custom/i })).toBeVisible({ timeout: 5_000 });
-    // Today must be the active (highlighted) tab by default
-    await expect(page.getByRole('button', { name: /^Today$/i })).toHaveClass(/bg-brand/, { timeout: 5_000 });
+    // "This Week" must be the active (highlighted) tab by default
+    await expect(page.getByRole('button', { name: /This Week/i })).toHaveClass(/bg-brand/, { timeout: 5_000 });
   });
 
   test('MR-02: clicking Custom reveals date range pickers', async ({ page }) => {
@@ -322,6 +322,8 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
   test('BD-01: confirmed passenger shows "Seat Confirmed" badge on PUBLISHED ride (giver view)', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    // Show all rides (default period filter may exclude today's ride by date range)
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText(/^Waiting$/i)).not.toBeVisible();
   });

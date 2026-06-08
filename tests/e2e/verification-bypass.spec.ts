@@ -271,7 +271,15 @@ test.describe('🛡️ Verification Bypass — UI error display (VB-01 UI)', () 
   test('VB-01-UI: error from publish 403 is shown to user in create form', async ({ page }) => {
     await loginUI(page, 'giver'); // Priya — approved, should work
 
+    // Pre-fill origin/destination via localStorage (origin is now a MapPin button, not a text input)
     await page.goto('/rides/create');
+    await page.evaluate(() => {
+      localStorage.setItem('tr_last_route', JSON.stringify({
+        originName: 'Kondapur', originLat: 17.44, originLng: 78.35,
+        destinationName: 'HITEC City', destinationLat: 17.43, destinationLng: 78.38,
+      }));
+    });
+    await page.goto('/rides/create'); // reload so form reads localStorage
     await expect(page.getByRole('heading', { name: /offer a ride/i })).toBeVisible({ timeout: 8_000 });
 
     // Intercept the publish call and force a 403 response
@@ -290,8 +298,6 @@ test.describe('🛡️ Verification Bypass — UI error display (VB-01 UI)', () 
     const publishBtn = page.getByRole('button', { name: /publish ride/i });
     await expect(publishBtn).toBeEnabled({ timeout: 20_000 });
 
-    await page.locator('input[placeholder*="Kondapur"]').fill('Kondapur');
-    await page.locator('input[placeholder*="HITEC City"]').fill('HITEC City');
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
     if (await publishBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {

@@ -60,8 +60,9 @@ test.describe('👤 Profile Flow', () => {
     await loginUI(page, 'giver');
     await page.goto('/profile');
     await page.getByRole('button', { name: /edit/i }).click();
-    await expect(page.getByLabel(/home area/i)).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByLabel(/office area/i)).toBeVisible({ timeout: 5_000 });
+    // Home/office are now MapPin buttons (not labeled inputs)
+    await expect(page.getByText(/home location/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/office location/i).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('PF-08: blood group field is editable', async ({ page }) => {

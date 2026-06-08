@@ -103,8 +103,8 @@ test.describe('📱 Mobile Flows', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides/create');
     await expect(page.getByRole('heading', { name: /offer a ride/i })).toBeVisible();
-    // Form fields should be full-width and usable
-    await expect(page.locator('input[placeholder*="Kondapur"]')).toBeVisible();
+    // Origin is now a MapPin button — verify the pin button is rendered
+    await expect(page.getByRole('button', { name: /tap to pin|set origin|from/i }).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('admin dashboard is usable on mobile', async ({ page }) => {

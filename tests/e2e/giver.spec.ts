@@ -26,8 +26,7 @@ test.describe('🚗 Ride Giver', () => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     const btn = page.getByRole('button', { name: /publish ride/i });
     await expect(btn).toBeVisible({ timeout: 5_000 });
-    // Clear the pre-filled origin placeholder to ensure validation fires
-    await page.locator('input[placeholder*="Kondapur"]').clear();
+    // Origin is now a MapPin button (no text input) — form starts empty, validation fires on submit
     await btn.click();
     await expect(page.getByText(/fill in origin|select a vehicle/i)).toBeVisible({ timeout: 5_000 });
   });
