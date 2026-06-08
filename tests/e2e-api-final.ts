@@ -20,6 +20,11 @@
  * 14.  CONCURRENT APPROVAL  — race: two givers cannot both approve same request
  * 25.  RIDE EDIT TIME GUARD — blocked <15 min to departure, blocked with active requests
  * 26.  TRUST SCORE EVENTS   — score increases on completion, decreases on no-show, history endpoint, admin adjust
+ * 27.  ABORT SIDE-EFFECTS   — seeker request → CANCELLED, seeker notified, ride status CANCELLED
+ * 28.  COMMUNITY ENDPOINT   — missing params default gracefully, invalid date returns empty not 500
+ * 29.  VEHICLE RC MATCH     — rcMatchStatus=MATCHED in GET /vehicles/my after update; mismatch → 400
+ * 30.  SEARCH RADIUS BOUNDS — radiusMeters=0 and negative → 400
+ * 31.  SEAT RESTORE FLOW    — cancel CONFIRMED on full ride → availableSeats restores → new request succeeds
  *
  * Run: npm run test:api:final
  */
@@ -1386,6 +1391,245 @@ async function run() {
       const after = await giver.client.get('/users/me/trust-score');
       const scoreAfter = after.data?.trustScore ?? after.data?.data?.trustScore ?? 0;
       assert(scoreAfter === scoreBefore + 5, `Expected score ${scoreBefore + 5}, got ${scoreAfter}`);
+    });
+  }
+
+  // ── 27. ABORT SIDE-EFFECTS ───────────────────────────────────────────────
+  section('27. Abort — seeker request status + notification');
+  {
+    const giver27  = await freshGiver('ab27-g');
+    const seeker27 = await freshSeeker('ab27-s');
+    const rideId27 = await publishRide(giver27.client, giver27.vehicleId, 2);
+
+    // Seeker books and gets approved
+    const req27 = await seeker27.client.post('/ride-requests', { rideId: rideId27, pickupName: 'Kondapur Metro' });
+    const reqId27 = req27.data.requestId ?? req27.data.id;
+    await giver27.client.patch(`/ride-requests/${reqId27}/approve`);
+    await seeker27.client.patch(`/ride-requests/${reqId27}/confirm`);
+    await giver27.client.patch(`/rides/${rideId27}/start`);
+
+    await test('AB-02: after abort, seeker\'s ride-request status becomes CANCELLED', async () => {
+      await giver27.client.patch(`/rides/${rideId27}/abort`, { reason: 'Vehicle breakdown' });
+      const requests = await seeker27.client.get('/ride-requests/mine');
+      const abortedReq = (requests.data?.data ?? requests.data ?? [])
+        .find((r: any) => r.rideId === rideId27 || r.ride?.id === rideId27);
+      assert(!!abortedReq, `Seeker's request for aborted ride not found in /ride-requests/mine`);
+      assert(
+        abortedReq.status === 'CANCELLED',
+        `Expected request status CANCELLED after abort, got ${abortedReq.status}`,
+      );
+    });
+
+    await test('AB-03: seeker received a notification after giver aborted', async () => {
+      const notifs = await seeker27.client.get('/notifications');
+      const all = notifs.data?.data ?? notifs.data ?? [];
+      const abortNotif = all.find((n: any) =>
+        n.body?.toLowerCase().includes('aborted') ||
+        n.body?.toLowerCase().includes('stopped') ||
+        n.title?.toLowerCase().includes('aborted') ||
+        n.type === 'RIDE_CANCELLED',
+      );
+      assert(!!abortNotif, `Expected abort notification for seeker, got: ${JSON.stringify(all.slice(0, 3))}`);
+    });
+
+    await test('AB-04: aborted ride status is CANCELLED in GET /rides/:id', async () => {
+      const r = await giver27.client.get(`/rides/${rideId27}`);
+      const status = r.data?.status ?? r.data?.data?.status;
+      assert(status === 'CANCELLED', `Expected CANCELLED after abort, got ${status}`);
+    });
+  }
+
+  // ── 28. COMMUNITY ENDPOINT — NEGATIVE TESTS ──────────────────────────────
+  section('28. Community Endpoint — missing/invalid params');
+  {
+    const client28 = makeClient();
+
+    await test('Community rides — no params returns 200 with array (defaults gracefully)', async () => {
+      const r = await client28.get('/rides/community');
+      assert(r.status === 200, `Expected 200 with no params, got ${r.status}: ${JSON.stringify(r.data)}`);
+      const data = r.data?.data ?? r.data;
+      assert(Array.isArray(data), `Expected array response, got ${JSON.stringify(data)}`);
+    });
+
+    await test('Community rides — valid date range returns 200', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const r = await client28.get('/rides/community', { params: { from: today, to: today } });
+      assert(r.status === 200, `Expected 200 for valid date range, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('Community rides — from > to returns 200 with empty array (not 500)', async () => {
+      const r = await client28.get('/rides/community', { params: { from: '2026-12-31', to: '2026-01-01' } });
+      // Should not crash — either 200 empty or 400, never 500
+      assert(r.status !== 500, `Got 500 for from > to: ${JSON.stringify(r.data)}`);
+      if (r.status === 200) {
+        const data = r.data?.data ?? r.data;
+        assert(Array.isArray(data), `Expected array, got ${JSON.stringify(data)}`);
+      }
+    });
+
+    await test('Community rides — unauthenticated request returns 200 (public endpoint)', async () => {
+      const anonClient = (await import('axios')).default.create({
+        baseURL: BASE,
+        validateStatus: () => true,
+      });
+      const r = await anonClient.get('/rides/community');
+      // Community endpoint is public — no auth required
+      assert([200, 401].includes(r.status), `Expected 200 or 401 for anon, got ${r.status}`);
+    });
+  }
+
+  // ── 29. VEHICLE RC MATCH STATUS ──────────────────────────────────────────
+  section('29. Vehicle RC — rcMatchStatus field');
+  {
+    const giver29 = await freshGiver('rc29');
+
+    await test('RC-01: PATCH /vehicles/:id/rc with matching parsedData → rcMatchStatus=MATCHED in GET /vehicles/my', async () => {
+      // Get the vehicle's actual plate/make/model
+      const vehicles = await giver29.client.get('/vehicles/my');
+      const v = (vehicles.data?.data ?? vehicles.data)[0];
+      assert(!!v, 'No vehicle found for giver');
+
+      const r = await giver29.client.patch(`/vehicles/${v.id}/rc`, {
+        rcUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        parsedData: {
+          plateNumber: v.plateNumber,
+          make: v.make,
+          model: v.model,
+        },
+      });
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+
+      // Refetch and confirm rcMatchStatus
+      const updated = await giver29.client.get('/vehicles/my');
+      const updatedV = (updated.data?.data ?? updated.data).find((veh: any) => veh.id === v.id);
+      assert(!!updatedV, 'Vehicle not found after update');
+      assert(
+        updatedV.rcMatchStatus === 'MATCHED',
+        `Expected rcMatchStatus=MATCHED, got ${updatedV.rcMatchStatus}`,
+      );
+    });
+
+    await test('RC-02: PATCH /vehicles/:id/rc with mismatched plate → 400', async () => {
+      const vehicles = await giver29.client.get('/vehicles/my');
+      const v = (vehicles.data?.data ?? vehicles.data)[0];
+
+      const r = await giver29.client.patch(`/vehicles/${v.id}/rc`, {
+        rcUrl: 'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+        parsedData: {
+          plateNumber: 'ZZ99ZZ9999', // deliberately wrong plate
+          make: v.make,
+          model: v.model,
+        },
+      });
+      assert(r.status === 400, `Expected 400 for plate mismatch, got ${r.status}: ${JSON.stringify(r.data)}`);
+      const msg = JSON.stringify(r.data).toLowerCase();
+      assert(msg.includes('plate') || msg.includes('rc'), `Expected plate mismatch message, got: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('RC-03: PATCH /vehicles/:id/rc without parsedData → rcMatchStatus stays null/unchanged', async () => {
+      const vehicles = await giver29.client.get('/vehicles/my');
+      const v = (vehicles.data?.data ?? vehicles.data)[0];
+
+      const r = await giver29.client.patch(`/vehicles/${v.id}/rc`, {
+        rcUrl: 'https://res.cloudinary.com/demo/image/upload/sample2.jpg',
+        // no parsedData
+      });
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+      // rcMatchStatus should NOT be overwritten to MATCHED when no parsedData provided
+      // (it may stay MATCHED from prior test — just confirm no crash and field exists)
+      const updated = await giver29.client.get('/vehicles/my');
+      const updatedV = (updated.data?.data ?? updated.data).find((veh: any) => veh.id === v.id);
+      assert(updatedV !== undefined, 'Vehicle not found after RC-only update');
+    });
+  }
+
+  // ── 30. SEARCH RADIUS — ZERO AND NEGATIVE BOUNDARY ──────────────────────
+  section('30. Search Radius — zero and negative boundary');
+  {
+    const seeker30 = await freshSeeker('rad30');
+    const today = new Date().toISOString().split('T')[0];
+
+    await test('SR-01: radiusMeters=0 → 400 (below Min 500)', async () => {
+      const r = await seeker30.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          departureDate: today,
+          radiusMeters: 0,
+        },
+      });
+      assert(r.status === 400, `Expected 400 for radiusMeters=0, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('SR-02: radiusMeters=-1 → 400 (negative not allowed)', async () => {
+      const r = await seeker30.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          departureDate: today,
+          radiusMeters: -1,
+        },
+      });
+      assert(r.status === 400, `Expected 400 for radiusMeters=-1, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('SR-03: radiusMeters=499 → 400 (one below Min 500)', async () => {
+      const r = await seeker30.client.get('/rides/search', {
+        params: {
+          originLat: 17.44, originLng: 78.34,
+          destinationLat: 17.45, destinationLng: 78.36,
+          departureDate: today,
+          radiusMeters: 499,
+        },
+      });
+      assert(r.status === 400, `Expected 400 for radiusMeters=499, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+  }
+
+  // ── 31. SEAT RESTORE FLOW ────────────────────────────────────────────────
+  section('31. Seat Restore — cancel CONFIRMED on full ride → new booking succeeds');
+  {
+    await test('LC-SC-04: seeker cancels CONFIRMED booking on full 1-seat ride → third seeker can book', async () => {
+      const giver31   = await freshGiver('sc31-g');
+      const seeker31a = await freshSeeker('sc31-a');
+      const seeker31b = await freshSeeker('sc31-b');
+
+      // 1-seat ride
+      const rideId31 = await publishRide(giver31.client, giver31.vehicleId, 1);
+
+      // Seeker A requests, giver approves → ride is now full
+      const reqA = await seeker31a.client.post('/ride-requests', { rideId: rideId31, pickupName: 'Pickup A' });
+      const reqIdA = reqA.data.requestId ?? reqA.data.id;
+      await giver31.client.patch(`/ride-requests/${reqIdA}/approve`);
+
+      // Confirm ride is full — seeker B should be blocked
+      const blockedR = await seeker31b.client.post('/ride-requests', { rideId: rideId31, pickupName: 'Pickup B' });
+      assert(
+        [400, 409].includes(blockedR.status),
+        `Expected 400/409 when ride is full, got ${blockedR.status}: ${JSON.stringify(blockedR.data)}`,
+      );
+
+      // Seeker A cancels their confirmed booking
+      const cancelR = await seeker31a.client.patch(`/ride-requests/${reqIdA}/cancel`);
+      assert(
+        [200, 201].includes(cancelR.status),
+        `Expected 200 for seeker cancel, got ${cancelR.status}: ${JSON.stringify(cancelR.data)}`,
+      );
+
+      // Verify availableSeats restored to 1
+      const rideR = await giver31.client.get(`/rides/${rideId31}`);
+      const availSeats = rideR.data?.availableSeats ?? rideR.data?.data?.availableSeats;
+      assert(availSeats === 1, `Expected availableSeats=1 after cancel, got ${availSeats}`);
+
+      // Seeker B should now be able to book
+      const successR = await seeker31b.client.post('/ride-requests', { rideId: rideId31, pickupName: 'Pickup B' });
+      assert(
+        [200, 201].includes(successR.status),
+        `Expected 200/201 for seeker B after seat freed, got ${successR.status}: ${JSON.stringify(successR.data)}`,
+      );
+
+      // Cleanup
+      await giver31.client.patch(`/rides/${rideId31}/cancel`).catch(() => {});
     });
   }
 

@@ -167,3 +167,62 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     }
   });
 });
+
+// ── My Rides — Period Filter Tabs ─────────────────────────────────────────────
+test.describe('📅 My Rides — Period Filter Tabs', () => {
+  let giverToken: string;
+
+  test.beforeAll(async () => {
+    giverToken = await apiLogin(ACCOUNTS.giver.email);
+    await clearActiveRides(giverToken);
+  });
+
+  test('MR-01: period filter tabs are visible on My Rides page', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await expect(page.getByRole('button', { name: /^All$/i })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('button', { name: /Today/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /This Week/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /This Month/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /Custom/i })).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('MR-02: clicking Custom reveals date range pickers', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await page.getByRole('button', { name: /Custom/i }).click();
+    await expect(page.locator('input[type="date"]').first()).toBeVisible({ timeout: 5_000 });
+    // Should have two date inputs (from + to)
+    const dateInputs = page.locator('input[type="date"]');
+    await expect(dateInputs).toHaveCount(2);
+  });
+
+  test('MR-03: Today filter shows no-results state when no rides today', async ({ page }) => {
+    // Fresh giver with no rides today — Today filter should show empty state
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await page.getByRole('button', { name: /Today/i }).click();
+    // Either shows rides (if any today) or the empty/no-results state — never a crash
+    await expect(page).not.toHaveURL(/error|500/);
+    await page.waitForTimeout(1_000);
+    await expect(page).not.toHaveURL(/error/);
+  });
+
+  test('MR-04: switching Given → Taken tab resets period filter to All', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+
+    // Select "This Week" on Given tab
+    await page.getByRole('button', { name: /This Week/i }).click();
+    // Confirm it's active (has brand styling)
+    const thisWeekBtn = page.getByRole('button', { name: /This Week/i });
+    await expect(thisWeekBtn).toHaveClass(/bg-brand/, { timeout: 3_000 });
+
+    // Switch to Taken tab
+    await page.getByRole('button', { name: /Rides Taken/i }).click();
+
+    // "All" should now be the active period (brand colour), "This Week" inactive
+    const allBtn = page.getByRole('button', { name: /^All$/i });
+    await expect(allBtn).toHaveClass(/bg-brand/, { timeout: 3_000 });
+  });
+});

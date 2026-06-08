@@ -68,15 +68,15 @@ test.describe('🔒 Permission Leaks — Seeker accessing Giver routes', () => {
     await expect(page.getByRole('link', { name: /my rides/i })).toBeVisible();
   });
 
-  // PERM-06: Seeker cannot access /admin/users
-  test('PERM-06: seeker cannot access /admin/users — redirected to login', async ({ page }) => {
+  // PERM-05: Seeker cannot access /admin/users
+  test('PERM-05: seeker cannot access /admin/users — redirected to login', async ({ page }) => {
     await page.goto('/admin/users');
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
     await expect(page.getByText(/user list|all users/i)).not.toBeVisible();
   });
 
-  // PERM-07: Seeker cannot access /admin/verification
-  test('PERM-07: seeker cannot access /admin/verification — redirected to login', async ({ page }) => {
+  // PERM-06: Seeker cannot access /admin/verification
+  test('PERM-06: seeker cannot access /admin/verification — redirected to login', async ({ page }) => {
     await page.goto('/admin/verification');
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
@@ -98,20 +98,20 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     await expect(page).not.toHaveURL(/500/);
   });
 
-  // PERM-06 from giver side
-  test('PERM-06: giver cannot access /admin/users — redirected to login', async ({ page }) => {
+  // PERM-07: Giver cannot access /admin/users
+  test('PERM-07: giver cannot access /admin/users — redirected to login', async ({ page }) => {
     await page.goto('/admin/users');
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
 
-  // PERM-07 from giver side
-  test('PERM-07: giver cannot access /admin/verification — redirected to login', async ({ page }) => {
+  // PERM-08: Giver cannot access /admin/verification
+  test('PERM-08: giver cannot access /admin/verification — redirected to login', async ({ page }) => {
     await page.goto('/admin/verification');
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
 
-  // Admin vehicles queue — giver must not access
-  test('PERM-07b: giver cannot access /admin/vehicles — redirected to login', async ({ page }) => {
+  // PERM-09: Giver cannot access /admin/vehicles
+  test('PERM-09: giver cannot access /admin/vehicles — redirected to login', async ({ page }) => {
     await page.goto('/admin/vehicles');
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
   });
@@ -133,19 +133,19 @@ test.describe('🔒 Permission Leaks — Admin role guard', () => {
 });
 
 test.describe('🔒 Permission Leaks — Unauthenticated access', () => {
-  // PERM-08: all protected routes redirect to /login when not logged in
+  // PERM-11: all protected routes redirect to /login when not logged in
   const protectedRoutes = ['/dashboard', '/rides/create', '/rides', '/rides/search', '/requests', '/profile', '/admin'];
 
   for (const route of protectedRoutes) {
-    test(`PERM-08: unauthenticated user redirected from ${route}`, async ({ page }) => {
+    test(`PERM-11: unauthenticated user redirected from ${route}`, async ({ page }) => {
       await page.goto(route);
       await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
     });
   }
 });
 
-test.describe('🔒 Permission Leaks — Token isolation (PERM-09)', () => {
-  test('PERM-09: seeker token cannot fetch another user\'s profile via API', async ({ page }) => {
+test.describe('🔒 Permission Leaks — Token isolation (PERM-12)', () => {
+  test('PERM-12: seeker token cannot fetch another user\'s profile via API', async ({ page }) => {
     await loginUI(page, 'seeker');
 
     // Intercept the /users/me call to extract the seeker's own userId

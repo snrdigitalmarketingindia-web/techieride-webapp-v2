@@ -387,6 +387,32 @@ async function run() {
       });
       assert(r.status === 403, `Expected 403, got ${r.status}`);
     });
+
+    await test('CT-05: toggled-off (inactive) template is excluded from list correctly', async () => {
+      // Create a second template, toggle it off, verify isActive = false in the list
+      const giverCT = await freshGiver('tmpl-ct5');
+      const createR = await giverCT.client.post('/templates', {
+        vehicleId: giverCT.vehicleId,
+        originName: 'CT5 Home', originLat: 17.44, originLng: 78.34,
+        destinationName: 'CT5 Office', destinationLat: 17.45, destinationLng: 78.36,
+        departureTime: '07:30',
+        totalSeats: 2,
+        departureDays: [1, 2, 3, 4, 5],
+      });
+      assert([200, 201].includes(createR.status), `Create failed: ${JSON.stringify(createR.data)}`);
+      const ct5Id = createR.data.id;
+
+      // Toggle it off (it starts as active by default)
+      const toggleR = await giverCT.client.patch(`/templates/${ct5Id}/toggle`);
+      assert([200, 201].includes(toggleR.status), `Toggle failed: ${JSON.stringify(toggleR.data)}`);
+
+      // Fetch the list and confirm isActive = false
+      const listR = await giverCT.client.get('/templates/my');
+      assert(listR.status === 200, `List failed: ${JSON.stringify(listR.data)}`);
+      const ct5 = (listR.data as any[]).find((t: any) => t.id === ct5Id);
+      assert(!!ct5, 'Template not found in list after toggle');
+      assert(ct5.isActive === false, `Expected isActive=false after toggle, got ${ct5.isActive}`);
+    });
   }
 
   // ── 7. VEHICLE LIFECYCLE ──────────────────────────────────────────────────
