@@ -873,7 +873,10 @@ export class RidesService {
         rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
         vehicle: true,
         participants: {
-          include: { seeker: { include: { user: { select: SEEKER_USER_SELECT } } } },
+          include: {
+            seeker: { include: { user: { select: SEEKER_USER_SELECT } } },
+            request: { select: { pickupLat: true, pickupLng: true, pickupName: true } },
+          },
         },
       },
     });
@@ -896,7 +899,10 @@ export class RidesService {
       include: {
         vehicle: true,
         participants: {
-          include: { seeker: { include: { user: { select: SEEKER_USER_SELECT } } } },
+          include: {
+            seeker: { include: { user: { select: SEEKER_USER_SELECT } } },
+            request: { select: { pickupLat: true, pickupLng: true, pickupName: true } },
+          },
           orderBy: { createdAt: 'asc' },
         },
       },
@@ -915,7 +921,10 @@ export class RidesService {
             rideGiver: { include: { user: { select: GIVER_USER_SELECT } } },
             vehicle: true,
             participants: {
-              include: { seeker: { include: { user: { select: SEEKER_USER_SELECT } } } },
+              include: {
+                seeker: { include: { user: { select: SEEKER_USER_SELECT } } },
+                request: { select: { pickupLat: true, pickupLng: true, pickupName: true } },
+              },
               orderBy: { createdAt: 'asc' },
             },
           },

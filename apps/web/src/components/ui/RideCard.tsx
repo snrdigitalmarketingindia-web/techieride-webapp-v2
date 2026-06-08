@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { CallButton } from './CallButton';
 import { ReportUserModal } from './ReportUserModal';
+import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
 
 const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'bg-blue-100 text-blue-700',
@@ -117,21 +118,42 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
             👥 Passengers ({participants.length})
           </p>
           {participants.map((p: any) => {
-            const name    = p.seeker?.user?.fullName ?? 'Seeker';
-            const phone   = p.seeker?.user?.phone;
-            const cc      = p.seeker?.user?.countryCode;
-            const recvId  = p.seeker?.userId;
-            const badge   = p.boardingStatus === 'WAITING'
+            const name      = p.seeker?.user?.fullName ?? 'Seeker';
+            const company   = p.seeker?.user?.companyName;
+            const phone     = p.seeker?.user?.phone;
+            const cc        = p.seeker?.user?.countryCode;
+            const recvId    = p.seeker?.userId;
+            const badge     = p.boardingStatus === 'WAITING'
               ? waitingBadge(ride.status)
               : BOARDING_BADGE[p.boardingStatus];
-            const noShow  = p.boardingStatus === 'NO_SHOW';
+            const noShow    = p.boardingStatus === 'NO_SHOW';
+            // Pickup info — prefer request coords, fallback to participant pickupName
+            const pickupName = p.request?.pickupName ?? p.pickupName;
+            const pickupLat  = p.request?.pickupLat;
+            const pickupLng  = p.request?.pickupLng;
+            const distStr    = pickupLat && pickupLng && ride.originLat && ride.originLng
+              ? formatDistance(haversineMeters(ride.originLat, ride.originLng, pickupLat, pickupLng))
+              : null;
+            const eta        = estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, pickupLat, pickupLng);
 
             return (
-              <div key={p.id} className={`flex items-center gap-2 ${noShow ? 'opacity-40' : ''}`}>
-                <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0">
+              <div key={p.id} className={`flex items-start gap-2 ${noShow ? 'opacity-40' : ''}`}>
+                <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0 mt-0.5">
                   {name[0]}
                 </div>
-                <p className="text-xs font-medium text-gray-800 flex-1 truncate">{name}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-gray-800 truncate">{name}</p>
+                  {(company || pickupName || distStr) && (
+                    <p className="text-xs text-gray-500 truncate">
+                      {company && <span>{company}</span>}
+                      {pickupName && <span>{company ? ' · ' : ''}📍 {pickupName}</span>}
+                      {distStr && <span> · 📏 {distStr} from you</span>}
+                    </p>
+                  )}
+                  {eta && (
+                    <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>
+                  )}
+                </div>
                 {badge && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
                     {badge.label}

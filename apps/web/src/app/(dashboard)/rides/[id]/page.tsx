@@ -514,9 +514,17 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
           </p>
           <div className="space-y-2">
             {ride.participants.map((p: any) => {
-              const name = p.seeker?.user?.fullName || 'Unknown';
+              const name        = p.seeker?.user?.fullName || 'Unknown';
+              const company     = p.seeker?.user?.companyName;
               const seekerUserId = p.seeker?.userId;
               const status: string = p.boardingStatus || 'WAITING';
+              const pickupName  = p.request?.pickupName ?? p.pickupName;
+              const pickupLat   = p.request?.pickupLat;
+              const pickupLng   = p.request?.pickupLng;
+              const distStr     = pickupLat && pickupLng && ride.originLat && ride.originLng
+                ? formatDistance(haversineMeters(ride.originLat, ride.originLng, pickupLat, pickupLng))
+                : null;
+              const eta         = estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, pickupLat, pickupLng);
               return (
                 <div key={p.id} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
                   <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm font-bold text-brand-700 shrink-0">
@@ -524,7 +532,14 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
-                    {p.pickupName && <p className="text-xs text-gray-400 truncate">📍 {p.pickupName}</p>}
+                    {(company || pickupName || distStr) && (
+                      <p className="text-xs text-gray-500 truncate">
+                        {company && <span>{company}</span>}
+                        {pickupName && <span>{company ? ' · ' : ''}📍 {pickupName}</span>}
+                        {distStr && <span> · 📏 {distStr} from you</span>}
+                      </p>
+                    )}
+                    {eta && <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>}
                   </div>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${BOARDING_COLORS[status]}`}>
                     {BOARDING_LABELS[status]}
