@@ -97,20 +97,13 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
 
   // PERM-13: Giver's own published ride shows "Your ride" badge — not "Request Seat"
   test('PERM-13: giver sees "Your ride" badge (not Request Seat) on their own published ride in search', async ({ page }) => {
-    const { apiLogin, loginUI, API } = await import('./helpers');
+    const { apiLogin, loginUI, API, clearActiveRides } = await import('./helpers');
     const token = await apiLogin(ACCOUNTS.giver.email);
 
-    // Cancel any existing active ride so the giver can publish a fresh one
-    const activeR = await page.request.get(`${API}/rides?status=published`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (activeR.ok()) {
-      const activeBody = await activeR.json();
-      const activeRides: any[] = activeBody.data ?? activeBody ?? [];
-      for (const r of activeRides) {
-        await page.request.patch(`${API}/rides/${r.id}/cancel`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
-      }
-    }
+    // Clear any PUBLISHED or ONGOING rides so the giver can publish a fresh one.
+    // clearActiveRides handles both: cancels PUBLISHED and no-shows+completes ONGOING.
+    // A plain /cancel on an ONGOING ride is rejected — this was the previous bug.
+    await clearActiveRides(token).catch(() => {});
 
     // Create + publish a ride as the giver
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];

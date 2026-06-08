@@ -321,6 +321,13 @@ test.describe('🚗 Giver Full Flow', () => {
     await ctx.dispose();
   });
 
+  test.afterAll(async () => {
+    // Safety net: GF-12 calls complete with .catch(() => {}) — if it fails silently
+    // (e.g. seeker still WAITING due to board/deboard failure in GF-11), this ensures
+    // the ONGOING ride doesn't leak into permission-leaks.spec.ts.
+    if (giverToken) await clearActiveRides(giverToken).catch(() => {});
+  });
+
   test('GF-19: create ride page pre-fills locations from profile and allows editing', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides/create');

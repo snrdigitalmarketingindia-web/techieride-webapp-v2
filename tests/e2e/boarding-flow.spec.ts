@@ -71,12 +71,17 @@ test.describe('🚏 Boarding Flow', () => {
   test('BF-01: ONGOING ride shows passenger as WAITING', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    // inFourHours() can cross midnight in CI (UTC) → ride appears as "tomorrow" →
+    // hidden by the default 'today' period filter. Click 'All' to show all rides.
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByText(/waiting/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('BF-02: complete blocked when passenger still WAITING', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    // Click 'All' to bypass the default 'today' period filter (ride may be for tomorrow)
+    await page.getByRole('button', { name: /^All$/i }).click();
     // Complete button should not be available or should be disabled
     const completeBtn = page.getByRole('button', { name: /complete ride/i });
     const isVisible = await completeBtn.isVisible().catch(() => false);
@@ -90,6 +95,8 @@ test.describe('🚏 Boarding Flow', () => {
   test('BF-03: seeker sees boarding button on ONGOING ride', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/rides');
+    // Click 'All' to bypass the default 'today' period filter (ride may be for tomorrow)
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /i.ve boarded/i }).first()).toBeVisible({ timeout: 8_000 });
   });
 
@@ -100,6 +107,8 @@ test.describe('🚏 Boarding Flow', () => {
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    // Click 'All' to bypass the default 'today' period filter (ride may be for tomorrow)
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /complete ride/i })).toBeVisible({ timeout: 8_000 });
   });
 
@@ -116,5 +125,12 @@ test.describe('🚏 Boarding Flow', () => {
     await loginUI(page, 'seeker');
     await page.goto('/requests');
     await expect(page.getByText(/completed|LB Nagar/i).first()).toBeVisible({ timeout: 8_000 });
+  });
+
+  test.afterAll(async () => {
+    // Safety net: if BF-05 failed to complete the ride (e.g. seeker still WAITING),
+    // clearActiveRides no-shows all WAITING passengers then completes, preventing an
+    // ONGOING ride from leaking into permission-leaks.spec.ts and quick-messages-flow.spec.ts.
+    if (giverToken) await clearActiveRides(giverToken).catch(() => {});
   });
 });
