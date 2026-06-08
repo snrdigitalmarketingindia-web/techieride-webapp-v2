@@ -271,10 +271,10 @@ export default function MyRidesPage() {
 
       {/* Period filter tabs */}
       <div className="space-y-2">
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           {(['all', 'today', 'tomorrow', 'week', 'month', 'custom'] as const).map((p) => {
             const labels: Record<string, string> = {
-              all: 'All', today: 'Today', tomorrow: 'Tomorrow', week: 'This Week', month: 'This Month', custom: '📅 Custom',
+              all: 'All', today: 'Today', tomorrow: 'Tomorrow', week: 'Week', month: 'Month', custom: '📅 Custom',
             };
             return (
               <button
@@ -287,7 +287,7 @@ export default function MyRidesPage() {
                     if (tab === 'given') ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
                   }
                 }}
-                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition ${
+                className={`shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition whitespace-nowrap ${
                   period === p
                     ? 'bg-brand-600 text-white border-brand-600'
                     : 'border-gray-300 text-gray-500 hover:border-brand-400 hover:text-brand-600'
