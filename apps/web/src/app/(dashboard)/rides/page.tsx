@@ -455,7 +455,16 @@ export default function MyRidesPage() {
                               <p className="text-xs text-gray-500">{req.seeker.user.companyName}</p>
                             )}
                             {req.pickupName && (
-                              <p className="text-xs text-gray-500">📍 {req.pickupName}</p>
+                              <a
+                                href={req.pickupLat && req.pickupLng
+                                  ? `https://www.google.com/maps?q=${req.pickupLat},${req.pickupLng}`
+                                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(req.pickupName)}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-brand-600 hover:underline flex items-center gap-1"
+                                title="Open pickup location in Google Maps"
+                              >
+                                📍 {req.pickupName} <span className="text-gray-400 text-[10px]">↗</span>
+                              </a>
                             )}
                             {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng && (
                               <p className="text-xs text-gray-500">📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from you</p>

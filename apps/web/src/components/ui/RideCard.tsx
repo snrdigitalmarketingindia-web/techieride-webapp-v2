@@ -160,7 +160,18 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                   {(company || pickupName || distStr) && (
                     <p className="text-xs text-gray-500 truncate">
                       {company && <span>{company}</span>}
-                      {pickupName && <span>{company ? ' · ' : ''}📍 {pickupName}</span>}
+                      {pickupName && (
+                        <a
+                          href={pickupLat && pickupLng
+                            ? `https://www.google.com/maps?q=${pickupLat},${pickupLng}`
+                            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickupName)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          className="text-brand-600 hover:underline"
+                          title="Open in Google Maps"
+                        >
+                          {company ? ' · ' : ''}📍 {pickupName} <span className="text-gray-400 text-[10px]">↗</span>
+                        </a>
+                      )}
                       {distStr && <span> · 📏 {distStr} from you</span>}
                     </p>
                   )}
