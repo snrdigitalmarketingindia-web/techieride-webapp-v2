@@ -109,24 +109,75 @@ async function main() {
   console.log(`   ✔ commute_templates    : ${templates.count}`);
   console.log(`   ✔ saved_locations      : ${savedLocsResult}`);
 
-  // ── 2. Remove test-created vehicles (keep seed list only) ────────────────
+  // ── 2. Ensure RideGiver records exist for all seeded giver accounts ──────
+  // Rahul and Harish may have lost their ride_givers rows (e.g. after a full
+  // seed wipe or schema re-push). Upsert them now so the vehicle step can find them.
+  const GIVER_EMAILS_PRE = ['rahul@rahul.com', 'raju@raju.com', 'venky@venky.com', 'harish@harish.com'];
+  console.log('\n🧑‍✈️  Ensuring RideGiver records exist...');
+  for (const email of GIVER_EMAILS_PRE) {
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO ride_givers (id, "userId", "licenseVerified", "totalRidesGiven", "averageRating", "preferredGender", "isAvailable", "createdAt")
+      SELECT gen_random_uuid(), u.id, true, 0, 0.0, 'ANY', true, now()
+      FROM users u
+      WHERE u.email = $1
+      ON CONFLICT ("userId") DO UPDATE SET "licenseVerified" = true, "isAvailable" = true
+    `, email).catch((e: any) => {
+      console.log(`   ⚠ ride_givers upsert for ${email}: ${e.message}`);
+    });
+  }
+  console.log(`   ✔ ride_givers ensured for ${GIVER_EMAILS_PRE.length} giver accounts`);
+
+  // ── 3. Remove test-created vehicles (keep seed list only) ────────────────
   const deletedVehicles = await prisma.vehicle.deleteMany({
     where: { plateNumber: { notIn: SEED_PLATE_NUMBERS } },
   });
   console.log(`\n🚗 Deleted test vehicles    : ${deletedVehicles.count}`);
 
-  // Reset seed vehicles to fully-verified, active state
-  await prisma.vehicle.updateMany({
-    where: { plateNumber: { in: SEED_PLATE_NUMBERS } },
-    data: { rcVerified: true, isActive: true } as any,
-  });
-  console.log('   ✔ Seed vehicles reset to rcVerified=true, isActive=true');
+  // Upsert seed vehicles — creates them if deleted by tests, resets flags if present
+  const SEED_VEHICLES = [
+    { email: 'rahul@rahul.com',   plateNumber: 'TS09AB5678', make: 'Maruti',  model: 'Swift',  color: 'White',  totalSeats: 4 },
+    { email: 'raju@raju.com',     plateNumber: 'TS07RJ1234', make: 'Honda',   model: 'City',   color: 'Blue',   totalSeats: 4 },
+    { email: 'venky@venky.com',   plateNumber: 'TS07VK5678', make: 'Hyundai', model: 'i20',    color: 'Red',    totalSeats: 4 },
+    { email: 'harish@harish.com', plateNumber: 'TS08HR9012', make: 'Toyota',  model: 'Innova', color: 'Silver', totalSeats: 6 },
+  ];
 
-  // ── 3. Reset RideGiver flags ──────────────────────────────────────────────
-  await prisma.rideGiver.updateMany({
-    data: { licenseVerified: true, isAvailable: true },
-  });
-  console.log('\n🧑‍✈️  All RideGiver.licenseVerified → true');
+  for (const v of SEED_VEHICLES) {
+    // Look up the RideGiver id — try both camelCase and snake_case userId column
+    let giverRows: Array<{ id: string }> = [];
+    giverRows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT rg.id FROM ride_givers rg
+       JOIN users u ON u.id = rg."userId"
+       WHERE u.email = $1`, v.email
+    ).catch(() => []);
+
+    if (!giverRows.length) {
+      // Fallback: snake_case column name
+      giverRows = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT rg.id FROM ride_givers rg
+         JOIN users u ON u.id = rg.user_id
+         WHERE u.email = $1`, v.email
+      ).catch(() => []);
+    }
+
+    if (!giverRows.length) {
+      console.log(`   ⚠ No RideGiver found for ${v.email} — skipping vehicle`);
+      continue;
+    }
+    const rideGiverId = giverRows[0].id;
+
+    // Use raw SQL for upsert — Prisma client includes rcMatchStatus/rcParsedData
+    // which may not exist in the current DB, causing Prisma upsert to fail.
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO vehicles ("id", "rideGiverId", make, model, color, "plateNumber", "totalSeats", "rcVerified", "isActive", "createdAt")
+      VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, true, true, now())
+      ON CONFLICT ("plateNumber") DO UPDATE SET
+        "rideGiverId" = EXCLUDED."rideGiverId",
+        "rcVerified"  = true,
+        "isActive"    = true
+    `, rideGiverId, v.make, v.model, v.color, v.plateNumber, v.totalSeats);
+
+    console.log(`   ✔ ${v.email.padEnd(22)} → ${v.make} ${v.model} (${v.plateNumber}) rcVerified=true`);
+  }
 
   // ── 4. Reset verification requests → APPROVED ────────────────────────────
   await prisma.verificationRequest.updateMany({
