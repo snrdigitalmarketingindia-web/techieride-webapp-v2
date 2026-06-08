@@ -199,6 +199,7 @@ model User {
   complaintsReported   Complaint[]        @relation("complaintsReported")
   complaintsReceived   Complaint[]        @relation("complaintsReceived")
   trustScoreEvents     TrustScoreEvent[]
+  savedLocations       SavedLocation[]
 
   @@index([email])
   @@index([emailStatus])
@@ -597,4 +598,23 @@ model SosEvent {
 
   @@index([status])
   @@map("sos_events")
+}
+
+// ─── Saved Locations (Aliases) ────────────────────────────────────────────────
+// Ride seekers can save up to 20 frequently used pickup/drop locations with a
+// custom alias (e.g. "Home", "Gym", "HITEC City Office") so they don't have to
+// re-pin every time they request a ride.
+
+model SavedLocation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alias     String                        // display name e.g. "Home", "Gym"
+  lat       Float
+  lng       Float
+  address   String   @default("")         // reverse-geocoded label
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("saved_locations")
 }

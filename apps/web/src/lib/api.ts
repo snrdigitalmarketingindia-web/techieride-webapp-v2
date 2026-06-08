@@ -106,6 +106,14 @@ export const requestsApi = {
   cancel: (id: string, reason?: string) => api.patch(`/ride-requests/${id}/cancel`, { reason }),
 };
 
+// ─── Saved Locations ──────────────────────────────────
+export const savedLocationsApi = {
+  getMine: () => api.get('/saved-locations/my'),
+  create: (data: { alias: string; lat: number; lng: number; address?: string }) =>
+    api.post('/saved-locations', data),
+  remove: (id: string) => api.delete(`/saved-locations/${id}`),
+};
+
 // ─── Vehicles ─────────────────────────────────────────
 export const uploadsApi = {
   parseRc: (imageUrl: string) => api.post('/uploads/parse-rc', { imageUrl }),

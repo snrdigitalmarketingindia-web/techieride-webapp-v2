@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ContactCard } from '@/components/ui/ContactCard';
 import dynamic from 'next/dynamic';
 import { ridesApi, requestsApi, ratingsApi } from '@/lib/api';
+import { SavedLocationPicker, type PickedLocation } from '@/components/ui/SavedLocationPicker';
 import { useAuthStore } from '@/store/auth.store';
 import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
 
@@ -50,8 +51,8 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [requesting, setRequesting] = useState(false);
   const [requested, setRequested] = useState(false);
   const [showRequestSheet, setShowRequestSheet] = useState(false);
-  const [pickupName, setPickupName] = useState('');
-  const [dropName, setDropName] = useState('');
+  const [pickupLoc, setPickupLoc] = useState<PickedLocation | null>(null);
+  const [dropLoc, setDropLoc]     = useState<PickedLocation | null>(null);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -252,8 +253,12 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
     try {
       await requestsApi.create({
         rideId: params.id,
-        pickupName: pickupName || undefined,
-        dropName: dropName || undefined,
+        pickupName: pickupLoc?.name || undefined,
+        pickupLat:  pickupLoc?.lat || undefined,
+        pickupLng:  pickupLoc?.lng || undefined,
+        dropName:   dropLoc?.name || undefined,
+        dropLat:    dropLoc?.lat || undefined,
+        dropLng:    dropLoc?.lng || undefined,
       });
       setRequested(true);
       setShowRequestSheet(false);
@@ -777,25 +782,21 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
               <button onClick={() => setShowRequestSheet(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Custom pickup point (optional)</label>
-                <input
-                  value={pickupName}
-                  onChange={e => setPickupName(e.target.value)}
-                  placeholder="e.g. Kondapur Metro Station"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-gray-600 block mb-1">Custom drop point (optional)</label>
-                <input
-                  value={dropName}
-                  onChange={e => setDropName(e.target.value)}
-                  placeholder="e.g. Inorbit Mall gate"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-              </div>
+            <div className="space-y-4">
+              <SavedLocationPicker
+                label="Pickup point (optional)"
+                value={pickupLoc}
+                onChange={setPickupLoc}
+                mapTitle="Pin your pickup point"
+                placeholder="e.g. Kondapur Metro Station"
+              />
+              <SavedLocationPicker
+                label="Drop point (optional)"
+                value={dropLoc}
+                onChange={setDropLoc}
+                mapTitle="Pin your drop point"
+                placeholder="e.g. Inorbit Mall gate"
+              />
             </div>
 
             <p className="text-xs text-gray-400">
