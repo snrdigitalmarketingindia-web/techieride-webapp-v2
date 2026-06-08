@@ -108,11 +108,16 @@ jobs:
         run: |
           npm run test:api:coverage 2>&1 | tee /tmp/tr-logs/05-coverage.log
           [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_05-coverage
-      - name: Run final gap-closing tests
+      - name: Run final gap-closing tests Part A (sections 1-16)
         continue-on-error: true
         run: |
-          npm run test:api:final 2>&1 | tee /tmp/tr-logs/06-final.log
-          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_06-final
+          npm run test:api:final-a 2>&1 | tee /tmp/tr-logs/06a-final.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_06a-final
+      - name: Run final gap-closing tests Part B (sections 17-33)
+        continue-on-error: true
+        run: |
+          npm run test:api:final-b 2>&1 | tee /tmp/tr-logs/06b-final.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_06b-final
       - name: Run ratings & SOS P0 tests
         continue-on-error: true
         run: |
@@ -155,7 +160,7 @@ jobs:
         if: always()
         run: |
           echo "Suite results:"
-          for suite in 01-base 02-extended 03-negative 04-rules 05-coverage 06-final 07-ratings-sos 08-notifications 09-audit-trail 10-complaints 11-boarding 12-edge-cases 13-cancellation; do
+          for suite in 01-base 02-extended 03-negative 04-rules 05-coverage 06a-final 06b-final 07-ratings-sos 08-notifications 09-audit-trail 10-complaints 11-boarding 12-edge-cases 13-cancellation; do
             if [ -f /tmp/tr-logs/FAILED_${suite} ]; then
               echo "  ${suite}: ❌ FAILED"
             else
@@ -195,7 +200,8 @@ jobs:
           write "| 03-negative      | $([ -f /tmp/tr-logs/FAILED_03-negative ] && echo '❌ FAILED' || echo '✅ passed') |"
           write "| 04-rules         | $([ -f /tmp/tr-logs/FAILED_04-rules ] && echo '❌ FAILED' || echo '✅ passed') |"
           write "| 05-coverage      | $([ -f /tmp/tr-logs/FAILED_05-coverage ] && echo '❌ FAILED' || echo '✅ passed') |"
-          write "| 06-final         | $([ -f /tmp/tr-logs/FAILED_06-final ] && echo '❌ FAILED' || echo '✅ passed') |"
+          write "| 06a-final        | $([ -f /tmp/tr-logs/FAILED_06a-final ] && echo '❌ FAILED' || echo '✅ passed') |"
+          write "| 06b-final        | $([ -f /tmp/tr-logs/FAILED_06b-final ] && echo '❌ FAILED' || echo '✅ passed') |"
           write "| 07-ratings-sos   | $([ -f /tmp/tr-logs/FAILED_07-ratings-sos ] && echo '❌ FAILED' || echo '✅ passed') |"
           write "| 08-notifications | $([ -f /tmp/tr-logs/FAILED_08-notifications ] && echo '❌ FAILED' || echo '✅ passed') |"
           write "| 09-audit-trail   | $([ -f /tmp/tr-logs/FAILED_09-audit-trail ] && echo '❌ FAILED' || echo '✅ passed') |"

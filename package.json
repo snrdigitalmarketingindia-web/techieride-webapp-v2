@@ -23,6 +23,8 @@
     "test:api:rules": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-business-rules.ts",
     "test:api:coverage": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-coverage.ts",
     "test:api:final": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-final.ts",
+    "test:api:final-a": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-final-a.ts",
+    "test:api:final-b": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-final-b.ts",
     "test:all": "npm run test:api && npm run test:api:extended && npm run test:api:negative && npm run test:api:rules && npm run test:api:coverage && npm run test:api:final",
     "test:api:security": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-security.ts",
     "test:api:ratings-sos": "apps/api/node_modules/.bin/ts-node --project apps/api/tsconfig.json tests/e2e-api-ratings-sos.ts",
