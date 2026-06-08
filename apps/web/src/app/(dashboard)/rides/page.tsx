@@ -21,10 +21,9 @@ export default function MyRidesPage() {
   const [hasActiveRide, setHasActiveRide] = useState(false);
   // showHistory=false so the "Show History" button is visible by default (tests click it to reveal past rides).
   const [showHistory, setShowHistory] = useState(false);
-  // Period filter — default 'week' so today + tomorrow rides both appear without switching tabs.
-  // 'today' was the old default but hid tomorrow rides, breaking Playwright tests and confusing givers.
+  // Period filter — default 'today'.
   type Period = 'all' | 'today' | 'tomorrow' | 'week' | 'month' | 'custom';
-  const [period, setPeriod] = useState<Period>('week');
+  const [period, setPeriod] = useState<Period>('today');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo]   = useState('');
   // Giver: pending requests per ride  { rideId: req[] }

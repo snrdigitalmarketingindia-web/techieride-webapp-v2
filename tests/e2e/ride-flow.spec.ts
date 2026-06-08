@@ -186,8 +186,8 @@ test.describe('📅 My Rides — Period Filter Tabs', () => {
     await expect(page.getByRole('button', { name: /This Week/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /This Month/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /Custom/i })).toBeVisible({ timeout: 5_000 });
-    // "This Week" must be the active (highlighted) tab by default
-    await expect(page.getByRole('button', { name: /This Week/i })).toHaveClass(/bg-brand/, { timeout: 5_000 });
+    // "Today" must be the active (highlighted) tab by default
+    await expect(page.getByRole('button', { name: /^Today$/i })).toHaveClass(/bg-brand/, { timeout: 5_000 });
   });
 
   test('MR-02: clicking Custom reveals date range pickers', async ({ page }) => {
