@@ -78,9 +78,13 @@ test.describe('👤 Profile Flow', () => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
     await expect(page.getByText(/personal email/i)).toBeVisible({ timeout: 8_000 });
-    // Should show either verified badge or unverified badge
-    const badge = await page.getByText(/verified|unverified/i).first().isVisible().catch(() => false);
-    expect(badge).toBe(true);
+    // Badge (Verified / Unverified) is only rendered when personalEmail is set.
+    // If not set, the section shows "Not set" instead. Both states are valid —
+    // either confirms the section loaded. Use toBeVisible() with a timeout so
+    // we wait for the profile API response rather than doing a point-in-time check.
+    await expect(
+      page.getByText(/verified|unverified|not set/i).first()
+    ).toBeVisible({ timeout: 5_000 });
   });
 
   test('PF-10: clicking Add/Change personal email shows input field', async ({ page }) => {
