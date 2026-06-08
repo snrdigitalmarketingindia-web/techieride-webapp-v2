@@ -375,7 +375,7 @@ async function run() {
         destLat:   '17.4489', destLng:   '78.3696',
         date: tomorrow32, radiusMeters: '5000',
       });
-      const searchR = await giverDist.client.get(`/rides/search?${searchParams}`);
+      const searchR = await giverClose.client.get(`/rides/search?${searchParams}`);
       assert([200, 201].includes(searchR.status), `Search expected 200, got ${searchR.status}`);
       rides = searchR.data?.data ?? searchR.data?.rides ?? searchR.data ?? [];
 
