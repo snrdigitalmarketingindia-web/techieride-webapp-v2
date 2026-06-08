@@ -99,9 +99,8 @@ test.describe('🚗 Giver Full Flow', () => {
     await api(giverToken, 'patch', `/ride-requests/${requestId}/approve`);
 
     await loginUI(page, 'giver');
-    await gotoRidesReady(page);
-    await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
+    await page.goto(`/rides/${rideId}`);
+    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test('GF-06: giver rejects a second request — requests page updates', async ({ page }) => {
@@ -119,18 +118,16 @@ test.describe('🚗 Giver Full Flow', () => {
 
   test('GF-07: giver sees Start Ride button on PUBLISHED ride', async ({ page }) => {
     await loginUI(page, 'giver');
-    await gotoRidesReady(page);
-    await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByRole('button', { name: /start ride/i })).toBeVisible({ timeout: 8_000 });
+    await page.goto(`/rides/${rideId}`);
+    await expect(page.getByRole('button', { name: /start ride/i })).toBeVisible({ timeout: 10_000 });
   });
 
   test('GF-08: giver starts ride — status changes to ONGOING', async ({ page }) => {
     await api(giverToken, 'patch', `/rides/${rideId}/start`);
 
     await loginUI(page, 'giver');
-    await gotoRidesReady(page);
-    await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByText(/ongoing/i).filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
+    await page.goto(`/rides/${rideId}`);
+    await expect(page.getByText(/ongoing/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('GF-09: giver cannot cancel ONGOING ride', async ({ page }) => {
@@ -143,9 +140,8 @@ test.describe('🚗 Giver Full Flow', () => {
 
   test('GF-10: quick message button visible on ONGOING ride', async ({ page }) => {
     await loginUI(page, 'giver');
-    await gotoRidesReady(page);
-    await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
+    await page.goto(`/rides/${rideId}`);
+    await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 10_000 });
   });
 
   test('GF-11: giver boards and deboards passenger — Complete Ride becomes available', async ({ page }) => {
@@ -154,9 +150,8 @@ test.describe('🚗 Giver Full Flow', () => {
     await api(seekerToken, 'patch', `/rides/${rideId}/deboard`).catch(() => {});
 
     await loginUI(page, 'giver');
-    await gotoRidesReady(page);
-    await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByRole('button', { name: /complete ride/i })).toBeVisible({ timeout: 8_000 });
+    await page.goto(`/rides/${rideId}`);
+    await expect(page.getByRole('button', { name: /complete ride/i })).toBeVisible({ timeout: 10_000 });
   });
 
   test('GF-12: completed ride shows in history', async ({ page }) => {

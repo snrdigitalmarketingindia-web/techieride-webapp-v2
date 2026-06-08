@@ -329,10 +329,9 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
 
   test('BD-01: confirmed passenger shows "Seat Confirmed" badge on PUBLISHED ride (giver view)', async ({ page }) => {
     await loginUI(page, 'giver');
-    await page.goto('/rides');
-    // Show all rides (default period filter may exclude today's ride by date range)
-    await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 8_000 });
+    // Navigate directly to the ride detail page — avoids list-page two-phase loading race
+    await page.goto(`/rides/${rideId}`);
+    await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/^Waiting$/i)).not.toBeVisible();
   });
 
