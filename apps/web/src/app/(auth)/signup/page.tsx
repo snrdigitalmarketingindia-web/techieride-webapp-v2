@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 
 const STEPS = ['Account', 'Company'];
 
@@ -28,6 +29,7 @@ function Field({ label, required, children, hint }: { label: string; required?: 
 }
 
 export default function SignupPage() {
+  const { login: storeLogin } = useAuthStore();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -90,6 +92,12 @@ export default function SignupPage() {
         companyName: form.companyName.trim(),
         employeeId: form.employeeId.trim() || undefined,
       });
+      // Auto-login after registration so the user has a session token.
+      // This lets them navigate to /exception-verification directly from
+      // the "Check your inbox" screen if they can't access their company email.
+      // The EmailVerifiedGuard + DashboardLayout guard ensure they can only
+      // reach /exception-verification — all other dashboard pages are blocked.
+      await storeLogin(form.email.toLowerCase().trim(), form.password).catch(() => {});
       setRegisteredEmail(form.email.toLowerCase().trim());
       setRegistered(true);
     } catch (e: any) {
@@ -140,9 +148,22 @@ export default function SignupPage() {
           >
             Use a different email
           </button>
-          <Link href="/login" className="block w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition text-center">
+          <Link href="/login" className="block w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition text-center mb-4">
             Go to Login
           </Link>
+          {/* Exception request — for users who genuinely can't access their company email */}
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs text-gray-500 mb-1">Can't access your company email?</p>
+            <Link
+              href="/exception-verification"
+              className="text-sm text-brand-600 font-medium hover:underline"
+            >
+              Request an admin exception →
+            </Link>
+            <p className="text-xs text-gray-400 mt-1">
+              Upload your company ID card and an admin will verify you manually.
+            </p>
+          </div>
         </div>
       </div>
     );

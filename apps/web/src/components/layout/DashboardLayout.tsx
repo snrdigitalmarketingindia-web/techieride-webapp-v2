@@ -39,8 +39,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    if (!user) fetchProfile();
-  }, [_hasHydrated, isAuthenticated]);
+    if (!user) { fetchProfile(); return; }
+
+    // Security gate: email-unverified users must not access dashboard pages.
+    // EMAIL_VERIFICATION_PENDING  — signed up but haven't clicked the verify link yet
+    // EXCEPTION_VERIFICATION_REQUESTED — requested admin exception, awaiting review
+    // Both are allowed on /exception-verification only.
+    const blockedStatuses = ['EMAIL_VERIFICATION_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
+    if (blockedStatuses.includes(user.accountStatus ?? '') && !pathname.startsWith('/exception-verification')) {
+      router.replace('/exception-verification');
+    }
+  }, [_hasHydrated, isAuthenticated, user?.accountStatus, pathname]);
 
   // Show loading skeleton while Zustand is hydrating from localStorage
   if (!_hasHydrated) {

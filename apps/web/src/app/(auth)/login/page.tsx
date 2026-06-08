@@ -31,7 +31,15 @@ export default function LoginPage() {
       setUnverifiedEmail('');
       await login(email.toLowerCase().trim(), password);
       const { user } = useAuthStore.getState();
-      router.push(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
+      const status = user?.accountStatus;
+      if (status === 'EMAIL_VERIFICATION_PENDING') {
+        // Don't navigate to dashboard — show inline banner so user can resend or request exception
+        setUnverifiedEmail(email.toLowerCase().trim());
+      } else if (status === 'EXCEPTION_VERIFICATION_REQUESTED') {
+        router.push('/exception-verification');
+      } else {
+        router.push(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
+      }
     } catch (e: any) {
       const msg = e.response?.data?.message || '';
       if (msg === 'EMAIL_NOT_VERIFIED') {
@@ -135,7 +143,7 @@ export default function LoginPage() {
           <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4">
             <p className="text-sm font-medium text-amber-800 mb-1">📧 Email not verified</p>
             <p className="text-sm text-amber-700">
-              Please check your email and click the verify link sent to{' '}
+              Please check your inbox and click the verify link sent to{' '}
               <strong>{unverifiedEmail}</strong>
             </p>
             <button
@@ -148,10 +156,19 @@ export default function LoginPage() {
                   setError('Could not resend. Please try again in a moment.');
                 }
               }}
-              className="mt-2 text-xs text-amber-700 underline hover:text-amber-900"
+              className="mt-2 text-xs text-amber-700 underline hover:text-amber-900 block"
             >
               Didn't receive it? Resend verification email
             </button>
+            <div className="mt-3 pt-3 border-t border-amber-200">
+              <p className="text-xs text-amber-600">Can't access your company email?</p>
+              <Link
+                href="/exception-verification"
+                className="text-xs text-amber-800 font-medium underline hover:text-amber-900"
+              >
+                Request an admin exception →
+              </Link>
+            </div>
           </div>
         )}
 
