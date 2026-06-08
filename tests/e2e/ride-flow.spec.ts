@@ -369,8 +369,9 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
     await expect(page.getByText(/Yet to board/i)).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText(/Seat Confirmed/i)).not.toBeVisible();
 
-    // Cleanup
-    await apiCall(giverToken, 'patch', `/rides/${rideId}/cancel`).catch(() => {});
+    // Cleanup: use clearActiveRides because /cancel is rejected on ONGOING rides.
+    // A leaked ONGOING ride would block SR-04's publish call with "active ride" error.
+    await clearActiveRides(giverToken).catch(() => {});
   });
 });
 
@@ -409,8 +410,11 @@ test.describe('👤 Profile — Blood Group Dropdown', () => {
 // ── Search — Seeker vs Giver button ───────────────────────────────────────────
 test.describe('🔍 Search — Request Seat shown to seeker, not to giver on own ride', () => {
   test('SR-04: seeker sees Request Seat button (not "Your ride") on a published ride', async ({ page }) => {
-    // Ensure there is at least one published ride visible
+    // Ensure there is at least one published ride visible.
+    // Clear any ONGOING/PUBLISHED rides first — BD-02 may leave an ONGOING ride if
+    // its /cancel cleanup call was silently rejected (cancel only works on PUBLISHED).
     const giverToken = await apiLogin(ACCOUNTS.giver.email);
+    await clearActiveRides(giverToken).catch(() => {});
     const vehicles   = await apiCall(giverToken, 'get', '/vehicles/my');
     const vehicleId  = vehicles.data?.[0]?.id ?? vehicles[0]?.id;
     const tomorrow   = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
