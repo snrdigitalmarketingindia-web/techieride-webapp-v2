@@ -142,12 +142,14 @@ export default function SignupPage() {
           >
             Didn't receive it? Resend email
           </button>
-          <button
-            onClick={() => { setRegistered(false); setDomainHint(''); setStep(0); setForm({ fullName: '', email: '', password: '', phone: '', companyName: '', employeeId: '' }); }}
-            className="text-sm text-gray-500 hover:underline mb-2 block w-full"
-          >
-            Use a different email
-          </button>
+          {/* Once the email is verified, the user logs in to continue onboarding */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-600 mb-4 text-left">
+            <p className="font-medium text-gray-700 mb-1">📌 Already verified?</p>
+            <p>
+              Log in with <strong>{registeredEmail}</strong> and your password to upload
+              your company ID card and complete onboarding.
+            </p>
+          </div>
           <Link href="/login" className="block w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition text-center mb-4">
             Go to Login
           </Link>
