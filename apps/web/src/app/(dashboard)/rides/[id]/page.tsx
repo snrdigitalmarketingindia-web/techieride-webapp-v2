@@ -419,25 +419,28 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
           </p>
           <div className="space-y-3">
             {pendingRequests.map((req: any) => (
-              <div key={req.id} className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700 shrink-0">
+              <div key={req.id} className="space-y-2 bg-amber-50/50 rounded-lg p-2 border border-amber-100">
+                {/* Two-column: info left, buttons stacked right */}
+                <div className="flex items-start gap-2">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-700 shrink-0 mt-0.5">
                     {req.seeker?.user?.fullName?.[0] ?? '?'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {req.seeker?.user?.trid && <span className="text-brand-600 mr-1 text-xs">{req.seeker.user.trid}</span>}
                       {req.seeker?.user?.fullName ?? 'Seeker'}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {req.seeker?.user?.companyName ?? ''}
-                      {req.pickupName ? ` · 📍 ${req.pickupName}` : ''}
-                      {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng
-                        ? ` · 📏 ${formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from your location`
-                        : ''}
-                    </p>
-                    {/* Pickup time — override or auto-estimate */}
+                    {req.seeker?.user?.companyName && (
+                      <p className="text-xs text-gray-500">{req.seeker.user.companyName}</p>
+                    )}
+                    {req.pickupName && (
+                      <p className="text-xs text-gray-500">📍 {req.pickupName}</p>
+                    )}
+                    {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng && (
+                      <p className="text-xs text-gray-500">📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from you</p>
+                    )}
                     {editingEta === req.id ? (
-                      <div className="flex items-center gap-1 mt-1">
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
                         <input
                           type="time"
                           value={etaDraft}
@@ -466,23 +469,26 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleApproveRequest(req.id)}
-                    disabled={actionLoading === `approve-${req.id}` || actionLoading === `reject-${req.id}`}
-                    className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0"
-                  >
-                    {actionLoading === `approve-${req.id}` ? '…' : '✅ Approve'}
-                  </button>
-                  <button
-                    onClick={() => { setRejectingReqId(req.id); setRejectReason(''); }}
-                    disabled={!!actionLoading}
-                    className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0"
-                  >
-                    ❌ Reject
-                  </button>
+                  {/* Buttons stacked vertically on right */}
+                  <div className="flex flex-col gap-1 shrink-0">
+                    <button
+                      onClick={() => handleApproveRequest(req.id)}
+                      disabled={actionLoading === `approve-${req.id}` || actionLoading === `reject-${req.id}`}
+                      className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {actionLoading === `approve-${req.id}` ? '…' : '✅ Approve'}
+                    </button>
+                    <button
+                      onClick={() => { setRejectingReqId(req.id); setRejectReason(''); }}
+                      disabled={!!actionLoading}
+                      className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 whitespace-nowrap"
+                    >
+                      ❌ Reject
+                    </button>
+                  </div>
                 </div>
                 {rejectingReqId === req.id && (
-                  <div className="flex gap-2 pl-11">
+                  <div className="flex gap-2">
                     <input
                       autoFocus
                       value={rejectReason}
@@ -526,33 +532,35 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                 : null;
               const eta         = estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, pickupLat, pickupLng);
               return (
-                <div key={p.id} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
-                  <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm font-bold text-brand-700 shrink-0">
+                <div key={p.id} className="flex items-start gap-3 bg-gray-50 rounded-lg px-3 py-2">
+                  <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm font-bold text-brand-700 shrink-0 mt-0.5">
                     {name[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
-                    {(company || pickupName || distStr) && (
-                      <p className="text-xs text-gray-500 truncate">
-                        {company && <span>{company}</span>}
-                        {pickupName && <span>{company ? ' · ' : ''}📍 {pickupName}</span>}
-                        {distStr && <span> · 📏 {distStr} from you</span>}
+                    <p className="text-sm font-medium text-gray-900">{name}</p>
+                    {company && <p className="text-xs text-gray-500">{company}</p>}
+                    {pickupName && (
+                      <p className="text-xs text-gray-500">
+                        📍 {pickupName}{distStr ? ` · 📏 ${distStr} from you` : ''}
                       </p>
                     )}
-                    {eta && <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>}
+                    {eta && <p className="text-xs text-gray-400">🕐 Est. ~{eta}</p>}
                   </div>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${BOARDING_COLORS[status]}`}>
-                    {BOARDING_LABELS[status]}
-                  </span>
-                  {isMyRide && ride.status === 'ONGOING' && status === 'WAITING' && (
-                    <button
-                      onClick={() => handleNoShow(seekerUserId)}
-                      disabled={actionLoading === `noshow-${seekerUserId}`}
-                      className="text-xs text-red-600 border border-red-200 rounded-lg px-2 py-1 hover:bg-red-50 disabled:opacity-50 shrink-0"
-                    >
-                      {actionLoading === `noshow-${seekerUserId}` ? '…' : 'No Show'}
-                    </button>
-                  )}
+                  {/* Status badge + no-show button stacked on right */}
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${BOARDING_COLORS[status]}`}>
+                      {BOARDING_LABELS[status]}
+                    </span>
+                    {isMyRide && ride.status === 'ONGOING' && status === 'WAITING' && (
+                      <button
+                        onClick={() => handleNoShow(seekerUserId)}
+                        disabled={actionLoading === `noshow-${seekerUserId}`}
+                        className="text-xs text-red-600 border border-red-200 rounded-lg px-2 py-1 hover:bg-red-50 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {actionLoading === `noshow-${seekerUserId}` ? '…' : '👻 No-Show'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}

@@ -310,46 +310,51 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">📥 Pending ({pendingReqs.length})</p>
                   {pendingReqs.map((req: any) => (
-                    <div key={req.id} className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0">
+                    <div key={req.id} className="space-y-1.5 bg-amber-50/50 rounded-lg p-2 border border-amber-100">
+                      {/* Two-column: info left, buttons stacked right */}
+                      <div className="flex items-start gap-2">
+                        <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0 mt-0.5">
                           {req.seeker?.user?.fullName?.[0] ?? '?'}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-800 truncate">
+                          <p className="text-xs font-semibold text-gray-800">
                             {req.seeker?.user?.trid && <span className="text-brand-600 mr-1">{req.seeker.user.trid}</span>}
                             {req.seeker?.user?.fullName ?? 'Seeker'}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">
-                            {req.seeker?.user?.companyName && <span>{req.seeker.user.companyName}</span>}
-                            {req.pickupName && <span> · 📍 {req.pickupName}</span>}
-                            {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng && (
-                              <span> · 📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from your location</span>
-                            )}
-                          </p>
+                          {req.seeker?.user?.companyName && (
+                            <p className="text-xs text-gray-500">{req.seeker.user.companyName}</p>
+                          )}
+                          {req.pickupName && (
+                            <p className="text-xs text-gray-500">📍 {req.pickupName}</p>
+                          )}
+                          {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng && (
+                            <p className="text-xs text-gray-500">📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from you</p>
+                          )}
                           {(() => {
-                            const override = (() => { try { return localStorage.getItem(`tr_pickup_eta_${req.id}`) ?? ''; } catch { return ''; } })();
                             const eta = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
-                            return override
-                              ? <p className="text-xs text-brand-600 font-medium mt-0.5">🕐 Pickup at {override}</p>
-                              : eta ? <p className="text-xs text-gray-400 mt-0.5">🕐 Est. ~{eta}</p> : null;
+                            return eta ? <p className="text-xs text-gray-400 mt-0.5">🕐 Est. ~{eta}</p> : null;
                           })()}
                         </div>
-                        {req.seeker?.user?.phone && (
-                          <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
-                            receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
-                        )}
-                        <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
-                          className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">✅ Approve</button>
-                        <button
-                          onClick={() => { setRejectingId(req.id); setRejectReason(''); }}
-                          disabled={processing === req.id}
-                          className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0">
-                          ❌ Reject
-                        </button>
+                        {/* Buttons stacked vertically on right */}
+                        <div className="flex flex-col gap-1 shrink-0">
+                          {req.seeker?.user?.phone && (
+                            <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
+                              receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
+                          )}
+                          <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
+                            className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap">
+                            ✅ Approve
+                          </button>
+                          <button
+                            onClick={() => { setRejectingId(req.id); setRejectReason(''); }}
+                            disabled={processing === req.id}
+                            className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 whitespace-nowrap">
+                            ❌ Reject
+                          </button>
+                        </div>
                       </div>
                       {rejectingId === req.id && (
-                        <div className="flex gap-2 pl-8">
+                        <div className="flex gap-2">
                           <input
                             autoFocus
                             value={rejectReason}
