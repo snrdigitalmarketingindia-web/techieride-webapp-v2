@@ -372,7 +372,7 @@ async function run() {
 
       const searchParams = new URLSearchParams({
         originLat: '17.4401', originLng: '78.3489',
-        destLat:   '17.4489', destLng:   '78.3696',
+        destinationLat: '17.4489', destinationLng: '78.3696',
         date: tomorrow32, radiusMeters: '5000',
       });
       const searchR = await giverClose.client.get(`/rides/search?${searchParams}`);
