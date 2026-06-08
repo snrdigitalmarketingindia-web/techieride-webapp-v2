@@ -46,7 +46,7 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
 
       {/* ── Ride header ─────────────────────────────── */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="font-medium text-gray-900 text-sm truncate">
             {ride.originName} → {ride.destinationName}
@@ -55,8 +55,22 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
             📅 {dateStr} · 🕐 {ride.departureTime}
             {ride.vehicle && ` · ${ride.vehicle.make} ${ride.vehicle.model}`}
           </p>
+          {/* Mobile: badges below route */}
+          <div className="flex items-center gap-1.5 flex-wrap mt-1 sm:hidden">
+            {ride.womenOnly && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-pink-100 text-pink-700">👩 Women only</span>
+            )}
+            {ride.totalSeats != null && (
+              <span className="text-xs text-gray-400">{ride.availableSeats}/{ride.totalSeats} seats</span>
+            )}
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[ride.status] ?? 'bg-gray-100 text-gray-500'}`}>
+              {ride.status}
+            </span>
+            <Link href={`/rides/${ride.id}`} className="text-xs text-brand-600 font-medium hover:underline">View →</Link>
+          </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Desktop: badges on right side */}
+        <div className="hidden sm:flex items-center gap-2 shrink-0">
           {ride.womenOnly && (
             <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-pink-100 text-pink-700">
               👩 Women only
