@@ -1,0 +1,70 @@
+import { VehiclesService } from './vehicles.service';
+import { CreateVehicleDto } from './dto/create-vehicle.dto';
+export declare class VehiclesController {
+    private service;
+    constructor(service: VehiclesService);
+    create(userId: string, dto: CreateVehicleDto): Promise<{
+        year: number | null;
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        rcUrl: string | null;
+        rideGiverId: string;
+        totalSeats: number;
+        make: string;
+        model: string;
+        color: string | null;
+        plateNumber: string;
+        rcVerified: boolean;
+        rcMatchStatus: string | null;
+        rcParsedData: import("@prisma/client/runtime/library").JsonValue | null;
+    }>;
+    findMine(userId: string): Promise<{
+        year: number | null;
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        rcUrl: string | null;
+        rideGiverId: string;
+        totalSeats: number;
+        make: string;
+        model: string;
+        color: string | null;
+        plateNumber: string;
+        rcVerified: boolean;
+        rcMatchStatus: string | null;
+        rcParsedData: import("@prisma/client/runtime/library").JsonValue | null;
+    }[]>;
+    updateRc(id: string, userId: string, rcUrl: string, parsedData?: Record<string, any>): Promise<{
+        year: number | null;
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        rcUrl: string | null;
+        rideGiverId: string;
+        totalSeats: number;
+        make: string;
+        model: string;
+        color: string | null;
+        plateNumber: string;
+        rcVerified: boolean;
+        rcMatchStatus: string | null;
+        rcParsedData: import("@prisma/client/runtime/library").JsonValue | null;
+    }>;
+    remove(id: string, userId: string): Promise<{
+        year: number | null;
+        id: string;
+        isActive: boolean;
+        createdAt: Date;
+        rcUrl: string | null;
+        rideGiverId: string;
+        totalSeats: number;
+        make: string;
+        model: string;
+        color: string | null;
+        plateNumber: string;
+        rcVerified: boolean;
+        rcMatchStatus: string | null;
+        rcParsedData: import("@prisma/client/runtime/library").JsonValue | null;
+    }>;
+}

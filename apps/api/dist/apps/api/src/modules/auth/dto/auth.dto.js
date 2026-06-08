@@ -1,0 +1,190 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ExceptionVerificationDto = exports.RefreshTokenDto = exports.VerifyEmailDto = exports.ChangePasswordDto = exports.ResetPasswordDto = exports.ForgotPasswordDto = exports.LoginDto = exports.RegisterDto = void 0;
+const class_validator_1 = require("class-validator");
+const shared_1 = require("@techieride/shared");
+const VALID_BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
+class RegisterDto {
+}
+exports.RegisterDto = RegisterDto;
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(254),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "email", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(8, { message: 'Password must be at least 8 characters' }),
+    (0, class_validator_1.MaxLength)(64),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "password", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(100),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "fullName", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(2),
+    (0, class_validator_1.MaxLength)(100),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "companyName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "employeeId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(shared_1.Gender),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "gender", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.Matches)(/^[6-9]\d{9}$/, { message: 'Phone must be a valid 10-digit Indian mobile number' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(10),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "countryCode", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(254),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "personalEmail", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "homeLocation", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "officeLocation", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(100),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "emergencyContactName", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(15),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "emergencyContactPhone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)(VALID_BLOOD_GROUPS, { message: 'Invalid blood group. Must be one of: A+, A-, B+, B-, O+, O-, AB+, AB-' }),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "bloodGroup", void 0);
+class LoginDto {
+}
+exports.LoginDto = LoginDto;
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(254),
+    __metadata("design:type", String)
+], LoginDto.prototype, "email", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(1),
+    (0, class_validator_1.MaxLength)(64),
+    __metadata("design:type", String)
+], LoginDto.prototype, "password", void 0);
+class ForgotPasswordDto {
+}
+exports.ForgotPasswordDto = ForgotPasswordDto;
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(254),
+    __metadata("design:type", String)
+], ForgotPasswordDto.prototype, "email", void 0);
+class ResetPasswordDto {
+}
+exports.ResetPasswordDto = ResetPasswordDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(512),
+    __metadata("design:type", String)
+], ResetPasswordDto.prototype, "token", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(8, { message: 'Password must be at least 8 characters' }),
+    (0, class_validator_1.MaxLength)(64),
+    __metadata("design:type", String)
+], ResetPasswordDto.prototype, "newPassword", void 0);
+class ChangePasswordDto {
+}
+exports.ChangePasswordDto = ChangePasswordDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(1),
+    (0, class_validator_1.MaxLength)(64),
+    __metadata("design:type", String)
+], ChangePasswordDto.prototype, "oldPassword", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(8, { message: 'New password must be at least 8 characters' }),
+    (0, class_validator_1.MaxLength)(64),
+    __metadata("design:type", String)
+], ChangePasswordDto.prototype, "newPassword", void 0);
+class VerifyEmailDto {
+}
+exports.VerifyEmailDto = VerifyEmailDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(512),
+    __metadata("design:type", String)
+], VerifyEmailDto.prototype, "token", void 0);
+class RefreshTokenDto {
+}
+exports.RefreshTokenDto = RefreshTokenDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(1024),
+    __metadata("design:type", String)
+], RefreshTokenDto.prototype, "refreshToken", void 0);
+class ExceptionVerificationDto {
+}
+exports.ExceptionVerificationDto = ExceptionVerificationDto;
+__decorate([
+    (0, class_validator_1.IsEmail)(),
+    (0, class_validator_1.MaxLength)(254),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "personalEmail", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(500),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "companyIdCardUrl", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MaxLength)(50),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "employeeId", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.MinLength)(20, { message: 'Please provide a detailed reason (at least 20 characters)' }),
+    (0, class_validator_1.MaxLength)(1000),
+    __metadata("design:type", String)
+], ExceptionVerificationDto.prototype, "reason", void 0);
+//# sourceMappingURL=auth.dto.js.map

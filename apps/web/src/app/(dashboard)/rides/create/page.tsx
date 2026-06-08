@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ridesApi, vehiclesApi, templatesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
+import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 
 const PREFS_KEY = 'tr_ride_prefs';
 
@@ -79,6 +80,7 @@ export default function CreateRidePage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mapModal, setMapModal] = useState<'origin' | 'destination' | null>(null);
 
   // Smart location defaults: profile home/office → last used route → blank
   // Runs once user profile is available (client-side only)
@@ -247,11 +249,29 @@ export default function CreateRidePage() {
           )}
           <div>
             <label className="text-sm font-medium text-gray-700">📍 From (Pickup area)</label>
-            <input value={form.originName} onChange={(e) => update('originName', e.target.value)} placeholder="Kondapur, Hyderabad" className={`${inputCls} mt-1`} />
+            <button
+              type="button"
+              onClick={() => setMapModal('origin')}
+              className={`${inputCls} mt-1 flex items-center gap-2 text-left`}
+            >
+              <span>📍</span>
+              <span className={form.originName ? 'text-gray-800' : 'text-gray-400'}>
+                {form.originName || 'Tap to pin on map'}
+              </span>
+            </button>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">🏢 To (Destination)</label>
-            <input value={form.destinationName} onChange={(e) => update('destinationName', e.target.value)} placeholder="HITEC City, Hyderabad" className={`${inputCls} mt-1`} />
+            <button
+              type="button"
+              onClick={() => setMapModal('destination')}
+              className={`${inputCls} mt-1 flex items-center gap-2 text-left`}
+            >
+              <span>🏁</span>
+              <span className={form.destinationName ? 'text-gray-800' : 'text-gray-400'}>
+                {form.destinationName || 'Tap to pin on map'}
+              </span>
+            </button>
           </div>
         </div>
 
@@ -301,6 +321,29 @@ export default function CreateRidePage() {
         className="w-full bg-brand-600 text-white py-3 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition">
         {loading ? 'Creating...' : '🚗 Publish Ride'}
       </button>
+
+      {/* Map pin modal for origin / destination */}
+      {mapModal && (
+        <MapPinModal
+          title={mapModal === 'origin' ? 'Set Pickup Location' : 'Set Destination'}
+          defaultAlias={mapModal === 'origin' ? (form.originName || '') : (form.destinationName || '')}
+          initialLat={mapModal === 'origin' ? (form.originLat || undefined) : (form.destinationLat || undefined)}
+          initialLng={mapModal === 'origin' ? (form.originLng || undefined) : (form.destinationLng || undefined)}
+          onConfirm={(loc: MapLocation) => {
+            if (mapModal === 'origin') {
+              update('originName', loc.alias);
+              update('originLat', loc.lat);
+              update('originLng', loc.lng);
+            } else {
+              update('destinationName', loc.alias);
+              update('destinationLat', loc.lat);
+              update('destinationLng', loc.lng);
+            }
+            setMapModal(null);
+          }}
+          onClose={() => setMapModal(null)}
+        />
+      )}
     </div>
   );
 }

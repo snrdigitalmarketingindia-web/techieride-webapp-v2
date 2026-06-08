@@ -157,8 +157,14 @@ model User {
   countryCode               String             @default("+91")
   isPhoneVerified           Boolean            @default(false)
   bloodGroup                String?                       // A+/A-/B+/B-/O+/O-/AB+/AB-
-  homeLocation              String?                       // text description max 15 words
-  officeLocation            String?                       // text description max 15 words
+  homeLocation              String?                       // alias name e.g. "Home"
+  homeLat                   Float?                        // pinned via Mapbox
+  homeLng                   Float?
+  homeAddress               String?                       // reverse-geocoded label
+  officeLocation            String?                       // alias name e.g. "Office"
+  officeLat                 Float?                        // pinned via Mapbox
+  officeLng                 Float?
+  officeAddress             String?                       // reverse-geocoded label
   trid                      String?            @unique    // TR2000, TR2001... assigned on approval
   role                      UserRole           @default(RIDE_SEEKER)
   verificationStatus        VerificationStatus @default(PENDING)

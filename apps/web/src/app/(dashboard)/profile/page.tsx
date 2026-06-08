@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { vehiclesApi, verificationApi, uploadsApi, api, usersApi } from '@/lib/api';
 import { convertToWebp } from '@/lib/convertToWebp';
+import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 
 // Returns a mismatch message or null if RC data matches vehicle form
 function getRcMismatch(
@@ -58,10 +59,14 @@ export default function ProfilePage() {
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     fullName: '', phone: '', companyName: '',
-    homeLocation: '', officeLocation: '', bloodGroup: '', gender: '',
+    homeLocation: '', homeLat: 0, homeLng: 0, homeAddress: '',
+    officeLocation: '', officeLat: 0, officeLng: 0, officeAddress: '',
+    bloodGroup: '', gender: '',
   });
   const [editSaving, setEditSaving] = useState(false);
   const [editMsg, setEditMsg] = useState('');
+  // Map pin modal state
+  const [mapModal, setMapModal] = useState<'home' | 'office' | null>(null);
 
   // Email change state (official)
   const [emailChangeMode, setEmailChangeMode] = useState(false);
@@ -81,7 +86,13 @@ export default function ProfilePage() {
       phone:          (user as any)?.phone          ?? '',
       companyName:    user?.companyName             ?? '',
       homeLocation:   (user as any)?.homeLocation   ?? '',
+      homeLat:        (user as any)?.homeLat        ?? 0,
+      homeLng:        (user as any)?.homeLng        ?? 0,
+      homeAddress:    (user as any)?.homeAddress    ?? '',
       officeLocation: (user as any)?.officeLocation ?? '',
+      officeLat:      (user as any)?.officeLat      ?? 0,
+      officeLng:      (user as any)?.officeLng      ?? 0,
+      officeAddress:  (user as any)?.officeAddress  ?? '',
       bloodGroup:     (user as any)?.bloodGroup     ?? '',
       gender:         (user as any)?.gender         ?? '',
     });
@@ -314,11 +325,9 @@ export default function ProfilePage() {
           <div className="border-t border-gray-100 pt-4 space-y-3">
             <p className="text-sm font-semibold text-gray-700">Edit Profile</p>
             {[
-              { label: 'Full Name',   key: 'fullName',       type: 'text' },
-              { label: 'Phone',       key: 'phone',          type: 'tel' },
-              { label: 'Company',     key: 'companyName',    type: 'text' },
-              { label: 'Home Area',   key: 'homeLocation',   type: 'text' },
-              { label: 'Office Area', key: 'officeLocation', type: 'text' },
+              { label: 'Full Name', key: 'fullName', type: 'text' },
+              { label: 'Phone',     key: 'phone',    type: 'tel' },
+              { label: 'Company',   key: 'companyName', type: 'text' },
             ].map(({ label, key, type }) => (
               <div key={key}>
                 <label htmlFor={`edit-${key}`} className="text-xs text-gray-500 mb-1 block">{label}</label>
@@ -331,6 +340,40 @@ export default function ProfilePage() {
                 />
               </div>
             ))}
+
+            {/* Home Location — map pin */}
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">🏠 Home Location</label>
+              <button
+                type="button"
+                onClick={() => setMapModal('home')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:border-brand-400 hover:bg-brand-50 transition text-left"
+              >
+                <span className="text-base">📍</span>
+                <span className={editForm.homeLat ? 'text-gray-800' : 'text-gray-400'}>
+                  {editForm.homeLocation
+                    ? `${editForm.homeLocation}${editForm.homeAddress ? ` — ${editForm.homeAddress.slice(0, 40)}…` : ''}`
+                    : 'Tap to pin on map'}
+                </span>
+              </button>
+            </div>
+
+            {/* Office Location — map pin */}
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">🏢 Office Location</label>
+              <button
+                type="button"
+                onClick={() => setMapModal('office')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg hover:border-brand-400 hover:bg-brand-50 transition text-left"
+              >
+                <span className="text-base">📍</span>
+                <span className={editForm.officeLat ? 'text-gray-800' : 'text-gray-400'}>
+                  {editForm.officeLocation
+                    ? `${editForm.officeLocation}${editForm.officeAddress ? ` — ${editForm.officeAddress.slice(0, 40)}…` : ''}`
+                    : 'Tap to pin on map'}
+                </span>
+              </button>
+            </div>
             <div>
               <label htmlFor="bloodGroup" className="text-xs text-gray-500 mb-1 block">Blood Group</label>
               <select
@@ -648,6 +691,25 @@ export default function ProfilePage() {
           </div>
         )}
       </div>}
+
+      {/* Map Pin Modal — Home / Office */}
+      {mapModal && (
+        <MapPinModal
+          title={mapModal === 'home' ? 'Set Home Location' : 'Set Office Location'}
+          defaultAlias={mapModal === 'home' ? (editForm.homeLocation || 'Home') : (editForm.officeLocation || 'Office')}
+          initialLat={mapModal === 'home' ? (editForm.homeLat || undefined) : (editForm.officeLat || undefined)}
+          initialLng={mapModal === 'home' ? (editForm.homeLng || undefined) : (editForm.officeLng || undefined)}
+          onConfirm={(loc: MapLocation) => {
+            if (mapModal === 'home') {
+              setEditForm((f) => ({ ...f, homeLocation: loc.alias, homeLat: loc.lat, homeLng: loc.lng, homeAddress: loc.address }));
+            } else {
+              setEditForm((f) => ({ ...f, officeLocation: loc.alias, officeLat: loc.lat, officeLng: loc.lng, officeAddress: loc.address }));
+            }
+            setMapModal(null);
+          }}
+          onClose={() => setMapModal(null)}
+        />
+      )}
     </div>
   );
 }

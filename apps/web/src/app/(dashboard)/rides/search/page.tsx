@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
-import dynamic from 'next/dynamic';
 import { CallButton } from '@/components/ui/CallButton';
 import { formatDistance } from '@/lib/geo';
+import dynamic from 'next/dynamic';
+import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 
 const RideMap = dynamic(() => import('@/components/maps/RideMap'), { ssr: false });
-const LocationPickerMap = dynamic(() => import('@/components/maps/LocationPickerMap'), { ssr: false });
 
 const inputCls = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
 
@@ -30,21 +30,14 @@ function BoardingModal({
   const [pickupLat, setPickupLat] = useState<number | undefined>();
   const [pickupLng, setPickupLng] = useState<number | undefined>();
   const [dropName, setDropName] = useState(ride.destinationName || '');
-  const [mapMode, setMapMode] = useState(false);
+  const [showPickupMap, setShowPickupMap] = useState(false);
+  const [showDropMap, setShowDropMap] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLocationSelected = (lat: number, lng: number, address: string) => {
-    setPickupLat(lat);
-    setPickupLng(lng);
-    setPickupName(address);
-    setMapMode(false);
-    setError('');
-  };
-
   const handleSubmit = async () => {
-    if (!pickupName.trim()) { setError('Please enter or pin your boarding point'); return; }
-    if (!dropName.trim()) { setError('Please enter your drop point'); return; }
+    if (!pickupName.trim()) { setError('Please pin your boarding point on the map'); return; }
+    if (!dropName.trim()) { setError('Please set your drop point'); return; }
     setSubmitting(true);
     try {
       await onConfirm({ pickupName: pickupName.trim(), pickupLat, pickupLng, dropName: dropName.trim() });
@@ -77,89 +70,92 @@ function BoardingModal({
             <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
 
-          {/* Map picker mode */}
-          {mapMode ? (
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-gray-700">Pin your boarding point</p>
-                <button
-                  onClick={() => setMapMode(false)}
-                  className="text-xs text-gray-400 hover:text-gray-600 underline"
-                >
-                  ← Back to text
-                </button>
-              </div>
-              <LocationPickerMap
-                initialLat={ride.originLat}
-                initialLng={ride.originLng}
-                onLocationSelect={handleLocationSelected}
-              />
-            </div>
-          ) : (
-            <>
-              {/* Boarding point input */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Where should the giver pick you up? <span className="text-red-500">*</span>
-                </label>
-                <input
-                  value={pickupName}
-                  onChange={(e) => { setPickupName(e.target.value); setError(''); }}
-                  placeholder="e.g. Kondapur Metro Exit 2, near Dominos"
-                  className={inputCls}
-                />
+          {/* Boarding point — map pin */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">
+              📍 Where should the giver pick you up? <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowPickupMap(true)}
+              className={`${inputCls} flex items-center gap-2 text-left`}
+            >
+              <span>📍</span>
+              <span className={pickupName ? 'text-gray-800' : 'text-gray-400'}>
+                {pickupName || 'Tap to pin your pickup on map'}
+              </span>
+            </button>
+          </div>
 
-                {/* Pinned coords shown if set */}
-                {pickupLat && pickupLng && (
-                  <p className="text-xs text-brand-600 bg-brand-50 rounded px-2 py-1">
-                    📍 Pinned: {pickupLat.toFixed(5)}, {pickupLng.toFixed(5)}
-                  </p>
-                )}
+          {/* Drop point — map pin */}
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-gray-700">
+              🏁 Where are you dropping off? <span className="text-red-500">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowDropMap(true)}
+              className={`${inputCls} flex items-center gap-2 text-left`}
+            >
+              <span>🏁</span>
+              <span className={dropName ? 'text-gray-800' : 'text-gray-400'}>
+                {dropName || 'Tap to pin your drop-off on map'}
+              </span>
+            </button>
+            <p className="text-xs text-gray-400">Default is ride destination — change if getting off earlier.</p>
+          </div>
 
-                {/* Map pin button */}
-                <button
-                  type="button"
-                  onClick={() => setMapMode(true)}
-                  className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium"
-                >
-                  🗺️ Pin on map instead
-                </button>
-              </div>
-
-              {/* Drop point */}
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-gray-700">
-                  Where are you dropping off? <span className="text-red-500">*</span>
-                </label>
-                <input
-                  value={dropName}
-                  onChange={(e) => setDropName(e.target.value)}
-                  placeholder="e.g. HITEC City, Cyber Towers gate"
-                  className={inputCls}
-                />
-                <p className="text-xs text-gray-400">Default: ride destination. Edit if getting off earlier.</p>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-1">
-                <button
-                  onClick={onClose}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition"
-                >
-                  {submitting ? 'Sending...' : '🚗 Request Seat'}
-                </button>
-              </div>
-            </>
-          )}
+          {/* Actions */}
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={onClose}
+              className="flex-1 border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition"
+            >
+              {submitting ? 'Sending...' : '🚗 Request Seat'}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Pickup map modal */}
+      {showPickupMap && (
+        <MapPinModal
+          title="Pin Your Pickup Point"
+          defaultAlias={pickupName || ''}
+          initialLat={ride.originLat}
+          initialLng={ride.originLng}
+          onConfirm={(loc: MapLocation) => {
+            setPickupLat(loc.lat);
+            setPickupLng(loc.lng);
+            setPickupName(loc.alias || loc.address);
+            setShowPickupMap(false);
+            setError('');
+          }}
+          onClose={() => setShowPickupMap(false)}
+        />
+      )}
+
+      {/* Drop map modal */}
+      {showDropMap && (
+        <MapPinModal
+          title="Pin Your Drop-off Point"
+          defaultAlias={dropName || ride.destinationName || ''}
+          initialLat={ride.destinationLat}
+          initialLng={ride.destinationLng}
+          onConfirm={(loc: MapLocation) => {
+            setDropName(loc.alias || loc.address);
+            setShowDropMap(false);
+          }}
+          onClose={() => setShowDropMap(false)}
+        />
+      )}
     </div>
   );
 }
