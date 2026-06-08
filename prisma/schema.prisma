@@ -388,6 +388,7 @@ model RideRequest {
   pickupLat      Float?
   pickupLng      Float?
   pickupName     String?
+  pickupTime     String?       // "HH:MM" — set by giver at approval
   dropLat        Float?
   dropLng        Float?
   dropName       String?
@@ -418,6 +419,7 @@ model RideParticipant {
   seekerId       String
   requestId      String         @unique
   pickupName     String?
+  pickupTime     String?       // "HH:MM" — confirmed by giver at approval
   dropName       String?
   boardingStatus BoardingStatus @default(WAITING)
   boardedAt      DateTime?

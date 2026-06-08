@@ -150,9 +150,11 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                       {distStr && <span> · 📏 {distStr} from you</span>}
                     </p>
                   )}
-                  {eta && (
+                  {p.pickupTime ? (
+                    <p className="text-xs text-brand-600 font-medium">🕐 Pickup at {p.pickupTime}</p>
+                  ) : eta ? (
                     <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>
-                  )}
+                  ) : null}
                 </div>
                 {badge && (
                   <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${badge.cls}`}>

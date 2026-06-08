@@ -187,7 +187,7 @@ export class RideRequestsService {
     });
   }
 
-  async approve(requestId: string, userId: string) {
+  async approve(requestId: string, userId: string, pickupTime?: string) {
     const request = await this.getRequestForGiver(requestId, userId);
     if (request.status !== 'PENDING') {
       throw new BadRequestException('Request is no longer pending');
@@ -216,7 +216,7 @@ export class RideRequestsService {
     await this.prisma.$transaction([
       this.prisma.rideRequest.update({
         where: { id: requestId },
-        data: { status: 'CONFIRMED', confirmedAt: new Date() },
+        data: { status: 'CONFIRMED', confirmedAt: new Date(), ...(pickupTime ? { pickupTime } : {}) },
       }),
       this.prisma.rideParticipant.create({
         data: {
@@ -224,6 +224,7 @@ export class RideRequestsService {
           seekerId: request.seekerId,
           requestId,
           pickupName: request.pickupName,
+          pickupTime: pickupTime ?? null,
           dropName: request.dropName,
         },
       }),
@@ -231,12 +232,13 @@ export class RideRequestsService {
 
     if (seeker) {
       const isOngoing = ride.status === 'ONGOING';
+      const pickupNote = pickupTime ? ` Your pickup is scheduled at ${pickupTime}.` : '';
       await this.notifications.create(seeker.userId, {
         type: NotificationType.REQUEST_APPROVED,
         title: 'Seat confirmed! 🎉',
         body: isOngoing
-          ? 'Your seat is confirmed — the ride is already underway. Get ready at your pickup point!'
-          : 'Your seat has been confirmed. You\'re all set for the ride!',
+          ? `Your seat is confirmed — the ride is already underway. Get ready at your pickup point!${pickupNote}`
+          : `Your seat has been confirmed. You're all set for the ride!${pickupNote}`,
         data: { requestId },
       });
     }

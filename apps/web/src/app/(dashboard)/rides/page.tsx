@@ -32,6 +32,9 @@ export default function MyRidesPage() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  // Inline pickup-time picker shown when giver clicks "Approve"
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvePickupTime, setApprovePickupTime] = useState('');
   // TODO [v2.3]: Pickup ETA override — localStorage only. Migrate to DB (RideRequest.pickupEtaOverride).
   const ETA_KEY = (reqId: string) => `tr_pickup_eta_${reqId}`;
   const [etaOverrides, setEtaOverrides] = useState<Record<string, string>>({});
@@ -144,9 +147,10 @@ export default function MyRidesPage() {
     setProcessing(null);
   };
 
-  const handleApprove = async (reqId: string, rideId: string) => {
+  const handleApprove = async (reqId: string, rideId: string, pickupTime?: string) => {
     setProcessing(reqId);
-    await requestsApi.approve(reqId).catch(() => {});
+    setApprovingId(null);
+    await requestsApi.approve(reqId, pickupTime || undefined).catch(() => {});
     await reloadPending(rideId);
     // refresh ride to update seat count
     ridesApi.getGiven().then((r) => setRides(r.data ?? []));
@@ -476,15 +480,45 @@ export default function MyRidesPage() {
                             <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
                               receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
                           )}
-                          <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
-                            className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">✅ Approve</button>
                           <button
-                            onClick={() => { setRejectingId(req.id); setRejectReason(''); }}
+                            onClick={() => {
+                              setRejectingId(null);
+                              // Pre-fill with ETA override → estimated → departure time
+                              const est = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
+                              setApprovePickupTime(etaOverrides[req.id] ?? est ?? ride?.departureTime ?? '');
+                              setApprovingId(req.id);
+                            }}
+                            disabled={processing === req.id}
+                            className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
+                            ✅ Approve
+                          </button>
+                          <button
+                            onClick={() => { setRejectingId(req.id); setRejectReason(''); setApprovingId(null); }}
                             disabled={processing === req.id}
                             className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0">
                             ❌ Reject
                           </button>
                         </div>
+                        {/* Inline pickup-time confirmation before approving */}
+                        {approvingId === req.id && (
+                          <div className="flex items-center gap-2 pl-8 mt-1 p-2 bg-brand-50 border border-brand-200 rounded-lg">
+                            <span className="text-xs text-brand-800 font-medium shrink-0">🕐 Pickup time for {req.seeker?.user?.fullName?.split(' ')[0] ?? 'passenger'}:</span>
+                            <input
+                              type="time"
+                              autoFocus
+                              value={approvePickupTime}
+                              onChange={(e) => setApprovePickupTime(e.target.value)}
+                              className="text-xs px-2 py-1 border border-brand-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400"
+                            />
+                            <button
+                              onClick={() => handleApprove(req.id, ride.id, approvePickupTime || undefined)}
+                              disabled={processing === req.id}
+                              className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
+                              ✅ Confirm &amp; Approve
+                            </button>
+                            <button onClick={() => setApprovingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1 shrink-0">Cancel</button>
+                          </div>
+                        )}
                         {rejectingId === req.id && (
                           <div className="flex gap-2 pl-8">
                             <input
@@ -527,9 +561,10 @@ export default function MyRidesPage() {
                             ⚠️ {waitingPassengers.length} passenger(s) still waiting — mark no-show or wait for them to board before completing
                           </p>
                           {waitingPassengers.map((p: any) => {
-                            // Boarding time: ETA override → estimated pickup → departure time
+                            // Boarding time priority: DB pickupTime → ETA override → estimated → departure time
                             const reqId   = p.request?.id;
-                            const etaTime = etaOverrides[reqId]
+                            const etaTime = p.pickupTime
+                              ?? etaOverrides[reqId]
                               ?? estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, p.request?.pickupLat, p.request?.pickupLng)
                               ?? ride.departureTime;
 

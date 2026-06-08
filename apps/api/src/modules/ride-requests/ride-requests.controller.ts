@@ -26,8 +26,12 @@ export class RideRequestsController {
   }
 
   @Patch(':id/approve')
-  approve(@Param('id') id: string, @CurrentUser('id') userId: string) {
-    return this.service.approve(id, userId);
+  approve(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body('pickupTime') pickupTime?: string,
+  ) {
+    return this.service.approve(id, userId, pickupTime);
   }
 
   @Patch(':id/reject')
