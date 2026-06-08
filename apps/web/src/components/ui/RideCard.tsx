@@ -157,11 +157,8 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-800 truncate">{name}</p>
-                  {(company || distStr) && (
-                    <p className="text-xs text-gray-500 truncate">
-                      {company && <span>{company}</span>}
-                      {distStr && <span>{company ? ' · ' : ''}📏 {distStr} from you</span>}
-                    </p>
+                  {company && (
+                    <p className="text-xs text-gray-500 truncate">{company}</p>
                   )}
                   {pickupName && (
                     <a
@@ -181,23 +178,26 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                     <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>
                   ) : null}
                 </div>
-                {/* Badge + Call stacked vertically on right */}
+                {/* Right column: Call → Badge → dist (top to bottom) */}
                 <div className="flex flex-col items-end gap-1 shrink-0">
+                  {phone && !noShow && (
+                    <CallButton
+                      phone={phone}
+                      countryCode={cc}
+                      receiverId={recvId}
+                      rideId={ride.id}
+                      label="Call"
+                      size="sm"
+                      variant="ghost"
+                    />
+                  )}
                   {badge && (
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>
                       {badge.label}
                     </span>
                   )}
-                  {phone && !noShow && (
-                  <CallButton
-                    phone={phone}
-                    countryCode={cc}
-                    receiverId={recvId}
-                    rideId={ride.id}
-                    label="Call"
-                    size="sm"
-                    variant="ghost"
-                  />
+                  {distStr && (
+                    <span className="text-xs text-gray-400 whitespace-nowrap">📏 {distStr} from you</span>
                   )}
                 </div>
               </div>

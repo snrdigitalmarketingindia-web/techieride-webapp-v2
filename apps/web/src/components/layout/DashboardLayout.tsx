@@ -58,9 +58,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top bar */}
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-center gap-0">
           <Image src="/TR_Logo_black.png" alt="Techieride" width={40} height={40} className="object-contain" priority />
-          <span className="text-xs font-medium text-gray-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+          <span className="text-[10px] font-medium text-gray-400 leading-tight">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
         </div>
         <div className="flex items-center gap-6">
           <span className="text-[10px] text-gray-400 hidden sm:inline">
@@ -70,9 +70,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </a>
           </span>
           {user && (
-            <Link href="/profile" className="flex items-center gap-2 hover:opacity-80 transition">
-              <span className="text-sm font-medium text-gray-700">{user.fullName?.split(' ')[0]}</span>
-              <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">
+            <Link href="/profile" className="flex flex-col items-end hover:opacity-80 transition">
+              <span className="text-sm font-medium text-gray-700 leading-tight">{user.fullName?.split(' ')[0]}</span>
+              <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap leading-tight">
                 {ECO_BADGES[user.ecoLevel as EcoLevel]} {user.ecoPoints} pts
               </span>
             </Link>
