@@ -19,10 +19,11 @@ export default function MyRidesPage() {
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasActiveRide, setHasActiveRide] = useState(false);
-  const [showHistory, setShowHistory] = useState(true); // default Today period needs history enabled
-  // Period filter
+  const [showHistory, setShowHistory] = useState(true);
+  // Period filter — default 'week' so today + tomorrow rides both appear without switching tabs.
+  // 'today' was the old default but hid tomorrow rides, breaking Playwright tests and confusing givers.
   type Period = 'all' | 'today' | 'tomorrow' | 'week' | 'month' | 'custom';
-  const [period, setPeriod] = useState<Period>('today');
+  const [period, setPeriod] = useState<Period>('week');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo]   = useState('');
   // Giver: pending requests per ride  { rideId: req[] }
