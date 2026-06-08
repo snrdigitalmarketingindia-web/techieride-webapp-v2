@@ -457,8 +457,8 @@ export default function MyRidesPage() {
                             {req.pickupName && (
                               <a
                                 href={req.pickupLat && req.pickupLng
-                                  ? `https://www.google.com/maps?q=${req.pickupLat},${req.pickupLng}`
-                                  : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(req.pickupName)}`}
+                                  ? `https://maps.google.com/?q=${req.pickupLat},${req.pickupLng}`
+                                  : `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(req.pickupName)}`}
                                 target="_blank" rel="noopener noreferrer"
                                 className="text-xs text-brand-600 hover:underline flex items-center gap-1"
                                 title="Open pickup location in Google Maps"

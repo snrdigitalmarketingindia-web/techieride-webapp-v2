@@ -157,23 +157,23 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-medium text-gray-800 truncate">{name}</p>
-                  {(company || pickupName || distStr) && (
+                  {(company || distStr) && (
                     <p className="text-xs text-gray-500 truncate">
                       {company && <span>{company}</span>}
-                      {pickupName && (
-                        <a
-                          href={pickupLat && pickupLng
-                            ? `https://www.google.com/maps?q=${pickupLat},${pickupLng}`
-                            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickupName)}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="text-brand-600 hover:underline"
-                          title="Open in Google Maps"
-                        >
-                          {company ? ' · ' : ''}📍 {pickupName} <span className="text-gray-400 text-[10px]">↗</span>
-                        </a>
-                      )}
-                      {distStr && <span> · 📏 {distStr} from you</span>}
+                      {distStr && <span>{company ? ' · ' : ''}📏 {distStr} from you</span>}
                     </p>
+                  )}
+                  {pickupName && (
+                    <a
+                      href={pickupLat && pickupLng
+                        ? `https://maps.google.com/?q=${pickupLat},${pickupLng}`
+                        : `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(pickupName)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-brand-600 hover:underline flex items-center gap-0.5"
+                      title="Open pickup location in Google Maps"
+                    >
+                      📍 {pickupName} <span className="text-gray-400 text-[10px]">↗</span>
+                    </a>
                   )}
                   {p.pickupTime ? (
                     <p className="text-xs text-brand-600 font-medium">🕐 Pickup at {p.pickupTime}</p>
@@ -181,12 +181,14 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                     <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>
                   ) : null}
                 </div>
-                {badge && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
-                    {badge.label}
-                  </span>
-                )}
-                {phone && !noShow && (
+                {/* Badge + Call stacked vertically on right */}
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  {badge && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+                  )}
+                  {phone && !noShow && (
                   <CallButton
                     phone={phone}
                     countryCode={cc}
@@ -196,7 +198,8 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                     size="sm"
                     variant="ghost"
                   />
-                )}
+                  )}
+                </div>
               </div>
             );
           })}
