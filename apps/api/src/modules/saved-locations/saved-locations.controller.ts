@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SavedLocationsService, CreateSavedLocationDto } from './saved-locations.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -17,6 +17,11 @@ export class SavedLocationsController {
   @Post()
   create(@CurrentUser('id') userId: string, @Body() dto: CreateSavedLocationDto) {
     return this.service.create(userId, dto);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @CurrentUser('id') userId: string, @Body() dto: Partial<CreateSavedLocationDto>) {
+    return this.service.update(id, userId, dto);
   }
 
   @Delete(':id')

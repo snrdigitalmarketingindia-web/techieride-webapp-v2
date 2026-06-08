@@ -1,7 +1,7 @@
 import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-const MAX_SAVED_LOCATIONS = 20;
+const MAX_SAVED_LOCATIONS = 30;
 
 export class CreateSavedLocationDto {
   alias: string;
@@ -38,6 +38,22 @@ export class SavedLocationsService {
         lat: dto.lat,
         lng: dto.lng,
         address: dto.address ?? '',
+      },
+    });
+  }
+
+  async update(id: string, userId: string, dto: Partial<CreateSavedLocationDto>) {
+    const loc = await this.prisma.savedLocation.findFirst({ where: { id, userId } });
+    if (!loc) throw new ForbiddenException('Location not found');
+    const alias = dto.alias !== undefined ? dto.alias.trim() : undefined;
+    if (alias !== undefined && !alias) throw new BadRequestException('Alias cannot be empty');
+    return this.prisma.savedLocation.update({
+      where: { id },
+      data: {
+        ...(alias !== undefined ? { alias } : {}),
+        ...(dto.lat !== undefined ? { lat: dto.lat } : {}),
+        ...(dto.lng !== undefined ? { lng: dto.lng } : {}),
+        ...(dto.address !== undefined ? { address: dto.address } : {}),
       },
     });
   }

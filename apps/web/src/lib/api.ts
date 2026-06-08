@@ -111,6 +111,8 @@ export const savedLocationsApi = {
   getMine: () => api.get('/saved-locations/my'),
   create: (data: { alias: string; lat: number; lng: number; address?: string }) =>
     api.post('/saved-locations', data),
+  update: (id: string, data: { alias?: string; lat?: number; lng?: number; address?: string }) =>
+    api.patch(`/saved-locations/${id}`, data),
   remove: (id: string) => api.delete(`/saved-locations/${id}`),
 };
 
