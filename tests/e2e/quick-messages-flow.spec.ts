@@ -150,8 +150,11 @@ test.describe('💬 Quick Messages Flow', () => {
   test('QM-11: Custom Message textarea and Send button visible on ONGOING ride for giver', async ({ page }) => {
     // Quick Message button is on the /rides LIST page (rides/page.tsx), not the
     // detail page (/rides/[id]). Navigate to the list to find the ONGOING ride card.
+    // The default period filter is 'today' but QM rides are created for tomorrow
+    // → click 'All' so the ONGOING ride card (with Quick Message button) appears.
     await loginUI(page, 'giver');
-    await page.goto('/rides', { waitUntil: 'networkidle' });
+    await gotoRidesReady(page);
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i }).first()).toBeVisible({ timeout: 10_000 });
     await page.getByRole('button', { name: /quick message/i }).first().click();
     await expect(page.getByPlaceholder(/type your message/i)).toBeVisible({ timeout: 5_000 });

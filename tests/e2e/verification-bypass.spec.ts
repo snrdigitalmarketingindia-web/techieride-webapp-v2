@@ -306,12 +306,12 @@ test.describe('🛡️ Verification Bypass — UI error display (VB-01 UI)', () 
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 
-    if (await publishBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await publishBtn.click();
-      await page.waitForTimeout(3_000);
-      // Error must surface to user — either the API message or a generic failure
-      const errorVisible = await page.getByText(/verification|failed|error/i).first().isVisible().catch(() => false);
-      expect(errorVisible).toBe(true);
-    }
+    // Scroll button into view and click. Use Playwright's built-in retry so the
+    // error message is waited for directly (replaces unreliable fixed timeout).
+    await publishBtn.scrollIntoViewIfNeeded();
+    await publishBtn.click();
+    // Error must surface to user — either the API message or a generic failure.
+    // Use toBeVisible with a generous timeout instead of a fixed waitForTimeout.
+    await expect(page.getByText(/verification|failed|error/i).first()).toBeVisible({ timeout: 10_000 });
   });
 });

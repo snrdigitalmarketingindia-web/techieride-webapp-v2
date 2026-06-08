@@ -327,14 +327,12 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
     const vehicleId = vehicles.data?.[0]?.id ?? vehicles[0]?.id;
     const tomorrow  = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
 
-    // Use today's date with a past time so /start is not blocked by departure guard
-    const today     = new Date().toISOString().split('T')[0];
-    const pastTime  = '00:01'; // safely in the past
-
+    // Use tomorrow's date so the /publish 15-min lead-time guard passes.
+    // The /start endpoint has no departure-time guard — it only requires PUBLISHED status.
     const created = await apiCall(giverToken, 'post', '/rides', {
       vehicleId, originName: 'Kondapur', originLat: 17.4401, originLng: 78.3489,
       destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
-      departureDate: today, departureTime: pastTime, totalSeats: 3,
+      departureDate: tomorrow, departureTime: '09:00', totalSeats: 3,
     });
     rideId = created.data?.id ?? created.id;
     await apiCall(giverToken, 'patch', `/rides/${rideId}/publish`);
@@ -347,8 +345,11 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
   test('BD-01: confirmed passenger shows "Seat Confirmed" badge on PUBLISHED ride (giver view)', async ({ page }) => {
     // "Seat Confirmed" badge is rendered by RideCard (rides/page.tsx list), not the
     // detail page. WAITING boardingStatus on a PUBLISHED ride = "✅ Seat Confirmed".
+    // Ride is for tomorrow → click 'All' to bypass the default 'today' period filter.
     await loginUI(page, 'giver');
     await page.goto('/rides', { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /^All$/i }).click();
+    await page.waitForTimeout(500);
     await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/^Waiting$/i)).not.toBeVisible();
   });
@@ -361,7 +362,10 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
     }
 
     await loginUI(page, 'giver');
-    await page.goto('/rides');
+    await page.goto('/rides', { waitUntil: 'networkidle' });
+    // Ride is for tomorrow → click 'All' to bypass the default 'today' period filter.
+    await page.getByRole('button', { name: /^All$/i }).click();
+    await page.waitForTimeout(500);
     await expect(page.getByText(/Yet to board/i)).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText(/Seat Confirmed/i)).not.toBeVisible();
 

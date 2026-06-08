@@ -165,8 +165,11 @@ test.describe('🚗 Giver Full Flow', () => {
   test('GF-10: quick message button visible on ONGOING ride', async ({ page }) => {
     // Quick Message button is on the /rides LIST page (rides/page.tsx), not the
     // detail page. Navigate to the list and check the ONGOING ride card.
+    // IMPORTANT: default period filter is 'today' but test rides are for tomorrow
+    // → click 'All' so tomorrow's ONGOING ride is visible.
     await loginUI(page, 'giver');
     await gotoRidesReady(page);
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i }).first()).toBeVisible({ timeout: 15_000 });
   });
 
@@ -175,9 +178,14 @@ test.describe('🚗 Giver Full Flow', () => {
     await api(seekerToken, 'patch', `/rides/${rideId}/board`).catch(() => {});
     await api(seekerToken, 'patch', `/rides/${rideId}/deboard`).catch(() => {});
 
+    // Complete Ride button is on the /rides LIST page under tab 'given' for ONGOING rides.
+    // Avoid the detail-page isMyRide check (needs Zustand user.id) — the list page
+    // simply checks tab === 'given' && ride.status === 'ONGOING'.
+    // Click 'All' to bypass the default 'today' period filter (ride is for tomorrow).
     await loginUI(page, 'giver');
-    await gotoRideDetail(page, rideId);
-    await expect(page.getByRole('button', { name: /complete ride/i })).toBeVisible({ timeout: 15_000 });
+    await gotoRidesReady(page);
+    await page.getByRole('button', { name: /^All$/i }).click();
+    await expect(page.getByRole('button', { name: /complete ride/i }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('GF-12: completed ride shows in history', async ({ page }) => {
