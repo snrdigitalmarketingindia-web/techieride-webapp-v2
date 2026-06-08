@@ -7,6 +7,7 @@ import { ContactCard } from '@/components/ui/ContactCard';
 import dynamic from 'next/dynamic';
 import { ridesApi, requestsApi, ratingsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
+import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
 
 const BOARDING_COLORS: Record<string, string> = {
   WAITING:   'bg-yellow-100 text-yellow-700',
@@ -67,12 +68,35 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingDone, setRatingDone] = useState<Record<string, boolean>>({});
 
+  // TODO [v2.3]: Pickup time overrides — currently stored in localStorage (per-device only).
+  // Migrate to DB: add `pickupEtaOverride String?` on RideRequest model, expose via
+  // PATCH /ride-requests/:id/eta, read from API instead of localStorage.
+  // Pickup time overrides — keyed by requestId, stored in localStorage
+  const ETA_KEY = (reqId: string) => `tr_pickup_eta_${reqId}`;
+  const [etaOverrides, setEtaOverrides] = useState<Record<string, string>>({});
+  const [editingEta, setEditingEta] = useState<string | null>(null); // reqId being edited
+  const [etaDraft, setEtaDraft] = useState('');
+  const loadEtas = (reqs: any[]) => {
+    const map: Record<string, string> = {};
+    reqs.forEach(r => { try { const v = localStorage.getItem(ETA_KEY(r.id)); if (v) map[r.id] = v; } catch {} });
+    setEtaOverrides(map);
+  };
+  const saveEta = (reqId: string, value: string) => {
+    try { if (value.trim()) localStorage.setItem(ETA_KEY(reqId), value.trim()); else localStorage.removeItem(ETA_KEY(reqId)); } catch {}
+    setEtaOverrides(prev => value.trim() ? { ...prev, [reqId]: value.trim() } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== reqId)));
+    setEditingEta(null);
+  };
+
   const reloadRide = () =>
     ridesApi.getById(params.id).then(r => setRide(r.data)).catch(() => {});
 
   const reloadPending = () =>
     requestsApi.getIncoming(params.id)
-      .then(res => setPendingRequests((res.data ?? []).filter((r: any) => r.status === 'PENDING')))
+      .then(res => {
+        const reqs = (res.data ?? []).filter((r: any) => r.status === 'PENDING');
+        setPendingRequests(reqs);
+        loadEtas(reqs);
+      })
       .catch(() => {});
 
   useEffect(() => {
@@ -407,7 +431,40 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                     <p className="text-xs text-gray-500 truncate">
                       {req.seeker?.user?.companyName ?? ''}
                       {req.pickupName ? ` · 📍 ${req.pickupName}` : ''}
+                      {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng
+                        ? ` · 📏 ${formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from your location`
+                        : ''}
                     </p>
+                    {/* Pickup time — override or auto-estimate */}
+                    {editingEta === req.id ? (
+                      <div className="flex items-center gap-1 mt-1">
+                        <input
+                          type="time"
+                          value={etaDraft}
+                          onChange={e => setEtaDraft(e.target.value)}
+                          className="text-xs px-2 py-1 border border-brand-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400"
+                        />
+                        <button onClick={() => saveEta(req.id, etaDraft)} className="text-xs bg-brand-600 text-white px-2 py-1 rounded-lg">Save</button>
+                        <button onClick={() => setEditingEta(null)} className="text-xs text-gray-400 px-1">Cancel</button>
+                        {etaOverrides[req.id] && (
+                          <button onClick={() => saveEta(req.id, '')} className="text-xs text-red-400 px-1">Clear</button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {etaOverrides[req.id] ? (
+                          <span className="text-xs text-brand-600 font-medium">🕐 Pickup at {etaOverrides[req.id]}</span>
+                        ) : (() => {
+                          const eta = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
+                          return eta ? <span className="text-xs text-gray-400">🕐 Est. ~{eta}</span> : null;
+                        })()}
+                        <button
+                          onClick={() => { setEditingEta(req.id); setEtaDraft(etaOverrides[req.id] ?? ''); }}
+                          className="text-xs text-gray-300 hover:text-brand-500 ml-1"
+                          title="Set pickup time"
+                        >✏️</button>
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => handleApproveRequest(req.id)}

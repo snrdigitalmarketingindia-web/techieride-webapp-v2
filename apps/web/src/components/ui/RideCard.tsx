@@ -14,11 +14,17 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const BOARDING_BADGE: Record<string, { label: string; cls: string }> = {
-  WAITING:   { label: '⏳ Waiting',   cls: 'bg-yellow-100 text-yellow-700' },
-  BOARDED:   { label: '✅ Boarded',   cls: 'bg-green-100 text-green-700'   },
-  DEBOARDED: { label: '🏁 Deboarded', cls: 'bg-gray-100 text-gray-500'     },
-  NO_SHOW:   { label: '👻 No-show',   cls: 'bg-red-100 text-red-500'       },
+  BOARDED:   { label: '✅ Boarded',   cls: 'bg-green-100 text-green-700' },
+  DEBOARDED: { label: '🏁 Deboarded', cls: 'bg-gray-100 text-gray-500'   },
+  NO_SHOW:   { label: '👻 No-show',   cls: 'bg-red-100 text-red-500'     },
 };
+
+/** WAITING means different things depending on whether the ride has started */
+function waitingBadge(rideStatus: string) {
+  return rideStatus === 'ONGOING'
+    ? { label: '⏳ Yet to board', cls: 'bg-amber-100 text-amber-700' }
+    : { label: '✅ Seat Confirmed', cls: 'bg-green-100 text-green-700' };
+}
 
 interface RideCardProps {
   ride: any;
@@ -115,7 +121,9 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
             const phone   = p.seeker?.user?.phone;
             const cc      = p.seeker?.user?.countryCode;
             const recvId  = p.seeker?.userId;
-            const badge   = BOARDING_BADGE[p.boardingStatus];
+            const badge   = p.boardingStatus === 'WAITING'
+              ? waitingBadge(ride.status)
+              : BOARDING_BADGE[p.boardingStatus];
             const noShow  = p.boardingStatus === 'NO_SHOW';
 
             return (

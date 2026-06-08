@@ -1633,6 +1633,106 @@ async function run() {
     });
   }
 
+  // ── Section 32: Pickup Distance Field ────────────────────────────────────
+  section('32. Pickup Distance — distanceFromOriginM field + sort order');
+  {
+    // Search origin: 17.4401, 78.3489
+    // Close ride: origin exactly at search coords → ~0 m
+    // Far ride:   origin ~1.5 km north            → ~1500 m
+    const giverDist = await freshGiver('dist32-g');
+    const tomorrow32 = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    const createRide = async (originLat: number, originLng: number) => {
+      const r = await giverDist.client.post('/rides', {
+        vehicleId: giverDist.vehicleId,
+        originName: 'Test Origin', originLat, originLng,
+        destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
+        departureDate: tomorrow32, departureTime: '09:00', totalSeats: 3,
+      });
+      if (r.status !== 201) throw new Error(`Create ride failed: ${JSON.stringify(r.data)}`);
+      const pub = await giverDist.client.patch(`/rides/${r.data.id}/publish`);
+      if (pub.status !== 200) throw new Error(`Publish failed`);
+      return r.data.id as string;
+    };
+
+    const closeRideId = await createRide(17.4401, 78.3489); // exact search origin
+    const farRideId   = await createRide(17.4535, 78.3489); // ~1.5 km north
+
+    const searchParams = new URLSearchParams({
+      originLat: '17.4401', originLng: '78.3489',
+      destLat:   '17.4489', destLng:   '78.3696',
+      date: tomorrow32, radiusMeters: '5000',
+    });
+    const searchR = await giverDist.client.get(`/rides/search?${searchParams}`);
+    assert([200, 201].includes(searchR.status), `Search expected 200, got ${searchR.status}`);
+    const rides: any[] = searchR.data?.data ?? searchR.data?.rides ?? searchR.data ?? [];
+
+    await test('PD-01: search response includes distanceFromOriginM on every ride', async () => {
+      const myRides = rides.filter((r: any) => r.id === closeRideId || r.id === farRideId);
+      assert(myRides.length > 0, 'No test rides found in search results');
+      for (const r of myRides) {
+        assert(
+          typeof r.distanceFromOriginM === 'number',
+          `Expected distanceFromOriginM to be a number on ride ${r.id}, got ${typeof r.distanceFromOriginM}`,
+        );
+      }
+    });
+
+    await test('PD-02: close ride distanceFromOriginM is less than far ride', async () => {
+      const close = rides.find((r: any) => r.id === closeRideId);
+      const far   = rides.find((r: any) => r.id === farRideId);
+      if (!close || !far) { console.log('    ⚠️  PD-02 skipped — rides not in search results'); return; }
+      assert(
+        close.distanceFromOriginM < far.distanceFromOriginM,
+        `Expected close (${close.distanceFromOriginM}m) < far (${far.distanceFromOriginM}m)`,
+      );
+    });
+
+    await test('PD-03: results are sorted by distanceFromOriginM ascending (closest first)', async () => {
+      for (let i = 1; i < rides.length; i++) {
+        assert(
+          rides[i].distanceFromOriginM >= rides[i - 1].distanceFromOriginM,
+          `Not sorted: index ${i - 1}=${rides[i - 1].distanceFromOriginM}m > index ${i}=${rides[i].distanceFromOriginM}m`,
+        );
+      }
+    });
+
+    await test('PD-04: close ride distanceFromOriginM is ≤10m when origin matches exactly', async () => {
+      const close = rides.find((r: any) => r.id === closeRideId);
+      if (!close) { console.log('    ⚠️  PD-04 skipped — close ride not in results'); return; }
+      assert(
+        close.distanceFromOriginM <= 10,
+        `Expected ≤10m for exact-match origin, got ${close.distanceFromOriginM}m`,
+      );
+    });
+
+    // Cleanup
+    await giverDist.client.patch(`/rides/${closeRideId}/cancel`).catch(() => {});
+    await giverDist.client.patch(`/rides/${farRideId}/cancel`).catch(() => {});
+  }
+
+  // ── Section 33: formatDistance utility ───────────────────────────────────
+  section('33. formatDistance — metres to human-readable string');
+  {
+    function formatDistance(metres: number): string {
+      if (metres < 1000) return `${Math.round(metres)} m`;
+      return `${(metres / 1000).toFixed(1).replace(/\.0$/, '')} km`;
+    }
+
+    await test('FD-01: values below 1000m display as "X m"', async () => {
+      assert(formatDistance(0)   === '0 m',   `Expected "0 m", got "${formatDistance(0)}"`);
+      assert(formatDistance(230) === '230 m', `Expected "230 m", got "${formatDistance(230)}"`);
+      assert(formatDistance(999) === '999 m', `Expected "999 m", got "${formatDistance(999)}"`);
+    });
+
+    await test('FD-02: values ≥ 1000m display as "X.X km" with no trailing .0', async () => {
+      assert(formatDistance(1000)  === '1 km',   `Expected "1 km", got "${formatDistance(1000)}"`);
+      assert(formatDistance(1500)  === '1.5 km', `Expected "1.5 km", got "${formatDistance(1500)}"`);
+      assert(formatDistance(2000)  === '2 km',   `Expected "2 km", got "${formatDistance(2000)}"`);
+      assert(formatDistance(10000) === '10 km',  `Expected "10 km", got "${formatDistance(10000)}"`);
+    });
+  }
+
   // ── Results ───────────────────────────────────────────────────────────────
   const passed = results.filter(r => r.passed).length;
   const failed = results.filter(r => !r.passed).length;

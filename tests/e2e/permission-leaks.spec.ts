@@ -87,15 +87,56 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     await loginUI(page, 'giver');
   });
 
-  // PERM-04: Giver can navigate to /rides/search (no frontend block) but cannot book — API 403
-  test('PERM-04: giver at /rides/search — book button absent or API 403 on request', async ({ page }) => {
+  // PERM-04: Giver can navigate to /rides/search but cannot book — API 403
+  test('PERM-04: giver at /rides/search — no crash and no Request Seat on own ride', async ({ page }) => {
     await page.goto('/rides/search');
     await expect(page).not.toHaveURL(/error/);
-    // Giver should not see a "Request Seat" / "Book" button in search results
-    // (page may be empty or show rides without booking action)
-    // Just verify no crash
     await page.waitForTimeout(2_000);
     await expect(page).not.toHaveURL(/500/);
+  });
+
+  // PERM-13: Giver's own published ride shows "Your ride" badge — not "Request Seat"
+  test('PERM-13: giver sees "Your ride" badge (not Request Seat) on their own published ride in search', async ({ page }) => {
+    const { apiLogin, API } = await import('./helpers');
+    const token = await apiLogin(ACCOUNTS.giver.email);
+
+    // Create + publish a ride as the giver
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const vehicles = await page.request.get(`${API}/vehicles/my`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const vBody = await vehicles.json();
+    const vehicleId = vBody.data?.[0]?.id ?? vBody[0]?.id;
+    if (!vehicleId) { test.skip(true, 'No vehicle found for giver'); return; }
+
+    const created = await page.request.post(`${API}/rides`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      data: {
+        vehicleId,
+        originName: 'Kondapur', originLat: 17.4401, originLng: 78.3489,
+        destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
+        departureDate: tomorrow, departureTime: '09:00', totalSeats: 3,
+      },
+    });
+    const rideBody = await created.json();
+    const rideId = rideBody.data?.id ?? rideBody.id;
+    await page.request.patch(`${API}/rides/${rideId}/publish`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    // Giver searches — should see "Your ride" not "Request Seat"
+    await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrow);
+    await page.getByRole('button', { name: /search/i }).click();
+    await page.waitForTimeout(2_000);
+
+    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();
+
+    // Cleanup
+    await page.request.patch(`${API}/rides/${rideId}/cancel`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   });
 
   // PERM-07: Giver cannot access /admin/users

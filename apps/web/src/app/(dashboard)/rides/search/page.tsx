@@ -5,6 +5,7 @@ import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import dynamic from 'next/dynamic';
 import { CallButton } from '@/components/ui/CallButton';
+import { formatDistance } from '@/lib/geo';
 
 const RideMap = dynamic(() => import('@/components/maps/RideMap'), { ssr: false });
 const LocationPickerMap = dynamic(() => import('@/components/maps/LocationPickerMap'), { ssr: false });
@@ -612,7 +613,7 @@ export default function RideSearchPage() {
                   </div>
                   <p className="text-sm text-gray-700 font-medium">{ride.originName} → {ride.destinationName}</p>
                   <p className="text-xs text-gray-500">
-                    🕐 {ride.departureTime} · 📍 {ride.distanceFromOriginM}m from pickup
+                    🕐 {ride.departureTime} · 📍 {formatDistance(ride.distanceFromOriginM)} from your location
                   </p>
                 </div>
                 <div className="text-right">
@@ -633,6 +634,12 @@ export default function RideSearchPage() {
               {(() => {
                 const reqStatus = requestedMap[ride.id];
                 const full = ride.availableSeats === 0;
+                const isOwnRide = ride.rideGiver?.userId === user?.id;
+                if (isOwnRide) return (
+                  <div className="w-full py-2.5 rounded-lg text-sm font-medium text-center bg-gray-50 text-gray-400 border border-gray-200">
+                    🚗 Your ride
+                  </div>
+                );
                 if (reqStatus === 'pending') return (
                   <div className="w-full py-2.5 rounded-lg text-sm font-medium text-center bg-amber-50 text-amber-700 border border-amber-200">
                     ⏳ Awaiting giver's response

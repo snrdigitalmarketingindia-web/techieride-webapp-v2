@@ -7,6 +7,7 @@ import { ridesApi, gamificationApi, requestsApi } from '@/lib/api';
 import { RideCard } from '@/components/ui/RideCard';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideStatus, EcoLevel } from '@techieride/shared';
+import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
 
 const ECO_BADGES: Record<string, string> = {
   SEED: '🌱', SPROUT: '🌿', LEAF: '🍃', TREE: '🌳', FOREST: '🌲',
@@ -319,6 +320,20 @@ export default function DashboardPage() {
                             {req.seeker?.user?.trid && <span className="text-brand-600 mr-1">{req.seeker.user.trid}</span>}
                             {req.seeker?.user?.fullName ?? 'Seeker'}
                           </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {req.seeker?.user?.companyName && <span>{req.seeker.user.companyName}</span>}
+                            {req.pickupName && <span> · 📍 {req.pickupName}</span>}
+                            {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng && (
+                              <span> · 📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from your location</span>
+                            )}
+                          </p>
+                          {(() => {
+                            const override = (() => { try { return localStorage.getItem(`tr_pickup_eta_${req.id}`) ?? ''; } catch { return ''; } })();
+                            const eta = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
+                            return override
+                              ? <p className="text-xs text-brand-600 font-medium mt-0.5">🕐 Pickup at {override}</p>
+                              : eta ? <p className="text-xs text-gray-400 mt-0.5">🕐 Est. ~{eta}</p> : null;
+                          })()}
                         </div>
                         {req.seeker?.user?.phone && (
                           <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}

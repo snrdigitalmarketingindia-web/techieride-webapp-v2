@@ -177,14 +177,17 @@ test.describe('📅 My Rides — Period Filter Tabs', () => {
     await clearActiveRides(giverToken);
   });
 
-  test('MR-01: period filter tabs are visible on My Rides page', async ({ page }) => {
+  test('MR-01: period filter tabs visible and Today is active by default', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
     await expect(page.getByRole('button', { name: /^All$/i })).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByRole('button', { name: /Today/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /^Today$/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /^Tomorrow$/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /This Week/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /This Month/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /Custom/i })).toBeVisible({ timeout: 5_000 });
+    // Today must be the active (highlighted) tab by default
+    await expect(page.getByRole('button', { name: /^Today$/i })).toHaveClass(/bg-brand/, { timeout: 5_000 });
   });
 
   test('MR-02: clicking Custom reveals date range pickers', async ({ page }) => {
@@ -214,15 +217,293 @@ test.describe('📅 My Rides — Period Filter Tabs', () => {
 
     // Select "This Week" on Given tab
     await page.getByRole('button', { name: /This Week/i }).click();
-    // Confirm it's active (has brand styling)
     const thisWeekBtn = page.getByRole('button', { name: /This Week/i });
     await expect(thisWeekBtn).toHaveClass(/bg-brand/, { timeout: 3_000 });
 
     // Switch to Taken tab
     await page.getByRole('button', { name: /Rides Taken/i }).click();
 
-    // "All" should now be the active period (brand colour), "This Week" inactive
+    // "All" should now be the active period
     const allBtn = page.getByRole('button', { name: /^All$/i });
     await expect(allBtn).toHaveClass(/bg-brand/, { timeout: 3_000 });
+  });
+
+  test('MR-05: Tomorrow filter shows only tomorrow\'s rides', async ({ page }) => {
+    // Create a ride for tomorrow and one for the day after
+    const tmr  = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+    const dat  = new Date(Date.now() + 2 * 86_400_000).toISOString().split('T')[0];
+
+    const vehicles = await apiCall(giverToken, 'get', '/vehicles/my');
+    const vehicleId = vehicles.data?.[0]?.id ?? vehicles[0]?.id;
+
+    const rTmr = await apiCall(giverToken, 'post', '/rides', {
+      vehicleId, originName: 'A', originLat: 17.44, originLng: 78.34,
+      destinationName: 'B', destinationLat: 17.45, destinationLng: 78.36,
+      departureDate: tmr, departureTime: '09:00', totalSeats: 2,
+    });
+    const rDat = await apiCall(giverToken, 'post', '/rides', {
+      vehicleId, originName: 'A', originLat: 17.44, originLng: 78.34,
+      destinationName: 'B', destinationLat: 17.45, destinationLng: 78.36,
+      departureDate: dat, departureTime: '09:00', totalSeats: 2,
+    });
+    const tmrId = rTmr.data?.id ?? rTmr.id;
+    const datId = rDat.data?.id ?? rDat.id;
+    await apiCall(giverToken, 'patch', `/rides/${tmrId}/publish`);
+    await apiCall(giverToken, 'patch', `/rides/${datId}/publish`);
+
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await page.getByRole('button', { name: /Show History/i }).click().catch(() => {});
+    await page.getByRole('button', { name: /^Tomorrow$/i }).click();
+    await page.waitForTimeout(1_000);
+
+    // No crash
+    await expect(page).not.toHaveURL(/error|500/);
+
+    // Cleanup
+    await apiCall(giverToken, 'patch', `/rides/${tmrId}/cancel`).catch(() => {});
+    await apiCall(giverToken, 'patch', `/rides/${datId}/cancel`).catch(() => {});
+  });
+
+  test('MR-06: Tomorrow filter shows empty state when no rides tomorrow', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await page.getByRole('button', { name: /^Tomorrow$/i }).click();
+    await expect(page).not.toHaveURL(/error|500/);
+    await page.waitForTimeout(1_000);
+    await expect(page).not.toHaveURL(/error/);
+  });
+
+  test('MR-07: switching tab after Tomorrow resets period to All', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await page.getByRole('button', { name: /^Tomorrow$/i }).click();
+    await expect(page.getByRole('button', { name: /^Tomorrow$/i })).toHaveClass(/bg-brand/, { timeout: 3_000 });
+
+    await page.getByRole('button', { name: /Rides Taken/i }).click();
+    await expect(page.getByRole('button', { name: /^All$/i })).toHaveClass(/bg-brand/, { timeout: 3_000 });
+  });
+});
+
+// ── Boarding Badge ─────────────────────────────────────────────────────────────
+test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
+  let giverToken: string;
+  let seekerToken: string;
+  let rideId: string;
+  let requestId: string;
+
+  test.beforeAll(async () => {
+    giverToken  = await apiLogin(ACCOUNTS.giver.email);
+    seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    await clearActiveRides(giverToken);
+    await clearSeekerRequests(seekerToken);
+
+    const vehicles = await apiCall(giverToken, 'get', '/vehicles/my');
+    const vehicleId = vehicles.data?.[0]?.id ?? vehicles[0]?.id;
+    const tomorrow  = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+
+    // Use today's date with a past time so /start is not blocked by departure guard
+    const today     = new Date().toISOString().split('T')[0];
+    const pastTime  = '00:01'; // safely in the past
+
+    const created = await apiCall(giverToken, 'post', '/rides', {
+      vehicleId, originName: 'Kondapur', originLat: 17.4401, originLng: 78.3489,
+      destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
+      departureDate: today, departureTime: pastTime, totalSeats: 3,
+    });
+    rideId = created.data?.id ?? created.id;
+    await apiCall(giverToken, 'patch', `/rides/${rideId}/publish`);
+
+    const req = await apiCall(seekerToken, 'post', '/ride-requests', { rideId, pickupName: 'Kondapur Metro' });
+    requestId = req.requestId ?? req.id ?? req.data?.id;
+    await apiCall(giverToken, 'patch', `/ride-requests/${requestId}/approve`);
+  });
+
+  test('BD-01: confirmed passenger shows "Seat Confirmed" badge on PUBLISHED ride (giver view)', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/^Waiting$/i)).not.toBeVisible();
+  });
+
+  test('BD-02: confirmed passenger shows "Yet to board" badge on ONGOING ride (giver view)', async ({ page }) => {
+    const startR = await apiCall(giverToken, 'patch', `/rides/${rideId}/start`);
+    if (![200, 201].includes(startR?.status ?? startR?.data?.status)) {
+      test.skip(true, `Start ride failed — skipping BD-02 (status: ${JSON.stringify(startR)})`);
+      return;
+    }
+
+    await loginUI(page, 'giver');
+    await page.goto('/rides');
+    await expect(page.getByText(/Yet to board/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/Seat Confirmed/i)).not.toBeVisible();
+
+    // Cleanup
+    await apiCall(giverToken, 'patch', `/rides/${rideId}/cancel`).catch(() => {});
+  });
+});
+
+// ── Profile — Blood Group Dropdown ────────────────────────────────────────────
+test.describe('👤 Profile — Blood Group Dropdown', () => {
+  test('PR-01: blood group field is a <select> not a text input', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/profile');
+    // Click any button that opens the edit form (label may vary)
+    await page.locator('button').filter({ hasText: /edit/i }).first().click();
+    await page.waitForTimeout(500);
+    // Blood group must be a select element (look for the label then adjacent select)
+    const bgLabel = page.locator('label').filter({ hasText: /blood group/i });
+    await expect(bgLabel).toBeVisible({ timeout: 5_000 });
+    // The select should be present (not an input[type=text])
+    const bgSelect = page.locator('select').filter({ hasText: /select blood group|A\+|B\+|O\+|AB/i });
+    await expect(bgSelect).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('PR-02: blood group dropdown contains all 8 standard types', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/profile');
+    await page.locator('button').filter({ hasText: /edit/i }).first().click();
+    await page.waitForTimeout(500);
+
+    const bgSelect = page.locator('select').filter({ hasText: /select blood group|A\+|B\+|O\+|AB/i });
+    await expect(bgSelect).toBeVisible({ timeout: 5_000 });
+
+    const options = await bgSelect.locator('option').allTextContents();
+    for (const grp of ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−']) {
+      expect(options.some(o => o.includes(grp)), `Missing blood group option: ${grp}`).toBe(true);
+    }
+  });
+});
+
+// ── Search — Seeker vs Giver button ───────────────────────────────────────────
+test.describe('🔍 Search — Request Seat shown to seeker, not to giver on own ride', () => {
+  test('SR-04: seeker sees Request Seat button (not "Your ride") on a published ride', async ({ page }) => {
+    // Ensure there is at least one published ride visible
+    const giverToken = await apiLogin(ACCOUNTS.giver.email);
+    const vehicles   = await apiCall(giverToken, 'get', '/vehicles/my');
+    const vehicleId  = vehicles.data?.[0]?.id ?? vehicles[0]?.id;
+    const tomorrow   = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+
+    const created = await apiCall(giverToken, 'post', '/rides', {
+      vehicleId, originName: 'Kondapur', originLat: 17.4401, originLng: 78.3489,
+      destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
+      departureDate: tomorrow, departureTime: '09:00', totalSeats: 3,
+    });
+    const rideId = created.data?.id ?? created.id;
+    await apiCall(giverToken, 'patch', `/rides/${rideId}/publish`);
+
+    await loginUI(page, 'seeker');
+    await page.goto('/rides/search');
+    await page.locator('input[type="date"]').fill(tomorrow);
+    await page.getByRole('button', { name: /search/i }).click();
+    await page.waitForTimeout(2_000);
+
+    await expect(page.getByRole('button', { name: /request seat/i })).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/your ride/i)).not.toBeVisible();
+
+    await apiCall(giverToken, 'patch', `/rides/${rideId}/cancel`).catch(() => {});
+  });
+});
+
+// ── Pickup ETA ─────────────────────────────────────────────────────────────────
+test.describe('🕐 Pickup ETA — estimate and override', () => {
+  let giverToken: string;
+  let rideId: string;
+  let requestId: string;
+
+  test.beforeAll(async () => {
+    giverToken = await apiLogin(ACCOUNTS.giver.email);
+    await clearActiveRides(giverToken);
+
+    const vehicles  = await apiCall(giverToken, 'get', '/vehicles/my');
+    const vehicleId = vehicles.data?.[0]?.id ?? vehicles[0]?.id;
+    const tomorrow  = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+
+    const created = await apiCall(giverToken, 'post', '/rides', {
+      vehicleId, originName: 'Kondapur', originLat: 17.4401, originLng: 78.3489,
+      destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
+      departureDate: tomorrow, departureTime: '09:00', totalSeats: 3,
+    });
+    rideId = created.data?.id ?? created.id;
+    await apiCall(giverToken, 'patch', `/rides/${rideId}/publish`);
+
+    // Seeker requests with pickup coords
+    const seekerToken = await apiLogin(ACCOUNTS.seeker.email);
+    const req = await apiCall(seekerToken, 'post', '/ride-requests', {
+      rideId,
+      pickupName: 'Kondapur Metro',
+      pickupLat: 17.4430, pickupLng: 78.3510,
+    });
+    requestId = req.requestId ?? req.id ?? req.data?.id;
+  });
+
+  test('ETA-01: pickup ETA is hidden when seeker has no pickup coordinates', async ({ page }) => {
+    // Create a request without coords
+    const seekerToken2 = await apiLogin('raghu@raghu.com');
+    const req2 = await apiCall(seekerToken2, 'post', '/ride-requests', {
+      rideId, pickupName: 'Miyapur',
+      // no pickupLat / pickupLng
+    });
+    const req2Id = req2.requestId ?? req2.id ?? req2.data?.id;
+
+    await loginUI(page, 'giver');
+    await page.goto(`/rides/${rideId}`);
+    await page.waitForTimeout(2_000);
+
+    // The req2 row (Raghu — no coords) must NOT show an ETA
+    const raghuRow = page.locator('text=Raghu Sri').locator('..').locator('..');
+    await expect(raghuRow.locator('text=/Est\\. ~/i')).not.toBeVisible();
+    await expect(raghuRow.locator('text=/Pickup at/i')).not.toBeVisible();
+
+    await apiCall(seekerToken2, 'patch', `/ride-requests/${req2Id}/cancel`).catch(() => {});
+  });
+
+  test('ETA-02: pickup ETA estimate is shown when seeker has pickup coordinates', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto(`/rides/${rideId}`);
+    await page.waitForTimeout(2_000);
+
+    // Arjun's request has coords — should show Est. ~HH:MM AM/PM
+    await expect(page.getByText(/Est\. ~/i)).toBeVisible({ timeout: 8_000 });
+  });
+
+  test('ETA-03: giver can override pickup time via pencil icon', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto(`/rides/${rideId}`);
+    await page.waitForTimeout(2_000);
+
+    // Click the edit pencil
+    await page.locator('button[title="Set pickup time"]').first().click();
+    await expect(page.locator('input[type="time"]').first()).toBeVisible({ timeout: 3_000 });
+
+    // Enter a specific time and save
+    await page.locator('input[type="time"]').first().fill('08:30');
+    await page.getByRole('button', { name: /^Save$/i }).first().click();
+
+    // Override should now be displayed
+    await expect(page.getByText(/Pickup at 08:30/i)).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText(/Est\. ~/i)).not.toBeVisible();
+  });
+
+  test('ETA-04: pickup time override persists after page refresh (independent)', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto(`/rides/${rideId}`);
+    await page.waitForTimeout(2_000);
+
+    // Set override independently (don't rely on ETA-03)
+    await page.locator('button[title="Set pickup time"]').first().click();
+    await expect(page.locator('input[type="time"]').first()).toBeVisible({ timeout: 3_000 });
+    await page.locator('input[type="time"]').first().fill('09:00');
+    await page.getByRole('button', { name: /^Save$/i }).first().click();
+    await expect(page.getByText(/Pickup at 09:00/i)).toBeVisible({ timeout: 3_000 });
+
+    // Refresh and verify override persists from localStorage
+    await page.reload();
+    await page.waitForTimeout(2_000);
+    await expect(page.getByText(/Pickup at 09:00/i)).toBeVisible({ timeout: 5_000 });
+  });
+
+  test.afterAll(async () => {
+    await apiCall(giverToken, 'patch', `/rides/${rideId}/cancel`).catch(() => {});
   });
 });

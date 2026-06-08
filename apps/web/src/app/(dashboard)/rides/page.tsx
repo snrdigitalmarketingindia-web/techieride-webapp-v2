@@ -6,6 +6,7 @@ import { ridesApi, requestsApi, quickMessagesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideCard } from '@/components/ui/RideCard';
+import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
 
 export default function MyRidesPage() {
   const { user, _hasHydrated } = useAuthStore();
@@ -18,10 +19,10 @@ export default function MyRidesPage() {
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasActiveRide, setHasActiveRide] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory, setShowHistory] = useState(true); // default Today period needs history enabled
   // Period filter
-  type Period = 'all' | 'today' | 'week' | 'month' | 'custom';
-  const [period, setPeriod] = useState<Period>('all');
+  type Period = 'all' | 'today' | 'tomorrow' | 'week' | 'month' | 'custom';
+  const [period, setPeriod] = useState<Period>('today');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo]   = useState('');
   // Giver: pending requests per ride  { rideId: req[] }
@@ -29,6 +30,16 @@ export default function MyRidesPage() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  // TODO [v2.3]: Pickup ETA override — localStorage only. Migrate to DB (RideRequest.pickupEtaOverride).
+  const ETA_KEY = (reqId: string) => `tr_pickup_eta_${reqId}`;
+  const [etaOverrides, setEtaOverrides] = useState<Record<string, string>>({});
+  const [editingEta, setEditingEta] = useState<string | null>(null);
+  const [etaDraft, setEtaDraft] = useState('');
+  const saveEta = (reqId: string, value: string) => {
+    try { if (value.trim()) localStorage.setItem(ETA_KEY(reqId), value.trim()); else localStorage.removeItem(ETA_KEY(reqId)); } catch {}
+    setEtaOverrides(prev => value.trim() ? { ...prev, [reqId]: value.trim() } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== reqId)));
+    setEditingEta(null);
+  };
   const ridesRef = useRef<any[]>([]);
   // Seeker: pending/active requests not yet confirmed
   const [myRequests, setMyRequests] = useState<any[]>([]);
@@ -86,6 +97,10 @@ export default function MyRidesPage() {
   const reloadPending = async (rideId: string) => {
     const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));
     setPendingMap((prev) => ({ ...prev, [rideId]: res.data }));
+    // Load any saved ETA overrides for these requests
+    const overrides: Record<string, string> = {};
+    (res.data ?? []).forEach((r: any) => { try { const v = localStorage.getItem(`tr_pickup_eta_${r.id}`); if (v) overrides[r.id] = v; } catch {} });
+    if (Object.keys(overrides).length) setEtaOverrides(prev => ({ ...prev, ...overrides }));
   };
 
   // Load pending requests for all PUBLISHED rides when given tab loads
@@ -175,6 +190,11 @@ export default function MyRidesPage() {
       const end = new Date(today); end.setHours(23, 59, 59, 999);
       return allRides.filter((r) => inRange(r, today, end));
     }
+    if (period === 'tomorrow') {
+      const tmr = new Date(today); tmr.setDate(today.getDate() + 1);
+      const tmrEnd = new Date(tmr); tmrEnd.setHours(23, 59, 59, 999);
+      return allRides.filter((r) => inRange(r, tmr, tmrEnd));
+    }
     if (period === 'week') {
       const day = today.getDay();
       const diffToMon = (day === 0 ? -6 : 1 - day);
@@ -245,9 +265,9 @@ export default function MyRidesPage() {
       {/* Period filter tabs */}
       <div className="space-y-2">
         <div className="flex gap-1.5 flex-wrap">
-          {(['all', 'today', 'week', 'month', 'custom'] as const).map((p) => {
+          {(['all', 'today', 'tomorrow', 'week', 'month', 'custom'] as const).map((p) => {
             const labels: Record<string, string> = {
-              all: 'All', today: 'Today', week: 'This Week', month: 'This Month', custom: '📅 Custom',
+              all: 'All', today: 'Today', tomorrow: 'Tomorrow', week: 'This Week', month: 'This Month', custom: '📅 Custom',
             };
             return (
               <button
@@ -422,6 +442,33 @@ export default function MyRidesPage() {
                               {req.seeker?.user?.trid && <span className="text-brand-600 mr-1">{req.seeker.user.trid}</span>}
                               {req.seeker?.user?.fullName ?? 'Seeker'}
                             </p>
+                            <p className="text-xs text-gray-500 truncate">
+                              {req.seeker?.user?.companyName && <span>{req.seeker.user.companyName}</span>}
+                              {req.pickupName && <span> · 📍 {req.pickupName}</span>}
+                              {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng && (
+                                <span> · 📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from your location</span>
+                              )}
+                            </p>
+                            {editingEta === req.id ? (
+                              <div className="flex items-center gap-1 mt-1">
+                                <input type="time" value={etaDraft} onChange={e => setEtaDraft(e.target.value)}
+                                  className="text-xs px-2 py-1 border border-brand-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400" />
+                                <button onClick={() => saveEta(req.id, etaDraft)} className="text-xs bg-brand-600 text-white px-2 py-1 rounded-lg">Save</button>
+                                <button onClick={() => setEditingEta(null)} className="text-xs text-gray-400 px-1">Cancel</button>
+                                {etaOverrides[req.id] && <button onClick={() => saveEta(req.id, '')} className="text-xs text-red-400 px-1">Clear</button>}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {etaOverrides[req.id] ? (
+                                  <span className="text-xs text-brand-600 font-medium">🕐 Pickup at {etaOverrides[req.id]}</span>
+                                ) : (() => {
+                                  const eta = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
+                                  return eta ? <span className="text-xs text-gray-400">🕐 Est. ~{eta}</span> : null;
+                                })()}
+                                <button onClick={() => { setEditingEta(req.id); setEtaDraft(etaOverrides[req.id] ?? ''); }}
+                                  className="text-xs text-gray-300 hover:text-brand-500 ml-1" title="Set pickup time">✏️</button>
+                              </div>
+                            )}
                           </div>
                           {req.seeker?.user?.phone && (
                             <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
@@ -469,12 +516,7 @@ export default function MyRidesPage() {
 
                   return (
                     <div className="space-y-2">
-                      {/* PUBLISHED: warn if passengers haven't boarded */}
-                      {tab === 'given' && ride.status === 'PUBLISHED' && waitingPassengers.length > 0 && (
-                        <p className="text-xs text-amber-600">
-                          ⚠️ {waitingPassengers.length} passenger(s) yet to board — ask them to tap Board, or start as override
-                        </p>
-                      )}
+                      {/* Boarding warning only relevant once ride is ONGOING */}
 
                       {/* ONGOING: no-show buttons for WAITING passengers */}
                       {tab === 'given' && ride.status === 'ONGOING' && waitingPassengers.length > 0 && (

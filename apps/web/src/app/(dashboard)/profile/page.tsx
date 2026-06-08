@@ -319,7 +319,6 @@ export default function ProfilePage() {
               { label: 'Company',     key: 'companyName',    type: 'text' },
               { label: 'Home Area',   key: 'homeLocation',   type: 'text' },
               { label: 'Office Area', key: 'officeLocation', type: 'text' },
-              { label: 'Blood Group', key: 'bloodGroup',     type: 'text' },
             ].map(({ label, key, type }) => (
               <div key={key}>
                 <label htmlFor={`edit-${key}`} className="text-xs text-gray-500 mb-1 block">{label}</label>
@@ -332,6 +331,19 @@ export default function ProfilePage() {
                 />
               </div>
             ))}
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Blood Group</label>
+              <select
+                value={editForm.bloodGroup}
+                onChange={(e) => setEditForm((f) => ({ ...f, bloodGroup: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+              >
+                <option value="">Select blood group</option>
+                {['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'].map(bg => (
+                  <option key={bg} value={bg}>{bg}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Gender</label>
               <select
