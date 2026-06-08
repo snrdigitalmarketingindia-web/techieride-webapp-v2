@@ -33,9 +33,15 @@ interface RideCardProps {
   viewAs: 'giver' | 'seeker' | 'browse';
   /** Extra action buttons rendered below the header */
   actions?: React.ReactNode;
+  /**
+   * Per-participant inline actions rendered directly on each passenger row.
+   * Keyed by rideParticipant.id. Used to place No-Show buttons inline
+   * instead of repeating the passenger in a separate warning section below.
+   */
+  participantActions?: Record<string, React.ReactNode>;
 }
 
-export function RideCard({ ride, viewAs, actions }: RideCardProps) {
+export function RideCard({ ride, viewAs, actions, participantActions }: RideCardProps) {
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const participants: any[] = ride.participants ?? [];
   const dateStr = ride.departureDate
@@ -178,7 +184,7 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                     <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>
                   ) : null}
                 </div>
-                {/* Right column: Call → Badge → dist (top to bottom) */}
+                {/* Right column: Call → Badge/NoShow → dist (top to bottom) */}
                 <div className="flex flex-col items-end gap-1 shrink-0">
                   {phone && !noShow && (
                     <CallButton
@@ -191,11 +197,15 @@ export function RideCard({ ride, viewAs, actions }: RideCardProps) {
                       variant="ghost"
                     />
                   )}
-                  {badge && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>
-                      {badge.label}
-                    </span>
-                  )}
+                  {/* Inline participant action (e.g. No-Show button) takes priority over badge */}
+                  {participantActions?.[p.id]
+                    ? participantActions[p.id]
+                    : badge && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>
+                          {badge.label}
+                        </span>
+                      )
+                  }
                   {distStr && (
                     <span className="text-xs text-gray-400 whitespace-nowrap">📏 {distStr} from you</span>
                   )}

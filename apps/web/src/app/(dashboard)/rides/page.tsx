@@ -434,6 +434,38 @@ export default function MyRidesPage() {
               ? (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING')
               : [];
 
+            // Per-passenger No-Show buttons — built here so they render INLINE on the
+            // passenger row in RideCard rather than in a separate duplicate section below.
+            const participantActionsMap: Record<string, React.ReactNode> = {};
+            if (tab === 'given' && ride.status === 'ONGOING') {
+              for (const p of (ride.participants ?? [])) {
+                if (p.boardingStatus !== 'WAITING') continue;
+                const reqId  = p.request?.id;
+                const etaTime = p.pickupTime
+                  ?? etaOverrides[reqId]
+                  ?? estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, p.request?.pickupLat, p.request?.pickupLng)
+                  ?? ride.departureTime;
+                const canMarkNoShow = (() => {
+                  if (!etaTime) return true;
+                  const [h, m] = etaTime.split(':').map(Number);
+                  if (isNaN(h) || isNaN(m)) return true;
+                  const threshold = new Date();
+                  threshold.setHours(h, m + 1, 0, 0);
+                  return new Date() >= threshold;
+                })();
+                participantActionsMap[p.id] = (
+                  <button
+                    onClick={() => handleNoShow(ride.id, p.seeker?.id)}
+                    disabled={processing === p.seeker?.id || !canMarkNoShow}
+                    title={!canMarkNoShow ? `Available after boarding time ${etaTime} + 1 min` : 'Mark as no-show'}
+                    className="text-xs border border-red-200 text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                  >
+                    👻 No-Show
+                  </button>
+                );
+              }
+            }
+
             const actions = (
               <div className="space-y-2">
                 {/* Pending requests */}
@@ -572,55 +604,13 @@ export default function MyRidesPage() {
 
                   return (
                     <div className="space-y-2">
-                      {/* Boarding warning only relevant once ride is ONGOING */}
-
-                      {/* ONGOING: no-show buttons for WAITING passengers */}
+                      {/* Warning text only — No-Show buttons are now inline on each
+                          passenger row via participantActionsMap, so we don't repeat
+                          the passenger names here. */}
                       {tab === 'given' && ride.status === 'ONGOING' && waitingPassengers.length > 0 && (
-                        <div className="space-y-1">
-                          <p className="text-xs text-red-500 font-medium">
-                            ⚠️ {waitingPassengers.length} passenger(s) still waiting — mark no-show or wait for them to board before completing
-                          </p>
-                          {waitingPassengers.map((p: any) => {
-                            // Boarding time priority: DB pickupTime → ETA override → estimated → departure time
-                            const reqId   = p.request?.id;
-                            const etaTime = p.pickupTime
-                              ?? etaOverrides[reqId]
-                              ?? estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, p.request?.pickupLat, p.request?.pickupLng)
-                              ?? ride.departureTime;
-
-                            // Block Mark No-Show until boarding time + 1 minute has passed
-                            const canMarkNoShow = (() => {
-                              if (!etaTime) return true;
-                              const [h, m] = etaTime.split(':').map(Number);
-                              if (isNaN(h) || isNaN(m)) return true;
-                              const threshold = new Date();
-                              threshold.setHours(h, m + 1, 0, 0);
-                              return new Date() >= threshold;
-                            })();
-
-                            return (
-                              <div key={p.id} className="flex items-center gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-gray-700">
-                                    {p.seeker?.user?.trid && <span className="text-brand-600 mr-1">{p.seeker.user.trid}</span>}
-                                    {p.seeker?.user?.fullName ?? 'Passenger'}
-                                  </p>
-                                  {etaTime && (
-                                    <p className="text-xs text-gray-400">🕐 Boarding at {etaTime}</p>
-                                  )}
-                                </div>
-                                <button
-                                  onClick={() => handleNoShow(ride.id, p.seeker?.id)}
-                                  disabled={processing === p.seeker?.id || !canMarkNoShow}
-                                  title={!canMarkNoShow ? `Available after boarding time ${etaTime} + 1 min` : undefined}
-                                  className="text-xs border border-red-200 text-red-600 px-2.5 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
-                                >
-                                  👻 No-Show
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <p className="text-xs text-red-500 font-medium">
+                          ⚠️ {waitingPassengers.length} passenger(s) still waiting — tap 👻 No-Show on their row above to complete the ride
+                        </p>
                       )}
 
                       <div className="flex gap-2 flex-wrap">
@@ -840,6 +830,7 @@ export default function MyRidesPage() {
                     ride={ride}
                     viewAs={tab === 'given' ? 'giver' : 'seeker'}
                     actions={actions}
+                    participantActions={participantActionsMap}
                   />
                 </div>
               </div>
