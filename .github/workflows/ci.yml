@@ -388,7 +388,8 @@ jobs:
   smoke-gate:
     name: ⚡ Smoke Gate (E2E fast feedback)
     runs-on: ubuntu-latest
-    needs: api-tests
+    # No dependency on api-tests — smoke spins up its own runner (own DB, API, Web)
+    # so it runs in parallel with api-tests for true fast feedback.
 
     services:
       postgres:
@@ -517,7 +518,7 @@ jobs:
   playwright-tests:
     name: 🎭 Playwright E2E Tests
     runs-on: ubuntu-latest
-    needs: [api-tests, smoke-gate]
+    needs: smoke-gate
 
     services:
       postgres:
