@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { CallButton } from '@/components/ui/CallButton';
@@ -255,6 +255,11 @@ export default function RideSearchPage() {
   // set when API returns 409 — holds { existingReq, pendingData } so user can confirm switch
   const [conflictReq, setConflictReq] = useState<any | null>(null);
   const [pendingBoardingData, setPendingBoardingData] = useState<any | null>(null);
+  // Monotonically-increasing counter — each call to search() gets a unique ID.
+  // When the response arrives we check if it's still "current"; stale responses
+  // (from a fast-followed mount search overrunning a later user-triggered search)
+  // are discarded so they can't wipe out fresh results.
+  const searchSeqRef = useRef(0);
 
   // Load saved search prefs client-side (localStorage unavailable during SSR)
   useEffect(() => {
@@ -296,6 +301,8 @@ export default function RideSearchPage() {
         destinationName: form.destinationName, destinationLat: form.destinationLat, destinationLng: form.destinationLng,
       });
     }
+    // Stamp this invocation so stale responses can be discarded.
+    const mySeq = ++searchSeqRef.current;
     setLoading(true);
     setSearchError('');
     try {
@@ -307,12 +314,15 @@ export default function RideSearchPage() {
         date: form.date,
         radiusMeters: radiusKm * 1000,
       });
-      setRides(data);
+      // Only apply results if this is still the most-recent search
+      if (mySeq === searchSeqRef.current) setRides(data);
     } catch {
-      setRides([]);
-      setSearchError('Unable to fetch rides. Please check your connection and try again.');
+      if (mySeq === searchSeqRef.current) {
+        setRides([]);
+        setSearchError('Unable to fetch rides. Please check your connection and try again.');
+      }
     } finally {
-      setLoading(false);
+      if (mySeq === searchSeqRef.current) setLoading(false);
     }
   };
 

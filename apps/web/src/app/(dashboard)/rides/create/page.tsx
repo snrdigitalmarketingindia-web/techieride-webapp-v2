@@ -94,6 +94,16 @@ export default function CreateRidePage() {
   const [originPinned, setOriginPinned] = useState(false);
   const [destPinned, setDestPinned] = useState(false);
 
+  // Initialise pinned state from last route on mount — runs before user loads.
+  // This ensures that if tr_last_route already has coords (e.g. set by a test or
+  // a previous session), originPinned/destPinned are true before submit() fires,
+  // so the pin-guard doesn't swallow API errors like a 403 publish rejection.
+  useEffect(() => {
+    const lastRoute = loadLastRoute();
+    if (lastRoute?.originLat) setOriginPinned(true);
+    if (lastRoute?.destinationLat) setDestPinned(true);
+  }, []);
+
   // Smart location defaults: profile home/office → last used route → blank
   // Runs once user profile is available (client-side only)
   useEffect(() => {
