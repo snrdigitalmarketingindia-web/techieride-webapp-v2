@@ -282,6 +282,12 @@ test.describe('🛡️ Verification Bypass — UI error display (VB-01 UI)', () 
     await page.goto('/rides/create'); // reload so form reads localStorage
     await expect(page.getByRole('heading', { name: /offer a ride/i })).toBeVisible({ timeout: 8_000 });
 
+    // Fill departure date (tomorrow) and time so client-side validation passes fully,
+    // allowing the create API call to fire and the publish intercept to trigger the 403.
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().split('T')[0];
+    await page.locator('input[type="date"]').fill(tomorrow);
+    await page.locator('input[type="time"]').fill('09:00');
+
     // Intercept the publish call and force a 403 response
     await page.route('**/rides/*/publish', async (route) => {
       await route.fulfill({

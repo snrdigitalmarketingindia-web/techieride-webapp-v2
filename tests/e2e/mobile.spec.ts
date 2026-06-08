@@ -82,7 +82,7 @@ test.describe('📱 Mobile Navigation', () => {
   test('bottom nav navigates to Profile', async ({ page }) => {
     await page.locator('nav a[href="/profile"]').last().click();
     await expect(page).toHaveURL(/\/profile/);
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
 });

@@ -74,7 +74,7 @@ test.describe('🚗 Ride Giver', () => {
 
   test('profile page loads', async ({ page }) => {
     await page.goto('/profile');
-    await expect(page.getByText(/rahul sharma/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/rahul sharma/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('notifications page is accessible', async ({ page }) => {

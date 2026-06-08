@@ -19,16 +19,11 @@ function tomorrowDateStr(): string {
 }
 
 /**
- * Navigate to a ride detail page and wait for the backend API response to arrive.
- * Avoids flaky 10 s timeouts on slow CI where the SSR + API round-trip takes longer.
+ * Navigate to a ride detail page and wait for all network activity to settle.
+ * `networkidle` ensures ridesApi.getById() has resolved and React has rendered.
  */
 async function gotoRideDetail(page: any, rId: string) {
-  const fetchDone = page.waitForResponse(
-    (r: any) => r.url().includes('/api/') && r.url().includes(`/rides/${rId}`) && r.status() === 200,
-    { timeout: 25_000 },
-  );
-  await page.goto(`/rides/${rId}`);
-  await fetchDone;
+  await page.goto(`/rides/${rId}`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(400);
 }
 

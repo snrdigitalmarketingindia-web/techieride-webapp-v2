@@ -43,6 +43,6 @@ test.describe('🙋 Ride Seeker', () => {
 
   test('profile page shows seeker info', async ({ page }) => {
     await page.goto('/profile');
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 8_000 });
   });
 });

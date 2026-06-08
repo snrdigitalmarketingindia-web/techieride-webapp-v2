@@ -89,6 +89,6 @@ test.describe('🔐 Auth Flow', () => {
     await pwInput.fill('TestPass@2024');
     // Leave phone empty and click Next
     await page.getByRole('button', { name: /next/i }).click();
-    await expect(page.getByText(/mobile number|phone/i)).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText(/mobile number|phone/i).first()).toBeVisible({ timeout: 3_000 });
   });
 });

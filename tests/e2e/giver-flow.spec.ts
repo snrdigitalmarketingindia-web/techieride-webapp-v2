@@ -37,21 +37,15 @@ async function gotoRidesReady(page: any) {
 }
 
 /**
- * Navigate to a ride detail page and wait for the backend API response to arrive.
- * The ride detail page (`/rides/[id]/page.tsx`) fires `ridesApi.getById()` on mount.
- * On slow CI the SSR + API round-trip can exceed 10 s — we wait for the response
- * explicitly instead of relying on a fixed element-visibility timeout.
+ * Navigate to a ride detail page and wait for all API calls to settle.
+ * Uses `waitUntil: 'networkidle'` so we don't need to guess the exact API URL —
+ * the ride detail page fires ridesApi.getById() on mount and we simply wait until
+ * there's been 500 ms of no network activity, guaranteeing the data has arrived
+ * and React has rendered before we assert any elements.
  */
 async function gotoRideDetail(page: any, rId: string) {
-  // Register BEFORE navigation so we don't miss the early fetch
-  const fetchDone = page.waitForResponse(
-    // API URL contains /api/ (e.g. /api/v1/rides/<uuid>); Next.js page URL does not
-    (r: any) => r.url().includes('/api/') && r.url().includes(`/rides/${rId}`) && r.status() === 200,
-    { timeout: 25_000 },
-  );
-  await page.goto(`/rides/${rId}`);
-  await fetchDone;
-  await page.waitForTimeout(400); // allow React to re-render with the fetched data
+  await page.goto(`/rides/${rId}`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(400); // small buffer for final React re-render
 }
 
 test.describe('🚗 Giver Full Flow', () => {

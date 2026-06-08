@@ -13,7 +13,7 @@ test.describe('👤 Profile Flow', () => {
   test('PF-01: profile page shows user name and eco badge', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText(/seed|sprout|leaf|tree|forest/i).first()).toBeVisible();
   });
 

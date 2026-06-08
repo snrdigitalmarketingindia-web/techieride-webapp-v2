@@ -136,23 +136,24 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
       headers: { Authorization: `Bearer ${token}` },
     });
 
+    // Register the listener BEFORE loginUI — fetchProfile fires right after login
+    // redirects to dashboard; registering after loginUI would miss the response.
+    const profileReady = page.waitForResponse(
+      (r: any) => r.url().includes('/users/me') && r.status() === 200,
+      { timeout: 15_000 },
+    ).catch(() => {});
+
     // Log into the browser session as giver so the search page can identify the user
     await loginUI(page, ACCOUNTS.giver.email);
 
-    // Wait for the auth store's fetchProfile() to complete — it calls /users/me.
-    // Without this the user.id is not set yet when search results render, so
-    // the "Your ride" badge never appears.
-    await page.waitForResponse(
-      (r: any) => r.url().includes('/users/me') && r.status() === 200,
-      { timeout: 10_000 },
-    ).catch(() => {});
+    // Wait for fetchProfile() to complete so user.id is in the auth store
+    await profileReady;
 
     // Giver searches — should see "Your ride" not "Request Seat"
-    await page.goto('/rides/search');
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.goto('/rides/search', { waitUntil: 'networkidle' });
     await page.locator('input[type="date"]').fill(tomorrow);
     await page.getByRole('button', { name: /search/i }).click();
-    await page.waitForTimeout(3_000);
+    await page.waitForTimeout(2_000);
 
     await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();

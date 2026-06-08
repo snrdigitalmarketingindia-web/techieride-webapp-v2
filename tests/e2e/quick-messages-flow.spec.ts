@@ -149,7 +149,7 @@ test.describe('💬 Quick Messages Flow', () => {
 
   test('QM-11: Custom Message textarea and Send button visible on ONGOING ride for giver', async ({ page }) => {
     await loginUI(page, 'giver');
-    await page.goto(`/rides/${rideId}`);
+    await page.goto(`/rides/${rideId}`, { waitUntil: 'networkidle' });
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 10_000 });
     await page.getByRole('button', { name: /quick message/i }).click();
     await expect(page.getByPlaceholder(/type your message/i)).toBeVisible({ timeout: 5_000 });
