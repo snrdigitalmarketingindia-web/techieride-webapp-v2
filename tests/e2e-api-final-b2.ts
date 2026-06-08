@@ -348,24 +348,27 @@ async function run() {
     let rides: any[] = [];
 
     await test('PD-00: setup — create + publish two rides at different distances', async () => {
-      const giverDist = await freshGiver('dist32-g');
+      // Use TWO separate givers — the API blocks a giver from having more than
+      // one active ride at a time, so a single giver cannot publish two rides.
+      const giverClose = await freshGiver('dist32-g1');
+      const giverFar   = await freshGiver('dist32-g2');
       const tomorrow32 = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-      const createRide = async (originLat: number, originLng: number) => {
-        const r = await giverDist.client.post('/rides', {
-          vehicleId: giverDist.vehicleId,
+      const createRide = async (giverClient: any, vehicleId: string, originLat: number, originLng: number) => {
+        const r = await giverClient.post('/rides', {
+          vehicleId,
           originName: 'Test Origin', originLat, originLng,
           destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
           departureDate: tomorrow32, departureTime: '09:00', totalSeats: 3,
         });
         assert(r.status === 201, `Create ride failed (${r.status}): ${JSON.stringify(r.data)}`);
-        const pub = await giverDist.client.patch(`/rides/${r.data.id}/publish`);
+        const pub = await giverClient.patch(`/rides/${r.data.id}/publish`);
         assert(pub.status === 200, `Publish failed (${pub.status}): ${JSON.stringify(pub.data)}`);
         return r.data.id as string;
       };
 
-      closeRideId = await createRide(17.4401, 78.3489);
-      farRideId   = await createRide(17.4535, 78.3489);
+      closeRideId = await createRide(giverClose.client, giverClose.vehicleId, 17.4401, 78.3489);
+      farRideId   = await createRide(giverFar.client,   giverFar.vehicleId,   17.4535, 78.3489);
 
       const searchParams = new URLSearchParams({
         originLat: '17.4401', originLng: '78.3489',
@@ -377,8 +380,8 @@ async function run() {
       rides = searchR.data?.data ?? searchR.data?.rides ?? searchR.data ?? [];
 
       // Cleanup (best-effort — runner is still alive even if these fail)
-      await giverDist.client.patch(`/rides/${closeRideId}/cancel`).catch(() => {});
-      await giverDist.client.patch(`/rides/${farRideId}/cancel`).catch(() => {});
+      await giverClose.client.patch(`/rides/${closeRideId}/cancel`).catch(() => {});
+      await giverFar.client.patch(`/rides/${farRideId}/cancel`).catch(() => {});
     });
 
     await test('PD-01: search response includes distanceFromOriginM on every ride', async () => {
