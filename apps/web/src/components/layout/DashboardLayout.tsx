@@ -111,8 +111,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       </header>
 
-      {/* Content */}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">{children}</main>
+      {/* Content row — sidebar spacer + main keep them in separate columns */}
+      <div className="flex flex-1 min-h-0">
+        {/* Invisible spacer matching the fixed sidebar width so content doesn't slide under it */}
+        <div className="hidden sm:block w-16 shrink-0" aria-hidden="true" />
+        <main className="flex-1 min-w-0 max-w-4xl mx-auto w-full px-4 py-6">{children}</main>
+      </div>
 
       {/* Bottom nav (mobile) */}
       <div className="sticky bottom-0 sm:hidden">
