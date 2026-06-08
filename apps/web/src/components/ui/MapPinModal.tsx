@@ -5,13 +5,13 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 export interface MapLocation {
   lat: number;
   lng: number;
-  address: string; // reverse-geocoded label
+  address: string; // reverse-geocoded label from Nominatim (free, no key)
   alias: string;   // user-given name e.g. "Home", "Office"
 }
 
 interface MapPinModalProps {
-  title: string;            // e.g. "Set Home Location"
-  defaultAlias?: string;    // pre-fill alias field
+  title: string;
+  defaultAlias?: string;
   initialLat?: number;
   initialLng?: number;
   onConfirm: (loc: MapLocation) => void;
@@ -22,8 +22,6 @@ interface MapPinModalProps {
 const HYD_LAT = 17.4065;
 const HYD_LNG = 78.4772;
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
-
 export function MapPinModal({
   title,
   defaultAlias = '',
@@ -33,26 +31,24 @@ export function MapPinModal({
   onClose,
 }: MapPinModalProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapRef       = useRef<any>(null);
+  const markerRef    = useRef<any>(null);
 
-  const [pinLat, setPinLat] = useState<number | null>(initialLat ?? null);
-  const [pinLng, setPinLng] = useState<number | null>(initialLng ?? null);
-  const [address, setAddress] = useState('');
-  const [alias, setAlias] = useState(defaultAlias);
+  const [pinLat,    setPinLat]    = useState<number | null>(initialLat ?? null);
+  const [pinLng,    setPinLng]    = useState<number | null>(initialLng ?? null);
+  const [address,   setAddress]   = useState('');
+  const [alias,     setAlias]     = useState(defaultAlias);
   const [geocoding, setGeocoding] = useState(false);
-  const [error, setError] = useState('');
+  const [error,     setError]     = useState('');
 
-  // Reverse geocode via Mapbox Geocoding API (free tier)
+  // Free reverse geocode via OpenStreetMap Nominatim — no API key required
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
-    if (!MAPBOX_TOKEN) { setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`); return; }
     setGeocoding(true);
     try {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1&language=en`;
-      const res = await fetch(url);
+      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
+      const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       const data = await res.json();
-      const place = data.features?.[0]?.place_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      setAddress(place);
+      setAddress(data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } catch {
       setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } finally {
@@ -60,17 +56,13 @@ export function MapPinModal({
     }
   }, []);
 
-  // Place / move marker
-  const placeMarker = useCallback((map: any, mapboxgl: any, lat: number, lng: number) => {
+  const placeMarker = useCallback((map: any, L: any, lat: number, lng: number) => {
     if (markerRef.current) {
-      markerRef.current.setLngLat([lng, lat]);
+      markerRef.current.setLatLng([lat, lng]);
     } else {
-      markerRef.current = new mapboxgl.Marker({ color: '#7C3AED', draggable: true })
-        .setLngLat([lng, lat])
-        .addTo(map);
-
-      markerRef.current.on('dragend', () => {
-        const pos = markerRef.current.getLngLat();
+      markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(map);
+      markerRef.current.on('dragend', (e: any) => {
+        const pos = e.target.getLatLng();
         setPinLat(pos.lat);
         setPinLng(pos.lng);
         reverseGeocode(pos.lat, pos.lng);
@@ -83,52 +75,57 @@ export function MapPinModal({
 
   useEffect(() => {
     if (!mapContainer.current) return;
-
     let map: any;
-    let mapboxgl: any;
+    let L: any;
 
     (async () => {
-      // Dynamic import to avoid SSR crash
-      mapboxgl = (await import('mapbox-gl')).default;
-      await import('mapbox-gl/dist/mapbox-gl.css' as any);
+      L = (await import('leaflet')).default;
+      await import('leaflet/dist/leaflet.css' as any);
 
-      mapboxgl.accessToken = MAPBOX_TOKEN;
+      // Fix default marker icons broken by webpack
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
 
       const startLat = initialLat ?? HYD_LAT;
       const startLng = initialLng ?? HYD_LNG;
 
-      map = new mapboxgl.Map({
-        container: mapContainer.current!,
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [startLng, startLat],
-        zoom: initialLat ? 15 : 12,
-      });
+      map = L.map(mapContainer.current!, { zoomControl: true }).setView(
+        [startLat, startLng],
+        initialLat ? 15 : 12,
+      );
 
-      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      // OpenStreetMap tiles — free, no key
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
       mapRef.current = map;
 
-      // If initial coords provided, place marker immediately
       if (initialLat && initialLng) {
-        map.on('load', () => placeMarker(map, mapboxgl, initialLat, initialLng));
+        placeMarker(map, L, initialLat, initialLng);
       }
 
-      // Click on map to place / move pin
       map.on('click', (e: any) => {
-        placeMarker(map, mapboxgl, e.lngLat.lat, e.lngLat.lng);
+        placeMarker(map, L, e.latlng.lat, e.latlng.lng);
       });
     })();
 
     return () => { map?.remove(); markerRef.current = null; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // GPS button
   const useGPS = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
-        mapRef.current?.flyTo({ center: [lng, lat], zoom: 16 });
-        placeMarker(mapRef.current, (window as any).mapboxgl, lat, lng);
+        mapRef.current?.setView([lat, lng], 16);
+        const L = (await import('leaflet')).default;
+        placeMarker(mapRef.current, L, lat, lng);
       },
       () => setError('Could not get your location'),
     );
@@ -136,7 +133,7 @@ export function MapPinModal({
 
   const handleConfirm = () => {
     if (!pinLat || !pinLng) { setError('Please tap on the map to place a pin'); return; }
-    if (!alias.trim()) { setError('Please give this location a name (e.g. Home, Office)'); return; }
+    if (!alias.trim())      { setError('Please give this location a name (e.g. Home, Office)'); return; }
     onConfirm({ lat: pinLat, lng: pinLng, address, alias: alias.trim() });
   };
 
@@ -154,8 +151,8 @@ export function MapPinModal({
         </button>
       </div>
 
-      {/* Map */}
-      <div ref={mapContainer} className="flex-1 w-full" />
+      {/* Map — fills available space */}
+      <div ref={mapContainer} className="flex-1 w-full" style={{ minHeight: 0 }} />
 
       {/* Bottom panel */}
       <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-3 shrink-0">
@@ -164,13 +161,12 @@ export function MapPinModal({
         {pinLat && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
             <p className="text-xs text-gray-500 mb-0.5">📍 Pinned location</p>
-            <p className="text-sm text-gray-800 font-medium truncate">
+            <p className="text-sm text-gray-800 font-medium line-clamp-2">
               {geocoding ? 'Looking up address…' : address || `${pinLat.toFixed(5)}, ${pinLng?.toFixed(5)}`}
             </p>
           </div>
         )}
 
-        {/* Alias name */}
         <div>
           <label className="text-xs font-medium text-gray-700 mb-1 block">
             Alias / Name <span className="text-gray-400 font-normal">(e.g. Home, Office, Mom&apos;s house)</span>

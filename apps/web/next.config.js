@@ -7,7 +7,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: fullVersion,
   },
-  transpilePackages: ['mapbox-gl'],
+  transpilePackages: ['leaflet'],
   images: {
     domains: ['localhost', 'techieride-webapp-v2.onrender.com'],
   },
