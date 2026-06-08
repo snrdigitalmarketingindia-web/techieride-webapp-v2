@@ -341,35 +341,48 @@ async function run() {
   // ── 32. PICKUP DISTANCE FIELD ─────────────────────────────────────────────
   section('32. Pickup Distance — distanceFromOriginM field + sort order');
   {
-    const giverDist = await freshGiver('dist32-g');
-    const tomorrow32 = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    // Setup is done inside the first test so a failure records cleanly rather
+    // than crashing the whole runner before any results are recorded.
+    let closeRideId = '';
+    let farRideId   = '';
+    let rides: any[] = [];
 
-    const createRide = async (originLat: number, originLng: number) => {
-      const r = await giverDist.client.post('/rides', {
-        vehicleId: giverDist.vehicleId,
-        originName: 'Test Origin', originLat, originLng,
-        destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
-        departureDate: tomorrow32, departureTime: '09:00', totalSeats: 3,
+    await test('PD-00: setup — create + publish two rides at different distances', async () => {
+      const giverDist = await freshGiver('dist32-g');
+      const tomorrow32 = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+      const createRide = async (originLat: number, originLng: number) => {
+        const r = await giverDist.client.post('/rides', {
+          vehicleId: giverDist.vehicleId,
+          originName: 'Test Origin', originLat, originLng,
+          destinationName: 'HITEC City', destinationLat: 17.4489, destinationLng: 78.3696,
+          departureDate: tomorrow32, departureTime: '09:00', totalSeats: 3,
+        });
+        assert(r.status === 201, `Create ride failed (${r.status}): ${JSON.stringify(r.data)}`);
+        const pub = await giverDist.client.patch(`/rides/${r.data.id}/publish`);
+        assert(pub.status === 200, `Publish failed (${pub.status}): ${JSON.stringify(pub.data)}`);
+        return r.data.id as string;
+      };
+
+      closeRideId = await createRide(17.4401, 78.3489);
+      farRideId   = await createRide(17.4535, 78.3489);
+
+      const searchParams = new URLSearchParams({
+        originLat: '17.4401', originLng: '78.3489',
+        destLat:   '17.4489', destLng:   '78.3696',
+        date: tomorrow32, radiusMeters: '5000',
       });
-      if (r.status !== 201) throw new Error(`Create ride failed: ${JSON.stringify(r.data)}`);
-      const pub = await giverDist.client.patch(`/rides/${r.data.id}/publish`);
-      if (pub.status !== 200) throw new Error(`Publish failed`);
-      return r.data.id as string;
-    };
+      const searchR = await giverDist.client.get(`/rides/search?${searchParams}`);
+      assert([200, 201].includes(searchR.status), `Search expected 200, got ${searchR.status}`);
+      rides = searchR.data?.data ?? searchR.data?.rides ?? searchR.data ?? [];
 
-    const closeRideId = await createRide(17.4401, 78.3489);
-    const farRideId   = await createRide(17.4535, 78.3489);
-
-    const searchParams = new URLSearchParams({
-      originLat: '17.4401', originLng: '78.3489',
-      destLat:   '17.4489', destLng:   '78.3696',
-      date: tomorrow32, radiusMeters: '5000',
+      // Cleanup (best-effort — runner is still alive even if these fail)
+      await giverDist.client.patch(`/rides/${closeRideId}/cancel`).catch(() => {});
+      await giverDist.client.patch(`/rides/${farRideId}/cancel`).catch(() => {});
     });
-    const searchR = await giverDist.client.get(`/rides/search?${searchParams}`);
-    assert([200, 201].includes(searchR.status), `Search expected 200, got ${searchR.status}`);
-    const rides: any[] = searchR.data?.data ?? searchR.data?.rides ?? searchR.data ?? [];
 
     await test('PD-01: search response includes distanceFromOriginM on every ride', async () => {
+      if (!closeRideId) { console.log('    ⚠️  PD-01 skipped — setup failed'); return; }
       const myRides = rides.filter((r: any) => r.id === closeRideId || r.id === farRideId);
       assert(myRides.length > 0, 'No test rides found in search results');
       for (const r of myRides) {
@@ -379,6 +392,7 @@ async function run() {
     });
 
     await test('PD-02: close ride distanceFromOriginM is less than far ride', async () => {
+      if (!closeRideId) { console.log('    ⚠️  PD-02 skipped — setup failed'); return; }
       const close = rides.find((r: any) => r.id === closeRideId);
       const far   = rides.find((r: any) => r.id === farRideId);
       if (!close || !far) { console.log('    ⚠️  PD-02 skipped — rides not in search results'); return; }
@@ -387,6 +401,7 @@ async function run() {
     });
 
     await test('PD-03: results are sorted by distanceFromOriginM ascending (closest first)', async () => {
+      if (!closeRideId) { console.log('    ⚠️  PD-03 skipped — setup failed'); return; }
       for (let i = 1; i < rides.length; i++) {
         assert(rides[i].distanceFromOriginM >= rides[i - 1].distanceFromOriginM,
           `Not sorted: index ${i - 1}=${rides[i - 1].distanceFromOriginM}m > index ${i}=${rides[i].distanceFromOriginM}m`);
@@ -394,14 +409,12 @@ async function run() {
     });
 
     await test('PD-04: close ride distanceFromOriginM is ≤10m when origin matches exactly', async () => {
+      if (!closeRideId) { console.log('    ⚠️  PD-04 skipped — setup failed'); return; }
       const close = rides.find((r: any) => r.id === closeRideId);
       if (!close) { console.log('    ⚠️  PD-04 skipped — close ride not in results'); return; }
       assert(close.distanceFromOriginM <= 10,
         `Expected ≤10m for exact-match origin, got ${close.distanceFromOriginM}m`);
     });
-
-    await giverDist.client.patch(`/rides/${closeRideId}/cancel`).catch(() => {});
-    await giverDist.client.patch(`/rides/${farRideId}/cancel`).catch(() => {});
   }
 
   // ── 33. FORMATDISTANCE UTILITY ───────────────────────────────────────────
