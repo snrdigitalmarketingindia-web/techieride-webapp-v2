@@ -23,8 +23,16 @@ function tomorrowDateStr(): string {
  * `networkidle` ensures ridesApi.getById() has resolved and React has rendered.
  */
 async function gotoRideDetail(page: any, rId: string) {
+  // Register before navigation — DashboardLayout calls fetchProfile() async after
+  // Zustand rehydrates, which can happen after networkidle. This ensures user.id
+  // is populated before we assert isMyRide-gated elements.
+  const profileReady = page.waitForResponse(
+    (r: any) => r.url().includes('/users/me') && r.status() === 200,
+    { timeout: 15_000 },
+  ).catch(() => {});
   await page.goto(`/rides/${rId}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(400);
+  await profileReady;
+  await page.waitForTimeout(300);
 }
 
 async function apiCall(token: string, method: 'get' | 'post' | 'patch' | 'delete', path: string, data?: object) {
@@ -337,9 +345,10 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
   });
 
   test('BD-01: confirmed passenger shows "Seat Confirmed" badge on PUBLISHED ride (giver view)', async ({ page }) => {
+    // "Seat Confirmed" badge is rendered by RideCard (rides/page.tsx list), not the
+    // detail page. WAITING boardingStatus on a PUBLISHED ride = "✅ Seat Confirmed".
     await loginUI(page, 'giver');
-    // Wait for API response to avoid timeout on slow CI
-    await gotoRideDetail(page, rideId);
+    await page.goto('/rides', { waitUntil: 'networkidle' });
     await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/^Waiting$/i)).not.toBeVisible();
   });

@@ -149,8 +149,16 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     // Wait for fetchProfile() to complete so user.id is in the auth store
     await profileReady;
 
+    // page.goto is a full page reload — Zustand re-initializes with user:null.
+    // DashboardLayout fires fetchProfile() AFTER _hasHydrated, which may happen
+    // AFTER networkidle. Register a listener before the navigation so we catch it.
+    const profileReady2 = page.waitForResponse(
+      (r: any) => r.url().includes('/users/me') && r.status() === 200,
+      { timeout: 15_000 },
+    ).catch(() => {});
     // Giver searches — should see "Your ride" not "Request Seat"
     await page.goto('/rides/search', { waitUntil: 'networkidle' });
+    await profileReady2; // wait for user.id to be set before search results render
     await page.locator('input[type="date"]').fill(tomorrow);
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);

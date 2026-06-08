@@ -37,15 +37,27 @@ async function gotoRidesReady(page: any) {
 }
 
 /**
- * Navigate to a ride detail page and wait for all API calls to settle.
- * Uses `waitUntil: 'networkidle'` so we don't need to guess the exact API URL —
- * the ride detail page fires ridesApi.getById() on mount and we simply wait until
- * there's been 500 ms of no network activity, guaranteeing the data has arrived
- * and React has rendered before we assert any elements.
+ * Navigate to a ride detail page and wait for all API calls to settle,
+ * including the DashboardLayout's async fetchProfile() call which populates
+ * user.id in the Zustand store (needed for isMyRide checks on the detail page).
+ *
+ * Key insight: the auth store only persists tokens to localStorage, NOT the user
+ * object. On every page.goto(), DashboardLayout calls fetchProfile() → /users/me
+ * AFTER _hasHydrated fires. This is a second network round-trip that happens
+ * AFTER networkidle would normally fire. We register the listener BEFORE goto()
+ * to ensure we catch it.
  */
 async function gotoRideDetail(page: any, rId: string) {
+  // Register before navigation — /users/me fires after Zustand rehydrates on
+  // the new page, which may happen after networkidle. .catch ensures we don't
+  // block if profile was somehow already loaded.
+  const profileReady = page.waitForResponse(
+    (r: any) => r.url().includes('/users/me') && r.status() === 200,
+    { timeout: 15_000 },
+  ).catch(() => {});
   await page.goto(`/rides/${rId}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(400); // small buffer for final React re-render
+  await profileReady; // wait for user.id to be populated in the Zustand store
+  await page.waitForTimeout(300); // small buffer for final React re-render
 }
 
 test.describe('🚗 Giver Full Flow', () => {
@@ -151,9 +163,11 @@ test.describe('🚗 Giver Full Flow', () => {
   });
 
   test('GF-10: quick message button visible on ONGOING ride', async ({ page }) => {
+    // Quick Message button is on the /rides LIST page (rides/page.tsx), not the
+    // detail page. Navigate to the list and check the ONGOING ride card.
     await loginUI(page, 'giver');
-    await gotoRideDetail(page, rideId);
-    await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 15_000 });
+    await gotoRidesReady(page);
+    await expect(page.getByRole('button', { name: /quick message/i }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('GF-11: giver boards and deboards passenger — Complete Ride becomes available', async ({ page }) => {

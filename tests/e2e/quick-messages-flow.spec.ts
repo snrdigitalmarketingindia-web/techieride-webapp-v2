@@ -148,15 +148,21 @@ test.describe('💬 Quick Messages Flow', () => {
   });
 
   test('QM-11: Custom Message textarea and Send button visible on ONGOING ride for giver', async ({ page }) => {
+    // Quick Message button is on the /rides LIST page (rides/page.tsx), not the
+    // detail page (/rides/[id]). Navigate to the list to find the ONGOING ride card.
     await loginUI(page, 'giver');
-    await page.goto(`/rides/${rideId}`, { waitUntil: 'networkidle' });
-    await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 10_000 });
-    await page.getByRole('button', { name: /quick message/i }).click();
+    await page.goto('/rides', { waitUntil: 'networkidle' });
+    await expect(page.getByRole('button', { name: /quick message/i }).first()).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /quick message/i }).first().click();
     await expect(page.getByPlaceholder(/type your message/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText(/custom message/i)).toBeVisible();
   });
 
   test.afterAll(async () => {
-    if (rideId) await api(giverToken, 'patch', `/rides/${rideId}/cancel`).catch(() => {});
+    // clearActiveRides handles both PUBLISHED (cancel) and ONGOING (complete+no-show).
+    // A plain /cancel call on an ONGOING ride is rejected by the API — using
+    // clearActiveRides prevents the ONGOING ride from leaking into later test files
+    // (verification-bypass.spec.ts) and causing false failures there.
+    if (giverToken) await clearActiveRides(giverToken).catch(() => {});
   });
 });
