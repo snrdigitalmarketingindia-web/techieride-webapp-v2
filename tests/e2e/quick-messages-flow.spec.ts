@@ -84,18 +84,27 @@ test.describe('💬 Quick Messages Flow', () => {
 
   // ── UI Level ─────────────────────────────────────────────────────────────
 
+  async function gotoRidesReady(page: any, role: 'given' | 'taken' = 'given') {
+    const endpoint = role === 'given' ? '/rides/given' : '/rides/taken';
+    const fetch = page.waitForResponse(
+      (r: any) => r.url().includes(endpoint) && r.status() === 200,
+      { timeout: 15_000 },
+    );
+    await page.goto('/rides');
+    await fetch;
+    await page.waitForTimeout(500);
+  }
+
   test('QM-05: Quick Message button visible on PUBLISHED ride for giver', async ({ page }) => {
     await loginUI(page, 'giver');
-    await page.goto('/rides');
-    await page.waitForLoadState('networkidle');
+    await gotoRidesReady(page);
     await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
   });
 
   test('QM-06: Quick Message modal opens with pre-defined options', async ({ page }) => {
     await loginUI(page, 'giver');
-    await page.goto('/rides');
-    await page.waitForLoadState('networkidle');
+    await gotoRidesReady(page);
     await page.getByRole('button', { name: /^All$/i }).click();
     await page.getByRole('button', { name: /quick message/i }).click();
     await expect(page.getByText(/on my way|running late|arrived|message/i).first()).toBeVisible({ timeout: 5_000 });
@@ -106,8 +115,7 @@ test.describe('💬 Quick Messages Flow', () => {
     await api(giverToken, 'patch', `/rides/${rideId}/start`).catch(() => {});
 
     await loginUI(page, 'seeker');
-    await page.goto('/rides');
-    await page.waitForLoadState('networkidle');
+    await gotoRidesReady(page, 'taken');
     await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
   });

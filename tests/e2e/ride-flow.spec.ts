@@ -118,8 +118,14 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
 
   test('giver sees confirmed passenger on My Rides page', async ({ page }) => {
     await loginUI(page, 'giver');
+    // Wait for the second /rides/given fetch (triggered after user?.id loads) before clicking All
+    const ridesFetch = page.waitForResponse(
+      (r: any) => r.url().includes('/rides/given') && r.status() === 200,
+      { timeout: 15_000 },
+    );
     await page.goto('/rides');
-    await page.waitForLoadState('networkidle');
+    await ridesFetch;
+    await page.waitForTimeout(500);
     await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
   });
