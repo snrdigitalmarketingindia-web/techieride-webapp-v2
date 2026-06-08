@@ -2,5 +2,6 @@
   "framework": "nextjs",
   "buildCommand": "cd ../.. && npm run build --workspace=apps/web",
   "outputDirectory": ".next",
-  "installCommand": "cd ../.. && npm ci"
+  "installCommand": "cd ../.. && npm ci",
+  "ignoreCommand": "git log -1 --pretty=%B | grep -q '\\[skip version\\]' && exit 0 || exit 1"
 }
