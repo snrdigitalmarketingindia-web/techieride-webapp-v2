@@ -174,8 +174,8 @@ export const callsApi = {
 
 // ─── Quick Messages ───────────────────────────────────
 export const quickMessagesApi = {
-  send: (rideId: string, messageKey: string) =>
-    api.post(`/rides/${rideId}/quick-message`, { messageKey }),
+  send: (rideId: string, messageKey: string, customText?: string) =>
+    api.post(`/rides/${rideId}/quick-message`, { messageKey, ...(customText ? { customText } : {}) }),
   getOptions: (rideId: string) =>
     api.get(`/rides/${rideId}/quick-message/options`),
 };

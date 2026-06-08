@@ -49,12 +49,14 @@ export default function MyRidesPage() {
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const [quickMsgSending, setQuickMsgSending] = useState<string | null>(null);
   const [quickMsgOpen, setQuickMsgOpen] = useState<string | null>(null); // rideId
+  const [customMsgText, setCustomMsgText] = useState<Record<string, string>>({}); // rideId → text
 
-  const sendQuickMessage = async (rideId: string, messageKey: string) => {
+  const sendQuickMessage = async (rideId: string, messageKey: string, customText?: string) => {
     setQuickMsgSending(messageKey);
     try {
-      await quickMessagesApi.send(rideId, messageKey);
+      await quickMessagesApi.send(rideId, messageKey, customText);
       setQuickMsgOpen(null);
+      setCustomMsgText(prev => ({ ...prev, [rideId]: '' }));
     } catch {}
     setQuickMsgSending(null);
   };
@@ -647,6 +649,27 @@ export default function MyRidesPage() {
                                 {quickMsgSending === key ? '⏳ Sending...' : label}
                               </button>
                             ))}
+                            <div className="pt-1 border-t border-amber-200 mt-1">
+                              <p className="text-xs text-amber-700 font-medium mb-1">✏️ Custom message:</p>
+                              <textarea
+                                rows={2}
+                                maxLength={300}
+                                placeholder="Type your message…"
+                                value={customMsgText[ride.id] ?? ''}
+                                onChange={e => setCustomMsgText(prev => ({ ...prev, [ride.id]: e.target.value }))}
+                                className="w-full text-xs border border-amber-300 rounded-md px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                              />
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] text-gray-400">{(customMsgText[ride.id] ?? '').length}/300</span>
+                                <button
+                                  onClick={() => sendQuickMessage(ride.id, 'CUSTOM', customMsgText[ride.id])}
+                                  disabled={!customMsgText[ride.id]?.trim() || quickMsgSending === 'CUSTOM'}
+                                  className="text-xs bg-amber-600 text-white px-3 py-1 rounded-md hover:bg-amber-700 disabled:opacity-40 transition"
+                                >
+                                  {quickMsgSending === 'CUSTOM' ? '⏳ Sending…' : 'Send'}
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         )}
                         {tab === 'given' && ride.status === 'ONGOING' && (
@@ -685,6 +708,27 @@ export default function MyRidesPage() {
                                 {quickMsgSending === key ? '⏳ Sending...' : label}
                               </button>
                             ))}
+                            <div className="pt-1 border-t border-amber-200 mt-1">
+                              <p className="text-xs text-amber-700 font-medium mb-1">✏️ Custom message:</p>
+                              <textarea
+                                rows={2}
+                                maxLength={300}
+                                placeholder="Type your message…"
+                                value={customMsgText[ride.id] ?? ''}
+                                onChange={e => setCustomMsgText(prev => ({ ...prev, [ride.id]: e.target.value }))}
+                                className="w-full text-xs border border-amber-300 rounded-md px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                              />
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] text-gray-400">{(customMsgText[ride.id] ?? '').length}/300</span>
+                                <button
+                                  onClick={() => sendQuickMessage(ride.id, 'CUSTOM', customMsgText[ride.id])}
+                                  disabled={!customMsgText[ride.id]?.trim() || quickMsgSending === 'CUSTOM'}
+                                  className="text-xs bg-amber-600 text-white px-3 py-1 rounded-md hover:bg-amber-700 disabled:opacity-40 transition"
+                                >
+                                  {quickMsgSending === 'CUSTOM' ? '⏳ Sending…' : 'Send'}
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         )}
                         {tab === 'taken' && ride.status === 'PUBLISHED' && (() => {
@@ -750,6 +794,27 @@ export default function MyRidesPage() {
                                 {quickMsgSending === key ? '⏳ Sending...' : label}
                               </button>
                             ))}
+                            <div className="pt-1 border-t border-amber-200 mt-1">
+                              <p className="text-xs text-amber-700 font-medium mb-1">✏️ Custom message:</p>
+                              <textarea
+                                rows={2}
+                                maxLength={300}
+                                placeholder="Type your message…"
+                                value={customMsgText[ride.id] ?? ''}
+                                onChange={e => setCustomMsgText(prev => ({ ...prev, [ride.id]: e.target.value }))}
+                                className="w-full text-xs border border-amber-300 rounded-md px-2 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                              />
+                              <div className="flex items-center justify-between mt-1">
+                                <span className="text-[10px] text-gray-400">{(customMsgText[ride.id] ?? '').length}/300</span>
+                                <button
+                                  onClick={() => sendQuickMessage(ride.id, 'CUSTOM', customMsgText[ride.id])}
+                                  disabled={!customMsgText[ride.id]?.trim() || quickMsgSending === 'CUSTOM'}
+                                  className="text-xs bg-amber-600 text-white px-3 py-1 rounded-md hover:bg-amber-700 disabled:opacity-40 transition"
+                                >
+                                  {quickMsgSending === 'CUSTOM' ? '⏳ Sending…' : 'Send'}
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

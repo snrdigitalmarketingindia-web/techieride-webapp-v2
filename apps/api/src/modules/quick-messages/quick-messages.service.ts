@@ -26,9 +26,26 @@ export class QuickMessagesService {
     private notifications: NotificationsService,
   ) {}
 
-  async send(senderId: string, rideId: string, messageKey: string) {
-    const msg = QUICK_MESSAGES[messageKey];
-    if (!msg) throw new BadRequestException(`Invalid message key: ${messageKey}`);
+  async send(senderId: string, rideId: string, messageKey: string, customText?: string) {
+    // Allow free-text custom messages under the special 'CUSTOM' key
+    let msgText: string;
+    let msgRole: 'giver' | 'seeker' | 'both';
+
+    if (messageKey === 'CUSTOM') {
+      if (!customText || customText.trim().length === 0) {
+        throw new BadRequestException('Custom message text cannot be empty');
+      }
+      if (customText.trim().length > 300) {
+        throw new BadRequestException('Custom message cannot exceed 300 characters');
+      }
+      msgText = `✏️ ${customText.trim()}`;
+      msgRole = 'both'; // role validated below via ride membership check
+    } else {
+      const msg = QUICK_MESSAGES[messageKey];
+      if (!msg) throw new BadRequestException(`Invalid message key: ${messageKey}`);
+      msgText = msg.text;
+      msgRole = msg.role;
+    }
 
     const ride = await this.prisma.ride.findUnique({
       where: { id: rideId },
@@ -51,9 +68,9 @@ export class QuickMessagesService {
       throw new ForbiddenException('Only the giver or confirmed seekers can send quick messages');
     }
 
-    // Role check
-    if (msg.role === 'giver' && !isGiver) throw new ForbiddenException('This message is for the ride giver only');
-    if (msg.role === 'seeker' && !isSeeker) throw new ForbiddenException('This message is for seekers only');
+    // Role check (skip for CUSTOM — any ride member can send)
+    if (msgRole === 'giver' && !isGiver) throw new ForbiddenException('This message is for the ride giver only');
+    if (msgRole === 'seeker' && !isSeeker) throw new ForbiddenException('This message is for seekers only');
 
     const senderUser = await this.prisma.user.findUnique({
       where: { id: senderId },
@@ -68,7 +85,7 @@ export class QuickMessagesService {
         await this.notifications.create(seekerUserId, {
           type: NotificationType.QUICK_MESSAGE,
           title: `${senderName} says:`,
-          body: `${msg.text}  —  ${rideLabel}`,
+          body: `${msgText}  —  ${rideLabel}`,
           data: { rideId, messageKey },
         });
       }
@@ -77,11 +94,11 @@ export class QuickMessagesService {
       await this.notifications.create(ride.rideGiver.userId, {
         type: NotificationType.QUICK_MESSAGE,
         title: `${senderName} says:`,
-        body: `${msg.text}  —  ${rideLabel}`,
+        body: `${msgText}  —  ${rideLabel}`,
         data: { rideId, messageKey },
       });
     }
 
-    return { sent: true, message: msg.text };
+    return { sent: true, message: msgText };
   }
 }
