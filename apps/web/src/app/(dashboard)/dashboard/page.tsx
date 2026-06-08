@@ -38,6 +38,8 @@ export default function DashboardPage() {
   const [processing, setProcessing] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvePickupTime, setApprovePickupTime] = useState('');
   const ridesRef = useRef<any[]>([]);
 
   const reloadPending = (rides: any[]) => {
@@ -113,9 +115,10 @@ export default function DashboardPage() {
     setProcessing(null);
   };
 
-  const handleApprove = async (reqId: string, rideId: string) => {
+  const handleApprove = async (reqId: string, rideId: string, pickupTime?: string) => {
     setProcessing(reqId);
-    await requestsApi.approve(reqId).catch(() => {});
+    setApprovingId(null);
+    await requestsApi.approve(reqId, pickupTime || undefined).catch(() => {});
     const res = await requestsApi.getIncoming(rideId).catch(() => ({ data: [] }));
     setPendingMap((prev) => ({ ...prev, [rideId]: res.data ?? [] }));
     setProcessing(null);
@@ -341,18 +344,45 @@ export default function DashboardPage() {
                             <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
                               receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
                           )}
-                          <button onClick={() => handleApprove(req.id, ride.id)} disabled={processing === req.id}
+                          <button
+                            onClick={() => {
+                              setRejectingId(null);
+                              const est = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
+                              setApprovePickupTime(est ?? ride?.departureTime ?? '');
+                              setApprovingId(req.id);
+                            }}
+                            disabled={processing === req.id}
                             className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap">
                             ✅ Approve
                           </button>
                           <button
-                            onClick={() => { setRejectingId(req.id); setRejectReason(''); }}
+                            onClick={() => { setRejectingId(req.id); setRejectReason(''); setApprovingId(null); }}
                             disabled={processing === req.id}
                             className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 whitespace-nowrap">
                             ❌ Reject
                           </button>
                         </div>
                       </div>
+                      {/* Pickup-time confirmation (expands below when Approve clicked) */}
+                      {approvingId === req.id && (
+                        <div className="flex flex-wrap items-center gap-2 p-2 bg-brand-50 border border-brand-200 rounded-lg">
+                          <span className="text-xs text-brand-800 font-medium shrink-0">🕐 Pickup time for {req.seeker?.user?.fullName?.split(' ')[0] ?? 'passenger'}:</span>
+                          <input
+                            type="time"
+                            autoFocus
+                            value={approvePickupTime}
+                            onChange={(e) => setApprovePickupTime(e.target.value)}
+                            className="text-xs px-2 py-1 border border-brand-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400"
+                          />
+                          <button
+                            onClick={() => handleApprove(req.id, ride.id, approvePickupTime || undefined)}
+                            disabled={processing === req.id}
+                            className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
+                            ✅ Confirm &amp; Approve
+                          </button>
+                          <button onClick={() => setApprovingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1 shrink-0">Cancel</button>
+                        </div>
+                      )}
                       {rejectingId === req.id && (
                         <div className="flex gap-2">
                           <input

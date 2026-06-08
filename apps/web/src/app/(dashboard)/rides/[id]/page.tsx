@@ -57,6 +57,8 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [rejectingReqId, setRejectingReqId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [approvePickupTime, setApprovePickupTime] = useState('');
   const [showAbortModal, setShowAbortModal] = useState(false);
   const [abortReason, setAbortReason] = useState('');
   const [showEditSheet, setShowEditSheet] = useState(false);
@@ -213,10 +215,11 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleApproveRequest = async (reqId: string) => {
+  const handleApproveRequest = async (reqId: string, pickupTime?: string) => {
     setActionLoading(`approve-${reqId}`);
+    setApprovingId(null);
     try {
-      await requestsApi.approve(reqId);
+      await requestsApi.approve(reqId, pickupTime || undefined);
       await Promise.all([reloadRide(), reloadPending()]);
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to approve');
@@ -472,14 +475,19 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                   {/* Buttons stacked vertically on right */}
                   <div className="flex flex-col gap-1 shrink-0">
                     <button
-                      onClick={() => handleApproveRequest(req.id)}
+                      onClick={() => {
+                        setRejectingReqId(null);
+                        const est = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
+                        setApprovePickupTime(etaOverrides[req.id] ?? est ?? ride?.departureTime ?? '');
+                        setApprovingId(req.id);
+                      }}
                       disabled={actionLoading === `approve-${req.id}` || actionLoading === `reject-${req.id}`}
                       className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap"
                     >
-                      {actionLoading === `approve-${req.id}` ? '…' : '✅ Approve'}
+                      ✅ Approve
                     </button>
                     <button
-                      onClick={() => { setRejectingReqId(req.id); setRejectReason(''); }}
+                      onClick={() => { setRejectingReqId(req.id); setRejectReason(''); setApprovingId(null); }}
                       disabled={!!actionLoading}
                       className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 whitespace-nowrap"
                     >
@@ -487,6 +495,26 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                     </button>
                   </div>
                 </div>
+                {/* Pickup-time confirmation (expands below when Approve clicked) */}
+                {approvingId === req.id && (
+                  <div className="flex flex-wrap items-center gap-2 p-2 bg-brand-50 border border-brand-200 rounded-lg">
+                    <span className="text-xs text-brand-800 font-medium shrink-0">🕐 Pickup time for {req.seeker?.user?.fullName?.split(' ')[0] ?? 'passenger'}:</span>
+                    <input
+                      type="time"
+                      autoFocus
+                      value={approvePickupTime}
+                      onChange={(e) => setApprovePickupTime(e.target.value)}
+                      className="text-xs px-2 py-1 border border-brand-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400"
+                    />
+                    <button
+                      onClick={() => handleApproveRequest(req.id, approvePickupTime || undefined)}
+                      disabled={actionLoading === `approve-${req.id}`}
+                      className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
+                      ✅ Confirm &amp; Approve
+                    </button>
+                    <button onClick={() => setApprovingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1 shrink-0">Cancel</button>
+                  </div>
+                )}
                 {rejectingReqId === req.id && (
                   <div className="flex gap-2">
                     <input
