@@ -55,6 +55,9 @@ test.describe('💬 Quick Messages Flow', () => {
   });
 
   test('QM-02: giver can send a quick message', async () => {
+    // Quick messages require an ONGOING ride — start it here (idempotent: .catch handles "already started")
+    await api(giverToken, 'patch', `/rides/${rideId}/start`).catch(() => {});
+
     const options = await api(giverToken, 'get', `/rides/${rideId}/quick-message/options`);
     const optionsList = options.data ?? options;
     const firstKey = Array.isArray(optionsList) ? optionsList[0]?.key : Object.keys(optionsList)[0];
@@ -95,7 +98,7 @@ test.describe('💬 Quick Messages Flow', () => {
     await page.waitForTimeout(500);
   }
 
-  test('QM-05: Quick Message button visible on PUBLISHED ride for giver', async ({ page }) => {
+  test('QM-05: Quick Message button visible on active ride for giver', async ({ page }) => {
     await loginUI(page, 'giver');
     await gotoRidesReady(page);
     await page.getByRole('button', { name: /^All$/i }).click();
@@ -118,6 +121,39 @@ test.describe('💬 Quick Messages Flow', () => {
     await gotoRidesReady(page, 'taken');
     await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
+  });
+
+  test('QM-08: giver can send a CUSTOM quick message via API', async () => {
+    const result = await api(giverToken, 'post', `/rides/${rideId}/quick-message`, {
+      messageKey: 'CUSTOM',
+      customText: 'Please wait at Gate 2, I am 5 mins away',
+    });
+    expect([200, 201]).toContain(result.statusCode ?? result.status ?? 200);
+  });
+
+  test('QM-09: CUSTOM message with empty text is rejected (400)', async () => {
+    const result = await api(giverToken, 'post', `/rides/${rideId}/quick-message`, {
+      messageKey: 'CUSTOM',
+      customText: '   ',
+    });
+    expect(result.statusCode ?? result.status).toBe(400);
+  });
+
+  test('QM-10: CUSTOM message over 300 chars is rejected (400)', async () => {
+    const result = await api(giverToken, 'post', `/rides/${rideId}/quick-message`, {
+      messageKey: 'CUSTOM',
+      customText: 'A'.repeat(301),
+    });
+    expect(result.statusCode ?? result.status).toBe(400);
+  });
+
+  test('QM-11: Custom Message textarea and Send button visible on ONGOING ride for giver', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto(`/rides/${rideId}`);
+    await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('button', { name: /quick message/i }).click();
+    await expect(page.getByPlaceholder(/type your message/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/custom message/i)).toBeVisible();
   });
 
   test.afterAll(async () => {

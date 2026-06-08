@@ -57,26 +57,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top bar */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex flex-col items-center gap-0">
-          <Image src="/TR_Logo_black.png" alt="Techieride" width={40} height={40} className="object-contain" priority />
-          <span className="text-[10px] font-medium text-gray-400 leading-tight">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+      <header className="bg-white border-b border-gray-200 px-3 py-2 flex items-center gap-2.5 sticky top-0 z-10">
+
+        {/* Logo + version — fixed left */}
+        <div className="flex flex-col items-center gap-0 shrink-0">
+          <Image src="/TR_Logo_black.png" alt="Techieride" width={36} height={36} className="object-contain" priority />
+          <span className="text-[9px] font-medium text-gray-400 leading-none tracking-tight">
+            v{process.env.NEXT_PUBLIC_APP_VERSION}
+          </span>
         </div>
-        <div className="flex items-center gap-6">
+
+        {/* Full name + eco badge — immediately after logo, fills available space */}
+        {user && (
+          <Link href="/profile" className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition">
+            {/* Full name: bold, small font so long names fit; wraps to 2 lines gracefully */}
+            {/* TODO: prefix with TRID short-ID (e.g. "TRID0042") once user ID sequence is available */}
+            <span className="font-bold text-gray-800 text-[13px] leading-[1.25] min-w-0 break-words">
+              {user.fullName}
+            </span>
+            {/* Eco pill: single line, self-stretch so it spans full height of a 2-line name */}
+            <span className="shrink-0 self-stretch flex items-center gap-0.5 text-[11px] bg-brand-100 text-brand-700 px-2 rounded-full font-semibold whitespace-nowrap">
+              {ECO_BADGES[user.ecoLevel as EcoLevel]} {user.ecoPoints} pts
+            </span>
+          </Link>
+        )}
+
+        {/* Right actions — notifications + logout */}
+        <div className="flex items-center gap-2 shrink-0">
           <span className="text-[10px] text-gray-400 hidden sm:inline">
             A Product of{' '}
-            <a href="https://www.snrdigitalmarketing.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 transition">
+            <a href="https://www.snrdigitalmarketing.com" target="_blank" rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-700 transition">
               SNR Digital Marketing
             </a>
           </span>
-          {user && (
-            <Link href="/profile" className="flex flex-col items-end hover:opacity-80 transition">
-              <span className="text-sm font-medium text-gray-700 leading-tight">{user.fullName?.split(' ')[0]}</span>
-              <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap leading-tight">
-                {ECO_BADGES[user.ecoLevel as EcoLevel]} {user.ecoPoints} pts
-              </span>
-            </Link>
-          )}
           <NotificationDrawer />
           {/* Logout — door-with-arrow icon */}
           <button
@@ -88,14 +102,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               className="w-5 h-5">
-              {/* Door panel */}
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              {/* Arrow pointing right (exit) */}
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </button>
         </div>
+
       </header>
 
       {/* Content */}

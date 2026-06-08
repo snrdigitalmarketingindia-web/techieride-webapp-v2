@@ -326,7 +326,6 @@ export default function ProfilePage() {
             <p className="text-sm font-semibold text-gray-700">Edit Profile</p>
             {[
               { label: 'Full Name', key: 'fullName', type: 'text' },
-              { label: 'Phone',     key: 'phone',    type: 'tel' },
               { label: 'Company',   key: 'companyName', type: 'text' },
             ].map(({ label, key, type }) => (
               <div key={key}>
@@ -340,6 +339,26 @@ export default function ProfilePage() {
                 />
               </div>
             ))}
+            {/* Phone — separate with inline validation */}
+            <div>
+              <label htmlFor="edit-phone" className="text-xs text-gray-500 mb-1 block">Phone</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-xs text-gray-500 bg-gray-50 border border-r-0 border-gray-200 rounded-l-lg">🇮🇳 +91</span>
+                <input
+                  id="edit-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                  placeholder="98765 43210"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+                />
+              </div>
+              {editForm.phone.length > 0 && !/^[6-9]\d{9}$/.test(editForm.phone) && (
+                <p className="text-xs text-red-500 mt-1">Must be a 10-digit number starting with 6–9</p>
+              )}
+            </div>
 
             {/* Home Location — map pin */}
             <div>

@@ -18,6 +18,20 @@ function tomorrowDateStr(): string {
   return d.toISOString().split('T')[0];
 }
 
+/**
+ * Navigate to a ride detail page and wait for the backend API response to arrive.
+ * Avoids flaky 10 s timeouts on slow CI where the SSR + API round-trip takes longer.
+ */
+async function gotoRideDetail(page: any, rId: string) {
+  const fetchDone = page.waitForResponse(
+    (r: any) => r.url().includes('/api/') && r.url().includes(`/rides/${rId}`) && r.status() === 200,
+    { timeout: 25_000 },
+  );
+  await page.goto(`/rides/${rId}`);
+  await fetchDone;
+  await page.waitForTimeout(400);
+}
+
 async function apiCall(token: string, method: 'get' | 'post' | 'patch' | 'delete', path: string, data?: object) {
   const ctx = await playwrightRequest.newContext();
   const res = await ctx[method](`${API}${path}`, {
@@ -329,9 +343,9 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
 
   test('BD-01: confirmed passenger shows "Seat Confirmed" badge on PUBLISHED ride (giver view)', async ({ page }) => {
     await loginUI(page, 'giver');
-    // Navigate directly to the ride detail page — avoids list-page two-phase loading race
-    await page.goto(`/rides/${rideId}`);
-    await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 10_000 });
+    // Wait for API response to avoid timeout on slow CI
+    await gotoRideDetail(page, rideId);
+    await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/^Waiting$/i)).not.toBeVisible();
   });
 

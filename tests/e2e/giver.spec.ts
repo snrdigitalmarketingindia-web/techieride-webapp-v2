@@ -32,7 +32,39 @@ test.describe('🚗 Ride Giver', () => {
     await btn.click();
     // Scroll back to top so the error banner (above the button) is visible
     await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(page.getByText(/please|fill in|select a vehicle|origin|destination/i).first()).toBeVisible({ timeout: 5_000 });
+    // If profile auto-fills names → error is "pin your pickup location" (matches "please")
+    // If form is blank → error is "fill in origin and destination"
+    // If no vehicle → error is "select a vehicle"
+    await expect(page.getByText(/please|fill in|select a vehicle|origin|destination|pin your/i).first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('create ride form shows Pin required badge when name filled but not pinned', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides/create');
+    await page.waitForLoadState('networkidle');
+    // Click Home→Office quick-fill chip (fills names but clears pin state)
+    const chip = page.getByText(/home to office|office to home/i).first();
+    const hasChip = await chip.isVisible({ timeout: 3_000 }).catch(() => false);
+    if (hasChip) {
+      await chip.click();
+      await expect(page.getByText(/pin required/i).first()).toBeVisible({ timeout: 3_000 });
+    }
+    // If no profile chips, form starts blank — both buttons show no names (no badge needed)
+  });
+
+  test('create ride form blocked with "pin" error when names filled but map not pinned', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/rides/create');
+    await page.waitForLoadState('networkidle');
+    const chip = page.getByText(/home to office|office to home/i).first();
+    const hasChip = await chip.isVisible({ timeout: 3_000 }).catch(() => false);
+    if (!hasChip) return; // Skip if no profile home/office set
+    await chip.click();
+    // Names filled but not pinned — submit should block
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.getByRole('button', { name: /publish ride/i }).click();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(page.getByText(/pin.*location|pin.*map/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('can navigate to my rides list', async ({ page }) => {

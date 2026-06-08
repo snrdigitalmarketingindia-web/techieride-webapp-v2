@@ -90,6 +90,9 @@ export default function CreateRidePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [mapModal, setMapModal] = useState<'origin' | 'destination' | null>(null);
+  // Track whether coords were explicitly pinned via map (not just defaults or text-only profile fill)
+  const [originPinned, setOriginPinned] = useState(false);
+  const [destPinned, setDestPinned] = useState(false);
 
   // Smart location defaults: profile home/office → last used route → blank
   // Runs once user profile is available (client-side only)
@@ -124,6 +127,9 @@ export default function CreateRidePage() {
         destinationLat: lastRoute.destinationLat ?? f.destinationLat,
         destinationLng: lastRoute.destinationLng ?? f.destinationLng,
       }));
+      // Last route has real saved coords — mark as pinned
+      if (lastRoute.originLat) setOriginPinned(true);
+      if (lastRoute.destinationLat) setDestPinned(true);
       setLocationSource('last_route');
     }
   }, [user]);
@@ -154,6 +160,8 @@ export default function CreateRidePage() {
   const submit = async () => {
     if (!form.vehicleId) { setError('Please select a vehicle'); return; }
     if (!form.originName || !form.destinationName) { setError('Please fill in origin and destination'); return; }
+    if (!originPinned) { setError('Please pin your pickup location on the map to set accurate coordinates'); return; }
+    if (!destPinned) { setError('Please pin your destination on the map to set accurate coordinates'); return; }
     if (!isAtLeast15MinAhead(form.departureDate, form.departureTime)) {
       setError('Departure time must be at least 15 minutes from now'); return;
     }
@@ -194,7 +202,8 @@ export default function CreateRidePage() {
 
       router.push('/rides');
     } catch (e: any) {
-      setError(e.response?.data?.message || 'Failed to create ride');
+      const msg = e.response?.data?.message;
+      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Failed to create ride');
     } finally {
       setLoading(false);
     }
@@ -241,12 +250,12 @@ export default function CreateRidePage() {
               {(user as any)?.homeLocation && (user as any)?.officeLocation && (
                 <>
                   <button type="button"
-                    onClick={() => { update('originName', (user as any).homeLocation); update('destinationName', (user as any).officeLocation); }}
+                    onClick={() => { update('originName', (user as any).homeLocation); update('destinationName', (user as any).officeLocation); setOriginPinned(false); setDestPinned(false); }}
                     className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition">
                     🏠→🏢 Home to Office
                   </button>
                   <button type="button"
-                    onClick={() => { update('originName', (user as any).officeLocation); update('destinationName', (user as any).homeLocation); }}
+                    onClick={() => { update('originName', (user as any).officeLocation); update('destinationName', (user as any).homeLocation); setOriginPinned(false); setDestPinned(false); }}
                     className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition">
                     🏢→🏠 Office to Home
                   </button>
@@ -264,12 +273,13 @@ export default function CreateRidePage() {
             <button
               type="button"
               onClick={() => setMapModal('origin')}
-              className={`${inputCls} mt-1 flex items-center gap-2 text-left`}
+              className={`${inputCls} mt-1 flex items-center gap-2 text-left ${form.originName && !originPinned ? 'border-amber-400 bg-amber-50' : ''}`}
             >
-              <span>📍</span>
-              <span className={form.originName ? 'text-gray-800' : 'text-gray-400'}>
+              <span>{originPinned ? '✅' : '📍'}</span>
+              <span className={form.originName ? 'text-gray-800 flex-1' : 'text-gray-400 flex-1'}>
                 {form.originName || 'Tap to pin on map'}
               </span>
+              {form.originName && !originPinned && <span className="text-[10px] text-amber-600 font-medium shrink-0">Pin required →</span>}
             </button>
           </div>
           <div>
@@ -277,12 +287,13 @@ export default function CreateRidePage() {
             <button
               type="button"
               onClick={() => setMapModal('destination')}
-              className={`${inputCls} mt-1 flex items-center gap-2 text-left`}
+              className={`${inputCls} mt-1 flex items-center gap-2 text-left ${form.destinationName && !destPinned ? 'border-amber-400 bg-amber-50' : ''}`}
             >
-              <span>🏁</span>
-              <span className={form.destinationName ? 'text-gray-800' : 'text-gray-400'}>
+              <span>{destPinned ? '✅' : '🏁'}</span>
+              <span className={form.destinationName ? 'text-gray-800 flex-1' : 'text-gray-400 flex-1'}>
                 {form.destinationName || 'Tap to pin on map'}
               </span>
+              {form.destinationName && !destPinned && <span className="text-[10px] text-amber-600 font-medium shrink-0">Pin required →</span>}
             </button>
           </div>
         </div>
@@ -346,10 +357,12 @@ export default function CreateRidePage() {
               update('originName', loc.alias);
               update('originLat', loc.lat);
               update('originLng', loc.lng);
+              setOriginPinned(true);
             } else {
               update('destinationName', loc.alias);
               update('destinationLat', loc.lat);
               update('destinationLng', loc.lng);
+              setDestPinned(true);
             }
             setMapModal(null);
           }}

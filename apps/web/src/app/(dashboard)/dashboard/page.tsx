@@ -226,32 +226,37 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Quick actions — role-aware */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Quick actions — compact chip row */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
         {isGiver && (
           (hasActiveRide || hasActiveRequest) ? (
-            <div title={hasActiveRequest ? "Cancel your active ride request before offering a ride" : "Complete or cancel your active ride before offering a new one"}
-              className="bg-gray-100 border border-gray-200 rounded-xl p-4 flex items-center gap-3 opacity-50 cursor-not-allowed select-none">
-              <span className="text-2xl">🚗</span>
-              <span className="font-medium text-gray-400">Offer Ride</span>
+            <div
+              title={hasActiveRequest ? 'Cancel your active request first' : 'Complete or cancel your active ride first'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 opacity-60 cursor-not-allowed select-none shrink-0"
+            >
+              🚗 Offer Ride
             </div>
           ) : (
-            <Link href="/rides/create" className="bg-brand-50 border border-brand-200 rounded-xl p-4 flex items-center gap-3 hover:opacity-80 transition">
-              <span className="text-2xl">🚗</span>
-              <span className="font-medium text-gray-800">Offer Ride</span>
+            <Link href="/rides/create"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 transition shrink-0">
+              🚗 Offer Ride
             </Link>
           )
         )}
-        {[
-          isSeeker && { href: '/rides/search',      icon: '🔍', label: 'Find Rides',  color: 'bg-blue-50 border-blue-200'     },
-                       { href: '/rides',             icon: '📋', label: 'My Rides',   color: 'bg-purple-50 border-purple-200' },
-                       { href: '/rides/leaderboard', icon: '🏆', label: 'Leaderboard',color: 'bg-yellow-50 border-yellow-200' },
-        ].filter(Boolean).map((a: any) => (
-          <Link key={a.href} href={a.href} className={`${a.color} border rounded-xl p-4 flex items-center gap-3 hover:opacity-80 transition`}>
-            <span className="text-2xl">{a.icon}</span>
-            <span className="font-medium text-gray-800">{a.label}</span>
+        {isSeeker && (
+          <Link href="/rides/search"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition shrink-0">
+            🔍 Find Rides
           </Link>
-        ))}
+        )}
+        <Link href="/rides"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition shrink-0">
+          📋 My Rides
+        </Link>
+        <Link href="/rides/leaderboard"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition shrink-0">
+          🏆 Leaderboard
+        </Link>
       </div>
 
       {/* Upcoming rides */}
@@ -420,20 +425,14 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Booked rides — shown for RIDE_GIVER (also a seeker) below their given rides */}
-      {isGiver && isSeeker && (
+      {/* Booked rides — shown for RIDE_GIVER (also a seeker) only when no active ride and has bookings */}
+      {isGiver && isSeeker && !hasActiveRide && bookedRides.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900">My Booked Rides</h2>
             <Link href="/rides" className="text-sm text-brand-600 hover:underline">View all</Link>
           </div>
-          {bookedRides.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-              <p className="text-gray-400 text-sm">No booked rides</p>
-              <Link href="/rides/search" className="inline-block mt-2 text-sm text-brand-600 hover:underline">Find a ride →</Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
+          <div className="space-y-3">
               {bookedRides.map((ride) => {
                 const myParticipant = (ride.participants ?? []).find(
                   (p: any) => p.seeker?.userId === user?.id
@@ -458,7 +457,6 @@ export default function DashboardPage() {
                 return <RideCard key={ride.id} ride={ride} viewAs="seeker" actions={seekerActions} />;
               })}
             </div>
-          )}
         </div>
       )}
 

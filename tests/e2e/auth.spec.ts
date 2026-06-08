@@ -55,4 +55,40 @@ test.describe('🔐 Auth Flow', () => {
     await emailInput.blur();
     await expect(page.getByText(/personal emails are not accepted/i)).toBeVisible();
   });
+
+  test('signup Step 0 shows mobile number field with +91 prefix', async ({ page }) => {
+    await page.goto('/signup');
+    await expect(page.getByText(/🇮🇳/)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/98765/i)).toBeVisible();
+  });
+
+  test('signup phone field rejects non-numeric input and short numbers', async ({ page }) => {
+    await page.goto('/signup');
+    const phoneInput = page.getByPlaceholder(/98765/i);
+    await phoneInput.fill('abc12345');
+    // Non-digits stripped — input should be empty or show digits only
+    const val = await phoneInput.inputValue();
+    expect(val).toMatch(/^\d*$/);
+  });
+
+  test('signup phone field shows inline error for invalid format', async ({ page }) => {
+    await page.goto('/signup');
+    await page.getByPlaceholder(/98765/i).fill('1234567890'); // starts with 1, invalid
+    await page.getByPlaceholder(/98765/i).blur();
+    await expect(page.getByText(/10-digit.*6.*9|starting with 6/i)).toBeVisible({ timeout: 3_000 });
+  });
+
+  test('signup Next button blocked without valid phone', async ({ page }) => {
+    await page.goto('/signup');
+    // Fill name, valid office email, valid password — but no phone
+    await page.getByPlaceholder('Arjun Mehta').fill('Test User');
+    const emailInput = page.getByPlaceholder('you@company.com');
+    await emailInput.fill('test@techcorp.com');
+    await emailInput.blur();
+    const pwInput = page.getByPlaceholder(/min. 8 characters/i);
+    await pwInput.fill('TestPass@2024');
+    // Leave phone empty and click Next
+    await page.getByRole('button', { name: /next/i }).click();
+    await expect(page.getByText(/mobile number|phone/i)).toBeVisible({ timeout: 3_000 });
+  });
 });

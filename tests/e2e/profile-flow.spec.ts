@@ -140,4 +140,26 @@ test.describe('👤 Profile Flow', () => {
     await page.goto('/profile');
     await expect(page.getByText(/become a giver/i)).not.toBeVisible();
   });
+
+  test('PF-17: profile edit phone field has +91 prefix and rejects invalid format', async ({ page }) => {
+    await loginUI(page, 'seeker');
+    await page.goto('/profile');
+    await page.getByRole('button', { name: /edit/i }).click();
+    // +91 prefix should be visible
+    await expect(page.getByText(/🇮🇳/)).toBeVisible({ timeout: 5_000 });
+    const phoneInput = page.locator('#edit-phone');
+    await phoneInput.fill('1234567890'); // starts with 1 — invalid
+    await phoneInput.blur();
+    await expect(page.getByText(/10-digit.*6.*9|starting with 6/i)).toBeVisible({ timeout: 3_000 });
+  });
+
+  test('PF-18: profile edit phone field strips non-numeric characters', async ({ page }) => {
+    await loginUI(page, 'seeker');
+    await page.goto('/profile');
+    await page.getByRole('button', { name: /edit/i }).click();
+    const phoneInput = page.locator('#edit-phone');
+    await phoneInput.fill('abc-99887766');
+    const val = await phoneInput.inputValue();
+    expect(val).toMatch(/^\d*$/); // only digits retained
+  });
 });

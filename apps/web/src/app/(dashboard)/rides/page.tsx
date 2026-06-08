@@ -231,9 +231,14 @@ export default function MyRidesPage() {
             onClick={() => {
               const next = !showHistory;
               setShowHistory(next);
-              // When showing history, re-fetch with ?history=true to include archived rides
-              if (tab === 'given') {
-                ridesApi.getGiven(undefined, next).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+              if (next) {
+                // Showing history — reset period to 'all' so date filter doesn't hide old rides
+                setPeriod('all');
+                setCustomFrom(''); setCustomTo('');
+                if (tab === 'given') {
+                  ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+                }
+                // taken rides: getTaken() already returns all statuses, no re-fetch needed
               }
             }}
             className={`text-xs px-3 py-1.5 rounded-lg border transition ${showHistory ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-500 hover:border-gray-400'}`}
@@ -279,14 +284,7 @@ export default function MyRidesPage() {
             return (
               <button
                 key={p}
-                onClick={() => {
-                  setPeriod(p);
-                  // Any period other than 'all' should include history so past rides are visible
-                  if (p !== 'all' && !showHistory) {
-                    setShowHistory(true);
-                    if (tab === 'given') ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
-                  }
-                }}
+                onClick={() => setPeriod(p)}
                 className={`shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition whitespace-nowrap ${
                   period === p
                     ? 'bg-brand-600 text-white border-brand-600'
@@ -383,7 +381,6 @@ export default function MyRidesPage() {
         <div className="space-y-3">
 
           {(() => {
-            const TERMINAL = ['COMPLETED', 'CANCELLED'];
             // Active list definitions:
             //   Giver  → PUBLISHED or ONGOING (not DRAFT, not terminal, not archived)
             //   Seeker → rides where their request is PENDING or CONFIRMED
@@ -401,24 +398,29 @@ export default function MyRidesPage() {
               : tab === 'given'
                 ? periodRides.filter(isActiveForGiver)
                 : periodRides.filter(isActiveForSeeker);
-            // hiddenCount only applies to the given tab — taken tab always shows all rides
-            const hiddenCount = tab === 'given' ? periodRides.length - visibleRides.length : 0;
+            const hiddenCount = periodRides.length - visibleRides.length;
+
+            const showHistoryHint = () => {
+              setShowHistory(true);
+              setPeriod('all'); setCustomFrom(''); setCustomTo('');
+              if (tab === 'given') {
+                ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
+              }
+            };
+
             return (<>
-              {tab === 'given' && hiddenCount > 0 && !showHistory && (
-                <button
-                  onClick={() => {
-                    setShowHistory(true);
-                    ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
-                  }}
-                  className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition"
-                >
+              {/* Hidden history hint — both giver and seeker tabs */}
+              {hiddenCount > 0 && !showHistory && (
+                <button onClick={showHistoryHint}
+                  className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition">
                   🕐 {hiddenCount} past ride{hiddenCount > 1 ? 's' : ''} in history — tap to view
                 </button>
               )}
-              {tab === 'given' && visibleRides.length === 0 && hiddenCount > 0 && (
+              {/* Empty active state — show history prompt */}
+              {visibleRides.length === 0 && hiddenCount > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
                   <p className="text-gray-500 text-sm">No active rides</p>
-                  <button onClick={() => { setShowHistory(true); ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; }); }} className="mt-2 text-xs text-brand-600 hover:underline">
+                  <button onClick={showHistoryHint} className="mt-2 text-xs text-brand-600 hover:underline">
                     Show {hiddenCount} completed / cancelled
                   </button>
                 </div>

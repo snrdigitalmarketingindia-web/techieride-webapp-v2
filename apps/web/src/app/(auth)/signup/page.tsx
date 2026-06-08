@@ -40,6 +40,7 @@ export default function SignupPage() {
     fullName: '',
     email: '',
     password: '',
+    phone: '',
     companyName: '',
     employeeId: '',
   });
@@ -59,6 +60,8 @@ export default function SignupPage() {
       if (!form.email.includes('@')) return 'Please enter a valid office email';
       if (isDomainPersonal(form.email)) return 'Personal emails are not accepted. Use your office email.';
       if (form.password.length < 8) return 'Password must be at least 8 characters';
+      if (!form.phone.trim()) return 'Please enter your mobile number';
+      if (!/^[6-9]\d{9}$/.test(form.phone.trim())) return 'Enter a valid 10-digit Indian mobile number (starting with 6–9)';
     }
     if (step === 1) {
       if (!form.companyName.trim()) return 'Please enter your company name';
@@ -83,6 +86,7 @@ export default function SignupPage() {
         email: form.email.toLowerCase().trim(),
         password: form.password,
         fullName: form.fullName.trim(),
+        phone: form.phone.trim(),
         companyName: form.companyName.trim(),
         employeeId: form.employeeId.trim() || undefined,
       });
@@ -90,7 +94,11 @@ export default function SignupPage() {
       setRegistered(true);
     } catch (e: any) {
       const msg = e.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Registration failed. Please try again.');
+      // Filter out raw class-validator noise like "phone must be a string"
+      const clean = Array.isArray(msg)
+        ? msg.filter((m: string) => !/must be a string|must be a number/i.test(m)).join(', ')
+        : msg;
+      setError(clean || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -127,7 +135,7 @@ export default function SignupPage() {
             Didn't receive it? Resend email
           </button>
           <button
-            onClick={() => { setRegistered(false); setDomainHint(''); setStep(0); setForm({ fullName: '', email: '', password: '', companyName: '', employeeId: '' }); }}
+            onClick={() => { setRegistered(false); setDomainHint(''); setStep(0); setForm({ fullName: '', email: '', password: '', phone: '', companyName: '', employeeId: '' }); }}
             className="text-sm text-gray-500 hover:underline mb-2 block w-full"
           >
             Use a different email
@@ -202,6 +210,28 @@ export default function SignupPage() {
               </div>
               {form.password.length > 0 && form.password.length < 8 && (
                 <p className="text-xs text-red-500 mt-1">Password must be at least 8 characters</p>
+              )}
+            </Field>
+
+            <Field label="Mobile Number" required hint="10-digit Indian number (e.g. 98765 43210)">
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg">
+                  🇮🇳 +91
+                </span>
+                <input
+                  type="tel" inputMode="numeric" maxLength={10}
+                  value={form.phone}
+                  onChange={(e) => update('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  placeholder="98765 43210"
+                  className={`${inputCls} rounded-l-none`}
+                  autoComplete="tel-national"
+                />
+              </div>
+              {form.phone.length > 0 && !/^[6-9]\d{9}$/.test(form.phone) && (
+                <p className="text-xs text-red-500 mt-1">Must be a 10-digit number starting with 6–9</p>
+              )}
+              {/^[6-9]\d{9}$/.test(form.phone) && (
+                <p className="text-xs text-brand-600 mt-1">✅ Valid mobile number</p>
               )}
             </Field>
 

@@ -42,7 +42,7 @@ function BoardingModal({
     try {
       await onConfirm({ pickupName: pickupName.trim(), pickupLat, pickupLng, dropName: dropName.trim() });
     } catch (e: any) {
-      setError(e.message || 'Failed to send request');
+      setError(e.response?.data?.message || e.message || 'Failed to send request');
       setSubmitting(false);
     }
   };

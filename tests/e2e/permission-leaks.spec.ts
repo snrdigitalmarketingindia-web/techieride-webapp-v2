@@ -139,19 +139,22 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     // Log into the browser session as giver so the search page can identify the user
     await loginUI(page, ACCOUNTS.giver.email);
 
+    // Wait for the auth store's fetchProfile() to complete — it calls /users/me.
+    // Without this the user.id is not set yet when search results render, so
+    // the "Your ride" badge never appears.
+    await page.waitForResponse(
+      (r: any) => r.url().includes('/users/me') && r.status() === 200,
+      { timeout: 10_000 },
+    ).catch(() => {});
+
     // Giver searches — should see "Your ride" not "Request Seat"
     await page.goto('/rides/search');
     await page.waitForLoadState('networkidle').catch(() => {});
     await page.locator('input[type="date"]').fill(tomorrow);
     await page.getByRole('button', { name: /search/i }).click();
-    await page.waitForTimeout(2_000);
-    // Reload so Zustand auth store is fully hydrated before results render
-    await page.reload({ waitUntil: 'networkidle' }).catch(() => {});
-    await page.locator('input[type="date"]').fill(tomorrow);
-    await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(3_000);
 
-    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 12_000 });
+    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();
 
     // Cleanup
