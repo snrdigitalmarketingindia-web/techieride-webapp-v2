@@ -25,6 +25,9 @@ cd apps/api
 echo "🗄️  Running Prisma migrations..."
 npx prisma generate --schema=../../prisma/schema.prisma
 
+echo "🗄️  Pushing schema changes to DB (adds new columns, safe)..."
+npx prisma db push --schema=../../prisma/schema.prisma --accept-data-loss --skip-generate
+
 # Dedup verification_requests before adding unique constraint (safe no-op if already clean)
 echo "🧹 Deduplicating verification_requests..."
 npx prisma db execute --schema=../../prisma/schema.prisma --stdin <<'DEDUP_SQL'
