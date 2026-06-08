@@ -526,21 +526,43 @@ export default function MyRidesPage() {
                           <p className="text-xs text-red-500 font-medium">
                             ⚠️ {waitingPassengers.length} passenger(s) still waiting — mark no-show or wait for them to board before completing
                           </p>
-                          {waitingPassengers.map((p: any) => (
-                            <div key={p.id} className="flex items-center gap-2">
-                              <span className="text-xs text-gray-600 flex-1">
-                                {p.seeker?.user?.trid && <span className="text-brand-600 mr-1">{p.seeker.user.trid}</span>}
-                                {p.seeker?.user?.fullName ?? 'Passenger'}
-                              </span>
-                              <button
-                                onClick={() => handleNoShow(ride.id, p.seeker?.id)}
-                                disabled={processing === p.seeker?.id}
-                                className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0"
-                              >
-                                👻 Mark No-Show
-                              </button>
-                            </div>
-                          ))}
+                          {waitingPassengers.map((p: any) => {
+                            // Boarding time: ETA override → estimated pickup → departure time
+                            const reqId   = p.request?.id;
+                            const etaTime = etaOverrides[reqId]
+                              ?? estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, p.request?.pickupLat, p.request?.pickupLng)
+                              ?? ride.departureTime;
+
+                            // Block Mark No-Show until boarding time + 1 minute has passed
+                            const canMarkNoShow = (() => {
+                              if (!etaTime) return true;
+                              const [h, m] = etaTime.split(':').map(Number);
+                              if (isNaN(h) || isNaN(m)) return true;
+                              const threshold = new Date();
+                              threshold.setHours(h, m + 1, 0, 0);
+                              return new Date() >= threshold;
+                            })();
+
+                            return (
+                              <div key={p.id} className="flex items-center gap-2">
+                                <span className="text-xs text-gray-600 flex-1">
+                                  {p.seeker?.user?.trid && <span className="text-brand-600 mr-1">{p.seeker.user.trid}</span>}
+                                  {p.seeker?.user?.fullName ?? 'Passenger'}
+                                  {etaTime && (
+                                    <span className="text-gray-400 ml-1">· 🕐 {etaTime}</span>
+                                  )}
+                                </span>
+                                <button
+                                  onClick={() => handleNoShow(ride.id, p.seeker?.id)}
+                                  disabled={processing === p.seeker?.id || !canMarkNoShow}
+                                  title={!canMarkNoShow ? `Available after boarding time ${etaTime} + 1 min` : undefined}
+                                  className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                                >
+                                  👻 Mark No-Show
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
