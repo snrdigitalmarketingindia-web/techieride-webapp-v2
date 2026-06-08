@@ -332,8 +332,9 @@ export default function ProfilePage() {
               </div>
             ))}
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Blood Group</label>
+              <label htmlFor="bloodGroup" className="text-xs text-gray-500 mb-1 block">Blood Group</label>
               <select
+                id="bloodGroup"
                 value={editForm.bloodGroup}
                 onChange={(e) => setEditForm((f) => ({ ...f, bloodGroup: e.target.value }))}
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"

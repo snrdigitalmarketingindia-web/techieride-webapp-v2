@@ -19,7 +19,8 @@ export default function MyRidesPage() {
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasActiveRide, setHasActiveRide] = useState(false);
-  const [showHistory, setShowHistory] = useState(true);
+  // showHistory=false so the "Show History" button is visible by default (tests click it to reveal past rides).
+  const [showHistory, setShowHistory] = useState(false);
   // Period filter — default 'week' so today + tomorrow rides both appear without switching tabs.
   // 'today' was the old default but hid tomorrow rides, breaking Playwright tests and confusing givers.
   type Period = 'all' | 'today' | 'tomorrow' | 'week' | 'month' | 'custom';

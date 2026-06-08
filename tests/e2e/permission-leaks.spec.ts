@@ -97,8 +97,20 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
 
   // PERM-13: Giver's own published ride shows "Your ride" badge — not "Request Seat"
   test('PERM-13: giver sees "Your ride" badge (not Request Seat) on their own published ride in search', async ({ page }) => {
-    const { apiLogin, API } = await import('./helpers');
+    const { apiLogin, loginUI, API } = await import('./helpers');
     const token = await apiLogin(ACCOUNTS.giver.email);
+
+    // Cancel any existing active ride so the giver can publish a fresh one
+    const activeR = await page.request.get(`${API}/rides?status=published`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (activeR.ok()) {
+      const activeBody = await activeR.json();
+      const activeRides: any[] = activeBody.data ?? activeBody ?? [];
+      for (const r of activeRides) {
+        await page.request.patch(`${API}/rides/${r.id}/cancel`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+      }
+    }
 
     // Create + publish a ride as the giver
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
@@ -123,6 +135,9 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     await page.request.patch(`${API}/rides/${rideId}/publish`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+
+    // Log into the browser session as giver so the search page can identify the user
+    await loginUI(page, ACCOUNTS.giver.email);
 
     // Giver searches — should see "Your ride" not "Request Seat"
     await page.goto('/rides/search');
