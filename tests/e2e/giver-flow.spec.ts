@@ -67,7 +67,8 @@ test.describe('🚗 Giver Full Flow', () => {
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
-    await expect(page.getByText(/published/i).first()).toBeVisible({ timeout: 8_000 });
+    await page.getByRole('button', { name: /^All$/i }).click();
+    await expect(page.getByText(/published/i).filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   // ── Request Management ──────────────────────────────────────────────────
@@ -86,6 +87,7 @@ test.describe('🚗 Giver Full Flow', () => {
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
   });
 
@@ -105,6 +107,7 @@ test.describe('🚗 Giver Full Flow', () => {
   test('GF-07: giver sees Start Ride button on PUBLISHED ride', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /start ride/i })).toBeVisible({ timeout: 8_000 });
   });
 
@@ -113,7 +116,8 @@ test.describe('🚗 Giver Full Flow', () => {
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
-    await expect(page.getByText(/ongoing/i).first()).toBeVisible({ timeout: 8_000 });
+    await page.getByRole('button', { name: /^All$/i }).click();
+    await expect(page.getByText(/ongoing/i).filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('GF-09: giver cannot cancel ONGOING ride', async ({ page }) => {
@@ -127,6 +131,7 @@ test.describe('🚗 Giver Full Flow', () => {
   test('GF-10: quick message button visible on ONGOING ride', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
   });
 
@@ -137,6 +142,7 @@ test.describe('🚗 Giver Full Flow', () => {
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /complete ride/i })).toBeVisible({ timeout: 8_000 });
   });
 
@@ -146,7 +152,7 @@ test.describe('🚗 Giver Full Flow', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
     await page.getByRole('button', { name: /show history/i }).click();
-    await expect(page.getByText(/completed/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/completed/i).filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   // ── Cancel Flow ─────────────────────────────────────────────────────────
@@ -164,7 +170,7 @@ test.describe('🚗 Giver Full Flow', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
     await page.getByRole('button', { name: /show history/i }).click();
-    await expect(page.getByText(/cancelled/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/cancelled/i).filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   // ── Commute Template ────────────────────────────────────────────────────

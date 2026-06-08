@@ -57,8 +57,8 @@ test.describe('📱 Mobile Navigation', () => {
   });
 
   test('desktop sidebar is hidden on mobile', async ({ page }) => {
-    // The sidebar uses `hidden sm:flex` — must not be visible at mobile width
-    const sidebar = page.locator('div.hidden.sm\\:flex');
+    // The sidebar uses `hidden sm:flex fixed` — must not be visible at mobile width
+    const sidebar = page.locator('div.hidden.sm\\:flex.fixed');
     await expect(sidebar).toBeHidden();
   });
 

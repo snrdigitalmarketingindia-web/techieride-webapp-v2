@@ -141,10 +141,14 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
 
     // Giver searches — should see "Your ride" not "Request Seat"
     await page.goto('/rides/search');
+    await page.waitForLoadState('networkidle').catch(() => {});
     await page.locator('input[type="date"]').fill(tomorrow);
     await page.getByRole('button', { name: /search/i }).click();
-    // Wait for auth store to hydrate and search results to render
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(2_000);
+    // Reload so Zustand auth store is fully hydrated before results render
+    await page.reload({ waitUntil: 'networkidle' }).catch(() => {});
+    await page.locator('input[type="date"]').fill(tomorrow);
+    await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(3_000);
 
     await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 12_000 });

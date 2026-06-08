@@ -109,7 +109,7 @@ test.describe('🚏 Boarding Flow', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
     await page.getByRole('button', { name: /show history/i }).click();
-    await expect(page.getByText(/completed/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/completed/i).filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('BF-06: seeker sees completed ride on their requests page', async ({ page }) => {

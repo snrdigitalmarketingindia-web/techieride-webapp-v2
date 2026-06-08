@@ -119,6 +119,8 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
   test('giver sees confirmed passenger on My Rides page', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.getByRole('button', { name: /^All$/i }).click();
+    await page.waitForTimeout(1_000);
     await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
   });
 
