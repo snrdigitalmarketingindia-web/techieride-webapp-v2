@@ -68,6 +68,10 @@ export class RidesService {
     });
     if (!vehicle) throw new NotFoundException('Vehicle not found');
 
+    const estimatedDistanceKm = (dto.originLat && dto.originLng && dto.destinationLat && dto.destinationLng)
+      ? Math.round(haversineMeters(dto.originLat, dto.originLng, dto.destinationLat, dto.destinationLng)) / 1000
+      : null;
+
     return this.prisma.ride.create({
       data: {
         rideGiverId: giver.id,
@@ -85,6 +89,7 @@ export class RidesService {
         notes: dto.notes,
         womenOnly: dto.womenOnly ?? false,
         status: RideStatus.DRAFT,
+        ...(estimatedDistanceKm !== null ? { estimatedDistanceKm } : {}),
       },
       include: { vehicle: true, rideGiver: { include: { user: true } } },
     });
@@ -339,13 +344,19 @@ export class RidesService {
     });
     const boardedParticipants = participants.filter(p => p.boardingStatus === 'DEBOARDED');
 
+    // Fall back to haversine if estimatedDistanceKm was never stored (older rides)
+    const distanceKm = ride.estimatedDistanceKm
+      || ((ride.originLat && ride.originLng && ride.destinationLat && ride.destinationLng)
+          ? Math.round(haversineMeters(ride.originLat, ride.originLng, ride.destinationLat, ride.destinationLng)) / 1000
+          : 0);
+
     // Giver points: isolate so a failure doesn't block seeker awards
     try {
       await this.gamification.awardRideCompletion(
         ride.rideGiverId,
         rideId,
         'giver',
-        ride.estimatedDistanceKm || 0,
+        distanceKm,
         boardedParticipants.length,
       );
       await this.trustScore.onRideCompletedGiver(ride.rideGiverId, rideId);
@@ -359,7 +370,7 @@ export class RidesService {
           p.seekerId,
           rideId,
           'seeker',
-          ride.estimatedDistanceKm || 0,
+          distanceKm,
           1,
         );
         await this.trustScore.onRideCompletedSeeker(p.seekerId, rideId);
