@@ -16,6 +16,15 @@ const savePrefs = (prefs: object) => {
   try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {}
 };
 
+/** Per-user seat preference — keyed by userId so givers sharing a device don't clobber each other */
+const SEATS_KEY = (uid: string) => `tr_seats_${uid}`;
+const loadSeatPref = (uid: string): number => {
+  try { const v = parseInt(localStorage.getItem(SEATS_KEY(uid)) ?? '', 10); return v >= 1 && v <= 6 ? v : 2; } catch { return 2; }
+};
+const saveSeatPref = (uid: string, seats: number) => {
+  try { localStorage.setItem(SEATS_KEY(uid), String(seats)); } catch {}
+};
+
 const loadLastRoute = () => {
   try { return JSON.parse(localStorage.getItem(PREFS_ROUTE_KEY) || 'null'); } catch { return null; }
 };
@@ -86,6 +95,9 @@ export default function CreateRidePage() {
   // Runs once user profile is available (client-side only)
   useEffect(() => {
     if (!user) return;
+
+    // Restore last-used seat count for this giver
+    setForm((f) => ({ ...f, totalSeats: loadSeatPref(user.id) }));
 
     const home = (user as any).homeLocation as string | undefined;
     const office = (user as any).officeLocation as string | undefined;
@@ -293,7 +305,7 @@ export default function CreateRidePage() {
           <label className="text-sm font-medium text-gray-700">Seats to Offer</label>
           <div className="flex gap-2 mt-1 flex-wrap">
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <button key={n} onClick={() => update('totalSeats', n)}
+              <button key={n} onClick={() => { update('totalSeats', n); if (user?.id) saveSeatPref(user.id, n); }}
                 className={`w-10 py-2 rounded-lg text-sm font-medium border transition ${form.totalSeats === n ? 'bg-brand-600 text-white border-brand-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
                 {n}
               </button>
