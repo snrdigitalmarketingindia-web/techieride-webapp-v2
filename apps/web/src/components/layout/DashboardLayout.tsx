@@ -60,7 +60,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
           <Image src="/TR_Logo_black.png" alt="Techieride" width={40} height={40} className="object-contain" priority />
-          <span className="text-xs font-medium text-gray-400 hidden sm:inline">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+          <span className="text-xs font-medium text-gray-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
         </div>
         <div className="flex items-center gap-6">
           <span className="text-[10px] text-gray-400 hidden sm:inline">
@@ -91,23 +91,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-6">{children}</main>
 
       {/* Bottom nav (mobile) */}
-      <nav className="bg-white border-t border-gray-200 px-4 py-2 flex justify-around sticky bottom-0 sm:hidden">
-        {navLinks.map((link) => {
-          const active = pathname === link.href;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition ${
-                active ? 'text-brand-600' : 'text-gray-500'
-              }`}
-            >
-              <span className="text-xl">{link.icon}</span>
-              <span className="text-xs font-medium">{link.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <div className="sticky bottom-0 sm:hidden">
+        <nav className="bg-white border-t border-gray-200 px-4 py-2 flex justify-around">
+          {navLinks.map((link) => {
+            const active = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition ${
+                  active ? 'text-brand-600' : 'text-gray-500'
+                }`}
+              >
+                <span className="text-xl">{link.icon}</span>
+                <span className="text-xs font-medium">{link.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+        {/* Version + SNR branding strip — mobile only */}
+        <div className="bg-gray-50 border-t border-gray-100 px-4 py-1.5 flex items-center justify-between">
+          <span className="text-[10px] text-gray-400">
+            A product of{' '}
+            <a href="https://www.snrdigitalmarketing.com" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+              SNR Digital Marketing
+            </a>
+          </span>
+          <span className="text-[10px] text-gray-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+        </div>
+      </div>
 
       {/* Desktop sidebar nav */}
       <div className="hidden sm:flex fixed top-16 left-0 h-full w-16 flex-col items-center pt-6 bg-white border-r border-gray-200 gap-6">
