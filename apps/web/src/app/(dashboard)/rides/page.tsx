@@ -234,7 +234,7 @@ export default function MyRidesPage() {
       {isGiver && isSeeker && (
         <div className="flex bg-gray-100 rounded-lg p-1">
           {(['given', 'taken'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
+            <button key={t} onClick={() => { setTab(t); setPeriod('all'); setCustomFrom(''); setCustomTo(''); }}
               className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${tab === t ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
               {t === 'given' ? '🚗 Rides Given' : '🧳 Rides Taken'}
             </button>

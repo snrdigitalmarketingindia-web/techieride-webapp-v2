@@ -135,17 +135,18 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* AGM announcement banner */}
-      <div className="relative flex items-center gap-3 bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-3 shadow-sm overflow-hidden">
-        {/* Subtle pulse ring */}
-        <span className="relative flex items-center justify-center shrink-0">
-          <span className="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-yellow-300 opacity-40" />
-          <span className="relative text-xl">📢</span>
-        </span>
-        <p className="flex-1 text-sm font-medium text-yellow-800">
-          TechieRide's <strong>AGM Meeting 2026</strong> | <strong>21 June 2026</strong>
-        </p>
-      </div>
+      {/* AGM announcement banner — auto-hides after 21 June 2026 IST */}
+      {new Date() <= new Date('2026-06-21T23:59:59+05:30') && (
+        <div className="relative flex items-center gap-3 bg-yellow-50 border border-yellow-300 rounded-xl px-4 py-3 shadow-sm overflow-hidden">
+          <span className="relative flex items-center justify-center shrink-0">
+            <span className="animate-ping absolute inline-flex h-6 w-6 rounded-full bg-yellow-300 opacity-40" />
+            <span className="relative text-xl">📢</span>
+          </span>
+          <p className="flex-1 text-sm font-medium text-yellow-800">
+            TechieRide's <strong>AGM Meeting 2026</strong> | <strong>21 June 2026</strong>
+          </p>
+        </div>
+      )}
 
       {/* Greeting */}
       <div>
