@@ -438,12 +438,14 @@ export default function MyRidesPage() {
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-amber-700 uppercase tracking-wide">📥 Pending ({pendingReqs.length})</p>
                     {pendingReqs.map((req: any) => (
-                      <div key={req.id} className="space-y-2 bg-amber-50/50 rounded-lg p-2 border border-amber-100">
-                        {/* Row 1: avatar + passenger info */}
+                      <div key={req.id} className="bg-amber-50/50 rounded-lg p-2 border border-amber-100 space-y-1.5">
+                        {/* Two-column: info left, action buttons right (stacked) */}
                         <div className="flex items-start gap-2">
+                          {/* Avatar */}
                           <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-700 shrink-0 mt-0.5">
                             {req.seeker?.user?.fullName?.[0] ?? '?'}
                           </div>
+                          {/* Passenger info — fills available space */}
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-semibold text-gray-800">
                               {req.seeker?.user?.trid && <span className="text-brand-600 mr-1">{req.seeker.user.trid}</span>}
@@ -456,7 +458,7 @@ export default function MyRidesPage() {
                               <p className="text-xs text-gray-500">📍 {req.pickupName}</p>
                             )}
                             {req.pickupLat && req.pickupLng && ride?.originLat && ride?.originLng && (
-                              <p className="text-xs text-gray-500">📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from your location</p>
+                              <p className="text-xs text-gray-500">📏 {formatDistance(haversineMeters(ride.originLat, ride.originLng, req.pickupLat, req.pickupLng))} from you</p>
                             )}
                             {editingEta === req.id ? (
                               <div className="flex items-center gap-1 mt-1 flex-wrap">
@@ -479,32 +481,32 @@ export default function MyRidesPage() {
                               </div>
                             )}
                           </div>
+                          {/* Action buttons — stacked vertically on the right */}
+                          <div className="flex flex-col gap-1 shrink-0">
+                            {req.seeker?.user?.phone && (
+                              <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
+                                receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
+                            )}
+                            <button
+                              onClick={() => {
+                                setRejectingId(null);
+                                const est = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
+                                setApprovePickupTime(etaOverrides[req.id] ?? est ?? ride?.departureTime ?? '');
+                                setApprovingId(req.id);
+                              }}
+                              disabled={processing === req.id}
+                              className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap">
+                              ✅ Approve
+                            </button>
+                            <button
+                              onClick={() => { setRejectingId(req.id); setRejectReason(''); setApprovingId(null); }}
+                              disabled={processing === req.id}
+                              className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 whitespace-nowrap">
+                              ❌ Reject
+                            </button>
+                          </div>
                         </div>
-                        {/* Row 2: action buttons — full width on mobile */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {req.seeker?.user?.phone && (
-                            <CallButton phone={req.seeker.user.phone} countryCode={req.seeker.user.countryCode}
-                              receiverId={req.seeker.userId} rideId={ride.id} label="Call" size="sm" variant="ghost" />
-                          )}
-                          <button
-                            onClick={() => {
-                              setRejectingId(null);
-                              const est = estimatePickupTime(ride?.departureTime, ride?.originLat, ride?.originLng, req.pickupLat, req.pickupLng);
-                              setApprovePickupTime(etaOverrides[req.id] ?? est ?? ride?.departureTime ?? '');
-                              setApprovingId(req.id);
-                            }}
-                            disabled={processing === req.id}
-                            className="flex-1 sm:flex-none text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 text-center">
-                            ✅ Approve
-                          </button>
-                          <button
-                            onClick={() => { setRejectingId(req.id); setRejectReason(''); setApprovingId(null); }}
-                            disabled={processing === req.id}
-                            className="flex-1 sm:flex-none text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 text-center">
-                            ❌ Reject
-                          </button>
-                        </div>
-                        {/* Inline pickup-time confirmation before approving */}
+                        {/* Pickup-time confirmation (expands below when Approve clicked) */}
                         {approvingId === req.id && (
                           <div className="flex flex-wrap items-center gap-2 p-2 bg-brand-50 border border-brand-200 rounded-lg">
                             <span className="text-xs text-brand-800 font-medium shrink-0">🕐 Pickup time for {req.seeker?.user?.fullName?.split(' ')[0] ?? 'passenger'}:</span>
@@ -524,6 +526,7 @@ export default function MyRidesPage() {
                             <button onClick={() => setApprovingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1 shrink-0">Cancel</button>
                           </div>
                         )}
+                        {/* Reject reason (expands below when Reject clicked) */}
                         {rejectingId === req.id && (
                           <div className="flex gap-2">
                             <input
@@ -584,21 +587,23 @@ export default function MyRidesPage() {
                             })();
 
                             return (
-                              <div key={p.id} className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xs text-gray-600 flex-1 min-w-0">
-                                  {p.seeker?.user?.trid && <span className="text-brand-600 mr-1">{p.seeker.user.trid}</span>}
-                                  {p.seeker?.user?.fullName ?? 'Passenger'}
+                              <div key={p.id} className="flex items-center gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-gray-700">
+                                    {p.seeker?.user?.trid && <span className="text-brand-600 mr-1">{p.seeker.user.trid}</span>}
+                                    {p.seeker?.user?.fullName ?? 'Passenger'}
+                                  </p>
                                   {etaTime && (
-                                    <span className="text-gray-400 ml-1">· 🕐 {etaTime}</span>
+                                    <p className="text-xs text-gray-400">🕐 Boarding at {etaTime}</p>
                                   )}
-                                </span>
+                                </div>
                                 <button
                                   onClick={() => handleNoShow(ride.id, p.seeker?.id)}
                                   disabled={processing === p.seeker?.id || !canMarkNoShow}
                                   title={!canMarkNoShow ? `Available after boarding time ${etaTime} + 1 min` : undefined}
-                                  className="text-xs border border-red-200 text-red-600 px-2.5 py-1 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 w-full sm:w-auto"
+                                  className="text-xs border border-red-200 text-red-600 px-2.5 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed shrink-0 whitespace-nowrap"
                                 >
-                                  👻 Mark No-Show
+                                  👻 No-Show
                                 </button>
                               </div>
                             );
