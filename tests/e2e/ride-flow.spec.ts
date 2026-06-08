@@ -119,8 +119,8 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
   test('giver sees confirmed passenger on My Rides page', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: /^All$/i }).click();
-    await page.waitForTimeout(1_000);
     await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
   });
 
@@ -185,8 +185,8 @@ test.describe('📅 My Rides — Period Filter Tabs', () => {
     await expect(page.getByRole('button', { name: /^All$/i })).toBeVisible({ timeout: 8_000 });
     await expect(page.getByRole('button', { name: /^Today$/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /^Tomorrow$/i })).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /This Week/i })).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByRole('button', { name: /This Month/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /^Week$|^This Week$/i })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /^Month$|^This Month$/i })).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /Custom/i })).toBeVisible({ timeout: 5_000 });
     // "Today" must be the active (highlighted) tab by default
     await expect(page.getByRole('button', { name: /^Today$/i })).toHaveClass(/bg-brand/, { timeout: 5_000 });
@@ -217,9 +217,9 @@ test.describe('📅 My Rides — Period Filter Tabs', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
 
-    // Select "This Week" on Given tab
-    await page.getByRole('button', { name: /This Week/i }).click();
-    const thisWeekBtn = page.getByRole('button', { name: /This Week/i });
+    // Select "Week" (was "This Week") on Given tab
+    await page.getByRole('button', { name: /^Week$|^This Week$/i }).click();
+    const thisWeekBtn = page.getByRole('button', { name: /^Week$|^This Week$/i });
     await expect(thisWeekBtn).toHaveClass(/bg-brand/, { timeout: 3_000 });
 
     // Switch to Taken tab

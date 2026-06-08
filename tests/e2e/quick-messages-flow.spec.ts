@@ -87,12 +87,16 @@ test.describe('💬 Quick Messages Flow', () => {
   test('QM-05: Quick Message button visible on PUBLISHED ride for giver', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
   });
 
   test('QM-06: Quick Message modal opens with pre-defined options', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^All$/i }).click();
     await page.getByRole('button', { name: /quick message/i }).click();
     await expect(page.getByText(/on my way|running late|arrived|message/i).first()).toBeVisible({ timeout: 5_000 });
   });
@@ -103,6 +107,8 @@ test.describe('💬 Quick Messages Flow', () => {
 
     await loginUI(page, 'seeker');
     await page.goto('/rides');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
   });
 
