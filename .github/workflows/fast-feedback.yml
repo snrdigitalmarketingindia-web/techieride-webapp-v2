@@ -1,0 +1,174 @@
+name: ⚡ Fast Feedback (Smoke E2E)
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+on:
+  # Manual trigger — run from GitHub Actions UI without waiting for full CI
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why are you running fast feedback? (optional note)'
+        required: false
+        default: 'Manual smoke check'
+
+# ── Shared environment (mirrors ci.yml) ───────────────────────────────────────
+env:
+  NODE_ENV: development
+  PORT: 3001
+  DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
+  REDIS_HOST: localhost
+  REDIS_PORT: 6379
+  REDIS_PASSWORD: ""
+  JWT_ACCESS_SECRET: ci_access_secret_min_32_chars_long
+  JWT_REFRESH_SECRET: ci_refresh_secret_min_32_chars_long
+  JWT_ACCESS_EXPIRES_IN: 15m
+  JWT_REFRESH_EXPIRES_IN: 7d
+  MINIO_ENDPOINT: localhost
+  MINIO_PORT: 9000
+  MINIO_USE_SSL: "false"
+  MINIO_ACCESS_KEY: minioadmin
+  MINIO_SECRET_KEY: minioadmin
+  MINIO_BUCKET_DOCUMENTS: user-documents
+  MINIO_BUCKET_PHOTOS: profile-photos
+  SMS_PROVIDER: mock
+  REQUEST_RATE_LIMIT: "1000"
+  NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+  NEXT_PUBLIC_WS_URL: http://localhost:3001
+
+jobs:
+  smoke-e2e:
+    name: ⚡ Smoke E2E (fast feedback)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: techieride
+          POSTGRES_PASSWORD: techieride
+          POSTGRES_DB: techieride
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U techieride"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run db:generate
+      - run: npm run db:push -- --accept-data-loss
+        env:
+          DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
+      - run: npm run db:seed
+        env:
+          DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
+
+      - name: Create log directory
+        run: mkdir -p /tmp/tr-logs
+
+      - name: Start API server
+        run: |
+          npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready" && break
+            sleep 2
+          done
+
+      - name: Start web server
+        run: |
+          npm run dev --workspace=apps/web > /tmp/tr-logs/web-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000 > /dev/null 2>&1 && echo "Web ready" && break
+            sleep 2
+          done
+
+      # ── Run only the smoke spec files ───────────────────────────────────────
+      # Uses playwright.smoke.config.ts which lists the high-risk spec files.
+      # Each file is fully self-contained (own beforeAll/afterAll), so no
+      # cross-file dependencies are broken by the reduced file set.
+      - name: Run smoke E2E tests
+        continue-on-error: true
+        run: |
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          npx playwright test --config=playwright.smoke.config.ts --reporter=list,html 2>&1 \
+            | tee /tmp/tr-logs/smoke.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_smoke
+
+      - name: 📝 Write smoke summary to Job Summary
+        if: always()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          OUT=$GITHUB_STEP_SUMMARY
+          write() { echo "$1" >> "$OUT"; }
+
+          write "# ⚡ Fast Feedback — Smoke E2E"
+          write ""
+          write "> **Commit:** \`${{ github.sha }}\` · **Triggered by:** ${{ github.actor }}"
+          write "> **Reason:** ${{ github.event.inputs.reason }}"
+          write "> **Run:** $RUN_URL"
+          write ""
+
+          smoke_result=$([ -f /tmp/tr-logs/FAILED_smoke ] && echo "❌ FAILED" || echo "✅ passed")
+          write "| Suite | Result |"
+          write "|---|---|"
+          write "| Smoke E2E (12 spec files) | ${smoke_result} |"
+          write ""
+
+          totals=$(grep -E "[0-9]+ (passed|failed|skipped)" /tmp/tr-logs/smoke.log | tail -3 || true)
+          if [ -n "$totals" ]; then
+            write "## Totals"
+            write '```'
+            echo "$totals" >> "$OUT"
+            write '```'
+            write ""
+          fi
+
+          fails=$(grep -E "✘| ×" /tmp/tr-logs/smoke.log 2>/dev/null | head -30 || true)
+          if [ -n "$fails" ]; then
+            write "## ❌ Failed Tests"
+            write '```'
+            echo "$fails" >> "$OUT"
+            write '```'
+            write ""
+            write "> Fix the failures above, then re-run fast feedback to confirm."
+            write "> Once smoke passes, the full CI suite on the next push will validate everything."
+          else
+            write "## ✅ All smoke tests passed"
+            write ""
+            write "> Safe to push — full CI will run the complete suite automatically."
+          fi
+
+          # Fail the job so GitHub shows a red ✗ on failures
+          if [ -f /tmp/tr-logs/FAILED_smoke ]; then
+            echo "❌ Smoke tests failed."
+            exit 1
+          fi
+          echo "✅ Smoke tests passed."
+
+      - name: 📁 Upload smoke report (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: |
+            tests/e2e/report-smoke/
+            /tmp/tr-logs/smoke.log
+          retention-days: 7

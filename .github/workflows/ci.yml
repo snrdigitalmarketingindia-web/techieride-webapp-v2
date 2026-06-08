@@ -380,11 +380,144 @@ jobs:
           path: /tmp/tr-logs/
           retention-days: 30
 
+  # ── Stage 3b: Smoke Gate (fast-feedback before full E2E) ───────────────────
+  # Runs the 12 high-risk spec files first. If ANY smoke test fails the full
+  # Playwright suite is skipped immediately — saving ~15 min of wasted CI time.
+  # Every spec in SMOKE_SPECS is a full file (not individual tests), so beforeAll
+  # always fires and intra-file dependencies are fully satisfied.
+  smoke-gate:
+    name: ⚡ Smoke Gate (E2E fast feedback)
+    runs-on: ubuntu-latest
+    needs: api-tests
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: techieride
+          POSTGRES_PASSWORD: techieride
+          POSTGRES_DB: techieride
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U techieride"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run db:generate
+      - name: Push DB schema
+        run: npm run db:push -- --accept-data-loss
+        env:
+          DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
+      - name: Seed database
+        run: npm run db:seed
+        env:
+          DATABASE_URL: postgresql://techieride:techieride@localhost:5432/techieride
+
+      - name: Create log directory
+        run: mkdir -p /tmp/tr-logs
+
+      - name: Start API server
+        run: |
+          npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready" && break
+            sleep 2
+          done
+
+      - name: Start web server
+        run: |
+          npm run dev --workspace=apps/web > /tmp/tr-logs/web-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000 > /dev/null 2>&1 && echo "Web ready" && break
+            sleep 2
+          done
+
+      - name: ⚡ Run smoke E2E tests
+        continue-on-error: true
+        run: |
+          npx playwright test --config=playwright.smoke.config.ts --reporter=list,html 2>&1 \
+            | tee /tmp/tr-logs/smoke.log
+          [ ${PIPESTATUS[0]} -eq 0 ] || touch /tmp/tr-logs/FAILED_smoke
+
+      - name: 📝 Write smoke summary to Job Summary
+        if: always()
+        run: |
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          OUT=$GITHUB_STEP_SUMMARY
+          write() { echo "$1" >> "$OUT"; }
+
+          write "# ⚡ Smoke Gate — E2E Fast Feedback"
+          write ""
+          write "> **Commit:** \`${{ github.sha }}\` · **Branch:** \`${{ github.ref_name }}\`"
+          write "> **Run:** $RUN_URL"
+          write ""
+          smoke_result=$([ -f /tmp/tr-logs/FAILED_smoke ] && echo "❌ FAILED" || echo "✅ passed")
+          write "| Suite | Result |"
+          write "|---|---|"
+          write "| Smoke E2E (12 spec files) | ${smoke_result} |"
+          write ""
+
+          totals=$(grep -E "[0-9]+ (passed|failed|skipped)" /tmp/tr-logs/smoke.log | tail -3 || true)
+          if [ -n "$totals" ]; then
+            write "## Totals"
+            write '```'
+            echo "$totals" >> "$OUT"
+            write '```'
+            write ""
+          fi
+
+          fails=$(grep -E "✘| ×" /tmp/tr-logs/smoke.log 2>/dev/null | head -30 || true)
+          if [ -n "$fails" ]; then
+            write "## ❌ Failed Tests (full E2E suite was SKIPPED)"
+            write '```'
+            echo "$fails" >> "$OUT"
+            write '```'
+            write ""
+            write "> Fix these failures and push again — once smoke passes, the full suite will run."
+          else
+            write "## ✅ Smoke passed — full E2E suite will proceed"
+          fi
+
+          if [ -f /tmp/tr-logs/FAILED_smoke ]; then
+            echo "❌ Smoke gate failed — full E2E suite will not run."
+            exit 1
+          fi
+          echo "✅ Smoke gate passed."
+
+      - name: 📁 Upload smoke report (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-gate-report
+          path: |
+            tests/e2e/report-smoke/
+            /tmp/tr-logs/smoke.log
+          retention-days: 14
+
   # ── Stage 4: E2E Tests (Playwright) ────────────────────────────────────────
   playwright-tests:
     name: 🎭 Playwright E2E Tests
     runs-on: ubuntu-latest
-    needs: api-tests
+    needs: [api-tests, smoke-gate]
 
     services:
       postgres:
@@ -524,31 +657,34 @@ jobs:
   quality-gate:
     name: ✅ Quality Gate
     runs-on: ubuntu-latest
-    needs: [api-tests, security-tests, playwright-tests]
+    needs: [api-tests, security-tests, smoke-gate, playwright-tests]
     if: always()
     steps:
       - name: Evaluate quality gate
         run: |
           API="${{ needs.api-tests.result }}"
           SEC="${{ needs.security-tests.result }}"
+          SMK="${{ needs.smoke-gate.result }}"
           PW="${{ needs.playwright-tests.result }}"
 
           api_icon=$([ "$API" = "success" ] && echo "✅" || echo "❌")
           sec_icon=$([ "$SEC" = "success" ] && echo "✅" || echo "❌")
-          pw_icon=$([ "$PW"  = "success" ] && echo "✅" || echo "❌")
+          smk_icon=$([ "$SMK" = "success" ] && echo "✅" || ([ "$SMK" = "skipped" ] && echo "⏭️" || echo "❌"))
+          pw_icon=$([ "$PW"  = "success" ] && echo "✅" || ([ "$PW"  = "skipped" ] && echo "⏭️" || echo "❌"))
 
           {
             echo "# TechieRide CI — Quality Gate"
             echo ""
             echo "| Stage | Result |"
             echo "|---|---|"
-            echo "| $api_icon API Tests (10 suites) | $API |"
-            echo "| $sec_icon Security Tests        | $SEC |"
-            echo "| $pw_icon  Playwright E2E        | $PW  |"
+            echo "| $api_icon API Tests (13 suites)  | $API |"
+            echo "| $sec_icon Security Tests          | $SEC |"
+            echo "| $smk_icon Smoke Gate (12 specs)   | $SMK |"
+            echo "| $pw_icon  Playwright E2E (full)   | $PW  |"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "$API" != "success" || "$SEC" != "success" || "$PW" != "success" ]]; then
+          if [[ "$API" != "success" || "$SEC" != "success" || "$SMK" != "success" || "$PW" != "success" ]]; then
             echo "## ❌ Quality Gate FAILED" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "One or more stages failed. Check each job's summary above for the list of failing tests." >> "$GITHUB_STEP_SUMMARY"
