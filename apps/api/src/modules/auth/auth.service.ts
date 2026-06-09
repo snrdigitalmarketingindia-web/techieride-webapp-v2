@@ -173,7 +173,7 @@ export class AuthService {
   async requestExceptionVerification(userId: string, dto: ExceptionVerificationDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
-    if (user.accountStatus !== 'EMAIL_VERIFICATION_PENDING') {
+    if (!['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING'].includes(user.accountStatus)) {
       throw new BadRequestException('Exception verification is only available for unverified accounts');
     }
 

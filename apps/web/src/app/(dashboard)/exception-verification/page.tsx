@@ -4,11 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { authApi } from '@/lib/api';
+import { useSearchParams } from 'next/navigation';
 
 const inputCls = 'w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
 
 export default function ExceptionVerificationPage() {
   const { user, fetchProfile } = useAuthStore();
+  const searchParams = useSearchParams();
+  const forceShow = searchParams.get('force') === '1';
   const [form, setForm] = useState({ personalEmail: '', employeeId: '', reason: '' });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -17,8 +20,37 @@ export default function ExceptionVerificationPage() {
 
   const update = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  // Guard: only for EMAIL_VERIFICATION_PENDING
-  if (user && user.accountStatus !== 'EMAIL_VERIFICATION_PENDING') {
+  // Already submitted exception — show resend screen (unless ?force=1 to update email)
+  if (user && user.accountStatus === 'PERSONAL_EMAIL_PENDING' && !forceShow) {
+    return (
+      <div className="max-w-lg mx-auto py-12 space-y-6">
+        <div className="text-center space-y-2">
+          <div className="text-5xl">📬</div>
+          <h1 className="text-xl font-bold text-gray-900">Personal email verification pending</h1>
+          <p className="text-gray-500 text-sm">
+            We sent a verification link to your personal email. Click it to continue.
+          </p>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 space-y-2">
+          <p className="font-medium">Didn't receive the email?</p>
+          <p className="text-xs text-amber-700">Check your spam/junk folder. The link expires in 24 hours.</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+          <p className="text-sm font-medium text-gray-700">Want to use a different personal email or resend?</p>
+          <p className="text-xs text-gray-500">Fill the form below to update your personal email and resend the verification link.</p>
+          <Link href="/exception-verification?force=1" className="inline-block text-sm text-brand-600 underline font-medium">
+            Update personal email →
+          </Link>
+        </div>
+        <Link href="/dashboard" className="block text-center text-sm text-gray-400 hover:text-gray-600">
+          ← Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  // Guard: only for EMAIL_VERIFICATION_PENDING or PERSONAL_EMAIL_PENDING+force
+  if (user && !['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING'].includes(user.accountStatus)) {
     return (
       <div className="max-w-lg mx-auto py-12 text-center space-y-4">
         <div className="text-5xl">✅</div>
