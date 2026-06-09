@@ -31,36 +31,40 @@ echo "🔧 Generating Prisma client..."
 npx prisma generate --schema=../../prisma/schema.prisma
 
 # ── DB migrations ────────────────────────────────────────────────────────────
-echo "🗄️  Pushing schema changes to DB (adds new columns, safe)..."
+# PostgreSQL rule: ALTER TYPE ... ADD VALUE cannot be used in the same
+# transaction as queries that USE the new value. Split into two separate
+# db execute calls so each runs in its own auto-committed transaction.
 
-# Data migration: merged identity verification (commit 79cf0be)
-# Must run BEFORE db push so old enum values are gone before Postgres tries to
-# drop them. Safe no-ops if these values no longer exist in the DB.
-echo "🔄  Migrating old enum values → new ones (safe no-op if already done)..."
-npx prisma db execute --schema=../../prisma/schema.prisma --stdin <<'PRE_MIGRATION_SQL'
--- Add new AccountStatus values if they don't exist yet
+# STEP 1: Add new enum values only (committed immediately, no data changes)
+echo "🔄  Step 1/2 — Adding new enum values (safe no-op if already present)..."
+npx prisma db execute --schema=../../prisma/schema.prisma --stdin <<'ADD_ENUM_SQL'
 DO $$ BEGIN
   ALTER TYPE "AccountStatus" ADD VALUE IF NOT EXISTS 'PERSONAL_EMAIL_PENDING';
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
   ALTER TYPE "AccountStatus" ADD VALUE IF NOT EXISTS 'SEEKER_VERIFIED';
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- Add new VerificationType value if it doesn't exist yet
 DO $$ BEGIN
   ALTER TYPE "VerificationType" ADD VALUE IF NOT EXISTS 'IDENTITY';
 EXCEPTION WHEN duplicate_object THEN null; END $$;
+ADD_ENUM_SQL
 
--- Migrate old AccountStatus values to their new equivalents
+# STEP 2: Migrate data using the newly committed enum values
+echo "🔄  Step 2/2 — Migrating data to new enum values (safe no-op if already done)..."
+npx prisma db execute --schema=../../prisma/schema.prisma --stdin <<'MIGRATE_DATA_SQL'
 UPDATE users SET "accountStatus" = 'DOCUMENT_VERIFICATION_PENDING'
   WHERE "accountStatus" IN ('EMPLOYEE_VERIFIED', 'EXCEPTION_VERIFICATION_REQUESTED');
 
 UPDATE users SET "accountStatus" = 'SEEKER_VERIFIED'
   WHERE "accountStatus" = 'SEEKER_VERIFICATION_PENDING';
 
--- Migrate old VerificationType values to IDENTITY
 UPDATE verification_requests SET "verificationType" = 'IDENTITY'
   WHERE "verificationType" IN ('EMPLOYEE', 'SEEKER', 'EXCEPTION');
-PRE_MIGRATION_SQL
+MIGRATE_DATA_SQL
 
+echo "🗄️  Pushing schema changes to DB..."
 npx prisma db push --schema=../../prisma/schema.prisma --accept-data-loss --skip-generate
 
 # Dedup verification_requests (safe no-op if already clean)
