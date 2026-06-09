@@ -209,13 +209,13 @@ export default function VerifyIdentityPage() {
       {/* Rejection banner — shown when resubmitting after admin rejection */}
       {isResubmit && (
         <div className="bg-red-50 border border-red-300 rounded-xl px-4 py-4 space-y-1">
-          <p className="text-red-800 font-semibold text-sm">❌ Your documents were rejected — please re-upload</p>
+          <p className="text-red-800 font-semibold text-sm">🙏 We're sorry, your documents could not be approved</p>
           {rejectionReason && (
             <p className="text-red-700 text-sm">
-              <strong>Reason:</strong> {rejectionReason}
+              <strong>Admin's note:</strong> {rejectionReason}
             </p>
           )}
-          <p className="text-red-600 text-xs">Please upload clear, legible copies and resubmit for review.</p>
+          <p className="text-red-600 text-xs">No worries — please re-upload clear, legible copies and we'll review them again promptly.</p>
         </div>
       )}
 
