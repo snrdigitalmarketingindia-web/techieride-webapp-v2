@@ -1,109 +1,78 @@
 /**
- * Allowed office email domains for TechieRide registration.
- * Only employees with a verified corporate email from this list can sign up.
- * Add/remove domains as needed.
+ * Blocklist of personal / consumer email domains.
+ * ANY email domain NOT in this list is accepted as a valid office email.
+ * Add domains here to block them from registering.
  */
-export const ALLOWED_DOMAINS: Set<string> = new Set([
-  // ── Tier 1 Indian IT Giants ──────────────────────────────────────────
-  'tcs.com',
-  'infosys.com',
-  'wipro.com',
-  'hcltech.com',
-  'hcl.com',
-  'techmahindra.com',
-  'ltimindtree.com',
-  'mphasis.com',
-  'hexaware.com',
-  'niit.com',
-  'niittech.com',
-  'cyient.com',
-
-  // ── Global IT / Consulting ───────────────────────────────────────────
-  'accenture.com',
-  'cognizant.com',
-  'capgemini.com',
-  'ibm.com',
-  'oracle.com',
-  'sap.com',
-  'atos.net',
-  'dxc.com',
-  'unisys.com',
-  'cgi.com',
-  'nttdata.com',
-
-  // ── Product Companies (India offices) ───────────────────────────────
-  'microsoft.com',
-  'amazon.com',
-  'google.com',
-  'meta.com',
-  'apple.com',
-  'salesforce.com',
-  'adobe.com',
-  'servicenow.com',
-  'workday.com',
-  'vmware.com',
-  'dell.com',
-  'hp.com',
-  'hpe.com',
-  'cisco.com',
-  'qualcomm.com',
-  'intel.com',
-
-  // ── Hyderabad / Telangana IT Companies ──────────────────────────────
-  'valuelabs.com',
-  'infotech.com',
-  'zensar.com',
-  'persistent.com',
-  'kpit.com',
-  'sonata-software.com',
-  'ramcoystems.com',
-  'coforge.com',
-  'mastech.com',
-  'igate.com',
-  'inforeliance.com',
-  'sstech.us',
-  'gspann.com',
-  'tietoevry.com',
-
-  // ── BFSI / Fintech IT ────────────────────────────────────────────────
-  'deloitte.com',
-  'ey.com',
-  'kpmg.com',
-  'pwc.com',
-  'genpact.com',
-  'wns.com',
-  'firstsource.com',
-  'exlservice.com',
-
-  // ── Telecom / Infrastructure ─────────────────────────────────────────
-  'airtel.com',
-  'jio.com',
-  'bsnl.co.in',
-  'tatacomm.com',
-
-  // ── Government / PSU IT (Hyderabad) ─────────────────────────────────
-  'cdac.in',
-  'ecil.co.in',
-  'bhel.in',
-  'drdo.gov.in',
-  'isro.gov.in',
-  'nic.in',
-
-  // ── Temporarily allowed for testing — remove before restricting to corporate only ──
+export const BLOCKED_DOMAINS: Set<string> = new Set([
+  // ── Google ───────────────────────────────────────────────────────────
   'gmail.com',
-  'yahoo.com',
+  'googlemail.com',
+
+  // ── Microsoft / Outlook ──────────────────────────────────────────────
   'outlook.com',
   'hotmail.com',
+  'hotmail.co.in',
+  'hotmail.co.uk',
+  'live.com',
+  'live.in',
+  'msn.com',
+  'passport.com',
+
+  // ── Yahoo ────────────────────────────────────────────────────────────
+  'yahoo.com',
+  'yahoo.co.in',
+  'yahoo.co.uk',
+  'ymail.com',
+  'rocketmail.com',
+
+  // ── Apple ────────────────────────────────────────────────────────────
   'icloud.com',
+  'me.com',
+  'mac.com',
+
+  // ── Indian personal providers ─────────────────────────────────────────
+  'rediffmail.com',
+  'rediff.com',
+  'indiatimes.com',
+  'sify.com',
+  'dataone.in',
+
+  // ── Other global consumer providers ──────────────────────────────────
+  'protonmail.com',
+  'proton.me',
+  'tutanota.com',
+  'tutamail.com',
+  'zohomail.com',   // zoho.com is a company so allow that; zohomail.com is personal
+  'aol.com',
+  'aim.com',
+  'mail.com',
+  'gmx.com',
+  'gmx.net',
+  'fastmail.com',
+  'fastmail.fm',
+  'hushmail.com',
+  'inbox.com',
+  'yandex.com',
+  'yandex.ru',
+  'mail.ru',
 ]);
 
 /**
- * Returns true if the email domain is in the approved corporate list.
+ * Returns true if the email domain is a known personal/consumer provider.
+ * A false return means it's treated as a valid office email.
+ */
+export function isBlockedDomain(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return true; // no domain = invalid
+  return BLOCKED_DOMAINS.has(domain);
+}
+
+/**
+ * Legacy alias — now delegates to blocklist logic.
+ * Returns true if the domain is ALLOWED (i.e. not blocked).
  */
 export function isAllowedDomain(email: string): boolean {
-  const domain = email.split('@')[1]?.toLowerCase();
-  if (!domain) return false;
-  return ALLOWED_DOMAINS.has(domain);
+  return !isBlockedDomain(email);
 }
 
 /**

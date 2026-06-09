@@ -8,10 +8,18 @@ import { useAuthStore } from '@/store/auth.store';
 
 const STEPS = ['Account', 'Company'];
 
-const PERSONAL_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'rediffmail.com'];
+const BLOCKED_DOMAINS = new Set([
+  'gmail.com','googlemail.com',
+  'outlook.com','hotmail.com','hotmail.co.in','hotmail.co.uk','live.com','live.in','msn.com',
+  'yahoo.com','yahoo.co.in','yahoo.co.uk','ymail.com','rocketmail.com',
+  'icloud.com','me.com','mac.com',
+  'rediffmail.com','rediff.com','indiatimes.com','sify.com',
+  'protonmail.com','proton.me','tutanota.com','aol.com','mail.com',
+  'gmx.com','gmx.net','fastmail.com','yandex.com','mail.ru',
+]);
 function isDomainPersonal(email: string) {
   const domain = email.split('@')[1]?.toLowerCase();
-  return domain ? PERSONAL_DOMAINS.includes(domain) : false;
+  return domain ? BLOCKED_DOMAINS.has(domain) : false;
 }
 
 const inputCls = 'w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500';
