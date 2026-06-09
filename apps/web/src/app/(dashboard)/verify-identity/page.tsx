@@ -72,7 +72,7 @@ export default function VerifyIdentityPage() {
   useEffect(() => {
     if (status !== 'DOCUMENT_VERIFICATION_PENDING') { setCheckingStatus(false); return; }
     verificationApi.getStatus()
-      .then((r) => { if (r.data?.identity) setDocsSubmitted(true); })
+      .then((r) => { if (r.data?.identity?.hasDocuments) setDocsSubmitted(true); })
       .catch(() => {})
       .finally(() => setCheckingStatus(false));
   }, [status]);
