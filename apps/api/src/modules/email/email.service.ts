@@ -19,7 +19,7 @@ export class EmailService {
 
     if (apiKey) {
       this.resend = new Resend(apiKey);
-      this.logger.log('Email service: Resend configured');
+      this.logger.log(`Email service: Resend configured | from: ${this.from} | key: ${apiKey.slice(0, 10)}...`);
     } else {
       this.logger.warn('RESEND_API_KEY not set — emails will be logged to console (dev mode)');
     }
