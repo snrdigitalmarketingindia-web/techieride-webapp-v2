@@ -7,6 +7,7 @@ import { ApiTags, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { memoryStorage } from 'multer';
 import { UploadsService } from './uploads.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AllowUnverified } from '../../common/decorators/allow-unverified.decorator';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -17,6 +18,7 @@ const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 export class UploadsController {
   constructor(private uploads: UploadsService) {}
 
+  @AllowUnverified() // needed so EMAIL_VERIFICATION_PENDING users can upload their company ID for exception requests
   @Post('document')
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', {
