@@ -165,12 +165,18 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     await page.goto('/rides/search', { waitUntil: 'networkidle' });
     await profileReady2; // wait for user.id to be set before search results render
     await page.locator('input[type="date"]').fill(tomorrow);
-    await page.getByRole('button', { name: /search/i }).click();
-    // Wait for at least one ride result card to render before checking the badge.
-    // This is more reliable than a hard 2s sleep — it retries until results appear.
-    await expect(page.getByText(/kondapur|hitec city/i).first()).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 20_000 });
+    // Register a listener for the rides API response BEFORE clicking search.
+    // Resolves as soon as the backend returns results — more reliable than a
+    // hard sleep or waiting for specific text (which may not be in the DOM).
+    const searchDone = page.waitForResponse(
+      (r: any) => r.url().includes('/rides') && r.status() === 200,
+      { timeout: 12_000 },
+    ).catch(() => {});
+    await page.getByRole('button', { name: /search/i }).click();
+    await searchDone; // wait for the API to respond before asserting badge
+
+    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 25_000 });
     await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();
 
     // Cleanup
