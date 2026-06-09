@@ -171,9 +171,9 @@ export default function SignupPage() {
           </div>
           <button
             onClick={async () => { try { await authApi.resendVerification(registeredEmail); } catch {} }}
-            className="text-sm text-brand-600 hover:underline mb-6 block w-full"
+            className="w-full border border-brand-500 text-brand-600 bg-brand-50 hover:bg-brand-100 text-sm font-semibold py-2.5 rounded-lg transition mb-6"
           >
-            Didn't receive it? Resend email
+            📩 Didn't receive it? Resend verification link
           </button>
           {/* Exception request — for users who genuinely can't access their company email */}
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-left">
