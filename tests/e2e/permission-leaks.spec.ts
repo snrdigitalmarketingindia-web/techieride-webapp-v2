@@ -87,6 +87,15 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     await loginUI(page, 'giver');
   });
 
+  // Safety net: cancel any ride PERM-13 created but failed to clean up inline
+  // (e.g. timeout before the cancel call at the bottom of the test).
+  // Without this, the ride leaks as ONGOING and blocks QM-02's beforeAll publish.
+  test.afterAll(async () => {
+    const { apiLogin, clearActiveRides } = await import('./helpers');
+    const token = await apiLogin(ACCOUNTS.giver.email).catch(() => null);
+    if (token) await clearActiveRides(token).catch(() => {});
+  });
+
   // PERM-04: Giver can navigate to /rides/search but cannot book — API 403
   test('PERM-04: giver at /rides/search — no crash and no Request Seat on own ride', async ({ page }) => {
     await page.goto('/rides/search');
@@ -97,6 +106,9 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
 
   // PERM-13: Giver's own published ride shows "Your ride" badge — not "Request Seat"
   test('PERM-13: giver sees "Your ride" badge (not Request Seat) on their own published ride in search', async ({ page }) => {
+    // This test is complex: API setup + 2 full page navigations + profile-ready waits.
+    // Give it extra time so the toBeVisible assertion isn't squeezed by the global 30s budget.
+    test.setTimeout(50_000);
     const { apiLogin, loginUI, API, clearActiveRides } = await import('./helpers');
     const token = await apiLogin(ACCOUNTS.giver.email);
 
@@ -154,9 +166,11 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     await profileReady2; // wait for user.id to be set before search results render
     await page.locator('input[type="date"]').fill(tomorrow);
     await page.getByRole('button', { name: /search/i }).click();
-    await page.waitForTimeout(2_000);
+    // Wait for at least one ride result card to render before checking the badge.
+    // This is more reliable than a hard 2s sleep — it retries until results appear.
+    await expect(page.getByText(/kondapur|hitec city/i).first()).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 20_000 });
     await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();
 
     // Cleanup
