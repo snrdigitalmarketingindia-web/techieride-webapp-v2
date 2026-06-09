@@ -16,6 +16,10 @@ enum AccountStatus {
   EXCEPTION_VERIFICATION_REQUESTED
   DOCUMENT_VERIFICATION_PENDING
   EMPLOYEE_VERIFIED           // company ID approved — identity confirmed, TRID not yet assigned
+  // TODO(phone-otp): PHONE_VERIFICATION_PENDING — insert here between EMPLOYEE_VERIFIED and
+  // SEEKER_VERIFICATION_PENDING once SMS OTP is enabled. Currently bypassed (cost). When
+  // enabled: POST /auth/send-phone-otp → status = PHONE_VERIFICATION_PENDING →
+  // POST /auth/verify-phone-otp → back to EMPLOYEE_VERIFIED (then proceed to seeker docs).
   SEEKER_VERIFICATION_PENDING // govt ID + self-declaration submitted, awaiting admin
   SEEKER_VERIFIED             // seeker docs approved, TRID assigned, can book rides
   DRIVER_VERIFICATION_PENDING // DL + RC submitted, awaiting admin

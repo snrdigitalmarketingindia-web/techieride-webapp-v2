@@ -13,6 +13,8 @@ const EMAIL_GATE = ['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING', 'EXC
 // These statuses allow profile + document upload but not ride features
 const DOCS_GATE = ['DOCUMENT_VERIFICATION_PENDING', 'REJECTED', 'SEEKER_VERIFICATION_PENDING'];
 
+// TODO(phone-otp): when SMS OTP is enabled, add 'PHONE_VERIFICATION_PENDING' to EMAIL_GATE
+// and remove it from FULL_ACCESS. Currently phone verification is bypassed (SMS cost).
 // These statuses get full seeker + giver access (role guard handles giver-only routes)
 const FULL_ACCESS = ['EMPLOYEE_VERIFIED', 'SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'];
 
