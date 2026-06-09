@@ -20,14 +20,17 @@ export default function AdminVerificationPage() {
   const router = useRouter();
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
+    setLoadError('');
     adminApi.getPendingVerifications()
-      .then((r) => setRequests(r.data))
+      .then((r) => setRequests(Array.isArray(r.data) ? r.data : []))
+      .catch((e: any) => setLoadError(e?.response?.data?.message || e?.message || 'Failed to load'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -67,6 +70,11 @@ export default function AdminVerificationPage() {
         </button>
       </div>
 
+      {loadError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+          ⚠️ Error loading verifications: {loadError}
+        </div>
+      )}
       {loading ? (
         <div className="text-center py-20 text-gray-400">Loading…</div>
       ) : requests.length === 0 ? (

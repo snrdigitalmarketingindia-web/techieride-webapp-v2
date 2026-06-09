@@ -187,22 +187,38 @@ export default function DashboardPage() {
         </div>
       )}
       {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' && !user.trid && (
-        /* Identity docs not yet submitted */
-        <div className="bg-orange-50 border border-orange-300 rounded-xl p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-orange-800 text-sm font-semibold">🪪 Complete your identity verification</p>
-              <p className="text-orange-700 text-sm mt-0.5">
-                Submit your company ID, government ID, and self-declaration to get your
-                <strong> TechieRide ID (TRID)</strong> and start booking rides.
-              </p>
+        user?.verificationStatus === 'PENDING' ? (
+          /* Docs submitted — waiting for admin review */
+          <div className="bg-blue-50 border border-blue-300 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⏳</span>
+              <div>
+                <p className="text-blue-800 text-sm font-semibold">Identity documents submitted — awaiting admin approval</p>
+                <p className="text-blue-700 text-sm mt-0.5">
+                  Our team will review your company ID and government ID within 2 business days.
+                  You'll receive a notification and email once approved.
+                </p>
+              </div>
             </div>
-            <Link href="/verify-identity"
-              className="shrink-0 bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-orange-600 transition whitespace-nowrap">
-              Verify Now →
-            </Link>
           </div>
-        </div>
+        ) : (
+          /* Docs not yet submitted */
+          <div className="bg-orange-50 border border-orange-300 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-orange-800 text-sm font-semibold">🪪 Complete your identity verification</p>
+                <p className="text-orange-700 text-sm mt-0.5">
+                  Submit your company ID, government ID, and self-declaration to get your
+                  <strong> TechieRide ID (TRID)</strong> and start booking rides.
+                </p>
+              </div>
+              <Link href="/verify-identity"
+                className="shrink-0 bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-orange-600 transition whitespace-nowrap">
+                Verify Now →
+              </Link>
+            </div>
+          </div>
+        )
       )}
       {user?.accountStatus === 'SEEKER_VERIFIED' && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">

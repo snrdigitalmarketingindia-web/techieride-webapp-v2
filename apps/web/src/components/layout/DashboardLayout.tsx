@@ -50,6 +50,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     if (user.accountStatus === 'PERSONAL_EMAIL_PENDING' && !pathname.startsWith('/personal-email-verification')) {
       router.replace('/personal-email-verification');
+      return;
+    }
+    // DOCUMENT_VERIFICATION_PENDING — personal email verified, must upload identity docs before browsing.
+    // If verificationStatus is already PENDING (docs submitted), allow /dashboard so they can see
+    // the "awaiting approval" banner. Otherwise force them to /verify-identity.
+    if (
+      user.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' &&
+      user.verificationStatus !== 'PENDING' &&
+      !pathname.startsWith('/verify-identity')
+    ) {
+      router.replace('/verify-identity');
+      return;
     }
   }, [_hasHydrated, isAuthenticated, user?.accountStatus, pathname]);
 
