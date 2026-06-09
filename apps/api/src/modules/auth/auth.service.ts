@@ -6,11 +6,22 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
+import { promises as dns } from 'dns';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
-import { isAllowedDomain } from '../../config/allowed-domains';
+import { isAllowedDomain, getDomain } from '../../config/allowed-domains';
 import { RegisterDto, LoginDto, ResetPasswordDto, ExceptionVerificationDto } from './dto/auth.dto';
+
+/** Returns true if the domain has at least one MX record (i.e. it's a real mail domain). */
+async function hasMxRecord(domain: string): Promise<boolean> {
+  try {
+    const records = await dns.resolveMx(domain);
+    return records.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 const BCRYPT_ROUNDS = 12;
 const VERIFY_TOKEN_TTL_HOURS = 24;
@@ -33,6 +44,15 @@ export class AuthService {
       throw new ForbiddenException(
         'Only verified IT company email addresses are accepted. ' +
         'Personal emails (gmail, yahoo, etc.) are not allowed.'
+      );
+    }
+
+    // Verify the domain actually has mail servers — catches typos like wipiro.com
+    const domain = getDomain(emailLower);
+    const validMailDomain = await hasMxRecord(domain);
+    if (!validMailDomain) {
+      throw new BadRequestException(
+        `The email domain "${domain}" does not appear to be a valid mail domain. Please check your email address.`
       );
     }
 
