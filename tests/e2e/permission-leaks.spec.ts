@@ -157,21 +157,20 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     // page.goto is a full page reload — Zustand re-initializes with user:null.
     // DashboardLayout fires fetchProfile() AFTER _hasHydrated, which may happen
     // AFTER networkidle. Register a listener before the navigation so we catch it.
+    // user is NOT persisted in Zustand localStorage (only tokens are).
+    // Every full-page navigation causes DashboardLayout to call fetchProfile().
+    // Register the listener BEFORE goto so we catch that /users/me call.
+    const profileReady2 = page.waitForResponse(
+      (r: any) => r.url().includes('/users/me') && r.status() === 200,
+      { timeout: 15_000 },
+    );
     // Giver searches — should see "Your ride" not "Request Seat"
-    await page.goto('/rides/search', { waitUntil: 'networkidle' });
-
-    // Wait for the Zustand auth store to fully hydrate with the giver's user.id.
-    // profileReady2 only tells us the HTTP response arrived — the Zustand set()
-    // call and React re-render are still pending. We poll localStorage directly
-    // (Zustand persist stores the user there) until user.id is non-null.
-    await page.waitForFunction(() => {
-      try {
-        const raw = localStorage.getItem('techieride-auth');
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        return !!(parsed?.state?.user?.id);
-      } catch { return false; }
-    }, { timeout: 15_000 }).catch(() => {});
+    await page.goto('/rides/search', { waitUntil: 'domcontentloaded' });
+    // Wait for fetchProfile() to complete — this populates user.id in the Zustand store
+    await profileReady2;
+    // Give React one full render cycle to flush the Zustand user state update
+    // before we interact with the page (fill date + click search).
+    await page.waitForTimeout(500);
 
     await page.locator('input[type="date"]').fill(tomorrow);
 
@@ -182,9 +181,7 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     ).catch(() => {});
     await page.getByRole('button', { name: /search/i }).click();
     await searchDone;
-
-    // After search results load, give React one tick to re-render with current user.id
-    // (Zustand state updates are synchronous but React batches renders).
+    // Let React batch-flush any pending state updates (rides + user) into the DOM
     await page.waitForTimeout(300);
 
     await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 25_000 });
