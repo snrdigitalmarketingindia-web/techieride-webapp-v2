@@ -60,7 +60,15 @@ test.describe('💬 Quick Messages Flow', () => {
 
     const options = await api(giverToken, 'get', `/rides/${rideId}/quick-message/options`);
     const optionsList = options.data ?? options;
-    const firstKey = Array.isArray(optionsList) ? optionsList[0]?.key : Object.keys(optionsList)[0];
+    // Extract a valid message key, filtering out error-response keys like 'statusCode',
+    // 'message', 'error' that appear when the ride is not ONGOING.
+    const ERROR_KEYS = new Set(['statusCode', 'message', 'error', 'timestamp', 'path']);
+    let firstKey: string | undefined;
+    if (Array.isArray(optionsList)) {
+      firstKey = optionsList[0]?.key;
+    } else if (typeof optionsList === 'object' && optionsList !== null) {
+      firstKey = Object.keys(optionsList).find(k => !ERROR_KEYS.has(k));
+    }
     if (firstKey) {
       const result = await api(giverToken, 'post', `/rides/${rideId}/quick-message`, { messageKey: firstKey });
       expect([200, 201]).toContain(result.statusCode ?? result.status ?? 200);

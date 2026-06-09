@@ -570,9 +570,9 @@ async function run() {
     await test('Fresh giver verification status is NOT_SUBMITTED', async () => {
       const r = await giver.client.get('/verification/status');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
-      // New response: { employee: null|{status}, driver: null|{status}, exception: null|{status} }
-      assert(r.data.employee === null || ['PENDING', 'APPROVED', 'REJECTED'].includes(r.data.employee?.status),
-        `Unexpected employee status: ${JSON.stringify(r.data)}`);
+      // Response shape: { identity: null|{status}, driver: null|{status} }
+      assert(r.data.identity === null || ['PENDING', 'APPROVED', 'REJECTED'].includes(r.data.identity?.status),
+        `Unexpected identity status: ${JSON.stringify(r.data)}`);
     });
 
     await test('Giver can submit employee verification documents', async () => {

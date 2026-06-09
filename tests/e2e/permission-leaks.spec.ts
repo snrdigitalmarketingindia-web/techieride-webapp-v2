@@ -174,7 +174,7 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     // Resolves as soon as the backend returns results — more reliable than a
     // hard sleep or waiting for specific text (which may not be in the DOM).
     const searchDone = page.waitForResponse(
-      (r: any) => r.url().includes('/rides') && r.status() === 200,
+      (r: any) => r.url().includes('/rides/search') && r.status() === 200,
       { timeout: 12_000 },
     ).catch(() => {});
     await page.getByRole('button', { name: /search/i }).click();
