@@ -28,6 +28,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { user, isAuthenticated, _hasHydrated, fetchProfile, logout } = useAuthStore();
 
+  // Nav locked while identity docs are pending approval — user can only see /dashboard
+  const navLocked = user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING';
+
   useEffect(() => {
     // Wait for Zustand to rehydrate from localStorage before checking auth.
     // Without this, _hasHydrated is false on first render and isAuthenticated
@@ -50,18 +53,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     if (user.accountStatus === 'PERSONAL_EMAIL_PENDING' && !pathname.startsWith('/personal-email-verification')) {
       router.replace('/personal-email-verification');
-      return;
-    }
-    // DOCUMENT_VERIFICATION_PENDING — personal email verified, identity docs not yet approved.
-    // Only /verify-identity (upload flow) and /dashboard (status banner) are allowed.
-    // All other pages (rides, search, profile, etc.) are blocked until SEEKER_VERIFIED.
-    // NOTE: verificationStatus defaults to PENDING in the schema so we cannot use it here.
-    if (
-      user.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' &&
-      !pathname.startsWith('/verify-identity') &&
-      !pathname.startsWith('/dashboard')
-    ) {
-      router.replace('/verify-identity');
       return;
     }
   }, [_hasHydrated, isAuthenticated, user?.accountStatus, pathname]);
@@ -147,6 +138,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="bg-white border-t border-gray-200 px-4 py-2 flex justify-around">
           {navLinks.map((link) => {
             const active = pathname === link.href;
+            const disabled = navLocked && link.href !== '/dashboard';
+            if (disabled) {
+              return (
+                <span
+                  key={link.href}
+                  title="Complete identity verification to access this"
+                  className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg opacity-30 cursor-not-allowed select-none"
+                >
+                  <span className="text-xl">{link.icon}</span>
+                  <span className="text-xs font-medium text-gray-400">{link.label}</span>
+                </span>
+              );
+            }
             return (
               <Link
                 key={link.href}
@@ -177,6 +181,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="hidden sm:flex fixed top-16 left-0 h-full w-16 flex-col items-center pt-6 bg-white border-r border-gray-200 gap-6">
         {navLinks.map((link) => {
           const active = pathname === link.href;
+          const disabled = navLocked && link.href !== '/dashboard';
+          if (disabled) {
+            return (
+              <span
+                key={link.href}
+                title="Complete identity verification to access this"
+                className="text-2xl p-2 rounded-xl opacity-30 cursor-not-allowed select-none"
+              >
+                {link.icon}
+              </span>
+            );
+          }
           return (
             <Link
               key={link.href}
