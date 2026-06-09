@@ -316,6 +316,27 @@ export default function AdminUserDetailPage() {
         {actionMsg && (
           <p className={`text-sm font-medium ${actionMsg.startsWith('✅') ? 'text-green-600' : 'text-red-600'}`}>{actionMsg}</p>
         )}
+
+        {/* Danger zone — permanent delete */}
+        <div className="border-t border-red-100 pt-4 space-y-2">
+          <p className="text-xs text-red-500 font-medium uppercase tracking-wide">⚠️ Danger Zone</p>
+          <p className="text-xs text-gray-400">Permanently deletes this user and all associated data (rides, requests, documents). Cannot be undone. Use for testing only.</p>
+          <button
+            onClick={async () => {
+              if (!confirm(`Permanently delete "${user.fullName}" and ALL their data? This cannot be undone.`)) return;
+              if (!confirm('Are you absolutely sure? This deletes rides, requests, documents, everything.')) return;
+              try {
+                await adminApi.deleteUser(id);
+                router.replace('/admin/users');
+              } catch (e: any) {
+                setActionMsg(`❌ ${e.response?.data?.message ?? 'Delete failed'}`);
+              }
+            }}
+            className="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition w-full font-medium"
+          >
+            🗑️ Permanently Delete User
+          </button>
+        </div>
       </div>
     </div>
   );

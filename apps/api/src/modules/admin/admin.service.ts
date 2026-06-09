@@ -120,6 +120,46 @@ export class AdminService {
     return this.prisma.user.update({ where: { id: userId }, data: { isActive: true } });
   }
 
+  // Hard-delete a user and all related records — for testing/admin use only
+  async deleteUser(userId: string) {
+    // Delete in dependency order to avoid FK constraint errors
+    await this.prisma.auditLog.deleteMany({ where: { userId } });
+    await this.prisma.notification.deleteMany({ where: { userId } });
+    await this.prisma.emergencyContact.deleteMany({ where: { userId } });
+    await this.prisma.sosEvent.deleteMany({ where: { userId } });
+    await this.prisma.ecoTransaction.deleteMany({ where: { userId } });
+    await this.prisma.gamificationPoint.deleteMany({ where: { userId } });
+    await this.prisma.verificationRequest.deleteMany({ where: { userId } });
+
+    // Ride-related: delete participant records for rides this user took as seeker
+    const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+    if (seeker) {
+      await this.prisma.rideParticipant.deleteMany({ where: { seekerId: seeker.id } });
+      await this.prisma.rideRequest.deleteMany({ where: { seekerId: seeker.id } });
+      await this.prisma.rideRating.deleteMany({ where: { seekerId: seeker.id } });
+      await this.prisma.rideSeeker.delete({ where: { userId } });
+    }
+
+    // Giver-related: delete rides and their dependents
+    const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
+    if (giver) {
+      const rides = await this.prisma.ride.findMany({ where: { rideGiverId: giver.id }, select: { id: true } });
+      const rideIds = rides.map(r => r.id);
+      if (rideIds.length) {
+        await this.prisma.rideParticipant.deleteMany({ where: { rideId: { in: rideIds } } });
+        await this.prisma.rideRequest.deleteMany({ where: { rideId: { in: rideIds } } });
+        await this.prisma.rideRating.deleteMany({ where: { rideId: { in: rideIds } } });
+        await this.prisma.commuteTemplate.deleteMany({ where: { rideGiverId: giver.id } });
+        await this.prisma.ride.deleteMany({ where: { rideGiverId: giver.id } });
+      }
+      await this.prisma.vehicle.deleteMany({ where: { rideGiverId: giver.id } });
+      await this.prisma.rideGiver.delete({ where: { userId } });
+    }
+
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { message: 'User permanently deleted' };
+  }
+
   async getAnalytics(from: Date, to: Date) {
     const [
       totalUsers, verifiedUsers, totalRides,

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { VerificationService } from '../verification/verification.service';
@@ -66,6 +66,11 @@ export class AdminController {
   @Patch('users/:id/activate')
   activateUser(@Param('id') id: string) {
     return this.adminService.activateUser(id);
+  }
+
+  @Delete('users/:id')
+  deleteUser(@Param('id') id: string) {
+    return this.adminService.deleteUser(id);
   }
 
   // ── Verification queues ───────────────────────────────────────────────────

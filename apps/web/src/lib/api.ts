@@ -221,6 +221,7 @@ export const adminApi = {
     api.patch(`/admin/verification/${id}/review`, data),
   // legacy — all pending in one list
   getPendingVerifications: () => api.get('/admin/verification/pending'),
+  deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
   listRides: (params?: any) => api.get('/admin/rides', { params }),
   forceCompleteRide: (id: string) => api.post(`/admin/rides/${id}/force-complete`),
   getAnalytics: (from?: string, to?: string) => api.get('/admin/analytics', { params: { from, to } }),
