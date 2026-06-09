@@ -129,30 +129,20 @@ export default function SignupPage() {
             Click the link to activate your account. Check spam if you don't see it.
           </p>
           <div className="bg-brand-50 rounded-xl p-4 text-sm text-brand-700 mb-6">
-            <p className="font-medium">What happens next?</p>
-            <ol className="mt-2 text-left text-brand-600 space-y-1 list-decimal list-inside">
+            <p className="font-medium mb-2">What happens next?</p>
+            <ol className="text-left text-brand-600 space-y-2 list-decimal list-inside">
               <li>Verify your office email</li>
+              <li>Login with your official email</li>
               <li>Upload your company ID card</li>
               <li>Admin approves — you're in!</li>
             </ol>
           </div>
           <button
             onClick={async () => { try { await authApi.resendVerification(registeredEmail); } catch {} }}
-            className="text-sm text-brand-600 hover:underline mb-4 block w-full"
+            className="text-sm text-brand-600 hover:underline mb-6 block w-full"
           >
             Didn't receive it? Resend email
           </button>
-          {/* Once the email is verified, the user logs in to continue onboarding */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-600 mb-4 text-left">
-            <p className="font-medium text-gray-700 mb-1">📌 Already verified?</p>
-            <p>
-              Log in with <strong>{registeredEmail}</strong> and your password to upload
-              your company ID card and complete onboarding.
-            </p>
-          </div>
-          <Link href="/login" className="block w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition text-center mb-4">
-            Go to Login
-          </Link>
           {/* Exception request — for users who genuinely can't access their company email */}
           <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-left">
             <p className="text-sm font-semibold text-orange-800 mb-1">🚫 Can't access your company email?</p>
