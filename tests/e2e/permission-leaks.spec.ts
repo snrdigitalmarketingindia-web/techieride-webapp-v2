@@ -164,6 +164,10 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     // Giver searches — should see "Your ride" not "Request Seat"
     await page.goto('/rides/search', { waitUntil: 'networkidle' });
     await profileReady2; // wait for user.id to be set before search results render
+    // Confirm the Zustand auth store has hydrated by waiting for the user's name
+    // to appear in the sidebar. Without this, the `isOwnRide` check in search
+    // results may evaluate to false because user.id is still null when results render.
+    await page.getByText('Rahul Sharma').first().waitFor({ timeout: 10_000 }).catch(() => {});
     await page.locator('input[type="date"]').fill(tomorrow);
 
     // Register a listener for the rides API response BEFORE clicking search.
