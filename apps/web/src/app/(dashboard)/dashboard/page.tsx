@@ -52,11 +52,14 @@ export default function DashboardPage() {
     });
   };
 
+  const [identityStatus, setIdentityStatus] = useState<string | null>(null);
   // Check if identity docs have been submitted (for DOCUMENT_VERIFICATION_PENDING banner)
   useEffect(() => {
     if (user?.accountStatus !== 'DOCUMENT_VERIFICATION_PENDING') return;
     verificationApi.getStatus().then((r) => {
-      setDocsSubmitted(!!(r.data?.identity?.hasDocuments)); // only true if actual docs uploaded
+      const identity = r.data?.identity;
+      setDocsSubmitted(!!(identity?.hasDocuments));
+      setIdentityStatus(identity?.status ?? null);
     }).catch(() => {});
   }, [user?.accountStatus]);
 
@@ -197,7 +200,23 @@ export default function DashboardPage() {
         </div>
       )}
       {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' && !user.trid && (
-        docsSubmitted ? (
+        identityStatus === 'REJECTED' ? (
+          /* Docs rejected — ask to resubmit */
+          <div className="bg-red-50 border border-red-300 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-red-800 text-sm font-semibold">❌ Documents rejected — please resubmit</p>
+                <p className="text-red-700 text-sm mt-0.5">
+                  Your identity documents were not approved. Please re-upload clear, valid documents.
+                </p>
+              </div>
+              <Link href="/verify-identity"
+                className="shrink-0 bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-red-700 transition whitespace-nowrap">
+                Resubmit →
+              </Link>
+            </div>
+          </div>
+        ) : docsSubmitted ? (
           /* Docs submitted — waiting for admin review */
           <div className="bg-blue-50 border border-blue-300 rounded-xl p-4">
             <div className="flex items-start gap-3">

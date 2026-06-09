@@ -16,7 +16,6 @@ export default function ExceptionVerificationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
-  const [resendMsg, setResendMsg] = useState('');
 
   const update = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
@@ -89,9 +88,8 @@ export default function ExceptionVerificationPage() {
     if (!user?.email) return;
     try {
       await authApi.resendVerification(user.email);
-      setResendMsg('Verification email resent. Check your inbox and spam folder.');
     } catch {
-      setResendMsg('Could not resend. Try again in a minute.');
+      // silent
     }
   };
 
@@ -128,20 +126,6 @@ export default function ExceptionVerificationPage() {
         <p className="text-gray-500 text-sm mt-1">
           Request a manual exception. Provide your personal email and reason — you'll upload your ID documents in the next step.
         </p>
-      </div>
-
-      {/* Try email first */}
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
-        <p className="text-sm font-medium text-amber-800">Try the email link first</p>
-        <p className="text-xs text-amber-700">
-          Check your spam folder for a verification email from <strong>noreply@techieride.in</strong>.
-          If you still can't find it:
-        </p>
-        <button onClick={handleResend}
-          className="text-xs text-amber-800 underline font-medium">
-          Resend verification email →
-        </button>
-        {resendMsg && <p className="text-xs text-amber-700 mt-1">{resendMsg}</p>}
       </div>
 
       {error && (
