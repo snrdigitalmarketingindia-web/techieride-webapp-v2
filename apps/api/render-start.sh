@@ -13,8 +13,9 @@ npm install --prefer-offline 2>/dev/null || npm install
 cd apps/api
 
 echo "🔨 Building API..."
-NODE_OPTIONS="--max-old-space-size=460" ./node_modules/.bin/nest build || \
-NODE_OPTIONS="--max-old-space-size=460" npx nest build
+# nest binary is in the monorepo root node_modules (installed two levels up)
+NODE_OPTIONS="--max-old-space-size=460" ../../node_modules/.bin/nest build || \
+NODE_OPTIONS="--max-old-space-size=460" npx --prefix ../.. nest build
 
 if [ ! -f "$MAIN_JS" ]; then
   echo "❌ Build failed — $MAIN_JS not found"
