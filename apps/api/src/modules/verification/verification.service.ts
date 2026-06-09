@@ -267,9 +267,9 @@ export class VerificationService {
         );
       }
     }
-    // For EMPLOYEE/EXCEPTION approval: send a simpler "identity verified, next step" email
+    // For EMPLOYEE/EXCEPTION approval: "company ID verified — complete seeker verification" email
     if (decision === 'APPROVED' && (req.verificationType === 'EMPLOYEE' || req.verificationType === 'EXCEPTION')) {
-      await this.email.sendWelcomeEmail(req.user.email, req.user.fullName);
+      await this.email.sendCompanyIdApprovedEmail(req.user.email, req.user.fullName);
     }
 
     // ── Send contacts CSV for today's session ──────────────────────────────

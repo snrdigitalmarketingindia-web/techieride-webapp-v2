@@ -26,7 +26,7 @@ export class UploadsService {
   async uploadDocument(
     file: Express.Multer.File,
     userId: string,
-    docType: 'employee_id' | 'driving_license' | 'rc' | 'profile_photo',
+    docType: 'employee_id' | 'govt_id' | 'driving_license' | 'rc' | 'profile_photo',
   ): Promise<string> {
     const folder = `techieride/${docType}/${userId}`;
 

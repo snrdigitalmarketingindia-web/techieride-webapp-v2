@@ -121,22 +121,52 @@ export class EmailService {
     await this.send(email, `Welcome to TechieRide — Your ID is ${trid} 🌿`, html);
   }
 
-  // ── Welcome email (after email verification) ─────────────────────────────
+  // ── Company ID approved — next step: seeker verification ─────────────────
+  // Called after EMPLOYEE / EXCEPTION verification is approved.
+  // TRID is NOT assigned yet at this stage.
+  async sendCompanyIdApprovedEmail(email: string, fullName: string) {
+    const link = `${this.appUrl}/become-seeker`;
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">Company ID verified, ${fullName.split(' ')[0]}! ✅</h2>
+        <p style="color:#374151">Your company identity has been confirmed by the admin. One more step to go.</p>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px;margin:16px 0">
+          <p style="color:#9a3412;font-size:14px;font-weight:600;margin:0 0 6px">Next step — Ride Seeker verification:</p>
+          <ol style="color:#9a3412;font-size:14px;margin:0;padding-left:18px">
+            <li>Upload a government ID (Aadhaar / PAN / Passport)</li>
+            <li>Accept the self-declaration</li>
+            <li>Admin reviews — your TechieRide ID (TRID) is assigned on approval</li>
+          </ol>
+        </div>
+        <a href="${link}"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Complete Seeker Verification
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+          Want to offer rides instead? You can apply for Ride Giver verification from your dashboard too.<br/>
+          <em>for a better society...</em>
+        </p>
+      </div>`;
+
+    await this.send(email, 'Company ID verified — complete your Ride Seeker verification 🌿', html);
+  }
+
+  // ── Welcome email (after office email verification — kept for legacy use) ──
   async sendWelcomeEmail(email: string, fullName: string) {
     const html = `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
         <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
-        <h2 style="color:#0d9488">You're in, ${fullName.split(' ')[0]}! 🎉</h2>
-        <p style="color:#374151">Your email is verified. Welcome to TechieRide v2.0_Beta.</p>
-        <p style="color:#374151">You can now log in, complete your profile, and start sharing rides with verified colleagues.</p>
+        <h2 style="color:#0d9488">Office email verified, ${fullName.split(' ')[0]}! ✅</h2>
+        <p style="color:#374151">Your office email has been verified. Log in to continue your onboarding.</p>
         <a href="${this.appUrl}/login"
            style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
-          Go to TechieRide
+          Log In to TechieRide
         </a>
         <p style="color:#9ca3af;font-size:12px;margin-top:24px"><em>for a better society...</em></p>
       </div>`;
 
-    await this.send(email, 'Welcome to TechieRide! 🌿', html);
+    await this.send(email, 'Office email verified — TechieRide 🌿', html);
   }
 
   // ── Personal email verification ─────────────────────────────────────────

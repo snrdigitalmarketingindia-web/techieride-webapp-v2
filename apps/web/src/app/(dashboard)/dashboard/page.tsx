@@ -201,13 +201,42 @@ export default function DashboardPage() {
           <Link href="/profile" className="text-sm text-amber-700 font-medium underline">Upload</Link>
         </div>
       )}
-      {user?.accountStatus === 'EMPLOYEE_VERIFIED' && (
+      {user?.accountStatus === 'EMPLOYEE_VERIFIED' && !user.trid && (
+        /* Company ID approved but seeker/giver docs not yet submitted */
+        <div className="bg-orange-50 border border-orange-300 rounded-xl p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-orange-800 text-sm font-semibold">🪪 One more step — Ride Seeker verification</p>
+              <p className="text-orange-700 text-sm mt-0.5">
+                Your company ID is verified ✅ — now submit a government ID and self-declaration
+                to get your <strong>TechieRide ID (TRID)</strong> and start booking rides.
+              </p>
+            </div>
+            <Link href="/become-seeker"
+              className="shrink-0 bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-orange-600 transition whitespace-nowrap">
+              Complete →
+            </Link>
+          </div>
+          <div className="mt-3 pt-3 border-t border-orange-200">
+            <p className="text-xs text-orange-600">Want to offer rides instead?{' '}
+              <Link href="/become-giver" className="font-medium underline">Apply as a Ride Giver →</Link>
+            </p>
+          </div>
+        </div>
+      )}
+      {user?.accountStatus === 'SEEKER_VERIFICATION_PENDING' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <p className="text-blue-800 text-sm font-medium">🔍 Ride Seeker verification in progress</p>
+          <p className="text-blue-700 text-sm">Your government ID and self-declaration are being reviewed. You'll be notified at <strong>{user.personalEmail}</strong>.</p>
+        </div>
+      )}
+      {user?.accountStatus === 'SEEKER_VERIFIED' && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-green-800 text-sm font-medium">✅ Employee verified — {user.trid}</p>
+            <p className="text-green-800 text-sm font-medium">✅ Verified Ride Seeker — <strong>{user.trid}</strong></p>
             <p className="text-green-700 text-sm">You can search and book rides. Want to offer rides too?</p>
           </div>
-          <Link href="/become-giver" className="text-sm text-green-700 font-medium underline">Become a Giver →</Link>
+          <Link href="/become-giver" className="shrink-0 text-sm text-green-700 font-medium underline">Become a Giver →</Link>
         </div>
       )}
       {user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' && (

@@ -141,6 +141,8 @@ export const templatesApi = {
 export const verificationApi = {
   submitEmployee: (data: { employeeIdUrl: string; profilePhotoUrl?: string }) =>
     api.post('/verification/employee', data),
+  submitSeeker: (data: { govtIdUrl: string; selfDeclarationAccepted: boolean }) =>
+    api.post('/verification/seeker', data),
   submitDriver: (data: { drivingLicenseUrl: string; rcUrl: string }) =>
     api.post('/verification/driver', data),
   getStatus: () => api.get('/verification/status'),

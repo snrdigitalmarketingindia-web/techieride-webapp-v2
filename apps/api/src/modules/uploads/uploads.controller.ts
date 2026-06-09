@@ -34,7 +34,7 @@ export class UploadsController {
   async uploadDocument(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser('id') userId: string,
-    @Query('type') docType: 'employee_id' | 'driving_license' | 'rc' | 'profile_photo' = 'employee_id',
+    @Query('type') docType: 'employee_id' | 'govt_id' | 'driving_license' | 'rc' | 'profile_photo' = 'employee_id',
   ) {
     if (!file) throw new BadRequestException('No file provided');
 
