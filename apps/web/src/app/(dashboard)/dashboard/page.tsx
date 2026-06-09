@@ -296,14 +296,21 @@ export default function DashboardPage() {
             📋 My Rides
           </Link>
         )}
-        <Link href="/rides/leaderboard"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition shrink-0">
-          🏆 Leaderboard
-        </Link>
+        {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' ? (
+          <span title="Complete identity verification to view leaderboard"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 opacity-60 cursor-not-allowed select-none shrink-0">
+            🏆 Leaderboard
+          </span>
+        ) : (
+          <Link href="/rides/leaderboard"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition shrink-0">
+            🏆 Leaderboard
+          </Link>
+        )}
       </div>
 
-      {/* Upcoming rides */}
-      <div>
+      {/* Upcoming rides + Booked rides — hidden until identity verified */}
+      {user?.accountStatus !== 'DOCUMENT_VERIFICATION_PENDING' && <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-gray-900">{isGiver ? 'My Upcoming Rides' : 'My Booked Rides'}</h2>
           <Link href="/rides" className="text-sm text-brand-600 hover:underline">View all</Link>
@@ -466,7 +473,7 @@ export default function DashboardPage() {
             })}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Booked rides — shown for RIDE_GIVER (also a seeker) only when no active ride and has bookings */}
       {isGiver && isSeeker && !hasActiveRide && bookedRides.length > 0 && (
