@@ -175,7 +175,7 @@ export class VerificationService {
         // DRIVER approved → DRIVER_VERIFIED + TRID (if not already assigned as seeker)
         await assignTridIfNeeded();
         newAccountStatus = AccountStatus.DRIVER_VERIFIED;
-        await this.prisma.rideGiver.upsert({
+        const rideGiver = await this.prisma.rideGiver.upsert({
           where: { userId: req.userId },
           create: { userId: req.userId },
           update: {},
@@ -188,6 +188,19 @@ export class VerificationService {
             ...(trid ? { trid } : {}),
           },
         });
+        // Mark the user's most-recent vehicle as RC-verified using the RC from the verification request
+        if (req.rcUrl) {
+          const latestVehicle = await this.prisma.vehicle.findFirst({
+            where: { rideGiverId: rideGiver.id },
+            orderBy: { createdAt: 'desc' },
+          });
+          if (latestVehicle) {
+            await this.prisma.vehicle.update({
+              where: { id: latestVehicle.id },
+              data: { rcUrl: req.rcUrl, rcVerified: true },
+            });
+          }
+        }
       }
     } else {
       // Rejection: roll back to the appropriate previous status

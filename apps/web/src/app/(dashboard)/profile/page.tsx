@@ -616,7 +616,9 @@ export default function ProfilePage() {
                       ? <span className="text-xs text-green-600 font-medium">✅ RC Verified</span>
                       : v.rcUrl
                         ? <span className="text-xs text-amber-600 font-medium">⏳ RC Pending</span>
-                        : <span className="text-xs text-red-500 font-medium">❌ No RC</span>}
+                        : user?.accountStatus === 'DRIVER_VERIFIED'
+                          ? null
+                          : <span className="text-xs text-red-500 font-medium">❌ No RC</span>}
                   </div>
                   {/* Show upload RC button if not verified yet */}
                   {!v.rcVerified && (
