@@ -4,21 +4,36 @@ set -e
 echo "📁 Working dir: $(pwd)"
 MAIN_JS="dist/apps/api/src/main.js"
 
-# The build phase (render-build.sh) already ran nest build and produced dist/.
-# Do NOT rebuild here — devDependencies (@nestjs/cli) are not available in the
-# start environment. Just run DB migrations and start the server.
-
+# ── Build phase ───────────────────────────────────────────────────────────────
+# render-build.sh runs during Render's BUILD phase and produces dist/.
+# If dist/ is already present (Build phase ran correctly), skip the build here.
+# If dist/ is missing (Build phase not configured or failed), run the full build
+# now — we must install devDependencies first so that @nestjs/cli / tsc are available.
 if [ ! -f "$MAIN_JS" ]; then
-  echo "❌ $MAIN_JS not found — build phase may have failed"
-  exit 1
+  echo "⚠️  $MAIN_JS not found — running full build (devDeps install + nest build)..."
+  REPO_ROOT="$(cd ../.. && pwd)"
+  echo "📁 Repo root: $REPO_ROOT"
+  cd "$REPO_ROOT"
+  echo "📦 Installing ALL dependencies (including devDeps for nest build)..."
+  NODE_ENV=development npm install
+  echo "🔧 Generating Prisma client (build-time)..."
+  npx prisma generate --schema=./prisma/schema.prisma
+  echo "🔨 Building API..."
+  cd apps/api
+  NODE_ENV=development npm run build
+  echo "✅ Build complete."
+  # Return to apps/api (we may have changed dir inside npm run build)
+  cd "$REPO_ROOT/apps/api"
 fi
 
+# ── Prisma client (runtime) ──────────────────────────────────────────────────
 echo "🔧 Generating Prisma client..."
 npx prisma generate --schema=../../prisma/schema.prisma
 
+# ── DB migrations ────────────────────────────────────────────────────────────
 echo "🗄️  Pushing schema changes to DB (adds new columns, safe)..."
 
-# ── Data migration: merged identity verification (commit 79cf0be) ───────────
+# Data migration: merged identity verification (commit 79cf0be)
 # Must run BEFORE db push so old enum values are gone before Postgres tries to
 # drop them. Safe no-ops if these values no longer exist in the DB.
 echo "🔄  Migrating old enum values → new ones (safe no-op if already done)..."
