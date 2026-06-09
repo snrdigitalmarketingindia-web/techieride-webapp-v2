@@ -168,6 +168,8 @@ export class AuthService {
   }
 
   // ── Request Exception Verification (can't verify company email) ───────────
+  // Creates a placeholder IDENTITY request with isException=true.
+  // Company ID + govt ID are collected later at /verify-identity (same as normal users).
   async requestExceptionVerification(userId: string, dto: ExceptionVerificationDto) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -175,17 +177,19 @@ export class AuthService {
       throw new BadRequestException('Exception verification is only available for unverified accounts');
     }
 
+    // Create a placeholder IDENTITY request tagged as exception.
+    // Docs (company ID + govt ID) are uploaded later on /verify-identity.
     await this.prisma.verificationRequest.upsert({
-      where: { userId_verificationType: { userId, verificationType: 'EXCEPTION' } },
+      where: { userId_verificationType: { userId, verificationType: 'IDENTITY' } },
       create: {
         userId,
-        verificationType: 'EXCEPTION',
-        employeeIdUrl: dto.companyIdCardUrl,
+        verificationType: 'IDENTITY',
+        isException: true,
         exceptionReason: dto.reason,
         status: 'PENDING',
       },
       update: {
-        employeeIdUrl: dto.companyIdCardUrl,
+        isException: true,
         exceptionReason: dto.reason,
         status: 'PENDING',
         rejectionReason: null,
@@ -204,9 +208,10 @@ export class AuthService {
         personalEmailVerified: false,
         personalEmailToken,
         personalEmailExpiry,
-        employeeId: dto.employeeId,
-        // Move to PERSONAL_EMAIL_PENDING — verify personal email before admin review
+        employeeId: dto.employeeId || null,
+        // Move to PERSONAL_EMAIL_PENDING — verify personal email next
         accountStatus: 'PERSONAL_EMAIL_PENDING',
+        verificationMethod: 'MANUAL_EXCEPTION',
       },
     });
 
@@ -217,7 +222,7 @@ export class AuthService {
       personalEmailToken,
     );
 
-    return { message: 'Check your personal inbox! Verify your personal email to submit the exception request to admin.' };
+    return { message: 'Check your personal inbox! Verify your personal email to continue.' };
   }
 
   // ── Submit Personal Email (Path A — normal users after office email verified) ──
@@ -261,14 +266,10 @@ export class AuthService {
       throw new BadRequestException('Verification link has expired. Please request a new one from the app.');
     }
 
-    // Determine the next status based on which path the user came from.
-    // If they have a pending EXCEPTION VerificationRequest → move to EXCEPTION_VERIFICATION_REQUESTED
-    // Otherwise (normal path after office email) → move to DOCUMENT_VERIFICATION_PENDING
-    const exceptionRequest = await this.prisma.verificationRequest.findFirst({
-      where: { userId: user.id, verificationType: 'EXCEPTION', status: 'PENDING' },
-    });
-
-    const nextStatus = exceptionRequest ? 'EXCEPTION_VERIFICATION_REQUESTED' : 'DOCUMENT_VERIFICATION_PENDING';
+    // Both paths (normal + exception) → DOCUMENT_VERIFICATION_PENDING after personal email verified.
+    // Exception users upload company ID + govt ID at /verify-identity, same as normal users.
+    // Admin can distinguish via isException flag on the VerificationRequest.
+    const nextStatus = 'DOCUMENT_VERIFICATION_PENDING';
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -280,11 +281,7 @@ export class AuthService {
       },
     });
 
-    const message = exceptionRequest
-      ? 'Personal email verified! Your exception request has been submitted to admin for review.'
-      : 'Personal email verified! Please log in and upload your company ID card to complete verification.';
-
-    return { message, nextStatus };
+    return { message: 'Personal email verified! Please log in and upload your identity documents to complete verification.', nextStatus };
   }
 
   // ── Resend Personal Email Verification ────────────────────────────────────

@@ -126,7 +126,7 @@ export class AdminService {
       completedRides, cancelledRides, sosEvents,
     ] = await this.prisma.$transaction([
       this.prisma.user.count(),
-      this.prisma.user.count({ where: { accountStatus: { in: ['EMPLOYEE_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'] } } }),
+      this.prisma.user.count({ where: { accountStatus: { in: ['SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'] } } }),
       this.prisma.ride.count({ where: { createdAt: { gte: from, lte: to } } }),
       this.prisma.ride.count({ where: { status: 'COMPLETED', createdAt: { gte: from, lte: to } } }),
       this.prisma.ride.count({ where: { status: 'CANCELLED', createdAt: { gte: from, lte: to } } }),

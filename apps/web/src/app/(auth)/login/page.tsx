@@ -37,8 +37,6 @@ export default function LoginPage() {
         setUnverifiedEmail(email.toLowerCase().trim());
       } else if (status === 'PERSONAL_EMAIL_PENDING') {
         router.push('/personal-email-verification');
-      } else if (status === 'EXCEPTION_VERIFICATION_REQUESTED') {
-        router.push('/exception-verification');
       } else {
         router.push(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
       }

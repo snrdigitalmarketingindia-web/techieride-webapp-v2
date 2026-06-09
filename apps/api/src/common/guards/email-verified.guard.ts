@@ -8,15 +8,15 @@ import { ALLOW_DOCS_PENDING_KEY } from '../decorators/allow-docs-pending.decorat
 const LOGIN_BLOCKED = ['DEACTIVATED', 'BANNED', 'DRAFT'];
 
 // These statuses block everything except @AllowUnverified routes (profile, verify-email)
-const EMAIL_GATE = ['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
+const EMAIL_GATE = ['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING'];
+// TODO(phone-otp): when SMS OTP is enabled, add 'PHONE_VERIFICATION_PENDING' to EMAIL_GATE
+// (between PERSONAL_EMAIL_PENDING and DOCUMENT_VERIFICATION_PENDING). Currently bypassed (SMS cost).
 
 // These statuses allow profile + document upload but not ride features
-const DOCS_GATE = ['DOCUMENT_VERIFICATION_PENDING', 'REJECTED', 'SEEKER_VERIFICATION_PENDING'];
+const DOCS_GATE = ['DOCUMENT_VERIFICATION_PENDING', 'REJECTED'];
 
-// TODO(phone-otp): when SMS OTP is enabled, add 'PHONE_VERIFICATION_PENDING' to EMAIL_GATE
-// and remove it from FULL_ACCESS. Currently phone verification is bypassed (SMS cost).
 // These statuses get full seeker + giver access (role guard handles giver-only routes)
-const FULL_ACCESS = ['EMPLOYEE_VERIFIED', 'SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'];
+const FULL_ACCESS = ['SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'];
 
 @Injectable()
 export class EmailVerifiedGuard implements CanActivate {

@@ -186,48 +186,22 @@ export default function DashboardPage() {
           </p>
         </div>
       )}
-      {user?.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-blue-800 text-sm font-medium">🔍 Manual verification requested</p>
-          <p className="text-blue-700 text-sm">Admin is reviewing your exception request. You'll be notified within 2 business days.</p>
-        </div>
-      )}
-      {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
-          <div>
-            <p className="text-amber-800 text-sm font-medium">📋 Upload your documents</p>
-            <p className="text-amber-700 text-sm">Upload your company ID card to complete verification.</p>
-          </div>
-          <Link href="/profile" className="text-sm text-amber-700 font-medium underline">Upload</Link>
-        </div>
-      )}
-      {user?.accountStatus === 'EMPLOYEE_VERIFIED' && !user.trid && (
-        /* Company ID approved but seeker/giver docs not yet submitted */
+      {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' && !user.trid && (
+        /* Identity docs not yet submitted */
         <div className="bg-orange-50 border border-orange-300 rounded-xl p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-orange-800 text-sm font-semibold">🪪 One more step — Ride Seeker verification</p>
+              <p className="text-orange-800 text-sm font-semibold">🪪 Complete your identity verification</p>
               <p className="text-orange-700 text-sm mt-0.5">
-                Your company ID is verified ✅ — now submit a government ID and self-declaration
-                to get your <strong>TechieRide ID (TRID)</strong> and start booking rides.
+                Submit your company ID, government ID, and self-declaration to get your
+                <strong> TechieRide ID (TRID)</strong> and start booking rides.
               </p>
             </div>
-            <Link href="/become-seeker"
+            <Link href="/verify-identity"
               className="shrink-0 bg-orange-500 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-orange-600 transition whitespace-nowrap">
-              Complete →
+              Verify Now →
             </Link>
           </div>
-          <div className="mt-3 pt-3 border-t border-orange-200">
-            <p className="text-xs text-orange-600">Want to offer rides instead?{' '}
-              <Link href="/become-giver" className="font-medium underline">Apply as a Ride Giver →</Link>
-            </p>
-          </div>
-        </div>
-      )}
-      {user?.accountStatus === 'SEEKER_VERIFICATION_PENDING' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-blue-800 text-sm font-medium">🔍 Ride Seeker verification in progress</p>
-          <p className="text-blue-700 text-sm">Your government ID and self-declaration are being reviewed. You'll be notified at <strong>{user.personalEmail}</strong>.</p>
         </div>
       )}
       {user?.accountStatus === 'SEEKER_VERIFIED' && (
@@ -251,7 +225,7 @@ export default function DashboardPage() {
             <p className="text-red-800 text-sm font-medium">❌ Verification rejected</p>
             <p className="text-red-700 text-sm">Please re-upload your documents</p>
           </div>
-          <Link href="/profile" className="text-sm text-red-700 font-medium underline">Re-upload</Link>
+          <Link href="/verify-identity" className="text-sm text-red-700 font-medium underline">Re-submit →</Link>
         </div>
       )}
 

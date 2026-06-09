@@ -10,28 +10,23 @@ import { AllowDocsPending } from '../../common/decorators/allow-docs-pending.dec
 export class VerificationController {
   constructor(private service: VerificationService) {}
 
-  // Employee verification — submit company ID + profile photo
+  // Identity verification — submit company ID + govt ID + self-declaration (single admin approval)
   @AllowDocsPending()
-  @Post('employee')
+  @Post('identity')
   @HttpCode(HttpStatus.OK)
-  submitEmployeeDocs(
+  submitIdentityDocs(
     @CurrentUser('id') userId: string,
-    @Body() body: { employeeIdUrl: string; profilePhotoUrl?: string },
+    @Body() body: {
+      employeeIdUrl: string;
+      govtIdUrl: string;
+      selfDeclarationAccepted: boolean;
+      profilePhotoUrl?: string;
+    },
   ) {
-    return this.service.submitEmployeeDocs(userId, body);
+    return this.service.submitIdentityDocs(userId, body);
   }
 
-  // Seeker verification — submit govt ID + self-declaration (requires EMPLOYEE_VERIFIED)
-  @Post('seeker')
-  @HttpCode(HttpStatus.OK)
-  submitSeekerDocs(
-    @CurrentUser('id') userId: string,
-    @Body() body: { govtIdUrl: string; selfDeclarationAccepted: boolean },
-  ) {
-    return this.service.submitSeekerDocs(userId, body);
-  }
-
-  // Driver verification — submit DL + RC (requires EMPLOYEE_VERIFIED or SEEKER_VERIFIED)
+  // Driver verification — submit DL + RC (requires SEEKER_VERIFIED)
   @Post('driver')
   @HttpCode(HttpStatus.OK)
   submitDriverDocs(

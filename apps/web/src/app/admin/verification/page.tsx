@@ -5,18 +5,15 @@ import { useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api';
 
 const TYPE_BADGE: Record<string, { label: string; cls: string }> = {
-  EMPLOYEE:  { label: '📋 Company ID',      cls: 'bg-blue-100 text-blue-700' },
-  SEEKER:    { label: '🪪 Ride Seeker Docs', cls: 'bg-teal-100 text-teal-700' },
-  DRIVER:    { label: '🚗 Ride Giver Docs',  cls: 'bg-purple-100 text-purple-700' },
-  EXCEPTION: { label: '🔍 Exception',        cls: 'bg-orange-100 text-orange-700' },
+  IDENTITY: { label: '🪪 Identity Docs', cls: 'bg-blue-100 text-blue-700' },
+  DRIVER:   { label: '🚗 Ride Giver Docs', cls: 'bg-purple-100 text-purple-700' },
 };
 
+const EXCEPTION_BADGE = { label: '🔍 Exception Path', cls: 'bg-orange-100 text-orange-700' };
+
 const STATUS_BADGE: Record<string, string> = {
-  EMAIL_VERIFICATION_PENDING:       'bg-gray-100 text-gray-500',
-  DOCUMENT_VERIFICATION_PENDING:    'bg-yellow-100 text-yellow-700',
-  SEEKER_VERIFICATION_PENDING:      'bg-teal-100 text-teal-700',
-  DRIVER_VERIFICATION_PENDING:      'bg-purple-100 text-purple-700',
-  EXCEPTION_VERIFICATION_REQUESTED: 'bg-orange-100 text-orange-700',
+  DOCUMENT_VERIFICATION_PENDING: 'bg-yellow-100 text-yellow-700',
+  DRIVER_VERIFICATION_PENDING:   'bg-purple-100 text-purple-700',
 };
 
 export default function AdminVerificationPage() {
@@ -48,12 +45,8 @@ export default function AdminVerificationPage() {
     }
   };
 
-  const grouped = {
-    EMPLOYEE:  requests.filter((r) => r.verificationType === 'EMPLOYEE'),
-    SEEKER:    requests.filter((r) => r.verificationType === 'SEEKER'),
-    DRIVER:    requests.filter((r) => r.verificationType === 'DRIVER'),
-    EXCEPTION: requests.filter((r) => r.verificationType === 'EXCEPTION'),
-  };
+  const identityCount = requests.filter((r) => r.verificationType === 'IDENTITY').length;
+  const driverCount   = requests.filter((r) => r.verificationType === 'DRIVER').length;
 
   return (
     <div className="space-y-6">
@@ -64,10 +57,8 @@ export default function AdminVerificationPage() {
           <h1 className="text-2xl font-bold text-gray-900">Verification Queue</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {loading ? '…' : `${requests.length} pending review`}
-            {!loading && grouped.EMPLOYEE.length > 0 && ` · ${grouped.EMPLOYEE.length} Company ID`}
-            {!loading && grouped.SEEKER.length > 0 && ` · ${grouped.SEEKER.length} Seeker`}
-            {!loading && grouped.DRIVER.length > 0 && ` · ${grouped.DRIVER.length} Ride Giver`}
-            {!loading && grouped.EXCEPTION.length > 0 && ` · ${grouped.EXCEPTION.length} Exception`}
+            {!loading && identityCount > 0 && ` · ${identityCount} Identity`}
+            {!loading && driverCount > 0 && ` · ${driverCount} Ride Giver`}
           </p>
         </div>
         <button onClick={load} disabled={loading}
@@ -119,9 +110,16 @@ export default function AdminVerificationPage() {
 
                     {/* Type */}
                     <td className="px-4 py-4">
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${badge?.cls}`}>
-                        {badge?.label}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${badge?.cls}`}>
+                          {badge?.label}
+                        </span>
+                        {req.isException && (
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${EXCEPTION_BADGE.cls}`}>
+                            {EXCEPTION_BADGE.label}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Documents */}
@@ -129,7 +127,11 @@ export default function AdminVerificationPage() {
                       <div className="flex flex-col gap-1">
                         {req.employeeIdUrl && (
                           <a href={req.employeeIdUrl} target="_blank" rel="noreferrer"
-                            className="text-xs text-brand-600 hover:underline">📄 Employee ID</a>
+                            className="text-xs text-brand-600 hover:underline">📋 Company ID</a>
+                        )}
+                        {req.govtIdUrl && (
+                          <a href={req.govtIdUrl} target="_blank" rel="noreferrer"
+                            className="text-xs text-brand-600 hover:underline">🪪 Govt ID</a>
                         )}
                         {req.drivingLicenseUrl && (
                           <a href={req.drivingLicenseUrl} target="_blank" rel="noreferrer"
@@ -139,18 +141,14 @@ export default function AdminVerificationPage() {
                           <a href={req.rcUrl} target="_blank" rel="noreferrer"
                             className="text-xs text-brand-600 hover:underline">🚗 RC</a>
                         )}
-                        {req.govtIdUrl && (
-                          <a href={req.govtIdUrl} target="_blank" rel="noreferrer"
-                            className="text-xs text-brand-600 hover:underline">🪪 Govt ID</a>
-                        )}
                         {req.selfDeclarationAccepted && (
                           <span className="text-xs text-green-600">✅ Self-declaration accepted</span>
                         )}
                         {req.exceptionReason && (
                           <p className="text-xs text-orange-600 italic max-w-xs">"{req.exceptionReason}"</p>
                         )}
-                        {!req.employeeIdUrl && !req.drivingLicenseUrl && !req.rcUrl && !req.govtIdUrl && (
-                          <span className="text-xs text-gray-400">No docs uploaded</span>
+                        {!req.employeeIdUrl && !req.govtIdUrl && !req.drivingLicenseUrl && !req.rcUrl && (
+                          <span className="text-xs text-gray-400">No docs uploaded yet</span>
                         )}
                       </div>
                     </td>

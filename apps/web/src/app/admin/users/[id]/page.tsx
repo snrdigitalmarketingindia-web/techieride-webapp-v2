@@ -6,11 +6,12 @@ import { adminApi } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
   DRIVER_VERIFIED:    'bg-green-100 text-green-700',
-  EMPLOYEE_VERIFIED:  'bg-blue-100 text-blue-700',
+  SEEKER_VERIFIED:    'bg-green-100 text-green-700',
   SUSPENDED:          'bg-red-100 text-red-700',
   BANNED:             'bg-red-200 text-red-800',
   REJECTED:           'bg-red-100 text-red-700',
   DOCUMENT_VERIFICATION_PENDING: 'bg-yellow-100 text-yellow-700',
+  PERSONAL_EMAIL_PENDING:        'bg-amber-100 text-amber-700',
   DRIVER_VERIFICATION_PENDING:   'bg-purple-100 text-purple-700',
   EMAIL_VERIFICATION_PENDING:    'bg-gray-100 text-gray-600',
 };
@@ -47,18 +48,19 @@ export default function AdminUserDetailPage() {
   if (loading) return <div className="text-center py-20 text-gray-400">Loading...</div>;
   if (!user) return <div className="text-center py-20 text-gray-400">User not found</div>;
 
-  const empReq   = user.verificationRequests?.find((r: any) => r.verificationType === 'EMPLOYEE');
-  const driverReq = user.verificationRequests?.find((r: any) => r.verificationType === 'DRIVER');
+  const identityReq = user.verificationRequests?.find((r: any) => r.verificationType === 'IDENTITY');
+  const driverReq   = user.verificationRequests?.find((r: any) => r.verificationType === 'DRIVER');
 
   const checks = [
-    { ok: user.emailStatus === 'VERIFIED',    label: 'Official email verified' },
-    { ok: !!user.personalEmail,                label: 'Personal email set' },
-    { ok: user.isPhoneVerified,                label: 'Phone verified' },
-    { ok: !!user.profilePhoto || !!empReq?.profilePhotoUrl, label: 'Profile photo uploaded' },
-    { ok: !!empReq?.employeeIdUrl,             label: 'Employee ID uploaded' },
-    { ok: empReq?.status === 'APPROVED',       label: 'Employee ID approved' },
-    { ok: !!user.trid,                         label: `TRID assigned ${user.trid ? `(${user.trid})` : ''}` },
-    { ok: !!driverReq?.drivingLicenseUrl,      label: 'Driving licence uploaded' },
+    { ok: user.emailStatus === 'VERIFIED',       label: 'Official email verified' },
+    { ok: !!user.personalEmail,                   label: 'Personal email set' },
+    { ok: user.isPhoneVerified,                   label: 'Phone verified' },
+    { ok: !!user.profilePhoto || !!identityReq?.profilePhotoUrl, label: 'Profile photo uploaded' },
+    { ok: !!identityReq?.employeeIdUrl,           label: 'Company ID uploaded' },
+    { ok: !!identityReq?.govtIdUrl,               label: 'Govt ID uploaded' },
+    { ok: identityReq?.status === 'APPROVED',     label: 'Identity docs approved' },
+    { ok: !!user.trid,                            label: `TRID assigned ${user.trid ? `(${user.trid})` : ''}` },
+    { ok: !!driverReq?.drivingLicenseUrl,         label: 'Driving licence uploaded' },
     { ok: !!driverReq?.rcUrl,                  label: 'RC uploaded' },
     { ok: driverReq?.status === 'APPROVED',    label: 'Driver docs approved' },
     { ok: !!user.gender,                       label: 'Gender set' },

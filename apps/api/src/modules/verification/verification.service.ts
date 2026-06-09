@@ -15,10 +15,18 @@ export class VerificationService {
     private trustScore: TrustScoreService,
   ) {}
 
-  // ── Employee verification (Queue 3) ───────────────────────────────────────
-  async submitEmployeeDocs(
+  // ── Identity verification (single admin approval) ────────────────────────
+  // Collects company ID + govt ID + self-declaration in one step.
+  // Works for both normal path (DOCUMENT_VERIFICATION_PENDING) and
+  // exception path (isException = true on existing placeholder request).
+  async submitIdentityDocs(
     userId: string,
-    docs: { employeeIdUrl: string; profilePhotoUrl?: string },
+    docs: {
+      employeeIdUrl: string;
+      govtIdUrl: string;
+      selfDeclarationAccepted: boolean;
+      profilePhotoUrl?: string;
+    },
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -26,13 +34,33 @@ export class VerificationService {
     if (!['DOCUMENT_VERIFICATION_PENDING', 'REJECTED'].includes(user.accountStatus)) {
       throw new BadRequestException('Documents can only be submitted during verification stages');
     }
-
     if (!docs.employeeIdUrl) throw new BadRequestException('Company ID card is required');
+    if (!docs.govtIdUrl) throw new BadRequestException('Government ID is required');
+    if (!docs.selfDeclarationAccepted) throw new BadRequestException('You must accept the self-declaration to proceed');
+
+    // Preserve isException flag if a placeholder IDENTITY request already exists (exception path)
+    const existing = await this.prisma.verificationRequest.findUnique({
+      where: { userId_verificationType: { userId, verificationType: 'IDENTITY' } },
+    });
 
     await this.prisma.verificationRequest.upsert({
-      where: { userId_verificationType: { userId, verificationType: 'EMPLOYEE' } },
-      create: { userId, verificationType: 'EMPLOYEE', ...docs, status: 'PENDING' },
-      update: { ...docs, status: 'PENDING', rejectionReason: null, reviewedBy: null, reviewedAt: null },
+      where: { userId_verificationType: { userId, verificationType: 'IDENTITY' } },
+      create: {
+        userId,
+        verificationType: 'IDENTITY',
+        ...docs,
+        isException: false,
+        status: 'PENDING',
+      },
+      update: {
+        ...docs,
+        status: 'PENDING',
+        rejectionReason: null,
+        reviewedBy: null,
+        reviewedAt: null,
+        // Keep existing isException — don't overwrite
+        ...(existing ? {} : { isException: false }),
+      },
     });
 
     await this.prisma.user.update({
@@ -43,35 +71,7 @@ export class VerificationService {
     return { message: 'Documents submitted. Admin will review within 2 business days.' };
   }
 
-  // ── Seeker verification (Queue 3b) — requires EMPLOYEE_VERIFIED ─────────
-  async submitSeekerDocs(
-    userId: string,
-    docs: { govtIdUrl: string; selfDeclarationAccepted: boolean },
-  ) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
-
-    if (!['EMPLOYEE_VERIFIED', 'SEEKER_VERIFICATION_PENDING', 'REJECTED'].includes(user.accountStatus)) {
-      throw new ForbiddenException('You must complete company ID verification before submitting seeker documents');
-    }
-    if (!docs.govtIdUrl) throw new BadRequestException('Government ID is required');
-    if (!docs.selfDeclarationAccepted) throw new BadRequestException('You must accept the self-declaration to proceed');
-
-    await this.prisma.verificationRequest.upsert({
-      where: { userId_verificationType: { userId, verificationType: 'SEEKER' } },
-      create: { userId, verificationType: 'SEEKER', ...docs, status: 'PENDING' },
-      update: { ...docs, status: 'PENDING', rejectionReason: null, reviewedBy: null, reviewedAt: null },
-    });
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { accountStatus: 'SEEKER_VERIFICATION_PENDING' },
-    });
-
-    return { message: 'Seeker documents submitted. Admin will review within 2 business days.' };
-  }
-
-  // ── Driver verification (Queue 4) — requires EMPLOYEE_VERIFIED or SEEKER_VERIFIED ─
+  // ── Driver verification (Queue 4) — requires SEEKER_VERIFIED ─────────────
   async submitDriverDocs(
     userId: string,
     docs: { drivingLicenseUrl: string; rcUrl: string },
@@ -79,8 +79,8 @@ export class VerificationService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    if (!['EMPLOYEE_VERIFIED', 'SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING'].includes(user.accountStatus)) {
-      throw new ForbiddenException('You must be a verified employee before applying to become a Ride Giver');
+    if (!['SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING'].includes(user.accountStatus)) {
+      throw new ForbiddenException('You must be a verified Ride Seeker before applying to become a Ride Giver');
     }
 
     if (!docs.drivingLicenseUrl) throw new BadRequestException('Driving License is required');
@@ -109,25 +109,16 @@ export class VerificationService {
 
     const byType = Object.fromEntries(requests.map(r => [r.verificationType, r]));
     return {
-      employee: byType['EMPLOYEE'] ? {
-        status: byType['EMPLOYEE'].status,
-        rejectionReason: byType['EMPLOYEE'].rejectionReason,
-        submittedAt: byType['EMPLOYEE'].submittedAt,
-      } : null,
-      seeker: byType['SEEKER'] ? {
-        status: byType['SEEKER'].status,
-        rejectionReason: byType['SEEKER'].rejectionReason,
-        submittedAt: byType['SEEKER'].submittedAt,
+      identity: byType['IDENTITY'] ? {
+        status: byType['IDENTITY'].status,
+        isException: byType['IDENTITY'].isException,
+        rejectionReason: byType['IDENTITY'].rejectionReason,
+        submittedAt: byType['IDENTITY'].submittedAt,
       } : null,
       driver: byType['DRIVER'] ? {
         status: byType['DRIVER'].status,
         rejectionReason: byType['DRIVER'].rejectionReason,
         submittedAt: byType['DRIVER'].submittedAt,
-      } : null,
-      exception: byType['EXCEPTION'] ? {
-        status: byType['EXCEPTION'].status,
-        rejectionReason: byType['EXCEPTION'].rejectionReason,
-        submittedAt: byType['EXCEPTION'].submittedAt,
       } : null,
     };
   }
@@ -167,18 +158,8 @@ export class VerificationService {
     };
 
     if (decision === 'APPROVED') {
-      if (req.verificationType === 'EMPLOYEE' || req.verificationType === 'EXCEPTION') {
-        // Company ID approved → EMPLOYEE_VERIFIED, NO TRID yet.
-        // TRID is only assigned when seeker or driver docs are approved.
-        newAccountStatus = AccountStatus.EMPLOYEE_VERIFIED;
-        const verificationMethod = req.verificationType === 'EXCEPTION' ? 'MANUAL_EXCEPTION' : 'EMAIL_VERIFIED';
-        await this.prisma.user.update({
-          where: { id: req.userId },
-          data: { accountStatus: newAccountStatus, verificationStatus: 'APPROVED', verificationMethod },
-        });
-
-      } else if (req.verificationType === 'SEEKER') {
-        // Seeker docs (govt ID + self-declaration) approved → SEEKER_VERIFIED + TRID
+      if (req.verificationType === 'IDENTITY') {
+        // Identity docs (company ID + govt ID + self-declaration) approved → SEEKER_VERIFIED + TRID
         await assignTridIfNeeded();
         newAccountStatus = AccountStatus.SEEKER_VERIFIED;
         await this.prisma.user.update({
@@ -211,13 +192,13 @@ export class VerificationService {
     } else {
       // Rejection: roll back to the appropriate previous status
       if (req.verificationType === 'DRIVER') {
+        // Roll back to SEEKER_VERIFIED if they had a TRID, else DOCUMENT_VERIFICATION_PENDING
         newAccountStatus = req.user.trid
-          ? AccountStatus.SEEKER_VERIFIED  // already seeker-verified
-          : AccountStatus.EMPLOYEE_VERIFIED;
-      } else if (req.verificationType === 'SEEKER') {
-        newAccountStatus = AccountStatus.EMPLOYEE_VERIFIED;
+          ? AccountStatus.SEEKER_VERIFIED
+          : AccountStatus.DOCUMENT_VERIFICATION_PENDING;
       } else {
-        newAccountStatus = AccountStatus.REJECTED;
+        // IDENTITY rejection → back to DOCUMENT_VERIFICATION_PENDING so they can re-upload
+        newAccountStatus = AccountStatus.DOCUMENT_VERIFICATION_PENDING;
       }
       await this.prisma.user.update({
         where: { id: req.userId },
@@ -227,22 +208,20 @@ export class VerificationService {
 
     // Award trust score on approval
     if (decision === 'APPROVED') {
-      const type = (req.verificationType === 'SEEKER' || req.verificationType === 'EMPLOYEE' || req.verificationType === 'EXCEPTION') ? 'EMPLOYEE' : 'DRIVER';
+      const type = req.verificationType === 'DRIVER' ? 'DRIVER' : 'EMPLOYEE';
       await this.trustScore.onVerificationApproved(req.userId, type);
     }
 
     // In-app notification
     const notifTitle = decision === 'APPROVED'
       ? req.verificationType === 'DRIVER'   ? 'Driver verification approved! 🚗'
-      : req.verificationType === 'SEEKER'   ? `Welcome, ${trid || req.user.trid}! 🎉`
-      : req.verificationType === 'EMPLOYEE' ? 'Company identity verified ✅'
-      : 'Exception request approved ✅'
+      : `Welcome, ${trid || req.user.trid}! 🎉`
       : 'Verification not approved';
 
     const notifBody = decision === 'APPROVED'
-      ? req.verificationType === 'DRIVER'   ? 'You can now offer rides on TechieRide!'
-      : req.verificationType === 'SEEKER'   ? `Your TechieRide ID is ${trid || req.user.trid}. You can now search and book rides.`
-      : 'Next step: submit a government ID and self-declaration to become a verified Ride Seeker.'
+      ? req.verificationType === 'DRIVER'
+        ? 'You can now offer rides on TechieRide!'
+        : `Your TechieRide ID is ${trid || req.user.trid}. You can now search and book rides.`
       : rejectionReason || 'Please re-upload your documents.';
 
     await this.notifications.create(req.userId, {
@@ -252,8 +231,8 @@ export class VerificationService {
       data: { requestId, trid, type: req.verificationType },
     });
 
-    // Send approval email only when TRID is actually assigned (SEEKER or DRIVER approval)
-    if (decision === 'APPROVED' && (req.verificationType === 'SEEKER' || req.verificationType === 'DRIVER')) {
+    // Send approval emails when TRID is assigned (IDENTITY or DRIVER approval)
+    if (decision === 'APPROVED') {
       const finalTrid = trid || req.user.trid || '';
       // Notify office email
       await this.email.sendWelcomeApprovedEmail(req.user.email, req.user.fullName, finalTrid);
@@ -267,10 +246,6 @@ export class VerificationService {
         );
       }
     }
-    // For EMPLOYEE/EXCEPTION approval: "company ID verified — complete seeker verification" email
-    if (decision === 'APPROVED' && (req.verificationType === 'EMPLOYEE' || req.verificationType === 'EXCEPTION')) {
-      await this.email.sendCompanyIdApprovedEmail(req.user.email, req.user.fullName);
-    }
 
     // ── Send contacts CSV for today's session ──────────────────────────────
     if (decision === 'APPROVED') {
@@ -281,7 +256,7 @@ export class VerificationService {
   }
 
   // ── Queue helpers for admin ───────────────────────────────────────────────
-  async getQueue(verificationType: 'EMPLOYEE' | 'SEEKER' | 'DRIVER' | 'EXCEPTION') {
+  async getQueue(verificationType: 'IDENTITY' | 'DRIVER') {
     return this.prisma.verificationRequest.findMany({
       where: { status: 'PENDING', verificationType },
       include: {

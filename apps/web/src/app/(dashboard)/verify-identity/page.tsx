@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { verificationApi, api } from '@/lib/api';
 import { convertToWebp } from '@/lib/convertToWebp';
 
-const STEPS = ['Requirements', 'Documents', 'Declaration', 'Submit'];
+const STEPS = ['Requirements', 'Company ID', 'Govt ID', 'Declaration', 'Submit'];
 
 const GOVT_ID_TYPES = ['Aadhaar Card', 'PAN Card', 'Passport', 'Voter ID', 'Driving Licence'];
 
@@ -44,20 +44,28 @@ function UploadBtn({
   );
 }
 
-export default function BecomeSeekerPage() {
+export default function VerifyIdentityPage() {
   const router = useRouter();
   const { user, fetchProfile } = useAuthStore();
   const [step, setStep] = useState(0);
+
+  // Company ID
+  const [employeeIdUrl, setEmployeeIdUrl] = useState('');
+  const [uploadingEmployee, setUploadingEmployee] = useState(false);
+
+  // Govt ID
   const [govtIdType, setGovtIdType] = useState('');
   const [govtIdUrl, setGovtIdUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [uploadingGovt, setUploadingGovt] = useState(false);
+
   const [declared, setDeclared] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Guard: only EMPLOYEE_VERIFIED (no TRID yet) and SEEKER_VERIFICATION_PENDING can access
   const status = user?.accountStatus;
-  if (user && !['EMPLOYEE_VERIFIED', 'SEEKER_VERIFICATION_PENDING'].includes(status ?? '')) {
+
+  // Guard: only DOCUMENT_VERIFICATION_PENDING (and REJECTED to allow re-upload) can access
+  if (user && !['DOCUMENT_VERIFICATION_PENDING', 'REJECTED'].includes(status ?? '')) {
     if (status === 'SEEKER_VERIFIED' || user.trid) {
       return (
         <div className="max-w-lg mx-auto py-12 text-center space-y-4">
@@ -73,8 +81,8 @@ export default function BecomeSeekerPage() {
     return (
       <div className="max-w-lg mx-auto py-12 text-center space-y-4">
         <div className="text-5xl">🔒</div>
-        <h1 className="text-xl font-bold text-gray-900">Company ID verification required first</h1>
-        <p className="text-gray-500 text-sm">Please complete your company ID verification before submitting seeker documents.</p>
+        <h1 className="text-xl font-bold text-gray-900">Not available at this stage</h1>
+        <p className="text-gray-500 text-sm">Please complete the earlier steps first.</p>
         <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
           Back to Dashboard
         </Link>
@@ -82,42 +90,22 @@ export default function BecomeSeekerPage() {
     );
   }
 
-  // Already submitted — show pending state
-  if (status === 'SEEKER_VERIFICATION_PENDING') {
-    return (
-      <div className="max-w-lg mx-auto py-12 text-center space-y-4">
-        <div className="text-5xl">🔍</div>
-        <h1 className="text-xl font-bold text-gray-900">Documents under review</h1>
-        <p className="text-gray-500 text-sm">
-          Your government ID and self-declaration are being reviewed by the admin.
-          You'll be notified at <strong>{user?.personalEmail}</strong> within 2 business days.
-        </p>
-        <div className="bg-brand-50 rounded-xl p-4 text-sm text-brand-700 text-left">
-          <p className="font-medium mb-1">What admin reviews:</p>
-          <ul className="list-disc list-inside space-y-1 text-brand-600">
-            <li>Government ID photo (address proof)</li>
-            <li>Self-declaration acceptance</li>
-            <li>Cross-check with company ID on file</li>
-          </ul>
-        </div>
-        <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
-          Back to Dashboard
-        </Link>
-      </div>
-    );
-  }
-
-  const handleUpload = async (file: File) => {
+  const uploadDoc = async (
+    file: File,
+    type: 'employee_id' | 'govt_id',
+    setUrl: (u: string) => void,
+    setUploading: (b: boolean) => void,
+  ) => {
     setUploading(true);
     setError('');
     try {
       const webp = await convertToWebp(file).catch(() => file);
       const form = new FormData();
       form.append('file', webp);
-      const { data } = await api.post('/uploads/document?type=govt_id', form, {
+      const { data } = await api.post(`/uploads/document?type=${type}`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setGovtIdUrl(data.url);
+      setUrl(data.url);
     } catch (err: any) {
       const msg = err?.response?.data?.message;
       setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Upload failed. Please try again.');
@@ -128,13 +116,16 @@ export default function BecomeSeekerPage() {
 
   const handleSubmit = async () => {
     setError('');
+    if (!employeeIdUrl) { setError('Please upload your company ID'); return; }
     if (!govtIdUrl) { setError('Please upload your government ID'); return; }
     if (!declared) { setError('Please accept the self-declaration to continue'); return; }
     setSubmitting(true);
     try {
-      // This page is superseded by /verify-identity — redirect there
-      window.location.href = '/verify-identity';
-      return;
+      await verificationApi.submitIdentity({
+        employeeIdUrl,
+        govtIdUrl,
+        selfDeclarationAccepted: true,
+      });
       await fetchProfile();
       router.push('/dashboard');
     } catch (err: any) {
@@ -146,20 +137,28 @@ export default function BecomeSeekerPage() {
   };
 
   const canNext = [
-    true,                      // step 0 — requirements (always ok)
-    !!govtIdUrl && !!govtIdType, // step 1 — govt ID uploaded + type selected
-    declared,                  // step 2 — declaration accepted
+    true,                         // step 0 — requirements
+    !!employeeIdUrl,              // step 1 — company ID uploaded
+    !!govtIdUrl && !!govtIdType,  // step 2 — govt ID uploaded + type selected
+    declared,                     // step 3 — declaration accepted
   ];
+
+  const isException = user?.verificationMethod === 'MANUAL_EXCEPTION';
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Header */}
       <div>
         <Link href="/dashboard" className="text-sm text-gray-500 hover:text-brand-600">← Back to Dashboard</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-2">Become a Ride Seeker</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mt-2">Verify Your Identity</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Submit your government ID and self-declaration. Admin will assign your TRID on approval.
+          Submit your company ID, government ID, and self-declaration. Admin will assign your TRID on approval.
         </p>
+        {isException && (
+          <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+            🔍 <strong>Exception path:</strong> Since your company email couldn't be verified, our admin will review all your documents carefully. Please upload clear, legible copies.
+          </div>
+        )}
       </div>
 
       {/* Step indicators */}
@@ -180,8 +179,14 @@ export default function BecomeSeekerPage() {
       {step === 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">What you'll need</h2>
-
           <div className="space-y-3">
+            <div className="flex gap-3 items-start">
+              <span className="text-2xl">📋</span>
+              <div>
+                <p className="text-sm font-medium text-gray-800">Company ID Card</p>
+                <p className="text-xs text-gray-500">Your official employee ID issued by your company</p>
+              </div>
+            </div>
             <div className="flex gap-3 items-start">
               <span className="text-2xl">🪪</span>
               <div>
@@ -190,31 +195,50 @@ export default function BecomeSeekerPage() {
               </div>
             </div>
             <div className="flex gap-3 items-start">
-              <span className="text-2xl">📋</span>
+              <span className="text-2xl">📝</span>
               <div>
                 <p className="text-sm font-medium text-gray-800">Self-declaration</p>
                 <p className="text-xs text-gray-500">Acknowledge TechieRide's community standards and usage policy</p>
               </div>
             </div>
           </div>
-
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-            <strong>Why we need this:</strong> Government ID confirms your address and real identity, ensuring
-            a safe and trusted carpool community for everyone.
-          </div>
-
           <div className="bg-brand-50 rounded-lg p-3 text-xs text-brand-700">
             <strong>Your TRID</strong> (TechieRide Member ID) is assigned once admin approves your documents.
             It appears on your profile and is shared with Ride Givers when you book a seat.
           </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            <strong>Single approval:</strong> All three documents are reviewed in one go. You'll be notified at{' '}
+            <strong>{user?.personalEmail || 'your personal email'}</strong> within 2 business days.
+          </div>
         </div>
       )}
 
-      {/* ── Step 1: Government ID upload ─────────────────────────────────── */}
+      {/* ── Step 1: Company ID ───────────────────────────────────────────── */}
       {step === 1 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 className="font-semibold text-gray-900">Upload Government ID</h2>
+          <h2 className="font-semibold text-gray-900">Upload Company ID Card</h2>
+          <p className="text-sm text-gray-500">
+            Your official employee ID card issued by <strong>{user?.companyName || 'your company'}</strong>.
+          </p>
+          <UploadBtn
+            label="Company / Employee ID Card"
+            hint="Upload a clear photo or scanned copy (JPG, PNG, PDF)"
+            url={employeeIdUrl}
+            uploading={uploadingEmployee}
+            onFile={(f) => uploadDoc(f, 'employee_id', setEmployeeIdUrl, setUploadingEmployee)}
+          />
+          {employeeIdUrl && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
+              ✅ Company ID uploaded successfully. Proceed to upload your government ID.
+            </div>
+          )}
+        </div>
+      )}
 
+      {/* ── Step 2: Government ID ────────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+          <h2 className="font-semibold text-gray-900">Upload Government ID</h2>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               ID Type <span className="text-red-500">*</span>
@@ -228,31 +252,28 @@ export default function BecomeSeekerPage() {
               {GOVT_ID_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-
           <UploadBtn
             label={`${govtIdType || 'Government ID'} — Front side`}
             hint="Upload a clear photo or scanned copy (JPG, PNG, PDF)"
             url={govtIdUrl}
-            uploading={uploading}
-            onFile={handleUpload}
+            uploading={uploadingGovt}
+            onFile={(f) => uploadDoc(f, 'govt_id', setGovtIdUrl, setUploadingGovt)}
           />
-
           {govtIdUrl && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-xs text-green-700">
-              ✅ Government ID uploaded successfully. Proceed to the next step.
+              ✅ Government ID uploaded successfully. Proceed to self-declaration.
             </div>
           )}
         </div>
       )}
 
-      {/* ── Step 2: Self-declaration ─────────────────────────────────────── */}
-      {step === 2 && (
+      {/* ── Step 3: Self-declaration ─────────────────────────────────────── */}
+      {step === 3 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">Self-Declaration</h2>
           <p className="text-sm text-gray-500">
             Please read the following declaration carefully and accept to continue.
           </p>
-
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm text-gray-700 space-y-2 max-h-48 overflow-y-auto">
             <p className="font-medium text-gray-800">I, {user?.fullName}, hereby declare that:</p>
             <ol className="list-decimal list-inside space-y-2 text-gray-600">
@@ -264,7 +285,6 @@ export default function BecomeSeekerPage() {
               <li>I consent to TechieRide storing and processing my personal data for verification purposes.</li>
             </ol>
           </div>
-
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
@@ -279,12 +299,15 @@ export default function BecomeSeekerPage() {
         </div>
       )}
 
-      {/* ── Step 3: Review & Submit ──────────────────────────────────────── */}
-      {step === 3 && (
+      {/* ── Step 4: Review & Submit ──────────────────────────────────────── */}
+      {step === 4 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">Review & Submit</h2>
-
           <div className="space-y-3">
+            <div className="flex justify-between items-center py-2 border-b border-gray-100">
+              <span className="text-sm text-gray-600">Company ID</span>
+              <span className="text-sm font-medium text-green-600">✅ Uploaded</span>
+            </div>
             <div className="flex justify-between items-center py-2 border-b border-gray-100">
               <span className="text-sm text-gray-600">Government ID type</span>
               <span className="text-sm font-medium text-gray-900">{govtIdType}</span>
@@ -298,12 +321,10 @@ export default function BecomeSeekerPage() {
               <span className="text-sm font-medium text-green-600">✅ Accepted</span>
             </div>
           </div>
-
           <div className="bg-brand-50 rounded-lg p-3 text-xs text-brand-700">
             Admin will review your documents within <strong>2 business days</strong>.
             Approval notification will be sent to <strong>{user?.personalEmail}</strong>.
           </div>
-
           <button
             onClick={handleSubmit}
             disabled={submitting}
@@ -326,7 +347,11 @@ export default function BecomeSeekerPage() {
         )}
         {step < STEPS.length - 1 && (
           <button
-            onClick={() => { setError(''); if (canNext[step]) setStep(s => s + 1); else setError('Please complete this step first.'); }}
+            onClick={() => {
+              setError('');
+              if (canNext[step]) setStep(s => s + 1);
+              else setError('Please complete this step first.');
+            }}
             disabled={!canNext[step]}
             className="flex-1 bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 transition"
           >

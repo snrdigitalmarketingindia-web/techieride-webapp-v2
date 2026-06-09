@@ -57,8 +57,7 @@ export const authApi = {
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
   requestExceptionVerification: (data: {
     personalEmail: string;
-    companyIdCardUrl: string;
-    employeeId: string;
+    employeeId?: string;
     reason: string;
   }) => api.post('/auth/exception-verification', data),
 };
@@ -139,15 +138,16 @@ export const templatesApi = {
 
 // ─── Verification ─────────────────────────────────────
 export const verificationApi = {
-  submitEmployee: (data: { employeeIdUrl: string; profilePhotoUrl?: string }) =>
-    api.post('/verification/employee', data),
-  submitSeeker: (data: { govtIdUrl: string; selfDeclarationAccepted: boolean }) =>
-    api.post('/verification/seeker', data),
+  // Single identity approval: company ID + govt ID + self-declaration
+  submitIdentity: (data: {
+    employeeIdUrl: string;
+    govtIdUrl: string;
+    selfDeclarationAccepted: boolean;
+    profilePhotoUrl?: string;
+  }) => api.post('/verification/identity', data),
   submitDriver: (data: { drivingLicenseUrl: string; rcUrl: string }) =>
     api.post('/verification/driver', data),
   getStatus: () => api.get('/verification/status'),
-  // legacy alias kept for profile page compatibility
-  submit: (data: any) => api.post('/verification/employee', data),
 };
 
 // ─── Notifications ────────────────────────────────────
@@ -212,10 +212,9 @@ export const adminApi = {
   adjustTrustScore: (id: string, delta: number, reason: string) => api.patch(`/admin/users/${id}/trust-score`, { delta, reason }),
   reinstateUser: (id: string) => api.patch(`/admin/users/${id}/reinstate`),
   assignRole: (id: string, role: string) => api.patch(`/admin/users/${id}/role`, { role }),
-  // 4 separate verification queues
+  // Verification queues
   getEmailPendingQueue: () => api.get('/admin/queues/email-pending'),
-  getExceptionQueue: () => api.get('/admin/queues/exception-requests'),
-  getDocumentQueue: () => api.get('/admin/queues/document-pending'),
+  getIdentityQueue: () => api.get('/admin/queues/identity-pending'),
   getDriverQueue: () => api.get('/admin/queues/driver-pending'),
   // review action (approve/reject any verification request)
   reviewVerification: (id: string, data: { decision: 'APPROVED' | 'REJECTED'; rejectionReason?: string }) =>

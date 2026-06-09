@@ -166,7 +166,7 @@ export class TrustScoreService {
   async adminReinstate(userId: string, adminId: string) {
     await this.prisma.user.update({
       where: { id: userId },
-      data: { accountStatus: AccountStatus.EMPLOYEE_VERIFIED as any },
+      data: { accountStatus: AccountStatus.DOCUMENT_VERIFICATION_PENDING },
     });
     await this.notifications.create(userId, {
       type: NotificationType.GENERIC,

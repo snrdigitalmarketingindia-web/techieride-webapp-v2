@@ -180,29 +180,8 @@ export default function ProfilePage() {
     }
   };
 
-  const submitVerification = async () => {
-    const payload: any = {};
-    if (uploadedDocs.employeeIdUrl) payload.employeeIdUrl = uploadedDocs.employeeIdUrl;
-    if (uploadedDocs.drivingLicenseUrl) payload.drivingLicenseUrl = uploadedDocs.drivingLicenseUrl;
-    if (uploadedDocs.rcUrl) payload.rcUrl = uploadedDocs.rcUrl;
-
-    if (!payload.employeeIdUrl) {
-      setSubmitMsg('Please upload your Employee ID first');
-      return;
-    }
-    setLoading(true);
-    try {
-      await verificationApi.submit(payload);
-      const r = await verificationApi.getStatus();
-      setVerStatus(r.data);
-      await fetchProfile();
-      setSubmitMsg('✅ Documents submitted! Under review within 24 hours.');
-    } catch {
-      setSubmitMsg('Submission failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Identity docs are now submitted via /verify-identity — redirect there
+  const submitVerification = () => { window.location.href = '/verify-identity'; };
 
   const submitVehicle = async () => {
     // Block save if RC parsed data doesn't match what user filled
@@ -450,17 +429,16 @@ export default function ProfilePage() {
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-500 text-xs">Account Status</p>
             <p className={`font-medium text-sm ${
-              user?.accountStatus === 'DRIVER_VERIFIED' ? 'text-green-600' :
-              user?.accountStatus === 'EMPLOYEE_VERIFIED' ? 'text-blue-600' :
+              user?.accountStatus === 'DRIVER_VERIFIED' || user?.accountStatus === 'SEEKER_VERIFIED' ? 'text-green-600' :
               user?.accountStatus === 'REJECTED' ? 'text-red-600' :
               user?.accountStatus === 'SUSPENDED' ? 'text-red-600' : 'text-amber-600'
             }`}>
               {user?.accountStatus === 'DRIVER_VERIFIED' ? '✅ Ride Giver Verified' :
-               user?.accountStatus === 'EMPLOYEE_VERIFIED' ? '✅ Employee Verified' :
+               user?.accountStatus === 'SEEKER_VERIFIED' ? '✅ Ride Seeker Verified' :
                user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' ? '⏳ Ride Giver Review' :
-               user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' ? '⏳ Docs Pending' :
-               user?.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED' ? '🔍 Exception Review' :
+               user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' ? '⏳ Identity Pending' :
                user?.accountStatus === 'EMAIL_VERIFICATION_PENDING' ? '📧 Email Unverified' :
+               user?.accountStatus === 'PERSONAL_EMAIL_PENDING' ? '📬 Personal Email Pending' :
                user?.accountStatus === 'REJECTED' ? '❌ Rejected' :
                user?.accountStatus === 'SUSPENDED' ? '🚫 Suspended' : '⏳ Pending'}
             </p>
@@ -534,7 +512,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Become a Giver CTA */}
-      {user?.accountStatus === 'EMPLOYEE_VERIFIED' && (
+      {user?.accountStatus === 'SEEKER_VERIFIED' && (
         <div className="bg-brand-50 border border-brand-200 rounded-xl p-5 flex items-center justify-between gap-4">
           <div>
             <p className="font-semibold text-brand-900">Want to offer rides?</p>
@@ -547,8 +525,22 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Verification upload */}
-      {!['EMPLOYEE_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'].includes(user?.accountStatus || '') && (
+      {/* Identity docs CTA (not yet submitted) */}
+      {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' && (
+        <div className="bg-brand-50 border border-brand-200 rounded-xl p-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-semibold text-brand-900">Complete identity verification</p>
+            <p className="text-sm text-brand-700 mt-0.5">Upload your company ID + government ID to get your TRID and start booking rides.</p>
+          </div>
+          <a href="/verify-identity"
+            className="shrink-0 bg-brand-600 text-white text-sm px-4 py-2 rounded-lg font-medium hover:bg-brand-700 transition">
+            Verify Now →
+          </a>
+        </div>
+      )}
+
+      {/* Legacy verification upload (kept for REJECTED re-upload) */}
+      {!['SEEKER_VERIFIED', 'DOCUMENT_VERIFICATION_PENDING', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'].includes(user?.accountStatus || '') && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="font-semibold text-gray-900 mb-1">📄 Verification Documents</h2>
 

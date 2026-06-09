@@ -5,30 +5,30 @@ import { useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api';
 
 const ACCOUNT_STATUS_COLORS: Record<string, string> = {
-  DRIVER_VERIFIED: 'bg-green-100 text-green-700',
-  EMPLOYEE_VERIFIED: 'bg-blue-100 text-blue-700',
-  DRIVER_VERIFICATION_PENDING: 'bg-purple-100 text-purple-700',
-  DOCUMENT_VERIFICATION_PENDING: 'bg-yellow-100 text-yellow-700',
-  EXCEPTION_VERIFICATION_REQUESTED: 'bg-orange-100 text-orange-700',
-  EMAIL_VERIFICATION_PENDING: 'bg-gray-100 text-gray-600',
-  REJECTED: 'bg-red-100 text-red-700',
-  SUSPENDED: 'bg-red-100 text-red-700',
-  BANNED: 'bg-red-200 text-red-800',
+  DRIVER_VERIFIED:              'bg-green-100 text-green-700',
+  SEEKER_VERIFIED:              'bg-green-100 text-green-700',
+  DRIVER_VERIFICATION_PENDING:  'bg-purple-100 text-purple-700',
+  DOCUMENT_VERIFICATION_PENDING:'bg-yellow-100 text-yellow-700',
+  PERSONAL_EMAIL_PENDING:       'bg-amber-100 text-amber-700',
+  EMAIL_VERIFICATION_PENDING:   'bg-gray-100 text-gray-600',
+  REJECTED:    'bg-red-100 text-red-700',
+  SUSPENDED:   'bg-red-100 text-red-700',
+  BANNED:      'bg-red-200 text-red-800',
   DEACTIVATED: 'bg-gray-200 text-gray-600',
 };
 
 const ACCOUNT_STATUS_LABELS: Record<string, string> = {
-  DRIVER_VERIFIED: '✅ Ride Giver Verified',
-  EMPLOYEE_VERIFIED: '✅ Employee Verified',
-  DRIVER_VERIFICATION_PENDING: '⏳ Ride Giver Review',
-  DOCUMENT_VERIFICATION_PENDING: '⏳ Docs Pending',
-  EXCEPTION_VERIFICATION_REQUESTED: '🔍 Exception Review',
-  EMAIL_VERIFICATION_PENDING: '📧 Email Pending',
-  REJECTED: '❌ Rejected',
-  SUSPENDED: '🚫 Suspended',
-  BANNED: '🔴 Banned',
+  DRIVER_VERIFIED:              '✅ Ride Giver Verified',
+  SEEKER_VERIFIED:              '✅ Ride Seeker Verified',
+  DRIVER_VERIFICATION_PENDING:  '⏳ Ride Giver Review',
+  DOCUMENT_VERIFICATION_PENDING:'⏳ Identity Pending',
+  PERSONAL_EMAIL_PENDING:       '📬 Personal Email Pending',
+  EMAIL_VERIFICATION_PENDING:   '📧 Email Pending',
+  REJECTED:    '❌ Rejected',
+  SUSPENDED:   '🚫 Suspended',
+  BANNED:      '🔴 Banned',
   DEACTIVATED: '⛔ Deactivated',
-  DRAFT: '📝 Draft',
+  DRAFT:       '📝 Draft',
 };
 
 export default function AdminUsersPage() {
@@ -75,9 +75,9 @@ export default function AdminUsersPage() {
             className="text-sm border border-gray-300 rounded-lg px-3 py-1.5">
             <option value="">All Statuses</option>
             <option value="EMAIL_VERIFICATION_PENDING">📧 Email Pending</option>
-            <option value="EXCEPTION_VERIFICATION_REQUESTED">🔍 Exception Requests</option>
-            <option value="DOCUMENT_VERIFICATION_PENDING">⏳ Docs Pending</option>
-            <option value="EMPLOYEE_VERIFIED">✅ Employee Verified</option>
+            <option value="PERSONAL_EMAIL_PENDING">📬 Personal Email Pending</option>
+            <option value="DOCUMENT_VERIFICATION_PENDING">⏳ Identity Pending</option>
+            <option value="SEEKER_VERIFIED">✅ Ride Seeker Verified</option>
             <option value="DRIVER_VERIFICATION_PENDING">⏳ Ride Giver Review</option>
             <option value="DRIVER_VERIFIED">✅ Ride Giver Verified</option>
             <option value="REJECTED">❌ Rejected</option>

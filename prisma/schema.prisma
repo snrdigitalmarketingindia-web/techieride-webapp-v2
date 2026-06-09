@@ -11,19 +11,16 @@ datasource db {
 
 enum AccountStatus {
   DRAFT
-  EMAIL_VERIFICATION_PENDING
-  PERSONAL_EMAIL_PENDING
-  EXCEPTION_VERIFICATION_REQUESTED
-  DOCUMENT_VERIFICATION_PENDING
-  EMPLOYEE_VERIFIED           // company ID approved — identity confirmed, TRID not yet assigned
-  // TODO(phone-otp): PHONE_VERIFICATION_PENDING — insert here between EMPLOYEE_VERIFIED and
-  // SEEKER_VERIFICATION_PENDING once SMS OTP is enabled. Currently bypassed (cost). When
-  // enabled: POST /auth/send-phone-otp → status = PHONE_VERIFICATION_PENDING →
-  // POST /auth/verify-phone-otp → back to EMPLOYEE_VERIFIED (then proceed to seeker docs).
-  SEEKER_VERIFICATION_PENDING // govt ID + self-declaration submitted, awaiting admin
-  SEEKER_VERIFIED             // seeker docs approved, TRID assigned, can book rides
-  DRIVER_VERIFICATION_PENDING // DL + RC submitted, awaiting admin
-  DRIVER_VERIFIED             // driver docs approved, TRID assigned (if not already), can offer rides
+  EMAIL_VERIFICATION_PENDING    // registered, office email not yet verified
+  PERSONAL_EMAIL_PENDING        // office email verified (or exception form submitted), personal email not yet verified
+  DOCUMENT_VERIFICATION_PENDING // personal email verified, identity docs not yet submitted
+  // TODO(phone-otp): PHONE_VERIFICATION_PENDING — insert between PERSONAL_EMAIL_PENDING and
+  // DOCUMENT_VERIFICATION_PENDING once SMS OTP is enabled (cost-deferred).
+  // Steps: POST /auth/send-phone-otp → PHONE_VERIFICATION_PENDING →
+  //        POST /auth/verify-phone-otp → DOCUMENT_VERIFICATION_PENDING
+  SEEKER_VERIFIED               // identity docs approved (IDENTITY type), TRID assigned, can book rides
+  DRIVER_VERIFICATION_PENDING   // DL + RC submitted, awaiting admin
+  DRIVER_VERIFIED               // driver docs approved, TRID assigned if not already, can offer rides
   SUSPENDED
   REJECTED
   DEACTIVATED
@@ -31,10 +28,9 @@ enum AccountStatus {
 }
 
 enum VerificationType {
-  EMPLOYEE   // company ID verification → EMPLOYEE_VERIFIED
-  SEEKER     // govt ID + self-declaration → SEEKER_VERIFIED + TRID
-  DRIVER     // DL + RC → DRIVER_VERIFIED + TRID
-  EXCEPTION  // can't verify company email → EXCEPTION_VERIFICATION_REQUESTED
+  IDENTITY  // company ID + govt ID + self-declaration → SEEKER_VERIFIED + TRID
+            // isException flag marks users who came via the office-email exception path
+  DRIVER    // DL + RC → DRIVER_VERIFIED + TRID (assigned if not already seeker-verified)
 }
 
 enum Gender {
@@ -235,14 +231,15 @@ model EmergencyContact {
 model VerificationRequest {
   id                  String             @id @default(uuid())
   userId              String
-  verificationType    VerificationType   @default(EMPLOYEE)
-  employeeIdUrl           String?            // EMPLOYEE + EXCEPTION type
+  verificationType    VerificationType   @default(IDENTITY)
+  employeeIdUrl           String?            // IDENTITY type — company ID card
   profilePhotoUrl         String?
   drivingLicenseUrl       String?            // DRIVER type
   rcUrl                   String?            // DRIVER type
-  govtIdUrl               String?            // SEEKER type — Aadhaar / PAN / Passport
-  selfDeclarationAccepted Boolean            @default(false) // SEEKER type
-  exceptionReason         String?            // EXCEPTION type
+  govtIdUrl               String?            // IDENTITY type — Aadhaar / PAN / Passport
+  selfDeclarationAccepted Boolean            @default(false) // IDENTITY type
+  exceptionReason         String?            // exception path only (isException = true)
+  isException             Boolean            @default(false) // true = came via office-email exception
   status              VerificationStatus @default(PENDING)
   rejectionReason     String?
   reviewedBy          String?

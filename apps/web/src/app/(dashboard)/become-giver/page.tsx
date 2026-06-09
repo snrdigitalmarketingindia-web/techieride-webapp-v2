@@ -106,8 +106,8 @@ export default function BecomeGiverPage() {
       .catch(() => setMinioAvailable(false));
   }, []);
 
-  // Guard: only EMPLOYEE_VERIFIED can access this page
-  if (user && !['EMPLOYEE_VERIFIED'].includes(user.accountStatus)) {
+  // Guard: only SEEKER_VERIFIED can access this page
+  if (user && !['SEEKER_VERIFIED'].includes(user.accountStatus)) {
     if (user.accountStatus === 'DRIVER_VERIFIED' || user.accountStatus === 'DRIVER_VERIFICATION_PENDING') {
       return (
         <div className="max-w-lg mx-auto py-12 text-center space-y-4">

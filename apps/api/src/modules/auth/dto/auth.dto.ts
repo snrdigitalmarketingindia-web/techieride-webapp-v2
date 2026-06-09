@@ -133,13 +133,10 @@ export class ExceptionVerificationDto {
   @MaxLength(254)
   personalEmail: string;
 
-  @IsString()
-  @MaxLength(500)
-  companyIdCardUrl: string;
-
+  @IsOptional()
   @IsString()
   @MaxLength(50)
-  employeeId: string;
+  employeeId?: string;
 
   @IsString()
   @MinLength(20, { message: 'Please provide a detailed reason (at least 20 characters)' })

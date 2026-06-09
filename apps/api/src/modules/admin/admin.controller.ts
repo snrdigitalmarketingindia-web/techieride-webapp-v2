@@ -66,25 +66,15 @@ export class AdminController {
     return this.adminService.activateUser(id);
   }
 
-  // ── 4 Verification queues ─────────────────────────────────────────────
+  // ── Verification queues ───────────────────────────────────────────────────
   @Get('queues/email-pending')
   getEmailPendingQueue() {
     return this.adminService.getUsersByAccountStatus('EMAIL_VERIFICATION_PENDING');
   }
 
-  @Get('queues/exception-requests')
-  getExceptionQueue() {
-    return this.verificationService.getQueue('EXCEPTION');
-  }
-
-  @Get('queues/document-pending')
-  getDocumentQueue() {
-    return this.verificationService.getQueue('EMPLOYEE');
-  }
-
-  @Get('queues/seeker-pending')
-  getSeekerQueue() {
-    return this.verificationService.getQueue('SEEKER');
+  @Get('queues/identity-pending')
+  getIdentityQueue() {
+    return this.verificationService.getQueue('IDENTITY');
   }
 
   @Get('queues/driver-pending')
