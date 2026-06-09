@@ -54,14 +54,16 @@ ADD_ENUM_SQL
 # STEP 2: Migrate data using the newly committed enum values
 echo "🔄  Step 2/2 — Migrating data to new enum values (safe no-op if already done)..."
 npx prisma db execute --schema=../../prisma/schema.prisma --stdin <<'MIGRATE_DATA_SQL'
+-- Cast to text before comparing so the query is a safe no-op when those
+-- enum values no longer exist in the schema (avoids "invalid enum value" error).
 UPDATE users SET "accountStatus" = 'DOCUMENT_VERIFICATION_PENDING'
-  WHERE "accountStatus" IN ('EMPLOYEE_VERIFIED', 'EXCEPTION_VERIFICATION_REQUESTED');
+  WHERE "accountStatus"::text IN ('EMPLOYEE_VERIFIED', 'EXCEPTION_VERIFICATION_REQUESTED');
 
 UPDATE users SET "accountStatus" = 'SEEKER_VERIFIED'
-  WHERE "accountStatus" = 'SEEKER_VERIFICATION_PENDING';
+  WHERE "accountStatus"::text = 'SEEKER_VERIFICATION_PENDING';
 
 UPDATE verification_requests SET "verificationType" = 'IDENTITY'
-  WHERE "verificationType" IN ('EMPLOYEE', 'SEEKER', 'EXCEPTION');
+  WHERE "verificationType"::text IN ('EMPLOYEE', 'SEEKER', 'EXCEPTION');
 MIGRATE_DATA_SQL
 
 echo "🗄️  Pushing schema changes to DB..."
