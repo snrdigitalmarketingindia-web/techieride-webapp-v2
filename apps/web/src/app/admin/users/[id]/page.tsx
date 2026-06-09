@@ -62,7 +62,7 @@ export default function AdminUserDetailPage() {
     { ok: !!user.trid,                            label: `TRID assigned ${user.trid ? `(${user.trid})` : ''}` },
     { ok: !!driverReq?.drivingLicenseUrl,         label: 'Driving licence uploaded' },
     { ok: !!driverReq?.rcUrl,                  label: 'RC uploaded' },
-    { ok: driverReq?.status === 'APPROVED',    label: 'Driver docs approved' },
+    { ok: driverReq?.status === 'APPROVED',    label: 'Ride Giver docs approved' },
     { ok: !!user.gender,                       label: 'Gender set' },
     { ok: !!user.bloodGroup,                   label: 'Blood group set' },
     { ok: !!user.homeLocation,                 label: 'Home location set' },

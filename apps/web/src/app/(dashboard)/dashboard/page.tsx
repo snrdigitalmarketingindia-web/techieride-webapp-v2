@@ -260,17 +260,17 @@ export default function DashboardPage() {
       )}
       {user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-blue-800 text-sm font-medium">🚗 Ride Giver verification in progress</p>
-          <p className="text-blue-700 text-sm">Your driving license and RC are being reviewed.</p>
+          <p className="text-blue-800 text-sm font-medium">🚗 Ride Giver verification is in progress</p>
+          <p className="text-blue-700 text-sm">Thank you! Your driving licence and RC are under review. We'll notify you once approved.</p>
         </div>
       )}
       {user?.accountStatus === 'REJECTED' && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between">
           <div>
-            <p className="text-red-800 text-sm font-medium">❌ Verification rejected</p>
-            <p className="text-red-700 text-sm">Please re-upload your documents</p>
+            <p className="text-red-800 text-sm font-medium">🙏 We're sorry, your verification could not be approved</p>
+            <p className="text-red-700 text-sm">Please re-upload clear, legible copies and we'll review them again promptly.</p>
           </div>
-          <Link href="/verify-identity" className="text-sm text-red-700 font-medium underline">Re-submit →</Link>
+          <Link href="/verify-identity" className="shrink-0 text-sm bg-red-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-red-700 transition">Re-upload →</Link>
         </div>
       )}
 

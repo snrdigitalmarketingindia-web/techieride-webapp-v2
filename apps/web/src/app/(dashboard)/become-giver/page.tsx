@@ -83,8 +83,8 @@ export default function BecomeGiverPage() {
           </h1>
           <p className="text-gray-500 text-sm">
             {user.accountStatus === 'DRIVER_VERIFIED'
-              ? 'You can now offer rides on TechieRide.'
-              : 'Your driving license and RC are being reviewed. You\'ll be notified within 2 business days.'}
+              ? 'Congratulations! You are all set to offer rides on TechieRide.'
+              : 'Thank you for applying! Your driving licence and RC are under review. We\'ll notify you once approved, within 2 business days.'}
           </p>
           <Link href="/rides/create" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
             {user.accountStatus === 'DRIVER_VERIFIED' ? 'Offer a Ride →' : 'Go to Dashboard'}
@@ -337,7 +337,7 @@ export default function BecomeGiverPage() {
                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     {[1, 2, 3, 4, 5, 6].map(n => (
-                      <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''} (excluding driver)</option>
+                      <option key={n} value={n}>{n} seat{n > 1 ? 's' : ''} (excl. Ride Giver)</option>
                     ))}
                   </select>
                 </div>
