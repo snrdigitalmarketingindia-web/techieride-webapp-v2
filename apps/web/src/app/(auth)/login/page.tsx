@@ -1,14 +1,16 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get('next') || '';
   const { login } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -38,7 +40,8 @@ export default function LoginPage() {
       } else if (status === 'PERSONAL_EMAIL_PENDING') {
         router.push('/personal-email-verification');
       } else {
-        router.push(user?.role === 'ADMIN' ? '/admin' : '/dashboard');
+        const dest = nextPath && nextPath.startsWith('/') ? nextPath : (user?.role === 'ADMIN' ? '/admin' : '/dashboard');
+        router.push(dest);
       }
     } catch (e: any) {
       const msg = e.response?.data?.message || '';
@@ -237,5 +240,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-b from-brand-50 to-white flex items-center justify-center"><p className="text-gray-400 text-sm">Loading…</p></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

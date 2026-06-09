@@ -154,17 +154,17 @@ export default function SignupPage() {
             Go to Login
           </Link>
           {/* Exception request — for users who genuinely can't access their company email */}
-          <div className="border-t border-gray-100 pt-4">
-            <p className="text-xs text-gray-500 mb-1">Can't access your company email?</p>
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-left">
+            <p className="text-sm font-semibold text-orange-800 mb-1">🚫 Can't access your company email?</p>
+            <p className="text-xs text-orange-700 mb-3">
+              If your company blocks external emails or you don't have individual access, request a manual exception — an admin will verify you directly.
+            </p>
             <Link
               href="/exception-verification"
-              className="text-sm text-brand-600 font-medium hover:underline"
+              className="block w-full text-center bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2.5 rounded-lg transition"
             >
-              Request an admin exception →
+              Request Admin Exception →
             </Link>
-            <p className="text-xs text-gray-400 mt-1">
-              Upload your company ID card and an admin will verify you manually.
-            </p>
           </div>
         </div>
       </div>

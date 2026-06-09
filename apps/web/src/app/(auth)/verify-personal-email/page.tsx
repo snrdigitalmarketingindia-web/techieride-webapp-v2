@@ -53,15 +53,19 @@ function VerifyPersonalEmailContent() {
             <p className="text-sm text-gray-600 mb-6">{message}</p>
 
             <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 text-sm text-brand-800 mb-6 text-left">
-              <p className="font-medium mb-1">Next step:</p>
-              <p className="text-brand-700">Log in and upload your company ID + government ID to complete identity verification.</p>
+              <p className="font-medium mb-2">Next step:</p>
+              <ol className="list-decimal list-inside space-y-1 text-brand-700">
+                <li>Log in with your account</li>
+                <li>Upload your company ID + government ID</li>
+                <li>Admin reviews and approves — you're in!</li>
+              </ol>
             </div>
 
             <Link
-              href="/login"
-              className="block w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition"
+              href="/login?next=/verify-identity"
+              className="block w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition mb-3"
             >
-              Log In to Continue
+              Log In &amp; Upload Documents →
             </Link>
           </>
         )}

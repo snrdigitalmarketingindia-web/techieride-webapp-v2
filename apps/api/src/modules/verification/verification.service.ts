@@ -114,6 +114,8 @@ export class VerificationService {
         isException: byType['IDENTITY'].isException,
         rejectionReason: byType['IDENTITY'].rejectionReason,
         submittedAt: byType['IDENTITY'].submittedAt,
+        // true only when actual documents were uploaded (not just the exception placeholder)
+        hasDocuments: !!(byType['IDENTITY'].employeeIdUrl || byType['IDENTITY'].govtIdUrl),
       } : null,
       driver: byType['DRIVER'] ? {
         status: byType['DRIVER'].status,

@@ -56,7 +56,7 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user?.accountStatus !== 'DOCUMENT_VERIFICATION_PENDING') return;
     verificationApi.getStatus().then((r) => {
-      setDocsSubmitted(!!r.data?.identity); // any IDENTITY request exists → docs were submitted
+      setDocsSubmitted(!!(r.data?.identity?.hasDocuments)); // only true if actual docs uploaded
     }).catch(() => {});
   }, [user?.accountStatus]);
 
@@ -273,15 +273,29 @@ export default function DashboardPage() {
           )
         )}
         {isSeeker && (
-          <Link href="/rides/search"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition shrink-0">
-            🔍 Find Rides
+          user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' ? (
+            <span title="Complete identity verification to find rides"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 opacity-60 cursor-not-allowed select-none shrink-0">
+              🔍 Find Rides
+            </span>
+          ) : (
+            <Link href="/rides/search"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition shrink-0">
+              🔍 Find Rides
+            </Link>
+          )
+        )}
+        {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' ? (
+          <span title="Complete identity verification to view rides"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 opacity-60 cursor-not-allowed select-none shrink-0">
+            📋 My Rides
+          </span>
+        ) : (
+          <Link href="/rides"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition shrink-0">
+            📋 My Rides
           </Link>
         )}
-        <Link href="/rides"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition shrink-0">
-          📋 My Rides
-        </Link>
         <Link href="/rides/leaderboard"
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100 transition shrink-0">
           🏆 Leaderboard
