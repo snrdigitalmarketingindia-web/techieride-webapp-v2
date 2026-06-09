@@ -423,8 +423,8 @@ export class RidesService {
       },
     });
     if (!ride) throw new NotFoundException('Ride not found');
-    if (ride.status !== RideStatus.ONGOING) {
-      throw new BadRequestException('Only ONGOING rides can be force-completed');
+    if (![RideStatus.ONGOING, RideStatus.PUBLISHED].includes(ride.status as RideStatus)) {
+      throw new BadRequestException('Only ONGOING or PUBLISHED rides can be force-completed');
     }
 
     // Mark WAITING participants as NO_SHOW, BOARDED as DEBOARDED
