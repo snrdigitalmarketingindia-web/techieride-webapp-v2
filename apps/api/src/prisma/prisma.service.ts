@@ -5,6 +5,17 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(PrismaService.name);
 
+  constructor() {
+    const dbUrl = process.env.DATABASE_URL ?? '';
+    // Neon free tier: max 9 connections total. Cap Prisma pool at 3 so
+    // multiple dyno restarts / self-ping cycles can't exhaust the limit.
+    // Append only if not already present (idempotent).
+    const url = dbUrl.includes('connection_limit')
+      ? dbUrl
+      : dbUrl + (dbUrl.includes('?') ? '&' : '?') + 'connection_limit=3&pool_timeout=20';
+    super({ datasources: { db: { url } } });
+  }
+
   async onModuleInit() {
     await this.$connect();
     await this.runSafeMigrations();
