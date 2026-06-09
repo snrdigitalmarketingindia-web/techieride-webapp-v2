@@ -176,6 +176,14 @@ export class AuthService {
     if (!['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING'].includes(user.accountStatus)) {
       throw new BadRequestException('Exception verification is only available for unverified accounts');
     }
+    // If already at PERSONAL_EMAIL_PENDING, only allow resubmission if they
+    // originally came through the exception path — not normal email-verified users
+    if (
+      user.accountStatus === 'PERSONAL_EMAIL_PENDING' &&
+      user.verificationMethod !== 'MANUAL_EXCEPTION'
+    ) {
+      throw new BadRequestException('Exception verification is only available for unverified accounts');
+    }
 
     // Create a placeholder IDENTITY request tagged as exception.
     // Docs (company ID + govt ID) are uploaded later on /verify-identity.
