@@ -166,10 +166,18 @@ export default function BecomeGiverPage() {
         setRcParsedData(null);
         try {
           const { data: parseResult } = await uploadsApi.parseRc(url);
-          const serviceUnavailable = !parseResult.readable &&
-            parseResult.reason === 'RC parsing service not configured';
-          if (!parseResult.readable && !serviceUnavailable) {
-            // Block proceeding — ask user to re-upload a clearer image
+          // Service-side failures (API down, quota, model error, config missing) — non-blocking.
+          // Only block the user if Gemini explicitly says the IMAGE itself is unreadable.
+          const SERVICE_FAILURE_KEYWORDS = [
+            'service', 'unavailable', 'configured', 'failed', 'parse error',
+            'download', 'timeout', 'api error',
+          ];
+          const isServiceFailure = !parseResult.readable && (
+            !parseResult.reason ||
+            SERVICE_FAILURE_KEYWORDS.some(k => parseResult.reason!.toLowerCase().includes(k))
+          );
+          if (!parseResult.readable && !isServiceFailure) {
+            // Genuine unreadable image — block and ask to re-upload
             setDocs(prev => ({ ...prev, rcUrl: '' }));
             setError(
               `⚠️ Your RC image is not clear enough to read${parseResult.reason ? ` (${parseResult.reason})` : ''}. ` +

@@ -219,7 +219,8 @@ export default function ProfilePage() {
       // Parse RC for quality + auto-fill
       const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
       const serviceUnavailable = parseResult && !parseResult.readable &&
-        parseResult.reason === 'RC parsing service not configured';
+        ['service', 'unavailable', 'configured', 'failed', 'parse error', 'download', 'timeout', 'api error']
+          .some(k => (parseResult.reason ?? '').toLowerCase().includes(k));
       if (parseResult && !parseResult.readable && !serviceUnavailable) {
         alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
         e.target.value = '';
@@ -255,7 +256,8 @@ export default function ProfilePage() {
       // Parse RC for quality check
       const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
       const serviceUnavailable = parseResult && !parseResult.readable &&
-        parseResult.reason === 'RC parsing service not configured';
+        ['service', 'unavailable', 'configured', 'failed', 'parse error', 'download', 'timeout', 'api error']
+          .some(k => (parseResult.reason ?? '').toLowerCase().includes(k));
       if (parseResult && !parseResult.readable && !serviceUnavailable) {
         alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
         e.target.value = '';
