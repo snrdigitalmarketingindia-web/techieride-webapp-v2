@@ -205,14 +205,14 @@ export default function DashboardPage() {
           <div className="bg-red-50 border border-red-300 rounded-xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-red-800 text-sm font-semibold">❌ Documents rejected — please resubmit</p>
+                <p className="text-red-800 text-sm font-semibold">🙏 We're sorry, your documents could not be approved</p>
                 <p className="text-red-700 text-sm mt-0.5">
-                  Your identity documents were not approved. Please re-upload clear, valid documents.
+                  No worries — please re-upload clear, legible copies and we'll review them again promptly.
                 </p>
               </div>
               <Link href="/verify-identity"
                 className="shrink-0 bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-red-700 transition whitespace-nowrap">
-                Resubmit →
+                Re-upload →
               </Link>
             </div>
           </div>
