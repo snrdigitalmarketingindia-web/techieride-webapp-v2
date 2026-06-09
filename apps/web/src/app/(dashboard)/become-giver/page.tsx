@@ -4,43 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
-import { verificationApi, vehiclesApi, uploadsApi, api } from '@/lib/api';
+import { verificationApi, vehiclesApi, api } from '@/lib/api';
 import { convertToWebp } from '@/lib/convertToWebp';
 
 const STEPS = ['Requirements', 'Documents', 'Vehicle', 'Submit'];
 
-// Returns a human-readable mismatch message, or null if everything matches.
-// parsedData = what Gemini extracted from the RC image
-// form = what the user filled in
-function getRcMismatch(
-  parsedData: Record<string, any>,
-  form: { make: string; model: string; plateNumber: string },
-): string | null {
-  const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[\s\-_]/g, '');
-
-  const parsedPlate  = norm(parsedData.plateNumber);
-  const enteredPlate = norm(form.plateNumber);
-
-  if (parsedPlate && enteredPlate && parsedPlate !== enteredPlate) {
-    return `Your RC shows plate "${parsedData.plateNumber}" but you entered "${form.plateNumber}".`;
-  }
-
-  const parsedMake   = norm(parsedData.make);
-  const enteredMake  = norm(form.make);
-  const parsedModel  = norm(parsedData.model);
-  const enteredModel = norm(form.model);
-
-  const makeOk  = !parsedMake  || parsedMake.includes(enteredMake)  || enteredMake.includes(parsedMake);
-  const modelOk = !parsedModel || parsedModel.includes(enteredModel) || enteredModel.includes(parsedModel);
-
-  if (!makeOk || !modelOk) {
-    const rcVehicle      = [parsedData.make, parsedData.model].filter(Boolean).join(' ');
-    const enteredVehicle = [form.make, form.model].filter(Boolean).join(' ');
-    return `Your RC is for "${rcVehicle}" but you entered "${enteredVehicle}".`;
-  }
-
-  return null;
-}
 
 // ── Reusable upload field ──────────────────────────────────────────────────
 function UploadField({
@@ -91,8 +59,6 @@ export default function BecomeGiverPage() {
   const [step, setStep] = useState(0);
   const [uploading, setUploading] = useState<string | null>(null);
   const [docs, setDocs] = useState({ drivingLicenseUrl: '', rcUrl: '' });
-  const [rcParsedData, setRcParsedData] = useState<Record<string, any> | null>(null);
-  const [rcParsing, setRcParsing] = useState(false);
   const [vehicle, setVehicle] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: '4' });
   const [vehicleSaved, setVehicleSaved] = useState(false);
   const [minioAvailable, setMinioAvailable] = useState<boolean | null>(null);
@@ -159,48 +125,6 @@ export default function BecomeGiverPage() {
       };
       const key = keyMap[docType];
       if (key) setDocs(prev => ({ ...prev, [key]: url }));
-
-      // After RC upload — parse it with Gemini to extract vehicle details
-      if (docType === 'rc') {
-        setRcParsing(true);
-        setRcParsedData(null);
-        try {
-          const { data: parseResult } = await uploadsApi.parseRc(url);
-          // Service-side failures (API down, quota, model error, config missing) — non-blocking.
-          // Only block the user if Gemini explicitly says the IMAGE itself is unreadable.
-          const SERVICE_FAILURE_KEYWORDS = [
-            'service', 'unavailable', 'configured', 'failed', 'parse error',
-            'download', 'timeout', 'api error',
-          ];
-          const isServiceFailure = !parseResult.readable && (
-            !parseResult.reason ||
-            SERVICE_FAILURE_KEYWORDS.some(k => parseResult.reason!.toLowerCase().includes(k))
-          );
-          if (!parseResult.readable && !isServiceFailure) {
-            // Genuine unreadable image — block and ask to re-upload
-            setDocs(prev => ({ ...prev, rcUrl: '' }));
-            setError(
-              `⚠️ Your RC image is not clear enough to read${parseResult.reason ? ` (${parseResult.reason})` : ''}. ` +
-              `Please re-upload a well-lit, flat photo where all text is clearly visible.`
-            );
-          } else {
-            // Pre-fill vehicle form with extracted data
-            const d = parseResult.data;
-            setRcParsedData(d);
-            setVehicle(prev => ({
-              make:        d.make        || prev.make,
-              model:       d.model       || prev.model,
-              color:       d.color       || prev.color,
-              plateNumber: d.plateNumber || prev.plateNumber,
-              totalSeats:  d.totalSeats  ? String(d.totalSeats) : prev.totalSeats,
-            }));
-          }
-        } catch {
-          // Parsing failed silently — user can still fill form manually
-        } finally {
-          setRcParsing(false);
-        }
-      }
     } catch {
       setError('Upload failed. Make sure document storage is running.');
     } finally {
@@ -214,20 +138,11 @@ export default function BecomeGiverPage() {
       setError('Please fill in make, model, and plate number');
       return;
     }
-    // Block save if RC parsed data doesn't match what user filled
-    if (rcParsedData) {
-      const mismatch = getRcMismatch(rcParsedData, vehicle);
-      if (mismatch) {
-        setError(`⚠️ ${mismatch} Please correct the details to match your RC before saving.`);
-        return;
-      }
-    }
     try {
       const created = await vehiclesApi.create({ ...vehicle, totalSeats: parseInt(vehicle.totalSeats) });
-      // Auto-link the RC uploaded in Step 1 to this vehicle — no need to re-upload later
       const vehicleId = created.data?.id;
       if (vehicleId && docs.rcUrl) {
-        await vehiclesApi.updateRc(vehicleId, docs.rcUrl, rcParsedData);
+        await vehiclesApi.updateRc(vehicleId, docs.rcUrl, null);
       }
       setVehicleSaved(true);
     } catch (e: any) {
@@ -277,7 +192,7 @@ export default function BecomeGiverPage() {
     );
   }
 
-  const canProceedStep1 = docs.drivingLicenseUrl && docs.rcUrl && !rcParsing;
+  const canProceedStep1 = docs.drivingLicenseUrl && docs.rcUrl;
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -366,16 +281,6 @@ export default function BecomeGiverPage() {
               disabled={minioAvailable === false}
               onFile={handleFile}
             />
-            {rcParsing && (
-              <p className="text-xs text-brand-600 bg-brand-50 border border-brand-100 rounded-lg px-3 py-2">
-                🔍 Reading your RC… vehicle details will be filled automatically.
-              </p>
-            )}
-            {!rcParsing && rcParsedData && docs.rcUrl && (
-              <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                ✅ RC read successfully — vehicle details pre-filled in Step 3. Please review them.
-              </p>
-            )}
           </div>
 
           <div className="flex gap-2">
@@ -384,7 +289,7 @@ export default function BecomeGiverPage() {
               ← Back
             </button>
             <button
-              onClick={() => { if (!canProceedStep1) { setError(rcParsing ? 'Please wait — reading your RC…' : 'Please upload both documents to continue'); return; } setError(''); setStep(2); }}
+              onClick={() => { if (!canProceedStep1) { setError('Please upload both documents to continue'); return; } setError(''); setStep(2); }}
               disabled={!canProceedStep1}
               className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition">
               Next →
@@ -398,12 +303,6 @@ export default function BecomeGiverPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="font-semibold text-gray-900">Add your vehicle</h2>
-
-            {rcParsedData && !vehicleSaved && (
-              <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 text-sm text-brand-700">
-                ✨ Details auto-filled from your RC. Review carefully and correct anything that looks wrong before saving.
-              </div>
-            )}
 
             {vehicleSaved ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">

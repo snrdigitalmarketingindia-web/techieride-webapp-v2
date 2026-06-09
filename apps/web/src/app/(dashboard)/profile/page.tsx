@@ -2,28 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
-import { vehiclesApi, verificationApi, uploadsApi, api, usersApi } from '@/lib/api';
+import { vehiclesApi, verificationApi, api, usersApi } from '@/lib/api';
 import { convertToWebp } from '@/lib/convertToWebp';
 import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 
 // Returns a mismatch message or null if RC data matches vehicle form
-function getRcMismatch(
-  parsedData: Record<string, any>,
-  form: { make: string; model: string; plateNumber: string },
-): string | null {
-  const norm = (s?: string) => (s ?? '').toLowerCase().replace(/[\s\-_]/g, '');
-  const parsedPlate  = norm(parsedData.plateNumber);
-  const enteredPlate = norm(form.plateNumber);
-  if (parsedPlate && enteredPlate && parsedPlate !== enteredPlate) {
-    return `Your RC shows plate "${parsedData.plateNumber}" but you entered "${form.plateNumber}".`;
-  }
-  const makeOk  = !norm(parsedData.make)  || norm(parsedData.make).includes(norm(form.make))  || norm(form.make).includes(norm(parsedData.make));
-  const modelOk = !norm(parsedData.model) || norm(parsedData.model).includes(norm(form.model)) || norm(form.model).includes(norm(parsedData.model));
-  if (!makeOk || !modelOk) {
-    return `Your RC is for "${[parsedData.make, parsedData.model].filter(Boolean).join(' ')}" but you entered "${form.make} ${form.model}".`;
-  }
-  return null;
-}
 
 const ECO_BADGES: Record<string, { icon: string; label: string; color: string }> = {
   SEED:   { icon: '🌱', label: 'Seed',   color: 'bg-gray-100 text-gray-700' },
@@ -46,7 +29,6 @@ export default function ProfilePage() {
   const [addVehicle, setAddVehicle] = useState(false);
   const [vForm, setVForm] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
   const [newVehicleRcUrl, setNewVehicleRcUrl] = useState<string | null>(null);
-  const [newVehicleRcParsedData, setNewVehicleRcParsedData] = useState<Record<string, any> | null>(null);
   const [vehicleRcUploading, setVehicleRcUploading] = useState(false);
   const [perVehicleRcUploading, setPerVehicleRcUploading] = useState<string | null>(null); // vehicleId
   const [loading, setLoading] = useState(false);
@@ -184,27 +166,18 @@ export default function ProfilePage() {
   const submitVerification = () => { window.location.href = '/verify-identity'; };
 
   const submitVehicle = async () => {
-    // Block save if RC parsed data doesn't match what user filled
-    if (newVehicleRcParsedData) {
-      const mismatch = getRcMismatch(newVehicleRcParsedData, vForm);
-      if (mismatch) {
-        alert(`⚠️ ${mismatch} Please correct the details to match your RC before saving.`);
-        return;
-      }
-    }
     setLoading(true);
     try {
       const created = await vehiclesApi.create(vForm);
       const vehicleId = created.data?.id;
       if (vehicleId && newVehicleRcUrl) {
-        await vehiclesApi.updateRc(vehicleId, newVehicleRcUrl, newVehicleRcParsedData);
+        await vehiclesApi.updateRc(vehicleId, newVehicleRcUrl, null);
       }
       const r = await vehiclesApi.getMine();
       setVehicles(r.data);
       setAddVehicle(false);
       setVForm({ make: '', model: '', color: '', plateNumber: '', totalSeats: 4 });
       setNewVehicleRcUrl(null);
-      setNewVehicleRcParsedData(null);
     } finally {
       setLoading(false);
     }
@@ -216,29 +189,7 @@ export default function ProfilePage() {
     setVehicleRcUploading(true);
     try {
       const url = await uploadFile(file, 'rc');
-      // Parse RC for quality + auto-fill
-      const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
-      const serviceUnavailable = parseResult && !parseResult.readable &&
-        ['service', 'unavailable', 'configured', 'failed', 'parse error', 'download', 'timeout', 'api error']
-          .some(k => (parseResult.reason ?? '').toLowerCase().includes(k));
-      if (parseResult && !parseResult.readable && !serviceUnavailable) {
-        alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
-        e.target.value = '';
-        return;
-      }
       setNewVehicleRcUrl(url);
-      if (parseResult?.data) {
-        const d = parseResult.data;
-        setVForm(f => ({
-          ...f,
-          make:        d.make        || f.make,
-          model:       d.model       || f.model,
-          color:       d.color       || f.color,
-          plateNumber: d.plateNumber || f.plateNumber,
-          totalSeats:  d.totalSeats  ?? f.totalSeats,
-        }));
-        setNewVehicleRcParsedData(d);
-      }
     } catch {
       alert('RC upload failed. Make sure storage is available.');
     } finally {
@@ -253,17 +204,7 @@ export default function ProfilePage() {
     setPerVehicleRcUploading(vehicleId);
     try {
       const url = await uploadFile(file, 'rc');
-      // Parse RC for quality check
-      const { data: parseResult } = await uploadsApi.parseRc(url).catch(() => ({ data: null }));
-      const serviceUnavailable = parseResult && !parseResult.readable &&
-        ['service', 'unavailable', 'configured', 'failed', 'parse error', 'download', 'timeout', 'api error']
-          .some(k => (parseResult.reason ?? '').toLowerCase().includes(k));
-      if (parseResult && !parseResult.readable && !serviceUnavailable) {
-        alert(`⚠️ RC image is not clear enough to read: ${parseResult.reason || 'please re-upload a clearer photo'}.`);
-        e.target.value = '';
-        return;
-      }
-      await vehiclesApi.updateRc(vehicleId, url, parseResult?.data ?? null);
+      await vehiclesApi.updateRc(vehicleId, url, null);
       const r = await vehiclesApi.getMine();
       setVehicles(r.data);
     } catch {
