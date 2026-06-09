@@ -92,7 +92,7 @@ async function run() {
   async function empVerify(userId: string, client: AxiosInstance) {
     await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
     const q = await admin.get('/admin/verification/pending');
-    const e = q.data.find((v: any) => v.userId === userId && v.verificationType === 'EMPLOYEE');
+    const e = q.data.find((v: any) => v.userId === userId && v.verificationType === 'IDENTITY');
     if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
   }
 
@@ -103,7 +103,7 @@ async function run() {
   // Employee verification
   await giver.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
   const empQueue = await admin.get('/admin/verification/pending');
-  const empEntry = empQueue.data.find((v: any) => v.userId === giverAcc.userId && v.verificationType === 'EMPLOYEE');
+  const empEntry = empQueue.data.find((v: any) => v.userId === giverAcc.userId && v.verificationType === 'IDENTITY');
   if (empEntry) await admin.patch(`/admin/verification/${empEntry.id}/review`, { decision: 'APPROVED' });
   // Driver verification
   await giver.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
@@ -190,7 +190,7 @@ async function run() {
     // Employee verification
     await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
     const eq = await admin.get('/admin/verification/pending');
-    const ee = eq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'EMPLOYEE');
+    const ee = eq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     if (ee) await admin.patch(`/admin/verification/${ee.id}/review`, { decision: 'APPROVED' });
     // Driver verification
     await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });

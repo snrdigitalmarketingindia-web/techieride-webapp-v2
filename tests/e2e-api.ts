@@ -189,7 +189,7 @@ async function run() {
 
   await test('Admin approves giver verification', async () => {
     const queue = await adminClient.get('/admin/verification/pending');
-    const req = queue.data.find((v: any) => v.userId === giverUserId && v.verificationType === 'EMPLOYEE');
+    const req = queue.data.find((v: any) => v.userId === giverUserId && v.verificationType === 'IDENTITY');
     if (!req) return; // already approved or not found
 
     const r = await adminClient.patch(`/admin/verification/${req.id}/review`, {
@@ -210,7 +210,7 @@ async function run() {
     await tempClient.post('/verification/employee', { employeeIdUrl: 'mock://employee-id-seeker' });
 
     const queue = await adminClient.get('/admin/verification/pending');
-    const req = queue.data.find((v: any) => v.userId === tempUserId && v.verificationType === 'EMPLOYEE');
+    const req = queue.data.find((v: any) => v.userId === tempUserId && v.verificationType === 'IDENTITY');
     if (!req) return;
 
     const r = await adminClient.patch(`/admin/verification/${req.id}/review`, { decision: 'APPROVED' });
@@ -249,7 +249,7 @@ async function run() {
     // Step 1 — employee verification
     await giverClient.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
     const empQueue = await adminClient.get('/admin/verification/pending');
-    const empEntry = empQueue.data.find((v: any) => v.userId === freshGiverId && v.verificationType === 'EMPLOYEE');
+    const empEntry = empQueue.data.find((v: any) => v.userId === freshGiverId && v.verificationType === 'IDENTITY');
     if (empEntry) await adminClient.patch(`/admin/verification/${empEntry.id}/review`, { decision: 'APPROVED' });
 
     // Step 2 — driver verification
@@ -335,7 +335,7 @@ async function run() {
   agent('Ride Seeker Agent');
 
   // Use a fresh seeker account — must go through employee verification
-  // (accountStatus must be EMPLOYEE_VERIFIED to access ride routes)
+  // (accountStatus must be SEEKER_VERIFIED to access ride routes)
   const freshSeekerEmail = `fresh_seeker_${ts}@tcs.com`;
   const freshSeekerToken = await registerAndLogin(freshSeekerEmail, 'Fresh Seeker');
   const seekerClient = makeClient(freshSeekerToken);
@@ -345,7 +345,7 @@ async function run() {
     const freshSeekerId = profile.data.id;
     await seekerClient.post('/verification/employee', { employeeIdUrl: 'mock://seeker-emp' });
     const empQ = await adminClient.get('/admin/verification/pending');
-    const empE = empQ.data.find((v: any) => v.userId === freshSeekerId && v.verificationType === 'EMPLOYEE');
+    const empE = empQ.data.find((v: any) => v.userId === freshSeekerId && v.verificationType === 'IDENTITY');
     if (empE) await adminClient.patch(`/admin/verification/${empE.id}/review`, { decision: 'APPROVED' });
   }
 

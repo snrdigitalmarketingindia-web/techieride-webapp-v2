@@ -32,6 +32,7 @@ export declare const MATCH_PICKUP_RADIUS_METERS = 500;
 export declare const MATCH_TIME_WINDOW_MINUTES = 30;
 export declare const TRUST_SCORE: {
     readonly INITIAL: 10;
+    readonly IDENTITY_VERIFIED: 5;
     readonly EMPLOYEE_VERIFIED: 5;
     readonly DRIVER_VERIFIED: 5;
     readonly RIDE_COMPLETED_GIVER: 5;

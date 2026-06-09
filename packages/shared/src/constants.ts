@@ -41,7 +41,8 @@ export const MATCH_TIME_WINDOW_MINUTES = 30;
 // ── Trust Score ───────────────────────────────────────────────────────────
 export const TRUST_SCORE = {
   INITIAL: 10,
-  EMPLOYEE_VERIFIED: 5,
+  IDENTITY_VERIFIED: 5,   // awarded when IDENTITY docs approved (SEEKER_VERIFIED)
+  /** @deprecated use IDENTITY_VERIFIED */ EMPLOYEE_VERIFIED: 5,
   DRIVER_VERIFIED: 5,
   RIDE_COMPLETED_GIVER: 5,
   RIDE_COMPLETED_SEEKER: 2,

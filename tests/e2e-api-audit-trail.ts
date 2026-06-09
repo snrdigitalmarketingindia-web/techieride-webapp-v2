@@ -357,8 +357,8 @@ async function runAdminAuditTests() {
     assert(user?.isActive === true, `Expected isActive=true after reactivation, got ${user?.isActive}`);
   });
 
-  // AUD-17: Verification approval — accountStatus changes to EMPLOYEE_VERIFIED
-  await test('AUD-17: verification approval changes accountStatus to EMPLOYEE_VERIFIED', async () => {
+  // AUD-17: Verification approval — accountStatus changes to SEEKER_VERIFIED
+  await test('AUD-17: verification approval changes accountStatus to SEEKER_VERIFIED', async () => {
     const ts = Date.now();
     const email = `a17_${ts}@wipro.com`;
     const acc = await register(email, 'AuditVerify Test');
@@ -367,12 +367,12 @@ async function runAdminAuditTests() {
 
     await client.post('/verification/employee', { employeeIdUrl: 'https://mock.storage/emp.jpg' });
     const queue = await admin.get('/admin/verification/pending');
-    const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'EMPLOYEE');
+    const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     assert(!!entry, 'Verification entry must appear in admin queue');
 
     await admin.patch(`/admin/verification/${entry.id}/review`, { decision: 'APPROVED' });
     const me = await client.get('/users/me');
-    assert(me.data.accountStatus === 'EMPLOYEE_VERIFIED', `Expected EMPLOYEE_VERIFIED, got ${me.data.accountStatus}`);
+    assert(me.data.accountStatus === 'SEEKER_VERIFIED', `Expected SEEKER_VERIFIED, got ${me.data.accountStatus}`);
   });
 
   // AUD-18: Verification rejection — accountStatus not promoted; request marked rejected
@@ -386,13 +386,13 @@ async function runAdminAuditTests() {
     const statusBefore = (await client.get('/users/me')).data.accountStatus;
     await client.post('/verification/employee', { employeeIdUrl: 'https://mock.storage/emp.jpg' });
     const queue = await admin.get('/admin/verification/pending');
-    const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'EMPLOYEE');
+    const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     await admin.patch(`/admin/verification/${entry.id}/review`, { decision: 'REJECTED' });
 
     const me = await client.get('/users/me');
     assert(
-      me.data.accountStatus !== 'EMPLOYEE_VERIFIED',
-      `accountStatus must not advance to EMPLOYEE_VERIFIED on rejection, got ${me.data.accountStatus}`,
+      me.data.accountStatus !== 'SEEKER_VERIFIED',
+      `accountStatus must not advance to SEEKER_VERIFIED on rejection, got ${me.data.accountStatus}`,
     );
   });
 

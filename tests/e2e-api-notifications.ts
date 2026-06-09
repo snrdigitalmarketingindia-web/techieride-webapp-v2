@@ -267,7 +267,7 @@ async function runNotificationTests() {
     // Admin rejects it
     const queue = await adminClient.get('/admin/verification/pending');
     assert(queue.status === 200, `Queue failed: ${queue.status}`);
-    const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'EMPLOYEE');
+    const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     assert(!!entry, 'Verification entry not found in queue');
     const review = await adminClient.patch(`/admin/verification/${entry.id}/review`, { decision: 'REJECTED' });
     assert(review.status === 200, `Reject failed: ${JSON.stringify(review.data)}`);

@@ -586,13 +586,13 @@ async function run() {
       const r = await admin.get('/admin/verification/pending');
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       assert(Array.isArray(r.data), 'Expected array');
-      const myReq = r.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
+      const myReq = r.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'IDENTITY');
       assert(!!myReq, 'Submitted employee verification not in pending queue');
     });
 
     await test('Admin can reject a verification with reason', async () => {
       const queue = await admin.get('/admin/verification/pending');
-      const myReq = queue.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
+      const myReq = queue.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'IDENTITY');
       if (myReq) {
         const r = await admin.patch(`/admin/verification/${myReq.id}/review`, {
           decision: 'REJECTED',
@@ -612,7 +612,7 @@ async function run() {
 
     await test('Admin can approve employee verification', async () => {
       const queue = await admin.get('/admin/verification/pending');
-      const myReq = queue.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
+      const myReq = queue.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'IDENTITY');
       if (myReq) {
         const r = await admin.patch(`/admin/verification/${myReq.id}/review`, { decision: 'APPROVED' });
         assert(r.status === 200, `Expected 200, got ${r.status}`);

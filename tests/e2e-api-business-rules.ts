@@ -138,7 +138,7 @@ async function setupFreshPair(suffix: string) {
   // Employee verification
   await giverClient.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
   const empQ = await admin.get('/admin/verification/pending');
-  const empReq = empQ.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'EMPLOYEE');
+  const empReq = empQ.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'IDENTITY');
   if (empReq) await admin.patch(`/admin/verification/${empReq.id}/review`, { decision: 'APPROVED' });
   // Driver verification
   await giverClient.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
@@ -160,7 +160,7 @@ async function setupFreshPair(suffix: string) {
   // Seeker employee verification — required before seeker can access ride routes
   await seekerClient.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
   const seekerEmpQ = await admin.get('/admin/verification/pending');
-  const seekerEmpReq = seekerEmpQ.data.find((v: any) => v.userId === seeker.userId && v.verificationType === 'EMPLOYEE');
+  const seekerEmpReq = seekerEmpQ.data.find((v: any) => v.userId === seeker.userId && v.verificationType === 'IDENTITY');
   if (seekerEmpReq) await admin.patch(`/admin/verification/${seekerEmpReq.id}/review`, { decision: 'APPROVED' });
 
   return { giverClient, seekerClient, vehicleId, giverEmail, seekerEmail };

@@ -16,7 +16,7 @@ async function main() {
   // ── Admin ──────────────────────────────────────────────────────────────
   const admin = await prisma.user.upsert({
     where: { email: 'admin@techieride.in' },
-    update: { accountStatus: AccountStatus.EMPLOYEE_VERIFIED, emailStatus: 'VERIFIED', isActive: true },
+    update: { accountStatus: AccountStatus.SEEKER_VERIFIED, emailStatus: 'VERIFIED', isActive: true },
     create: {
       email: 'admin@techieride.in',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -34,7 +34,7 @@ async function main() {
       role: UserRole.ADMIN,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
+      accountStatus: AccountStatus.SEEKER_VERIFIED,
       ecoPoints: 500,
       ecoLevel: EcoLevel.LEAF,
       trustScore: 85,
@@ -54,7 +54,7 @@ async function main() {
   // ── Ride Seeker: Arjun ─────────────────────────────────────────────────
   const arjun = await prisma.user.upsert({
     where: { email: 'arjun@tcs.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED, isActive: true },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.SEEKER_VERIFIED, isActive: true },
     create: {
       email: 'arjun@tcs.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -72,7 +72,7 @@ async function main() {
       role: UserRole.RIDE_SEEKER,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
+      accountStatus: AccountStatus.SEEKER_VERIFIED,
       ecoPoints: 60,
       ecoLevel: EcoLevel.SEED,
       trustScore: 35,
@@ -82,9 +82,9 @@ async function main() {
   });
   await prisma.rideSeeker.upsert({ where: { userId: arjun.id }, update: {}, create: { userId: arjun.id } });
   await prisma.verificationRequest.upsert({
-    where: { userId_verificationType: { userId: arjun.id, verificationType: 'EMPLOYEE' } },
+    where: { userId_verificationType: { userId: arjun.id, verificationType: 'IDENTITY' } },
     update: { status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
-    create: { userId: arjun.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: arjun.id, verificationType: 'IDENTITY', employeeIdUrl: 'mock://approved', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true, status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
   await prisma.emergencyContact.upsert({
     where: { id: 'ec-arjun-001' },
@@ -96,7 +96,7 @@ async function main() {
   // ── Ride Seeker: Tapaswini ─────────────────────────────────────────────
   const tapaswini = await prisma.user.upsert({
     where: { email: 'tapaswini@tapaswini.com' },
-    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.EMPLOYEE_VERIFIED, isActive: true },
+    update: { verificationStatus: VerificationStatus.APPROVED, emailStatus: 'VERIFIED', accountStatus: AccountStatus.SEEKER_VERIFIED, isActive: true },
     create: {
       email: 'tapaswini@tapaswini.com',
       passwordHash: await hashPw(SEED_PASSWORD),
@@ -114,7 +114,7 @@ async function main() {
       role: UserRole.RIDE_SEEKER,
       verificationStatus: VerificationStatus.APPROVED,
       emailStatus: 'VERIFIED',
-      accountStatus: AccountStatus.EMPLOYEE_VERIFIED,
+      accountStatus: AccountStatus.SEEKER_VERIFIED,
       ecoPoints: 60,
       ecoLevel: EcoLevel.SEED,
       trustScore: 30,
@@ -124,9 +124,9 @@ async function main() {
   });
   await prisma.rideSeeker.upsert({ where: { userId: tapaswini.id }, update: {}, create: { userId: tapaswini.id } });
   await prisma.verificationRequest.upsert({
-    where: { userId_verificationType: { userId: tapaswini.id, verificationType: 'EMPLOYEE' } },
+    where: { userId_verificationType: { userId: tapaswini.id, verificationType: 'IDENTITY' } },
     update: { status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
-    create: { userId: tapaswini.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: tapaswini.id, verificationType: 'IDENTITY', employeeIdUrl: 'mock://approved', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true, status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
   await prisma.emergencyContact.upsert({
     where: { id: 'ec-tapaswini-001' },
@@ -175,9 +175,9 @@ async function main() {
     create: { rideGiverId: rahulGiver.id, make: 'Maruti', model: 'Swift', color: 'White', plateNumber: 'TS09AB5678', totalSeats: 4, rcVerified: true },
   });
   await prisma.verificationRequest.upsert({
-    where: { userId_verificationType: { userId: rahul.id, verificationType: 'EMPLOYEE' } },
+    where: { userId_verificationType: { userId: rahul.id, verificationType: 'IDENTITY' } },
     update: { status: VerificationStatus.APPROVED },
-    create: { userId: rahul.id, verificationType: 'EMPLOYEE', employeeIdUrl: 'mock://approved', status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
+    create: { userId: rahul.id, verificationType: 'IDENTITY', employeeIdUrl: 'mock://approved', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true, status: VerificationStatus.APPROVED, reviewedBy: admin.id, reviewedAt: new Date() },
   });
   await prisma.verificationRequest.upsert({
     where: { userId_verificationType: { userId: rahul.id, verificationType: 'DRIVER' } },
@@ -238,7 +238,7 @@ async function main() {
   for (const acc of testAccounts) {
     const acctStatus = (acc.role === UserRole.RIDE_GIVER)
       ? AccountStatus.DRIVER_VERIFIED
-      : AccountStatus.EMPLOYEE_VERIFIED;
+      : AccountStatus.SEEKER_VERIFIED;
     const u = await prisma.user.upsert({
       where: { email: acc.email },
       update: {

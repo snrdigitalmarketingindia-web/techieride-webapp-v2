@@ -5,9 +5,9 @@ var AccountStatus;
 (function (AccountStatus) {
     AccountStatus["DRAFT"] = "DRAFT";
     AccountStatus["EMAIL_VERIFICATION_PENDING"] = "EMAIL_VERIFICATION_PENDING";
-    AccountStatus["EXCEPTION_VERIFICATION_REQUESTED"] = "EXCEPTION_VERIFICATION_REQUESTED";
+    AccountStatus["PERSONAL_EMAIL_PENDING"] = "PERSONAL_EMAIL_PENDING";
     AccountStatus["DOCUMENT_VERIFICATION_PENDING"] = "DOCUMENT_VERIFICATION_PENDING";
-    AccountStatus["EMPLOYEE_VERIFIED"] = "EMPLOYEE_VERIFIED";
+    AccountStatus["SEEKER_VERIFIED"] = "SEEKER_VERIFIED";
     AccountStatus["DRIVER_VERIFICATION_PENDING"] = "DRIVER_VERIFICATION_PENDING";
     AccountStatus["DRIVER_VERIFIED"] = "DRIVER_VERIFIED";
     AccountStatus["SUSPENDED"] = "SUSPENDED";
@@ -17,9 +17,8 @@ var AccountStatus;
 })(AccountStatus || (exports.AccountStatus = AccountStatus = {}));
 var VerificationType;
 (function (VerificationType) {
-    VerificationType["EMPLOYEE"] = "EMPLOYEE";
+    VerificationType["IDENTITY"] = "IDENTITY";
     VerificationType["DRIVER"] = "DRIVER";
-    VerificationType["EXCEPTION"] = "EXCEPTION";
 })(VerificationType || (exports.VerificationType = VerificationType = {}));
 var Gender;
 (function (Gender) {

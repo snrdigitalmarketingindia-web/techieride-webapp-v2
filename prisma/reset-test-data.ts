@@ -192,11 +192,11 @@ async function main() {
 
   // Per-account updates with correct accountStatus per role
   const accountUpdates: Array<{ email: string; accountStatus: string }> = [
-    { email: 'admin@techieride.in',       accountStatus: 'EMPLOYEE_VERIFIED' },
-    { email: 'csr@csr.com',               accountStatus: 'EMPLOYEE_VERIFIED' },
-    { email: 'arjun@tcs.com',             accountStatus: 'EMPLOYEE_VERIFIED' },
-    { email: 'tapaswini@tapaswini.com',   accountStatus: 'EMPLOYEE_VERIFIED' },
-    { email: 'raghu@raghu.com',           accountStatus: 'EMPLOYEE_VERIFIED' },
+    { email: 'admin@techieride.in',       accountStatus: 'SEEKER_VERIFIED' },
+    { email: 'csr@csr.com',               accountStatus: 'SEEKER_VERIFIED' },
+    { email: 'arjun@tcs.com',             accountStatus: 'SEEKER_VERIFIED' },
+    { email: 'tapaswini@tapaswini.com',   accountStatus: 'SEEKER_VERIFIED' },
+    { email: 'raghu@raghu.com',           accountStatus: 'SEEKER_VERIFIED' },
     { email: 'rahul@rahul.com',           accountStatus: 'DRIVER_VERIFIED'   },
     { email: 'raju@raju.com',             accountStatus: 'DRIVER_VERIFIED'   },
     { email: 'venky@venky.com',           accountStatus: 'DRIVER_VERIFIED'   },
@@ -279,7 +279,7 @@ async function main() {
   console.log('  Giver   : rahul@rahul.com  |  raju@raju.com  |  venky@venky.com  |  harish@harish.com');
   console.log('\nVerification state:');
   console.log('  All givers  → DRIVER_VERIFIED, licenseVerified=true, rcVerified=true');
-  console.log('  All seekers → EMPLOYEE_VERIFIED');
+  console.log('  All seekers → SEEKER_VERIFIED');
   console.log('  All users   → emailStatus=VERIFIED, personalEmailVerified=true');
 }
 

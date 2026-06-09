@@ -1,12 +1,12 @@
 /**
  * Shared test helpers for all e2e-api-*.ts suites.
  *
- * Verification now has two separate tracks:
- *   1. Employee verification  → POST /verification/employee → EMPLOYEE_VERIFIED
- *   2. Driver verification    → POST /verification/driver  → DRIVER_VERIFIED (givers only)
+ * Verification now uses a single identity approval track:
+ *   1. Identity verification → POST /verification/identity → SEEKER_VERIFIED + TRID
+ *   2. Driver verification   → POST /verification/driver  → DRIVER_VERIFIED (givers only)
  *
- * freshGiver()  → register → approveEmployee → approveDriver → add vehicle → verify RC
- * freshSeeker() → register → approveEmployee
+ * freshGiver()  → register → approveIdentity → approveDriver → add vehicle → verify RC
+ * freshSeeker() → register → approveIdentity
  */
 
 import axios, { AxiosInstance } from 'axios';
@@ -70,33 +70,41 @@ export async function register(
 // ── Verification helpers ───────────────────────────────────────────────────
 
 /**
- * Submit employee docs and have admin approve → accountStatus: EMPLOYEE_VERIFIED
+ * Submit identity docs (company ID + govt ID + self-declaration) and have
+ * admin approve → accountStatus: SEEKER_VERIFIED + TRID assigned.
  */
-export async function approveEmployeeVerification(
+export async function approveIdentityVerification(
   userId: string,
   userClient: AxiosInstance,
   adminClient: AxiosInstance,
 ) {
-  const submit = await userClient.post('/verification/employee', {
+  const submit = await userClient.post('/verification/identity', {
     employeeIdUrl: 'https://mock.storage/emp-id.jpg',
+    govtIdUrl: 'https://mock.storage/govt-id.jpg',
+    selfDeclarationAccepted: true,
   });
   if (![200, 201].includes(submit.status)) {
-    throw new Error(`Employee verification submit failed: ${JSON.stringify(submit.data)}`);
+    throw new Error(`Identity verification submit failed: ${JSON.stringify(submit.data)}`);
   }
 
   const queue = await adminClient.get('/admin/verification/pending');
   if (queue.status !== 200) throw new Error(`Could not fetch verification queue: ${JSON.stringify(queue.data)}`);
 
-  const entry = queue.data.find((v: any) => v.userId === userId && v.verificationType === 'EMPLOYEE');
-  if (!entry) throw new Error(`Employee verification entry for userId ${userId} not found`);
+  const entry = queue.data.find((v: any) => v.userId === userId && v.verificationType === 'IDENTITY');
+  if (!entry) throw new Error(`Identity verification entry for userId ${userId} not found`);
 
   const review = await adminClient.patch(`/admin/verification/${entry.id}/review`, { decision: 'APPROVED' });
-  if (review.status !== 200) throw new Error(`Employee verification approval failed: ${JSON.stringify(review.data)}`);
+  if (review.status !== 200) throw new Error(`Identity verification approval failed: ${JSON.stringify(review.data)}`);
 }
 
 /**
+ * Legacy alias — old tests calling approveEmployeeVerification() still work.
+ */
+export const approveEmployeeVerification = approveIdentityVerification;
+
+/**
  * Submit driver docs and have admin approve → accountStatus: DRIVER_VERIFIED, role: RIDE_GIVER
- * Requires user to already be EMPLOYEE_VERIFIED.
+ * Requires user to already be SEEKER_VERIFIED.
  */
 export async function approveDriverVerification(
   userId: string,
@@ -123,14 +131,14 @@ export async function approveDriverVerification(
 
 /**
  * Legacy alias — kept so old test code that calls approveVerification() still compiles.
- * Runs the full 2-step flow (employee + driver).
+ * Runs the full 2-step flow (identity + driver).
  */
 export async function approveVerification(
   userId: string,
   userClient: AxiosInstance,
   adminClient: AxiosInstance,
 ) {
-  await approveEmployeeVerification(userId, userClient, adminClient);
+  await approveIdentityVerification(userId, userClient, adminClient);
   await approveDriverVerification(userId, userClient, adminClient);
 }
 
@@ -148,8 +156,8 @@ export async function approveVehicleRc(vehicleId: string, adminClient: AxiosInst
  * Create a fully verified giver ready to publish rides.
  *
  * 1. Register (starts as RIDE_SEEKER)
- * 2. Employee verification → EMPLOYEE_VERIFIED
- * 3. Driver verification   → DRIVER_VERIFIED, role → BOTH
+ * 2. Identity verification → SEEKER_VERIFIED + TRID
+ * 3. Driver verification   → DRIVER_VERIFIED, role → RIDE_GIVER
  * 4. Add vehicle
  * 5. Admin verifies vehicle RC
  */
@@ -161,7 +169,7 @@ export async function freshGiver(suffix: string) {
   const client = makeClient(acc.token);
   const adminClient = await getAdminClient();
 
-  await approveEmployeeVerification(acc.userId, client, adminClient);
+  await approveIdentityVerification(acc.userId, client, adminClient);
   await approveDriverVerification(acc.userId, client, adminClient);
 
   const veh = await client.post('/vehicles', {
@@ -180,8 +188,7 @@ export async function freshGiver(suffix: string) {
 }
 
 /**
- * Create a fresh verified seeker (EMPLOYEE_VERIFIED).
- * Seekers need EMPLOYEE_VERIFIED to search and book rides.
+ * Create a fresh verified seeker (SEEKER_VERIFIED + TRID).
  */
 export async function freshSeeker(suffix: string) {
   const ts = Date.now();
@@ -191,7 +198,7 @@ export async function freshSeeker(suffix: string) {
   const client = makeClient(acc.token);
   const adminClient = await getAdminClient();
 
-  await approveEmployeeVerification(acc.userId, client, adminClient);
+  await approveIdentityVerification(acc.userId, client, adminClient);
 
   return { client, token: acc.token, userId: acc.userId, refreshToken: acc.refreshToken };
 }

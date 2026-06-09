@@ -54,7 +54,7 @@ test.describe('🛡️ Admin Full Flow', () => {
     await loginUI(page, 'admin');
     await page.goto('/admin/users');
     await page.getByText(/arjun mehta/i).first().click();
-    // accountStatus badge shows the enum value directly (e.g. EMPLOYEE_VERIFIED, DRIVER_VERIFIED, SUSPENDED…)
+    // accountStatus badge shows the enum value directly (e.g. SEEKER_VERIFIED, DRIVER_VERIFIED, SUSPENDED…)
     await expect(page.locator('span').filter({ hasText: /VERIFIED|SUSPENDED|REJECTED|DEACTIVATED|BANNED|DRAFT/i }).first()).toBeVisible({ timeout: 8_000 });
   });
 
