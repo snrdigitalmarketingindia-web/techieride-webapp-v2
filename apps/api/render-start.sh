@@ -4,26 +4,16 @@ set -e
 echo "📁 Working dir: $(pwd)"
 MAIN_JS="dist/apps/api/src/main.js"
 
-# Always install deps and rebuild on every deploy.
-# Render persists disk between deploys, so old dist/ would otherwise be reused
-# and source changes (DTO updates, schema changes, etc.) would not take effect.
-echo "📦 Installing dependencies..."
-cd ../..
-npm install --prefer-offline 2>/dev/null || npm install
-cd apps/api
-
-echo "🔨 Building API..."
-# nest binary is in the monorepo root node_modules (installed two levels up)
-NODE_OPTIONS="--max-old-space-size=460" ../../node_modules/.bin/nest build || \
-NODE_OPTIONS="--max-old-space-size=460" npx --prefix ../.. nest build
+# The build phase (render-build.sh) already ran nest build and produced dist/.
+# Do NOT rebuild here — devDependencies (@nestjs/cli) are not available in the
+# start environment. Just run DB migrations and start the server.
 
 if [ ! -f "$MAIN_JS" ]; then
-  echo "❌ Build failed — $MAIN_JS not found"
+  echo "❌ $MAIN_JS not found — build phase may have failed"
   exit 1
 fi
-echo "✅ Build complete"
 
-echo "🗄️  Running Prisma migrations..."
+echo "🔧 Generating Prisma client..."
 npx prisma generate --schema=../../prisma/schema.prisma
 
 echo "🗄️  Pushing schema changes to DB (adds new columns, safe)..."
