@@ -52,13 +52,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/personal-email-verification');
       return;
     }
-    // DOCUMENT_VERIFICATION_PENDING — personal email verified, must upload identity docs before browsing.
-    // If verificationStatus is already PENDING (docs submitted), allow /dashboard so they can see
-    // the "awaiting approval" banner. Otherwise force them to /verify-identity.
+    // DOCUMENT_VERIFICATION_PENDING — personal email verified, identity docs not yet approved.
+    // Only /verify-identity (upload flow) and /dashboard (status banner) are allowed.
+    // All other pages (rides, search, profile, etc.) are blocked until SEEKER_VERIFIED.
+    // NOTE: verificationStatus defaults to PENDING in the schema so we cannot use it here.
     if (
       user.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' &&
-      user.verificationStatus !== 'PENDING' &&
-      !pathname.startsWith('/verify-identity')
+      !pathname.startsWith('/verify-identity') &&
+      !pathname.startsWith('/dashboard')
     ) {
       router.replace('/verify-identity');
       return;

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
-import { ridesApi, gamificationApi, requestsApi } from '@/lib/api';
+import { ridesApi, gamificationApi, requestsApi, verificationApi } from '@/lib/api';
 import { RideCard } from '@/components/ui/RideCard';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideStatus, EcoLevel } from '@techieride/shared';
@@ -34,6 +34,8 @@ export default function DashboardPage() {
   const [hasActiveRequest, setHasActiveRequest] = useState(false);
   const [ecoSummary, setEcoSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // True when user has submitted identity docs but admin hasn't approved yet
+  const [docsSubmitted, setDocsSubmitted] = useState(false);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [processing, setProcessing] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
@@ -49,6 +51,14 @@ export default function DashboardPage() {
       }).catch(() => {});
     });
   };
+
+  // Check if identity docs have been submitted (for DOCUMENT_VERIFICATION_PENDING banner)
+  useEffect(() => {
+    if (user?.accountStatus !== 'DOCUMENT_VERIFICATION_PENDING') return;
+    verificationApi.getStatus().then((r) => {
+      setDocsSubmitted(!!r.data?.identity); // any IDENTITY request exists → docs were submitted
+    }).catch(() => {});
+  }, [user?.accountStatus]);
 
   useEffect(() => {
     if (!user) return;
@@ -187,7 +197,7 @@ export default function DashboardPage() {
         </div>
       )}
       {user?.accountStatus === 'DOCUMENT_VERIFICATION_PENDING' && !user.trid && (
-        user?.verificationStatus === 'PENDING' ? (
+        docsSubmitted ? (
           /* Docs submitted — waiting for admin review */
           <div className="bg-blue-50 border border-blue-300 rounded-xl p-4">
             <div className="flex items-start gap-3">
