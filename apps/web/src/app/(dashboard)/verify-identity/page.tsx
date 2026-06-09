@@ -64,6 +64,8 @@ export default function VerifyIdentityPage() {
 
   // Check if docs already submitted — show waiting state instead of upload form
   const [docsSubmitted, setDocsSubmitted] = useState(false);
+  const [identityStatus, setIdentityStatus] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [checkingStatus, setCheckingStatus] = useState(true);
 
   const status = user?.accountStatus;
@@ -72,7 +74,12 @@ export default function VerifyIdentityPage() {
   useEffect(() => {
     if (status !== 'DOCUMENT_VERIFICATION_PENDING') { setCheckingStatus(false); return; }
     verificationApi.getStatus()
-      .then((r) => { if (r.data?.identity?.hasDocuments) setDocsSubmitted(true); })
+      .then((r) => {
+        const identity = r.data?.identity;
+        if (identity?.hasDocuments) setDocsSubmitted(true);
+        if (identity?.status) setIdentityStatus(identity.status);
+        if (identity?.rejectionReason) setRejectionReason(identity.rejectionReason);
+      })
       .catch(() => {})
       .finally(() => setCheckingStatus(false));
   }, [status]);
@@ -87,7 +94,8 @@ export default function VerifyIdentityPage() {
   }
 
   // Docs already submitted and pending admin review — show waiting screen instead of upload form
-  if (docsSubmitted && status === 'DOCUMENT_VERIFICATION_PENDING') {
+  // BUT if they were REJECTED, fall through to the upload form so they can resubmit
+  if (docsSubmitted && status === 'DOCUMENT_VERIFICATION_PENDING' && identityStatus !== 'REJECTED') {
     return (
       <div className="max-w-lg mx-auto py-12 space-y-5">
         <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center space-y-3">
@@ -194,12 +202,27 @@ export default function VerifyIdentityPage() {
 
   const isException = user?.verificationMethod === 'MANUAL_EXCEPTION';
 
+  const isResubmit = identityStatus === 'REJECTED';
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
+      {/* Rejection banner — shown when resubmitting after admin rejection */}
+      {isResubmit && (
+        <div className="bg-red-50 border border-red-300 rounded-xl px-4 py-4 space-y-1">
+          <p className="text-red-800 font-semibold text-sm">❌ Your documents were rejected — please re-upload</p>
+          {rejectionReason && (
+            <p className="text-red-700 text-sm">
+              <strong>Reason:</strong> {rejectionReason}
+            </p>
+          )}
+          <p className="text-red-600 text-xs">Please upload clear, legible copies and resubmit for review.</p>
+        </div>
+      )}
+
       {/* Header */}
       <div>
         <Link href="/dashboard" className="text-sm text-gray-500 hover:text-brand-600">← Back to Dashboard</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-2">Verify Your Identity</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mt-2">{isResubmit ? 'Re-upload Your Documents' : 'Verify Your Identity'}</h1>
         <p className="text-sm text-gray-500 mt-1">
           Submit your company ID, government ID, and self-declaration. Admin will assign your TRID on approval.
         </p>
