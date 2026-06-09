@@ -45,6 +45,8 @@ export default function SignupPage() {
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [domainHint, setDomainHint] = useState('');
+  const [domainValid, setDomainValid] = useState(false);
+  const [domainChecking, setDomainChecking] = useState(false);
 
   const [form, setForm] = useState({
     fullName: '',
@@ -57,11 +59,31 @@ export default function SignupPage() {
 
   const update = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
-  const handleEmailBlur = () => {
+  const handleEmailBlur = async () => {
     if (!form.email.includes('@')) return;
-    setDomainHint(isDomainPersonal(form.email)
-      ? '⚠️ Personal emails are not accepted. Please use your office email.'
-      : '');
+    if (isDomainPersonal(form.email)) {
+      setDomainHint('⚠️ Personal emails are not accepted. Please use your office email.');
+      setDomainValid(false);
+      return;
+    }
+    setDomainChecking(true);
+    setDomainHint('');
+    setDomainValid(false);
+    try {
+      const res = await authApi.checkDomain(form.email);
+      if (res.data.valid) {
+        setDomainValid(true);
+        setDomainHint('');
+      } else {
+        setDomainHint(`⚠️ ${res.data.reason}`);
+        setDomainValid(false);
+      }
+    } catch {
+      // network error — allow form to proceed, backend will validate
+      setDomainValid(true);
+    } finally {
+      setDomainChecking(false);
+    }
   };
 
   const validateStep = (): string | null => {
@@ -69,6 +91,8 @@ export default function SignupPage() {
       if (!form.fullName.trim()) return 'Please enter your full name';
       if (!form.email.includes('@')) return 'Please enter a valid office email';
       if (isDomainPersonal(form.email)) return 'Personal emails are not accepted. Use your office email.';
+      if (domainChecking) return 'Please wait while we verify your email domain.';
+      if (!domainValid && form.email.includes('@') && !isDomainPersonal(form.email)) return 'We could not verify this email domain. Please use a valid company email.';
       if (form.password.length < 8) return 'Password must be at least 8 characters';
       if (!form.phone.trim()) return 'Please enter your mobile number';
       if (!/^[6-9]\d{9}$/.test(form.phone.trim())) return 'Enter a valid 10-digit Indian mobile number (starting with 6–9)';
@@ -207,13 +231,14 @@ export default function SignupPage() {
 
             <Field label="Office Email" required hint="Used for account verification. Must be your company email.">
               <input type="email" value={form.email}
-                onChange={(e) => { update('email', e.target.value); setDomainHint(''); }}
+                onChange={(e) => { update('email', e.target.value); setDomainHint(''); setDomainValid(false); }}
                 onBlur={handleEmailBlur}
                 placeholder="you@company.com"
                 className={`${inputCls} ${domainHint ? 'border-orange-400' : ''}`}
                 autoComplete="email" />
-              {domainHint && <p className="text-xs text-orange-500 mt-1">{domainHint}</p>}
-              {!domainHint && form.email.includes('@') && !isDomainPersonal(form.email) && (
+              {domainChecking && <p className="text-xs text-gray-400 mt-1">⏳ Checking domain...</p>}
+              {!domainChecking && domainHint && <p className="text-xs text-orange-500 mt-1">{domainHint}</p>}
+              {!domainChecking && !domainHint && domainValid && (
                 <p className="text-xs text-brand-600 mt-1">✅ Office email accepted</p>
               )}
             </Field>
