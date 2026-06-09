@@ -157,28 +157,35 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     // page.goto is a full page reload — Zustand re-initializes with user:null.
     // DashboardLayout fires fetchProfile() AFTER _hasHydrated, which may happen
     // AFTER networkidle. Register a listener before the navigation so we catch it.
-    const profileReady2 = page.waitForResponse(
-      (r: any) => r.url().includes('/users/me') && r.status() === 200,
-      { timeout: 15_000 },
-    ).catch(() => {});
     // Giver searches — should see "Your ride" not "Request Seat"
     await page.goto('/rides/search', { waitUntil: 'networkidle' });
-    await profileReady2; // wait for user.id to be set before search results render
-    // Confirm the Zustand auth store has hydrated by waiting for the user's name
-    // to appear in the sidebar. Without this, the `isOwnRide` check in search
-    // results may evaluate to false because user.id is still null when results render.
-    await page.getByText('Rahul Sharma').first().waitFor({ timeout: 10_000 }).catch(() => {});
+
+    // Wait for the Zustand auth store to fully hydrate with the giver's user.id.
+    // profileReady2 only tells us the HTTP response arrived — the Zustand set()
+    // call and React re-render are still pending. We poll localStorage directly
+    // (Zustand persist stores the user there) until user.id is non-null.
+    await page.waitForFunction(() => {
+      try {
+        const raw = localStorage.getItem('techieride-auth');
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        return !!(parsed?.state?.user?.id);
+      } catch { return false; }
+    }, { timeout: 15_000 }).catch(() => {});
+
     await page.locator('input[type="date"]').fill(tomorrow);
 
-    // Register a listener for the rides API response BEFORE clicking search.
-    // Resolves as soon as the backend returns results — more reliable than a
-    // hard sleep or waiting for specific text (which may not be in the DOM).
+    // Register search listener BEFORE clicking — resolves on the actual /rides/search response.
     const searchDone = page.waitForResponse(
       (r: any) => r.url().includes('/rides/search') && r.status() === 200,
       { timeout: 12_000 },
     ).catch(() => {});
     await page.getByRole('button', { name: /search/i }).click();
-    await searchDone; // wait for the API to respond before asserting badge
+    await searchDone;
+
+    // After search results load, give React one tick to re-render with current user.id
+    // (Zustand state updates are synchronous but React batches renders).
+    await page.waitForTimeout(300);
 
     await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 25_000 });
     await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();
