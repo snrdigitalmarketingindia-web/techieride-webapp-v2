@@ -25,7 +25,7 @@ services:
       - key: RESEND_API_KEY
         sync: false        # paste from Resend dashboard
       - key: EMAIL_FROM
-        value: noreply@techieride.in
+        value: onboarding@resend.dev
       - key: APP_URL
         sync: false        # paste your Vercel URL
       - key: CLOUDINARY_CLOUD_NAME
