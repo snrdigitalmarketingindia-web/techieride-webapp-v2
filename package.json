@@ -1,6 +1,6 @@
 {
   "name": "techieride-webapp-v2",
-  "version": "2.1.0.582",
+  "version": "2.1.0.584",
   "private": true,
   "workspaces": [
     "apps/*",
