@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
@@ -62,7 +62,56 @@ export default function VerifyIdentityPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Check if docs already submitted — show waiting state instead of upload form
+  const [docsSubmitted, setDocsSubmitted] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+
   const status = user?.accountStatus;
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (status !== 'DOCUMENT_VERIFICATION_PENDING') { setCheckingStatus(false); return; }
+    verificationApi.getStatus()
+      .then((r) => { if (r.data?.identity) setDocsSubmitted(true); })
+      .catch(() => {})
+      .finally(() => setCheckingStatus(false));
+  }, [status]);
+
+  // Loading — checking whether docs were already submitted
+  if (checkingStatus) {
+    return (
+      <div className="max-w-lg mx-auto py-16 text-center text-gray-400 text-sm">
+        Checking verification status…
+      </div>
+    );
+  }
+
+  // Docs already submitted and pending admin review — show waiting screen instead of upload form
+  if (docsSubmitted && status === 'DOCUMENT_VERIFICATION_PENDING') {
+    return (
+      <div className="max-w-lg mx-auto py-12 space-y-5">
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center space-y-3">
+          <div className="text-5xl">⏳</div>
+          <h1 className="text-xl font-bold text-gray-900">Documents submitted — awaiting admin approval</h1>
+          <p className="text-gray-600 text-sm">
+            Your company ID, government ID, and self-declaration have been received.
+            Our team will review them within <strong>2 business days</strong>.
+          </p>
+          <p className="text-gray-500 text-sm">
+            You'll receive a notification and an email at <strong>{user?.personalEmail || user?.email}</strong> once approved.
+          </p>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+          If you need to re-upload a clearer copy, please contact{' '}
+          <a href="mailto:support@techieride.in" className="underline font-medium">support@techieride.in</a>.
+        </div>
+        <Link href="/dashboard"
+          className="block text-center bg-brand-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-brand-700 transition">
+          ← Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
 
   // Guard: only DOCUMENT_VERIFICATION_PENDING (and REJECTED to allow re-upload) can access
   if (user && !['DOCUMENT_VERIFICATION_PENDING', 'REJECTED'].includes(status ?? '')) {
