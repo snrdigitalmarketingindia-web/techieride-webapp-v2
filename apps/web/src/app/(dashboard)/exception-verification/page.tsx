@@ -62,8 +62,16 @@ export default function ExceptionVerificationPage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setCompanyIdUrl(data.url);
-    } catch {
-      setError('Upload failed. Make sure document storage is running.');
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const msg = err?.response?.data?.message;
+      if (status === 403) {
+        setError('Upload blocked — please log out and log back in, then try again.');
+      } else if (msg) {
+        setError(`Upload failed: ${Array.isArray(msg) ? msg.join(', ') : msg}`);
+      } else {
+        setError('Upload failed. Please try again or contact support.');
+      }
     } finally {
       setUploading(false);
       e.target.value = '';
