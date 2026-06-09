@@ -20,6 +20,14 @@ export class AuthController {
   ) {}
 
   @Public()
+  @Get('check-domain')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
+  @ApiOperation({ summary: 'Check if an email domain is valid (blocklist + MX record)' })
+  checkDomain(@Query('email') email: string) {
+    return this.authService.checkDomain(email);
+  }
+
+  @Public()
   @Post('register')
   @ApiOperation({ summary: 'Register a new IT employee account' })
   register(@Body() dto: RegisterDto) {

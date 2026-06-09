@@ -36,6 +36,21 @@ export class AuthService {
     private email: EmailService,
   ) {}
 
+  // ── Check domain (used by frontend on email blur) ─────────────────────────
+  async checkDomain(email: string): Promise<{ valid: boolean; reason?: string }> {
+    if (!email?.includes('@')) return { valid: false, reason: 'Invalid email format' };
+    const emailLower = email.toLowerCase().trim();
+    if (!isAllowedDomain(emailLower)) {
+      return { valid: false, reason: 'Personal emails are not accepted. Use your office email.' };
+    }
+    const domain = getDomain(emailLower);
+    const hasMx = await hasMxRecord(domain);
+    if (!hasMx) {
+      return { valid: false, reason: `"${domain}" is not a valid mail domain. Please check your email.` };
+    }
+    return { valid: true };
+  }
+
   // ── Register ─────────────────────────────────────────────────────────────
   async register(dto: RegisterDto) {
     const emailLower = dto.email.toLowerCase().trim();

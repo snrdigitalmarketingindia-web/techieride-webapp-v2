@@ -48,6 +48,7 @@ api.interceptors.response.use(
 
 // ─── Auth ─────────────────────────────────────────────
 export const authApi = {
+  checkDomain: (email: string) => api.get('/auth/check-domain', { params: { email } }),
   register: (data: any) => api.post('/auth/register', data),
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
   verifyEmail: (token: string) => api.get(`/auth/verify-email?token=${token}`),
