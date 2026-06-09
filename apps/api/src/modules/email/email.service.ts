@@ -18,8 +18,13 @@ export class EmailService {
     this.isDev = config.get<string>('NODE_ENV', 'development') === 'development';
 
     if (apiKey) {
-      this.resend = new Resend(apiKey);
-      this.logger.log('Email service: Resend configured');
+      // Domain is in us-east-1 (North Virginia). Resend requires the baseUrl
+      // to match the region when a regional domain is used — without this the
+      // API returns 403 even with a valid key and verified domain.
+      this.resend = new Resend(apiKey, {
+        baseUrl: 'https://api.us-east-1.resend.com',
+      });
+      this.logger.log('Email service: Resend configured (us-east-1)');
     } else {
       this.logger.warn('RESEND_API_KEY not set — emails will be logged to console (dev mode)');
     }
