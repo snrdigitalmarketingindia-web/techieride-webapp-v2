@@ -259,8 +259,10 @@ async function runNotificationTests() {
     const countBefore = before.status === 200 ? (before.data.data?.length ?? 0) : 0;
 
     // Submit employee verification
-    const submit = await client.post('/verification/employee', {
+    const submit = await client.post('/verification/identity', {
       employeeIdUrl: 'https://mock.storage/emp-id.jpg',
+      govtIdUrl: 'https://mock.storage/govt-id.jpg',
+      selfDeclarationAccepted: true,
     });
     assert([200, 201].includes(submit.status), `Submit failed: ${JSON.stringify(submit.data)}`);
 

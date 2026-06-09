@@ -20,7 +20,7 @@ test.describe('👤 Profile Flow', () => {
   test('PF-02: profile page shows account status badge', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await expect(page.getByText(/employee verified|driver verified/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/seeker verified|driver verified/i)).toBeVisible({ timeout: 8_000 });
   });
 
   test('PF-03: giver profile shows vehicle details', async ({ page }) => {

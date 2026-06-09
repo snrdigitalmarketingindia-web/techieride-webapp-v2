@@ -90,7 +90,7 @@ async function run() {
 
   // Helper: employee verification (required for all seekers to access ride routes)
   async function empVerify(userId: string, client: AxiosInstance) {
-    await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    await client.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const q = await admin.get('/admin/verification/pending');
     const e = q.data.find((v: any) => v.userId === userId && v.verificationType === 'IDENTITY');
     if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
@@ -101,7 +101,7 @@ async function run() {
 
   // Giver must be verified (verificationStatus=APPROVED) to be able to publish
   // Employee verification
-  await giver.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+  await giver.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
   const empQueue = await admin.get('/admin/verification/pending');
   const empEntry = empQueue.data.find((v: any) => v.userId === giverAcc.userId && v.verificationType === 'IDENTITY');
   if (empEntry) await admin.patch(`/admin/verification/${empEntry.id}/review`, { decision: 'APPROVED' });
@@ -188,7 +188,7 @@ async function run() {
     const acc = await registerAndLogin(`neg_giver${suffix}_${ts}@wipro.com`);
     const client = makeClient(acc.token);
     // Employee verification
-    await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    await client.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const eq = await admin.get('/admin/verification/pending');
     const ee = eq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     if (ee) await admin.patch(`/admin/verification/${ee.id}/review`, { decision: 'APPROVED' });

@@ -576,8 +576,10 @@ async function run() {
     });
 
     await test('Giver can submit employee verification documents', async () => {
-      const r = await giver.client.post('/verification/employee', {
+      const r = await giver.client.post('/verification/identity', {
         employeeIdUrl: 'https://storage.example.com/emp-id.jpg',
+        govtIdUrl: 'https://storage.example.com/govt-id.jpg',
+        selfDeclarationAccepted: true,
       });
       assert([200, 201].includes(r.status), `Expected 200/201, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
@@ -604,8 +606,10 @@ async function run() {
     });
 
     await test('Rejected giver can re-submit verification', async () => {
-      const r = await giver.client.post('/verification/employee', {
+      const r = await giver.client.post('/verification/identity', {
         employeeIdUrl: 'https://storage.example.com/emp-id-v2.jpg',
+        govtIdUrl: 'https://storage.example.com/govt-id-v2.jpg',
+        selfDeclarationAccepted: true,
       });
       assert([200, 201].includes(r.status), `Expected 200/201, got ${r.status}: ${JSON.stringify(r.data)}`);
     });

@@ -365,7 +365,7 @@ async function runAdminAuditTests() {
     const client = makeClient(acc.token);
     const admin = await getAdminClient();
 
-    await client.post('/verification/employee', { employeeIdUrl: 'https://mock.storage/emp.jpg' });
+    await client.post('/verification/identity', { employeeIdUrl: 'https://mock.storage/emp.jpg', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const queue = await admin.get('/admin/verification/pending');
     const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     assert(!!entry, 'Verification entry must appear in admin queue');
@@ -384,7 +384,7 @@ async function runAdminAuditTests() {
     const admin = await getAdminClient();
 
     const statusBefore = (await client.get('/users/me')).data.accountStatus;
-    await client.post('/verification/employee', { employeeIdUrl: 'https://mock.storage/emp.jpg' });
+    await client.post('/verification/identity', { employeeIdUrl: 'https://mock.storage/emp.jpg', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const queue = await admin.get('/admin/verification/pending');
     const entry = queue.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     await admin.patch(`/admin/verification/${entry.id}/review`, { decision: 'REJECTED' });

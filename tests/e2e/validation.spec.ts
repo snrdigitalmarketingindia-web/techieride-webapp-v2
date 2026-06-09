@@ -156,7 +156,6 @@ test.describe('📏 MaxLength Spam Protection', () => {
     const token = await apiLogin(ACCOUNTS.seeker.email);
     const { status } = await post(page, '/auth/exception-verification', {
       personalEmail: 'test@gmail.com',
-      companyIdCardUrl: 'https://example.com/card.webp',
       employeeId: 'EMP001',
       reason: 'R'.repeat(2000),
     }, token);

@@ -89,7 +89,7 @@ async function createGiver(admin: AxiosInstance, suffix: string) {
   const profile = await client.get('/users/me');
   const giverId = profile.data.id;
   // Step 1: Employee verification
-  await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+  await client.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
   const empQueue = await admin.get('/admin/verification/pending');
   const empReq = empQueue.data.find((v: any) => v.userId === giverId && v.verificationType === 'IDENTITY');
   if (empReq) await admin.patch(`/admin/verification/${empReq.id}/review`, { decision: 'APPROVED' });
@@ -126,7 +126,7 @@ async function setup() {
     const client = makeClient(token);
     const profile = await client.get('/users/me');
     const userId = profile.data.id;
-    await client.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    await client.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const q = await admin.get('/admin/verification/pending');
     const e = q.data.find((v: any) => v.userId === userId && v.verificationType === 'IDENTITY');
     if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });
@@ -467,7 +467,7 @@ async function run() {
   {
     const profile = await sosSeeker.get('/users/me');
     const sosSeekerId = profile.data.id;
-    await sosSeeker.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    await sosSeeker.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const q = await admin.get('/admin/verification/pending');
     const e = q.data.find((v: any) => v.userId === sosSeekerId && v.verificationType === 'IDENTITY');
     if (e) await admin.patch(`/admin/verification/${e.id}/review`, { decision: 'APPROVED' });

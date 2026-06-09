@@ -178,8 +178,10 @@ async function run() {
     const tempProfile = await tempClient.get('/users/me');
     const tempUserId = tempProfile.data.id;
 
-    const r = await tempClient.post('/verification/employee', {
+    const r = await tempClient.post('/verification/identity', {
       employeeIdUrl: 'mock://employee-id',
+      govtIdUrl: 'mock://govt-id',
+      selfDeclarationAccepted: true,
     });
     assert([200, 201].includes(r.status), `Got ${r.status}: ${JSON.stringify(r.data)}`);
 
@@ -207,7 +209,7 @@ async function run() {
     const tempProfile = await tempClient.get('/users/me');
     const tempUserId = tempProfile.data.id;
 
-    await tempClient.post('/verification/employee', { employeeIdUrl: 'mock://employee-id-seeker' });
+    await tempClient.post('/verification/identity', { employeeIdUrl: 'mock://employee-id-seeker', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
 
     const queue = await adminClient.get('/admin/verification/pending');
     const req = queue.data.find((v: any) => v.userId === tempUserId && v.verificationType === 'IDENTITY');
@@ -247,7 +249,7 @@ async function run() {
     const freshGiverId = profile.data.id;
 
     // Step 1 — employee verification
-    await giverClient.post('/verification/employee', { employeeIdUrl: 'mock://emp' });
+    await giverClient.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const empQueue = await adminClient.get('/admin/verification/pending');
     const empEntry = empQueue.data.find((v: any) => v.userId === freshGiverId && v.verificationType === 'IDENTITY');
     if (empEntry) await adminClient.patch(`/admin/verification/${empEntry.id}/review`, { decision: 'APPROVED' });
@@ -343,7 +345,7 @@ async function run() {
     // Employee verification — required before ride access
     const profile = await seekerClient.get('/users/me');
     const freshSeekerId = profile.data.id;
-    await seekerClient.post('/verification/employee', { employeeIdUrl: 'mock://seeker-emp' });
+    await seekerClient.post('/verification/identity', { employeeIdUrl: 'mock://seeker-emp', govtIdUrl: 'mock://govt-id', selfDeclarationAccepted: true });
     const empQ = await adminClient.get('/admin/verification/pending');
     const empE = empQ.data.find((v: any) => v.userId === freshSeekerId && v.verificationType === 'IDENTITY');
     if (empE) await adminClient.patch(`/admin/verification/${empE.id}/review`, { decision: 'APPROVED' });
