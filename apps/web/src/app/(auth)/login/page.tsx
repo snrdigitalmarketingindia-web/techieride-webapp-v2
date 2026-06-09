@@ -164,12 +164,12 @@ function LoginContent() {
               Didn't receive it? Resend verification email
             </button>
             <div className="mt-3 pt-3 border-t border-amber-200">
-              <p className="text-xs text-amber-600">Can't access your company email?</p>
+              <p className="text-xs font-semibold text-orange-700 mb-2">🚫 Can't access your company email?</p>
               <Link
                 href="/exception-verification"
-                className="text-xs text-amber-800 font-medium underline hover:text-amber-900"
+                className="block w-full text-center bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold py-2 rounded-lg transition"
               >
-                Request an admin exception →
+                Request Admin Exception →
               </Link>
             </div>
           </div>
