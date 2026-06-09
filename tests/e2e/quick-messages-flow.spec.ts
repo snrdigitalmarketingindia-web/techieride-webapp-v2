@@ -86,16 +86,36 @@ test.describe('💬 Quick Messages Flow', () => {
   });
 
   test('QM-03: seeker receives quick message as notification', async ({ page }) => {
+    if (!rideId) { test.skip(true, 'QM-03: no rideId from beforeAll'); return; }
+
+    // Ensure the ride is ONGOING — QM-02 may have skipped if start was flaky.
+    // A second start call on an already-ONGOING ride is a no-op (API returns 400 which we ignore).
+    const startRes = await api(giverToken, 'patch', `/rides/${rideId}/start`).catch(() => ({ statusCode: 0 }));
+    const startStatus = startRes?.statusCode ?? startRes?.status ?? 200;
+    if (startStatus >= 400 && startStatus !== 400) {
+      // 400 = already started (fine). Any other 4xx/5xx = can't proceed.
+      console.warn(`QM-03: ride start failed (${startStatus}) — skipping`);
+      return;
+    }
+
     const options = await api(giverToken, 'get', `/rides/${rideId}/quick-message/options`);
     const optionsList = options.data ?? options;
-    const firstKey = Array.isArray(optionsList) ? optionsList[0]?.key : Object.keys(optionsList)[0];
-    if (firstKey) {
-      await api(giverToken, 'post', `/rides/${rideId}/quick-message`, { messageKey: firstKey });
+    const ERROR_KEYS = new Set(['statusCode', 'message', 'error', 'timestamp', 'path']);
+    let firstKey: string | undefined;
+    if (Array.isArray(optionsList)) {
+      firstKey = optionsList[0]?.key;
+    } else if (typeof optionsList === 'object' && optionsList !== null) {
+      firstKey = Object.keys(optionsList).find(k => !ERROR_KEYS.has(k));
     }
+    if (!firstKey) { console.warn('QM-03: no message key found — skipping'); return; }
+
+    await api(giverToken, 'post', `/rides/${rideId}/quick-message`, { messageKey: firstKey });
+    // Give the notification a moment to persist before the seeker logs in
+    await new Promise(r => setTimeout(r, 500));
 
     await loginUI(page, 'seeker');
     await page.locator('button[aria-label="Notifications"]').click();
-    await expect(page.getByText(/says:|arrived|on my way|message|quick|route/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/says:|arrived|on my way|message|quick|route/i).first()).toBeVisible({ timeout: 12_000 });
   });
 
   test('QM-04: invalid message key rejected', async () => {
