@@ -21,7 +21,17 @@ export class VerificationController {
     return this.service.submitEmployeeDocs(userId, body);
   }
 
-  // Driver verification — submit DL + RC (requires EMPLOYEE_VERIFIED)
+  // Seeker verification — submit govt ID + self-declaration (requires EMPLOYEE_VERIFIED)
+  @Post('seeker')
+  @HttpCode(HttpStatus.OK)
+  submitSeekerDocs(
+    @CurrentUser('id') userId: string,
+    @Body() body: { govtIdUrl: string; selfDeclarationAccepted: boolean },
+  ) {
+    return this.service.submitSeekerDocs(userId, body);
+  }
+
+  // Driver verification — submit DL + RC (requires EMPLOYEE_VERIFIED or SEEKER_VERIFIED)
   @Post('driver')
   @HttpCode(HttpStatus.OK)
   submitDriverDocs(

@@ -11,10 +11,10 @@ const LOGIN_BLOCKED = ['DEACTIVATED', 'BANNED', 'DRAFT'];
 const EMAIL_GATE = ['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
 
 // These statuses allow profile + document upload but not ride features
-const DOCS_GATE = ['DOCUMENT_VERIFICATION_PENDING', 'REJECTED'];
+const DOCS_GATE = ['DOCUMENT_VERIFICATION_PENDING', 'REJECTED', 'SEEKER_VERIFICATION_PENDING'];
 
 // These statuses get full seeker + giver access (role guard handles giver-only routes)
-const FULL_ACCESS = ['EMPLOYEE_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'];
+const FULL_ACCESS = ['EMPLOYEE_VERIFIED', 'SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'];
 
 @Injectable()
 export class EmailVerifiedGuard implements CanActivate {

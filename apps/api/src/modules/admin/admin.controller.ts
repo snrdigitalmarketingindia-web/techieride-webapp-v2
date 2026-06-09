@@ -82,6 +82,11 @@ export class AdminController {
     return this.verificationService.getQueue('EMPLOYEE');
   }
 
+  @Get('queues/seeker-pending')
+  getSeekerQueue() {
+    return this.verificationService.getQueue('SEEKER');
+  }
+
   @Get('queues/driver-pending')
   getDriverQueue() {
     return this.verificationService.getQueue('DRIVER');
