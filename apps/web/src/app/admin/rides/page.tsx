@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -17,14 +17,31 @@ export default function AdminRidesPage() {
   const [filter, setFilter] = useState({ status: '', search: '' });
   const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true);
     adminApi.listRides({ status: filter.status || undefined, search: filter.search || undefined }).then((r) => {
       setRides(r.data.data);
       setTotal(r.data.total);
     }).finally(() => setLoading(false));
   }, [filter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleForceComplete = async (id: string) => {
+    setCompleting(id);
+    setConfirmId(null);
+    try {
+      await adminApi.forceCompleteRide(id);
+      setRides((prev) => prev.map((r) => r.id === id ? { ...r, status: 'COMPLETED' } : r));
+    } catch (e: any) {
+      alert(e?.response?.data?.message || 'Force complete failed');
+    } finally {
+      setCompleting(null);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -55,15 +72,38 @@ export default function AdminRidesPage() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          <button onClick={load} disabled={loading}
+            className="text-sm text-brand-600 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-50 transition disabled:opacity-50">
+            {loading ? '⏳' : '↻ Refresh'}
+          </button>
         </div>
       </div>
+
+      {/* Force-complete confirm banner */}
+      {confirmId && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 flex items-center justify-between gap-4">
+          <p className="text-amber-800 text-sm font-medium">
+            ⚠️ Force-complete this ride? Unresolved passengers will be marked NO_SHOW. This cannot be undone.
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={() => handleForceComplete(confirmId)}
+              className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-red-700 transition">
+              Yes, Force Complete
+            </button>
+            <button onClick={() => setConfirmId(null)}
+              className="text-xs text-gray-600 border border-gray-300 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {loading ? <div className="text-center py-10 text-gray-400">Loading...</div> : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {['Giver', 'Route', 'Date / Time', 'Seats', 'Status'].map((h) => (
+                {['Giver', 'Route', 'Date / Time', 'Seats', 'Status', 'Actions'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase">{h}</th>
                 ))}
               </tr>
@@ -86,10 +126,23 @@ export default function AdminRidesPage() {
                   <td className="px-4 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[r.status]}`}>{r.status}</span>
                   </td>
+                  <td className="px-4 py-3">
+                    {r.status === 'ONGOING' && (
+                      <button
+                        onClick={() => setConfirmId(r.id)}
+                        disabled={completing === r.id}
+                        className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-medium hover:bg-red-100 transition disabled:opacity-50 whitespace-nowrap">
+                        {completing === r.id ? '⏳ Closing…' : '🔒 Force Complete'}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {rides.length === 0 && (
+            <div className="text-center py-10 text-gray-400">No rides found.</div>
+          )}
         </div>
       )}
     </div>

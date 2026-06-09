@@ -222,6 +222,7 @@ export const adminApi = {
   // legacy — all pending in one list
   getPendingVerifications: () => api.get('/admin/verification/pending'),
   listRides: (params?: any) => api.get('/admin/rides', { params }),
+  forceCompleteRide: (id: string) => api.post(`/admin/rides/${id}/force-complete`),
   getAnalytics: (from?: string, to?: string) => api.get('/admin/analytics', { params: { from, to } }),
   getActiveSos: () => api.get('/admin/sos/active'),
   resolveSos: (id: string, notes: string) => api.patch(`/admin/sos/${id}/resolve`, { notes }),

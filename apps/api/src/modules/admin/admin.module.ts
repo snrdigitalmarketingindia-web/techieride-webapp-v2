@@ -4,9 +4,10 @@ import { AdminService } from './admin.service';
 import { VerificationModule } from '../verification/verification.module';
 import { TrustScoreModule } from '../trust-score/trust-score.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
+import { RidesModule } from '../rides/rides.module';
 
 @Module({
-  imports: [VerificationModule, TrustScoreModule, AuditLogModule],
+  imports: [VerificationModule, TrustScoreModule, AuditLogModule, RidesModule],
   controllers: [AdminController],
   providers: [AdminService],
 })

@@ -45,6 +45,8 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 // Auto-archive PUBLISHED/ONGOING rides 4 hours after departure — hides from active list, never cancels
 const ARCHIVE_AFTER_HOURS = 4;
 const DRAFT_EXPIRY_DAYS = 3; // Auto-delete DRAFT rides older than 3 days (never published)
+// Auto-force-complete ONGOING rides 5 hours after departure — giver forgot to close the ride
+const AUTO_COMPLETE_AFTER_HOURS = 5;
 
 @Injectable()
 export class RidesService {
@@ -407,6 +409,144 @@ export class RidesService {
     }
 
     return updated;
+  }
+
+  // ── Force-complete a ride (admin or auto-cron) ───────────────────────────
+  // Marks unresolved passengers as NO_SHOW, then completes the ride.
+  // Used by admin "Force Complete" action and auto-complete cron.
+  async forceCompleteRide(rideId: string, triggeredBy: 'admin' | 'cron' = 'admin') {
+    const ride = await this.prisma.ride.findUnique({
+      where: { id: rideId },
+      include: {
+        participants: { include: { seeker: { include: { user: true } } } },
+        rideGiver: true,
+      },
+    });
+    if (!ride) throw new NotFoundException('Ride not found');
+    if (ride.status !== RideStatus.ONGOING) {
+      throw new BadRequestException('Only ONGOING rides can be force-completed');
+    }
+
+    // Mark WAITING participants as NO_SHOW, BOARDED as DEBOARDED
+    const now = new Date();
+    for (const p of ride.participants) {
+      if (p.boardingStatus === 'WAITING') {
+        await this.prisma.rideParticipant.update({
+          where: { id: p.id },
+          data: { boardingStatus: 'NO_SHOW' },
+        });
+      } else if (p.boardingStatus === 'BOARDED') {
+        await this.prisma.rideParticipant.update({
+          where: { id: p.id },
+          data: { boardingStatus: 'DEBOARDED', deboardedAt: now },
+        });
+      }
+    }
+
+    // Complete the ride and settle requests
+    await this.prisma.$transaction([
+      this.prisma.ride.update({
+        where: { id: rideId },
+        data: { status: RideStatus.COMPLETED, completedAt: now, archivedAt: now },
+      }),
+      this.prisma.rideRequest.updateMany({
+        where: { rideId, status: 'CONFIRMED' },
+        data: { status: 'COMPLETED' },
+      }),
+      this.prisma.rideRequest.updateMany({
+        where: { rideId, status: 'PENDING' },
+        data: { status: 'REJECTED', cancelReason: 'Ride auto-completed by system' },
+      }),
+    ]);
+
+    // Award points only for participants who actually boarded (DEBOARDED after force-complete)
+    const distanceKm = ride.estimatedDistanceKm
+      || ((ride.originLat && ride.originLng && ride.destinationLat && ride.destinationLng)
+          ? Math.round(haversineMeters(ride.originLat, ride.originLng, ride.destinationLat, ride.destinationLng)) / 1000
+          : 0);
+
+    const resolvedParticipants = await this.prisma.rideParticipant.findMany({
+      where: { rideId },
+      include: { seeker: { include: { user: true } } },
+    });
+    const boardedParticipants = resolvedParticipants.filter(p => p.boardingStatus === 'DEBOARDED');
+
+    try {
+      await this.gamification.awardRideCompletion(ride.rideGiverId, rideId, 'giver', distanceKm, boardedParticipants.length);
+      await this.trustScore.onRideCompletedGiver(ride.rideGiverId, rideId);
+    } catch (e: any) {
+      this.logger.error(`Force-complete gamification failed for giver ${ride.rideGiverId}: ${e.message}`);
+    }
+
+    for (const p of boardedParticipants) {
+      try {
+        await this.gamification.awardRideCompletion(p.seekerId, rideId, 'seeker', distanceKm, 1);
+        await this.trustScore.onRideCompletedSeeker(p.seekerId, rideId);
+      } catch (e: any) {
+        this.logger.error(`Force-complete gamification failed for seeker ${p.seekerId}: ${e.message}`);
+      }
+    }
+
+    // Notify all participants
+    const label = triggeredBy === 'cron' ? 'auto-closed by system' : 'closed by admin';
+    for (const p of resolvedParticipants) {
+      const wasNoShow = p.boardingStatus === 'NO_SHOW';
+      await this.notifications.create(p.seeker.userId, {
+        type: NotificationType.RIDE_COMPLETED,
+        title: wasNoShow ? 'Ride ended' : 'Ride completed',
+        body: wasNoShow
+          ? `The ride on ${ride.originName} → ${ride.destinationName} has ended (${label}).`
+          : `Your ride on ${ride.originName} → ${ride.destinationName} has been completed (${label}).`,
+        data: { rideId },
+      });
+    }
+    if (ride.rideGiver) {
+      await this.notifications.create(ride.rideGiver.userId, {
+        type: NotificationType.RIDE_COMPLETED,
+        title: triggeredBy === 'cron' ? '🔒 Ride auto-completed' : '🔒 Ride closed by admin',
+        body: `${ride.originName} → ${ride.destinationName} has been ${label}.`,
+        data: { rideId },
+      });
+    }
+
+    await this.auditLog.system('RIDE_FORCE_COMPLETED', 'ride', rideId, {
+      triggeredBy,
+      participantsResolved: resolvedParticipants.length,
+    });
+
+    this.logger.log(`✅ Force-completed ride ${rideId} (${label})`);
+    return { message: 'Ride force-completed', rideId };
+  }
+
+  // Runs every 30 min — auto-force-completes ONGOING rides 5+ hours past departure time.
+  @Cron('*/30 * * * *', { timeZone: 'Asia/Kolkata' })
+  async autoCompleteStuckRides() {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - AUTO_COMPLETE_AFTER_HOURS * 60 * 60 * 1000);
+
+    const stuckRides = await this.prisma.ride.findMany({
+      where: { status: RideStatus.ONGOING, departureDate: { lte: cutoff } },
+      select: { id: true, departureDate: true, departureTime: true, originName: true, destinationName: true },
+    });
+
+    // Filter by actual departure datetime (departureDate is date-only, departureTime is "HH:MM")
+    const toComplete = stuckRides.filter((ride) => {
+      const [h, m] = ride.departureTime.split(':').map(Number);
+      const departure = new Date(ride.departureDate);
+      departure.setHours(h, m, 0, 0);
+      return now.getTime() - departure.getTime() >= AUTO_COMPLETE_AFTER_HOURS * 60 * 60 * 1000;
+    });
+
+    if (toComplete.length === 0) return;
+    this.logger.log(`⏱️ Auto-completing ${toComplete.length} stuck ONGOING ride(s)`);
+
+    for (const ride of toComplete) {
+      try {
+        await this.forceCompleteRide(ride.id, 'cron');
+      } catch (e: any) {
+        this.logger.error(`Auto-complete failed for ride ${ride.id}: ${e.message}`);
+      }
+    }
   }
 
   // Runs every 30 min — auto-archives rides that are 4+ hours past their departure time.

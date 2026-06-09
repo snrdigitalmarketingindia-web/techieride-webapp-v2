@@ -33,6 +33,10 @@ export class EmailVerifiedGuard implements CanActivate {
     if (!user) return true; // JWT guard will have already rejected
 
     const status: string = user.accountStatus;
+    const role: string = user.role;
+
+    // ADMIN and CSR_ADMIN bypass ALL account-status gates — they must always have full access
+    if (role === 'ADMIN') return true;
 
     if (LOGIN_BLOCKED.includes(status)) {
       throw new UnauthorizedException('Your account is not accessible. Contact support.');

@@ -1,9 +1,10 @@
-import { Controller, Get, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { VerificationService } from '../verification/verification.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
+import { RidesService } from '../rides/rides.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -20,6 +21,7 @@ export class AdminController {
     private verificationService: VerificationService,
     private trustScoreService: TrustScoreService,
     private auditLogService: AuditLogService,
+    private ridesService: RidesService,
   ) {}
 
   @Get('users')
@@ -119,6 +121,11 @@ export class AdminController {
     @Query('limit') limit = 20,
   ) {
     return this.adminService.listAllRides({ status, search, page: +page, limit: +limit });
+  }
+
+  @Post('rides/:id/force-complete')
+  forceCompleteRide(@Param('id') id: string) {
+    return this.ridesService.forceCompleteRide(id, 'admin');
   }
 
   @Get('analytics')
