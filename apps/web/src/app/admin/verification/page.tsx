@@ -108,6 +108,9 @@ export default function AdminVerificationPage() {
                         className="text-left hover:underline"
                       >
                         <p className="font-medium text-gray-900">{req.user.fullName}</p>
+                        {(req.user as any).trid && (
+                          <p className="text-xs font-mono text-brand-600 font-semibold">{(req.user as any).trid}</p>
+                        )}
                         <p className="text-xs text-gray-400">{req.user.email}</p>
                         {req.user.companyName && <p className="text-xs text-gray-400">{req.user.companyName}</p>}
                       </button>

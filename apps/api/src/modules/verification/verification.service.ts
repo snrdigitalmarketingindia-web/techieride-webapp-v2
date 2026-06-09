@@ -214,7 +214,7 @@ export class VerificationService {
 
     // In-app notification
     const notifTitle = decision === 'APPROVED'
-      ? req.verificationType === 'DRIVER'   ? 'Driver verification approved! 🚗'
+      ? req.verificationType === 'DRIVER'   ? 'Ride Giver verification approved! 🚗'
       : `Welcome, ${trid || req.user.trid}! 🎉`
       : 'Verification not approved';
 
@@ -260,7 +260,7 @@ export class VerificationService {
     return this.prisma.verificationRequest.findMany({
       where: { status: 'PENDING', verificationType },
       include: {
-        user: { select: { fullName: true, email: true, phone: true, companyName: true, accountStatus: true } },
+        user: { select: { fullName: true, email: true, phone: true, companyName: true, accountStatus: true, trid: true } },
       },
       orderBy: { submittedAt: 'asc' },
     });
@@ -270,7 +270,7 @@ export class VerificationService {
     return this.prisma.verificationRequest.findMany({
       where: { status: 'PENDING' },
       include: {
-        user: { select: { fullName: true, email: true, phone: true, companyName: true, accountStatus: true } },
+        user: { select: { fullName: true, email: true, phone: true, companyName: true, accountStatus: true, trid: true } },
       },
       orderBy: { submittedAt: 'asc' },
     });

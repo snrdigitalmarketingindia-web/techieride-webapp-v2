@@ -79,7 +79,7 @@ export default function BecomeGiverPage() {
         <div className="max-w-lg mx-auto py-12 text-center space-y-4">
           <div className="text-5xl">🚗</div>
           <h1 className="text-xl font-bold text-gray-900">
-            {user.accountStatus === 'DRIVER_VERIFIED' ? 'You\'re already a Ride Giver!' : 'Driver verification pending'}
+            {user.accountStatus === 'DRIVER_VERIFIED' ? 'You\'re already a Ride Giver!' : 'Ride Giver verification pending'}
           </h1>
           <p className="text-gray-500 text-sm">
             {user.accountStatus === 'DRIVER_VERIFIED'
