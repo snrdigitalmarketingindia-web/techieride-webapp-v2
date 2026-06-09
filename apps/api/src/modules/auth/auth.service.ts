@@ -1,6 +1,6 @@
 import {
   Injectable, UnauthorizedException, BadRequestException,
-  ConflictException, NotFoundException, ForbiddenException,
+  ConflictException, NotFoundException, ForbiddenException, InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -112,7 +112,7 @@ export class AuthService {
         },
       });
     } else {
-      await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken);
+      await this.email.sendVerificationEmail(emailLower, dto.fullName, emailVerificationToken).catch((e: any) => console.error(`Registration email failed: ${e.message}`));
     }
 
     // If personal email provided at registration, send verification (non-blocking)
@@ -302,7 +302,11 @@ export class AuthService {
       data: { personalEmailToken, personalEmailExpiry },
     });
 
-    await this.email.sendPersonalEmailVerification(user.personalEmail, user.fullName, personalEmailToken);
+    try {
+      await this.email.sendPersonalEmailVerification(user.personalEmail, user.fullName, personalEmailToken);
+    } catch (err: any) {
+      throw new InternalServerErrorException(`Email delivery failed: ${err.message}`);
+    }
     return { message: 'Verification email resent to your personal inbox.' };
   }
 

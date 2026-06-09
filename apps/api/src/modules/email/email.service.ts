@@ -339,10 +339,16 @@ export class EmailService {
       return;
     }
     try {
-      await this.resend.emails.send({ from: this.from, to, subject, html });
+      const result = await this.resend.emails.send({ from: this.from, to, subject, html });
+      // Resend SDK returns { data, error } — check for API-level errors too
+      if ((result as any)?.error) {
+        const apiErr = (result as any).error;
+        this.logger.error(`Resend API error sending to ${to}: [${apiErr.name}] ${apiErr.message}`);
+        throw new Error(`${apiErr.name}: ${apiErr.message}`);
+      }
     } catch (err: any) {
       this.logger.error(`Failed to send email to ${to}: ${err.message}`);
-      // Don't throw — email failure should not block registration
+      // Re-throw — callers that don't care should wrap in .catch()
     }
   }
 }
