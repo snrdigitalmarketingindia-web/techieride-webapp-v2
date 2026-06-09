@@ -8,7 +8,7 @@ import { ALLOW_DOCS_PENDING_KEY } from '../decorators/allow-docs-pending.decorat
 const LOGIN_BLOCKED = ['DEACTIVATED', 'BANNED', 'DRAFT'];
 
 // These statuses block everything except @AllowUnverified routes (profile, verify-email)
-const EMAIL_GATE = ['EMAIL_VERIFICATION_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
+const EMAIL_GATE = ['EMAIL_VERIFICATION_PENDING', 'PERSONAL_EMAIL_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
 
 // These statuses allow profile + document upload but not ride features
 const DOCS_GATE = ['DOCUMENT_VERIFICATION_PENDING', 'REJECTED'];

@@ -33,8 +33,10 @@ export default function LoginPage() {
       const { user } = useAuthStore.getState();
       const status = user?.accountStatus;
       if (status === 'EMAIL_VERIFICATION_PENDING') {
-        // Don't navigate to dashboard — show inline banner so user can resend or request exception
+        // Show inline banner so user can resend or request exception
         setUnverifiedEmail(email.toLowerCase().trim());
+      } else if (status === 'PERSONAL_EMAIL_PENDING') {
+        router.push('/personal-email-verification');
       } else if (status === 'EXCEPTION_VERIFICATION_REQUESTED') {
         router.push('/exception-verification');
       } else {

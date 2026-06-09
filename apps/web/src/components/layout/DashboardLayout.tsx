@@ -41,13 +41,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     if (!user) { fetchProfile(); return; }
 
-    // Security gate: email-unverified users must not access dashboard pages.
-    // EMAIL_VERIFICATION_PENDING  — signed up but haven't clicked the verify link yet
-    // EXCEPTION_VERIFICATION_REQUESTED — requested admin exception, awaiting review
-    // Both are allowed on /exception-verification only.
-    const blockedStatuses = ['EMAIL_VERIFICATION_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
-    if (blockedStatuses.includes(user.accountStatus ?? '') && !pathname.startsWith('/exception-verification')) {
+    // Security gate: partially-verified users must not access full dashboard pages.
+    // EMAIL_VERIFICATION_PENDING      — signed up, haven't clicked office email verify link
+    // PERSONAL_EMAIL_PENDING          — office email verified (or exception form submitted),
+    //                                   but personal email not yet verified
+    // EXCEPTION_VERIFICATION_REQUESTED — personal email verified, awaiting admin review
+    const emailGate = ['EMAIL_VERIFICATION_PENDING', 'EXCEPTION_VERIFICATION_REQUESTED'];
+    if (emailGate.includes(user.accountStatus ?? '') && !pathname.startsWith('/exception-verification')) {
       router.replace('/exception-verification');
+      return;
+    }
+    if (user.accountStatus === 'PERSONAL_EMAIL_PENDING' && !pathname.startsWith('/personal-email-verification')) {
+      router.replace('/personal-email-verification');
     }
   }, [_hasHydrated, isAuthenticated, user?.accountStatus, pathname]);
 

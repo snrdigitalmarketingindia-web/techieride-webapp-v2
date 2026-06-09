@@ -22,21 +22,22 @@ export default function ExceptionVerificationPage() {
   const update = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   // Guard: only for EMAIL_VERIFICATION_PENDING
+  if (user && user.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED') {
+    return (
+      <div className="max-w-lg mx-auto py-12 text-center space-y-4">
+        <div className="text-5xl">🔍</div>
+        <h1 className="text-xl font-bold text-gray-900">Request under review</h1>
+        <p className="text-gray-500 text-sm">
+          Your exception request is being reviewed by the admin. You'll be notified at{' '}
+          <strong>{user.personalEmail}</strong> within 2 business days.
+        </p>
+        <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
+          Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
   if (user && user.accountStatus !== 'EMAIL_VERIFICATION_PENDING') {
-    if (user.accountStatus === 'EXCEPTION_VERIFICATION_REQUESTED') {
-      return (
-        <div className="max-w-lg mx-auto py-12 text-center space-y-4">
-          <div className="text-5xl">🔍</div>
-          <h1 className="text-xl font-bold text-gray-900">Request already submitted</h1>
-          <p className="text-gray-500 text-sm">
-            Your exception request is under admin review. You'll be notified within 2 business days.
-          </p>
-          <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
-            Back to Dashboard
-          </Link>
-        </div>
-      );
-    }
     return (
       <div className="max-w-lg mx-auto py-12 text-center space-y-4">
         <div className="text-5xl">✅</div>
@@ -116,24 +117,23 @@ export default function ExceptionVerificationPage() {
   if (submitted) {
     return (
       <div className="max-w-lg mx-auto py-12 text-center space-y-4">
-        <div className="text-6xl">📋</div>
-        <h1 className="text-2xl font-bold text-gray-900">Exception request submitted!</h1>
+        <div className="text-6xl">📬</div>
+        <h1 className="text-2xl font-bold text-gray-900">Check your personal inbox!</h1>
         <p className="text-gray-600 text-sm">
-          Admin will review your company ID and employee details within 2 business days.
-          You'll receive a notification at <strong>{form.personalEmail}</strong>.
+          We sent a verification link to <strong>{form.personalEmail}</strong>.
+          Click it to confirm your contact email — then your request will be sent to admin for review.
         </p>
-        <div className="bg-brand-50 rounded-xl p-4 text-sm text-brand-700 text-left space-y-1">
-          <p className="font-medium">What admin reviews:</p>
-          <ul className="list-disc list-inside space-y-1 text-brand-600 mt-1">
-            <li>Company ID card photo</li>
-            <li>Employee ID number</li>
-            <li>Company name against whitelist</li>
-            <li>Reason for exception</li>
-          </ul>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-left space-y-1">
+          <p className="font-medium">What happens after you verify:</p>
+          <ol className="list-decimal list-inside space-y-1 text-amber-700 mt-1">
+            <li>Your exception request goes to admin</li>
+            <li>Admin reviews your company ID card</li>
+            <li>Decision sent to <strong>{form.personalEmail}</strong> within 2 business days</li>
+          </ol>
         </div>
-        <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
-          Back to Dashboard
-        </Link>
+        <p className="text-xs text-gray-400">
+          Check spam if you don't see it. The link expires in 24 hours.
+        </p>
       </div>
     );
   }

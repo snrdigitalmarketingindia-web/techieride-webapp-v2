@@ -156,15 +156,15 @@ export class AuthService {
       where: { id: user.id },
       data: {
         emailStatus: 'VERIFIED',
-        accountStatus: 'DOCUMENT_VERIFICATION_PENDING',
+        // Move to PERSONAL_EMAIL_PENDING — user must now add + verify a personal email
+        accountStatus: 'PERSONAL_EMAIL_PENDING',
         verificationMethod: 'EMAIL_VERIFIED',
         emailVerificationToken: null,
         emailVerificationExpiry: null,
       },
     });
 
-    await this.email.sendWelcomeEmail(user.email, user.fullName);
-    return { message: 'Email verified! Please upload your company ID card to complete verification.' };
+    return { message: 'Office email verified! Please add and verify your personal email to continue.' };
   }
 
   // ── Request Exception Verification (can't verify company email) ───────────
@@ -194,16 +194,119 @@ export class AuthService {
       },
     });
 
+    const personalEmailToken = randomBytes(32).toString('hex');
+    const personalEmailExpiry = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+
     await this.prisma.user.update({
       where: { id: userId },
       data: {
         personalEmail: dto.personalEmail.toLowerCase().trim(),
+        personalEmailVerified: false,
+        personalEmailToken,
+        personalEmailExpiry,
         employeeId: dto.employeeId,
-        accountStatus: 'EXCEPTION_VERIFICATION_REQUESTED',
+        // Move to PERSONAL_EMAIL_PENDING — verify personal email before admin review
+        accountStatus: 'PERSONAL_EMAIL_PENDING',
       },
     });
 
-    return { message: 'Exception request submitted. Admin will review your documents within 2 business days.' };
+    // Send verification to the personal email they just provided
+    await this.email.sendPersonalEmailVerification(
+      dto.personalEmail.toLowerCase().trim(),
+      user.fullName,
+      personalEmailToken,
+    );
+
+    return { message: 'Check your personal inbox! Verify your personal email to submit the exception request to admin.' };
+  }
+
+  // ── Submit Personal Email (Path A — normal users after office email verified) ──
+  async submitPersonalEmail(userId: string, personalEmail: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    if (user.accountStatus !== 'PERSONAL_EMAIL_PENDING') {
+      throw new BadRequestException('Personal email submission is only available at the PERSONAL_EMAIL_PENDING stage');
+    }
+
+    const emailLower = personalEmail.toLowerCase().trim();
+
+    // Reject office-style emails — personal email must be a personal domain
+    // (no enforcement here — any valid email accepted; admin sees it on review)
+
+    const personalEmailToken = randomBytes(32).toString('hex');
+    const personalEmailExpiry = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        personalEmail: emailLower,
+        personalEmailVerified: false,
+        personalEmailToken,
+        personalEmailExpiry,
+      },
+    });
+
+    await this.email.sendPersonalEmailVerification(emailLower, user.fullName, personalEmailToken);
+    return { message: 'Verification email sent to your personal inbox.' };
+  }
+
+  // ── Verify Personal Email ─────────────────────────────────────────────────
+  async verifyPersonalEmail(token: string) {
+    const user = await this.prisma.user.findUnique({ where: { personalEmailToken: token } });
+    if (!user) throw new NotFoundException('Invalid or expired verification link');
+    if (user.personalEmailVerified) {
+      return { message: 'Personal email already verified.' };
+    }
+    if (user.personalEmailExpiry && user.personalEmailExpiry < new Date()) {
+      throw new BadRequestException('Verification link has expired. Please request a new one from the app.');
+    }
+
+    // Determine the next status based on which path the user came from.
+    // If they have a pending EXCEPTION VerificationRequest → move to EXCEPTION_VERIFICATION_REQUESTED
+    // Otherwise (normal path after office email) → move to DOCUMENT_VERIFICATION_PENDING
+    const exceptionRequest = await this.prisma.verificationRequest.findFirst({
+      where: { userId: user.id, verificationType: 'EXCEPTION', status: 'PENDING' },
+    });
+
+    const nextStatus = exceptionRequest ? 'EXCEPTION_VERIFICATION_REQUESTED' : 'DOCUMENT_VERIFICATION_PENDING';
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        personalEmailVerified: true,
+        personalEmailToken: null,
+        personalEmailExpiry: null,
+        accountStatus: nextStatus,
+      },
+    });
+
+    const message = exceptionRequest
+      ? 'Personal email verified! Your exception request has been submitted to admin for review.'
+      : 'Personal email verified! Please log in and upload your company ID card to complete verification.';
+
+    return { message, nextStatus };
+  }
+
+  // ── Resend Personal Email Verification ────────────────────────────────────
+  async resendPersonalEmailVerification(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || !user.personalEmail) {
+      throw new BadRequestException('No personal email on record.');
+    }
+    if (user.personalEmailVerified) {
+      return { message: 'Personal email is already verified.' };
+    }
+
+    const personalEmailToken = randomBytes(32).toString('hex');
+    const personalEmailExpiry = new Date(Date.now() + VERIFY_TOKEN_TTL_HOURS * 60 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { personalEmailToken, personalEmailExpiry },
+    });
+
+    await this.email.sendPersonalEmailVerification(user.personalEmail, user.fullName, personalEmailToken);
+    return { message: 'Verification email resent to your personal inbox.' };
   }
 
   // ── Resend Verification ───────────────────────────────────────────────────

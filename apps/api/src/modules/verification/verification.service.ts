@@ -187,11 +187,18 @@ export class VerificationService {
     });
 
     if (decision === 'APPROVED' && req.verificationType !== 'DRIVER') {
-      await this.email.sendWelcomeApprovedEmail(
-        req.user.personalEmail || req.user.email,
-        req.user.fullName,
-        trid || req.user.trid || '',
-      );
+      const finalTrid = trid || req.user.trid || '';
+      // Always notify office email
+      await this.email.sendWelcomeApprovedEmail(req.user.email, req.user.fullName, finalTrid);
+      // Additionally notify personal email (verified contact) with login instructions
+      if (req.user.personalEmail && req.user.personalEmailVerified) {
+        await this.email.sendApprovalNotificationToPersonalEmail(
+          req.user.personalEmail,
+          req.user.email,
+          req.user.fullName,
+          finalTrid,
+        );
+      }
     }
 
     // ── Send contacts CSV for today's session ──────────────────────────────

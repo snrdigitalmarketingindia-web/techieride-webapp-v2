@@ -12,6 +12,7 @@ datasource db {
 enum AccountStatus {
   DRAFT
   EMAIL_VERIFICATION_PENDING
+  PERSONAL_EMAIL_PENDING
   EXCEPTION_VERIFICATION_REQUESTED
   DOCUMENT_VERIFICATION_PENDING
   EMPLOYEE_VERIFIED
@@ -145,8 +146,10 @@ enum TrustBand {
 model User {
   id                        String             @id @default(uuid())
   email                     String             @unique    // official/company email — auth only
-  personalEmail             String?                       // personal email — app notifications
+  personalEmail             String?                       // personal email — app notifications + login fallback
   personalEmailVerified     Boolean            @default(false)
+  personalEmailToken        String?            @unique    // token sent to personal email for verification
+  personalEmailExpiry       DateTime?
   passwordHash              String
   fullName                  String
   profilePhoto              String?

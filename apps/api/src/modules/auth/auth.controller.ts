@@ -89,6 +89,37 @@ export class AuthController {
     return this.authService.requestExceptionVerification(userId, dto);
   }
 
+  // ── Personal email — submit (Path A: after office email verified) ─────
+  @AllowUnverified()
+  @Post('personal-email')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Add personal email and send verification link' })
+  submitPersonalEmail(
+    @CurrentUser('id') userId: string,
+    @Body('personalEmail') personalEmail: string,
+  ) {
+    return this.authService.submitPersonalEmail(userId, personalEmail);
+  }
+
+  // ── Personal email — verify via token link ────────────────────────────
+  @Public()
+  @Get('verify-personal-email')
+  @ApiOperation({ summary: 'Verify personal email via token link' })
+  verifyPersonalEmail(@Query('token') token: string) {
+    return this.authService.verifyPersonalEmail(token);
+  }
+
+  // ── Personal email — resend verification ─────────────────────────────
+  @AllowUnverified()
+  @Post('resend-personal-verification')
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resend personal email verification link' })
+  resendPersonalEmailVerification(@CurrentUser('id') userId: string) {
+    return this.authService.resendPersonalEmailVerification(userId);
+  }
+
   // ── Resend bounce webhook ──────────────────────────────────────────────
   @Public()
   @Post('webhook/bounce')

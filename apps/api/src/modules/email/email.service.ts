@@ -139,6 +139,57 @@ export class EmailService {
     await this.send(email, 'Welcome to TechieRide! 🌿', html);
   }
 
+  // ── Personal email verification ─────────────────────────────────────────
+  async sendPersonalEmailVerification(personalEmail: string, fullName: string, token: string) {
+    const link = `${this.appUrl}/verify-personal-email?token=${token}`;
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">Verify your personal email, ${fullName.split(' ')[0]}!</h2>
+        <p style="color:#374151">Almost there — click the button below to verify this email address.</p>
+        <p style="color:#374151">This is your contact email. Admin decisions and ride notifications will be sent here.</p>
+        <a href="${link}"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Verify Personal Email
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+          This link expires in 24 hours.<br/>
+          You will still log in to TechieRide using your <strong>office email</strong>.<br/>
+          <em>for a better society...</em>
+        </p>
+      </div>`;
+
+    await this.send(personalEmail, 'Verify your personal email — TechieRide', html);
+    this.logger.log(`Personal email verification → ${personalEmail} | link: ${link}`);
+  }
+
+  // ── Approval notification to personal email ──────────────────────────────
+  async sendApprovalNotificationToPersonalEmail(personalEmail: string, officeEmail: string, fullName: string, trid: string) {
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">You're approved, ${fullName.split(' ')[0]}! 🎉</h2>
+        <p style="color:#374151">Your TechieRide membership has been approved by the admin.</p>
+        <div style="background:#f0fdfa;border:2px solid #0d9488;border-radius:12px;padding:20px;margin:20px 0;text-align:center">
+          <p style="color:#6b7280;font-size:12px;margin:0 0 6px">Your TechieRide Member ID</p>
+          <p style="color:#0d9488;font-size:28px;font-weight:bold;margin:0;letter-spacing:2px">${trid}</p>
+        </div>
+        <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px;margin:16px 0">
+          <p style="color:#9a3412;font-size:14px;font-weight:600;margin:0 0 4px">How to log in:</p>
+          <p style="color:#9a3412;font-size:14px;margin:0">Use your <strong>office email</strong> (<em>${officeEmail}</em>) and the password you set during registration.</p>
+        </div>
+        <a href="${this.appUrl}/login"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Log in to TechieRide
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px"><em>for a better society...</em></p>
+      </div>`;
+
+    await this.send(personalEmail, `Welcome to TechieRide — Your ID is ${trid} 🌿`, html);
+    this.logger.log(`Approval notification (personal email) → ${personalEmail}`);
+  }
+
   // ── Notification email (uses personalEmail if available) ────────────────
   // Call this for ride/request notifications, not for auth emails
   async sendNotification(
