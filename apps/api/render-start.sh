@@ -4,23 +4,23 @@ set -e
 echo "📁 Working dir: $(pwd)"
 MAIN_JS="dist/apps/api/src/main.js"
 
-# If dist doesn't exist, rebuild with memory limit
-if [ ! -f "$MAIN_JS" ]; then
-  echo "⚠️  $MAIN_JS not found — rebuilding..."
-  cd ../..
-  NODE_ENV=development npm install
-  cd apps/api
-  NODE_OPTIONS="--max-old-space-size=460" ./node_modules/.bin/nest build || \
-  NODE_OPTIONS="--max-old-space-size=460" npx nest build
-  echo "📂 After rebuild:"
-  find dist -name "main.js" 2>/dev/null || echo "Still not found!"
-fi
-
-# Ensure all dependencies are installed (catches stale cache after package.json changes)
-echo "📦 Verifying dependencies..."
+# Always install deps and rebuild on every deploy.
+# Render persists disk between deploys, so old dist/ would otherwise be reused
+# and source changes (DTO updates, schema changes, etc.) would not take effect.
+echo "📦 Installing dependencies..."
 cd ../..
 npm install --prefer-offline 2>/dev/null || npm install
 cd apps/api
+
+echo "🔨 Building API..."
+NODE_OPTIONS="--max-old-space-size=460" ./node_modules/.bin/nest build || \
+NODE_OPTIONS="--max-old-space-size=460" npx nest build
+
+if [ ! -f "$MAIN_JS" ]; then
+  echo "❌ Build failed — $MAIN_JS not found"
+  exit 1
+fi
+echo "✅ Build complete"
 
 echo "🗄️  Running Prisma migrations..."
 npx prisma generate --schema=../../prisma/schema.prisma
