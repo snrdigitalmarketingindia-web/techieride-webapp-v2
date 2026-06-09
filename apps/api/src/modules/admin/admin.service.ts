@@ -123,20 +123,20 @@ export class AdminService {
   // Hard-delete a user and all related records — for testing/admin use only
   async deleteUser(userId: string) {
     // Delete in dependency order to avoid FK constraint errors
-    await this.prisma.auditLog.deleteMany({ where: { userId } });
+    await this.prisma.auditLog.deleteMany({ where: { actor: userId } }); // actor stores userId
     await this.prisma.notification.deleteMany({ where: { userId } });
     await this.prisma.emergencyContact.deleteMany({ where: { userId } });
     await this.prisma.sosEvent.deleteMany({ where: { userId } });
-    await this.prisma.ecoTransaction.deleteMany({ where: { userId } });
     await this.prisma.gamificationPoint.deleteMany({ where: { userId } });
     await this.prisma.verificationRequest.deleteMany({ where: { userId } });
+    // Ratings where this user is rater or ratee
+    await this.prisma.rideRating.deleteMany({ where: { OR: [{ raterId: userId }, { rateeId: userId }] } });
 
     // Ride-related: delete participant records for rides this user took as seeker
     const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
     if (seeker) {
       await this.prisma.rideParticipant.deleteMany({ where: { seekerId: seeker.id } });
       await this.prisma.rideRequest.deleteMany({ where: { seekerId: seeker.id } });
-      await this.prisma.rideRating.deleteMany({ where: { seekerId: seeker.id } });
       await this.prisma.rideSeeker.delete({ where: { userId } });
     }
 
