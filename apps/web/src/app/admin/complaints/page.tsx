@@ -110,53 +110,68 @@ export default function AdminComplaintsPage() {
           <p className="text-gray-500 text-sm">No complaints{statusFilter ? ` with status ${statusFilter}` : ''}.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Reporter</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Reported</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Reason</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Ride</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Filed</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {complaints.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50 transition">
-                  <td className="px-4 py-3 font-medium text-gray-900">{c.reporter?.fullName ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-700">{c.reported?.fullName ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{REASON_LABELS[c.reason] ?? c.reason}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {c.ride ? (
-                      <span>{c.ride.originName} → {c.ride.destinationName}</span>
-                    ) : (
-                      <span className="italic text-gray-400">Platform-level</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[c.status] ?? 'bg-gray-100 text-gray-500'}`}>
-                      {c.status.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
-                    {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'Asia/Kolkata' })}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => openDetail(c)}
-                      className="text-xs text-brand-600 hover:underline font-medium"
-                    >
-                      Review →
-                    </button>
-                  </td>
+        <>
+          {/* ── Mobile cards ── */}
+          <div className="sm:hidden space-y-3">
+            {complaints.map((c) => (
+              <div key={c.id} className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-gray-400">Reporter → Reported</p>
+                    <p className="text-sm font-semibold text-gray-900">{c.reporter?.fullName ?? '—'} <span className="text-gray-400 font-normal">→</span> {c.reported?.fullName ?? '—'}</p>
+                  </div>
+                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[c.status] ?? 'bg-gray-100 text-gray-500'}`}>
+                    {c.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700">{REASON_LABELS[c.reason] ?? c.reason}</p>
+                {c.ride && <p className="text-xs text-gray-500">{c.ride.originName} → {c.ride.destinationName}</p>}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                  <p className="text-xs text-gray-400">{new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'Asia/Kolkata' })}</p>
+                  <button onClick={() => openDetail(c)} className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg font-medium">Review →</button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── Desktop table ── */}
+          <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Reporter</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Reported</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Reason</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Ride</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Filed</th>
+                  <th className="px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {complaints.map((c) => (
+                  <tr key={c.id} className="hover:bg-gray-50 transition">
+                    <td className="px-4 py-3 font-medium text-gray-900">{c.reporter?.fullName ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-700">{c.reported?.fullName ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{REASON_LABELS[c.reason] ?? c.reason}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {c.ride ? <span>{c.ride.originName} → {c.ride.destinationName}</span> : <span className="italic text-gray-400">Platform-level</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[c.status] ?? 'bg-gray-100 text-gray-500'}`}>{c.status.replace('_', ' ')}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit', timeZone: 'Asia/Kolkata' })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => openDetail(c)} className="text-xs text-brand-600 hover:underline font-medium">Review →</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Detail / review modal */}

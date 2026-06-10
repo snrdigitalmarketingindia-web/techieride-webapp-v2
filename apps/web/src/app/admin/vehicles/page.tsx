@@ -43,20 +43,16 @@ export default function AdminVehiclesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Vehicle RC Verification</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-xl font-bold text-gray-900">Vehicle RC Verification</h1>
         <div className="flex gap-2">
-          <button
-            onClick={() => setFilter('pending')}
-            className={`text-sm px-4 py-1.5 rounded-full font-medium transition ${filter === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-          >
+          <button onClick={() => setFilter('pending')}
+            className={`text-sm px-4 py-1.5 rounded-full font-medium transition ${filter === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
             Pending {filter === 'pending' && `(${pending.length})`}
           </button>
-          <button
-            onClick={() => setFilter('all')}
-            className={`text-sm px-4 py-1.5 rounded-full font-medium transition ${filter === 'all' ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-          >
-            All Vehicles
+          <button onClick={() => setFilter('all')}
+            className={`text-sm px-4 py-1.5 rounded-full font-medium transition ${filter === 'all' ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+            All
           </button>
         </div>
       </div>
@@ -93,7 +89,7 @@ export default function AdminVehiclesPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 {veh.rcUrl ? (
                   <a
                     href={veh.rcUrl}
