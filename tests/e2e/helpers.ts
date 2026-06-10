@@ -38,11 +38,14 @@ export async function apiLogin(email: string): Promise<string> {
 }
 
 /**
- * Cancel all PUBLISHED rides and complete all ONGOING rides for the giver.
- * Call at the start of any beforeAll that needs a clean slate for the giver account.
+ * Force-complete all PUBLISHED/ONGOING rides for the giver via the admin API.
+ * Using admin force-complete bypasses all validation gates (confirmed bookings,
+ * boarding status checks) that cause user-facing cancel/abort to fail silently.
  */
 export async function clearActiveRides(giverToken: string) {
   const ctx = await playwrightRequest.newContext();
+
+  // Get the list of active rides for this giver
   const res = await ctx.get(`${API}/rides/given`, {
     headers: { Authorization: `Bearer ${giverToken}` },
   });
@@ -50,19 +53,15 @@ export async function clearActiveRides(giverToken: string) {
   const rides: any[] = body.data ?? body;
   if (!Array.isArray(rides)) { await ctx.dispose(); return; }
 
-  for (const ride of rides) {
-    if (ride.status === 'PUBLISHED') {
-      await ctx.patch(`${API}/rides/${ride.id}/cancel`, {
-        headers: { Authorization: `Bearer ${giverToken}` },
-      }).catch(() => {});
-    } else if (ride.status === 'ONGOING') {
-      // Use abort: atomically marks all WAITING/BOARDED participants as NO_SHOW and cancels.
-      // Regular no-show endpoint rejects BOARDED participants, so complete() would be blocked.
-      await ctx.patch(`${API}/rides/${ride.id}/abort`, {
-        headers: { Authorization: `Bearer ${giverToken}` },
-        data: { reason: 'Test cleanup' },
-      }).catch(() => {});
-    }
+  const active = rides.filter(r => r.status === 'PUBLISHED' || r.status === 'ONGOING');
+  if (active.length === 0) { await ctx.dispose(); return; }
+
+  // Use admin token to force-complete — bypasses all validation gates
+  const adminToken = await apiLogin(ACCOUNTS.admin.email);
+  for (const ride of active) {
+    await ctx.post(`${API}/admin/rides/${ride.id}/force-complete`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    }).catch(() => {});
   }
   await ctx.dispose();
 }
