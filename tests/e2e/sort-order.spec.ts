@@ -77,16 +77,25 @@ test.describe('📋 Ride Sort Order', () => {
     }
   });
 
-  // SO-02: Giver's /rides page shows the published (far-departure) ride
+  // SO-02: Giver's /rides page shows the published (far-departure) ride.
   // The near ride remains DRAFT (business rule: one active ride at a time) so only
-  // the far ride appears on the active list. We verify it renders at the correct date.
+  // the far ride appears on the active list. The UI renders dates as "13 Jun" (en-IN
+  // locale), and the default period filter is "today" — must click "All" first.
   test('SO-02: giver /rides page shows latest-departure ride first', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/rides');
-    await page.waitForTimeout(2_000);
+    await page.waitForTimeout(1_000);
 
-    const farDate = daysFromNow(3);
-    await expect(page.getByText(farDate).first()).toBeVisible({ timeout: 8_000 });
+    // Switch to "All" period so rides not departing today are visible
+    await page.getByRole('button', { name: 'All' }).click();
+    await page.waitForTimeout(500);
+
+    // The UI formats departureDate as e.g. "13 Jun" (en-IN locale, day + short month)
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    const farDateLabel = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
+
+    await expect(page.getByText(farDateLabel).first()).toBeVisible({ timeout: 8_000 });
   });
 
   // SO-03: Seeker /requests page — newest requests appear first

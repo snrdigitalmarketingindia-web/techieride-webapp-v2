@@ -174,7 +174,9 @@ test.describe('💬 Quick Messages Flow', () => {
 
     await loginUI(page, 'seeker');
     await gotoRidesReady(page, 'taken');
-    await page.getByRole('button', { name: /^All$/i }).click();
+    // Default period is "today" — ride departs tomorrow, so click All to show it
+    await page.getByRole('button', { name: 'All' }).click();
+    await page.waitForTimeout(800);
     await expect(page.getByRole('button', { name: /quick message/i })).toBeVisible({ timeout: 8_000 });
   });
 
