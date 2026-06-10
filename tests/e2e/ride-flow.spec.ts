@@ -470,6 +470,8 @@ test.describe('🕐 Pickup ETA — estimate and override', () => {
       pickupLat: 17.4430, pickupLng: 78.3510,
     });
     requestId = req.requestId ?? req.id ?? req.data?.id;
+    // Approve so CONFIRMED status allows ETA override API calls
+    await apiCall(giverToken, 'patch', `/ride-requests/${requestId}/approve`, { pickupTime: '09:00' });
   });
 
   test('ETA-01: pickup ETA is hidden when seeker has no pickup coordinates', async ({ page }) => {

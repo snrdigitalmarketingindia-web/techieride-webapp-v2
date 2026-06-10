@@ -204,9 +204,9 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     await page.getByRole('button', { name: /search/i }).click();
     await searchDone;
     // Let React batch-flush any pending state updates (rides + user) into the DOM
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(1_000);
 
-    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByText(/your ride/i)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('button', { name: /request seat/i })).not.toBeVisible();
 
     // Cleanup

@@ -316,10 +316,10 @@ test.describe('📧 personalEmail Format Validation', () => {
 
 // ── 5. FORGOT PASSWORD — RESET TOKEN SINGLE USE ───────────────────────────────
 
-test.describe('🔄 Reset Token Single-Use', () => {
+test.describe('🔄 Password Reset / Change Flow', () => {
 
-  test('VAL-RT-01: reset token cannot be reused after first successful reset', async ({ page }) => {
-    // Register a fresh account (avoids mutating seed accounts)
+  test('VAL-RT-01: forgot-password response does not leak temp password or token', async ({ page }) => {
+    // Register a fresh account — avoids mutating seed accounts
     const ts = Date.now();
     const email = `rt_test_${ts}@wipro.com`;
 
@@ -335,36 +335,24 @@ test.describe('🔄 Reset Token Single-Use', () => {
       return;
     }
 
-    // Request a password reset (token is emailed but we can't read it in E2E —
-    // confirm the endpoint returns 200/201 and doesn't leak the token in the response)
+    // Request forgot-password — temp password is emailed to personal email, never in response
     const forgotRes = await post(page, '/auth/forgot-password', { email });
     expect([200, 201]).toContain(forgotRes.status);
 
-    // Confirm the API response does NOT contain the token (security check)
+    // Response must NOT contain the temp password or any token (security check)
     const bodyStr = JSON.stringify(forgotRes.body);
-    expect(bodyStr).not.toMatch(/passwordResetToken|resetToken/i);
-
-    // Attempt reset with a fake/expired token — must return 400/401
-    const resetWithFake = await post(page, '/auth/reset-password', {
-      token: 'fake-token-that-does-not-exist',
-      newPassword: 'NewPassword@9999',
-    });
-    expect([400, 401, 404]).toContain(resetWithFake.status);
+    expect(bodyStr).not.toMatch(/tempPassword|passwordResetToken|resetToken/i);
   });
 
-  test('VAL-RT-02: reset-password with too-short new password returns 400', async ({ page }) => {
-    const { status } = await post(page, '/auth/reset-password', {
-      token: 'any-token',
-      newPassword: 'short',
-    });
+  test('VAL-RT-02: change-password with too-short new password returns 400', async ({ page }) => {
+    const token = await apiLogin(ACCOUNTS.seeker.email);
+    const { status } = await post(page, '/auth/change-password', { oldPassword: SEED_PASSWORD, newPassword: 'short' }, token);
     expect(status).toBe(400);
   });
 
-  test('VAL-RT-03: reset-password with 200-char new password returns 400', async ({ page }) => {
-    const { status } = await post(page, '/auth/reset-password', {
-      token: 'any-token',
-      newPassword: 'P'.repeat(200),
-    });
+  test('VAL-RT-03: change-password with 200-char new password returns 400', async ({ page }) => {
+    const token = await apiLogin(ACCOUNTS.seeker.email);
+    const { status } = await post(page, '/auth/change-password', { oldPassword: SEED_PASSWORD, newPassword: 'P'.repeat(200) }, token);
     expect(status).toBe(400);
   });
 
