@@ -173,6 +173,21 @@ export class AdminController {
     return this.adminService.getTravelAnalytics();
   }
 
+  @Get('suspicious')
+  getSuspiciousUsers() {
+    return this.adminService.getSuspiciousUsers();
+  }
+
+  @Get('config/suspicious-rules')
+  getSuspiciousRulesConfig() {
+    return this.adminService.getSuspiciousRulesConfig();
+  }
+
+  @Post('config/suspicious-rules')
+  setSuspiciousRulesConfig(@Body() body: Record<string, number>) {
+    return this.adminService.setSuspiciousRulesConfig(body);
+  }
+
   @Post('users/bulk-email')
   bulkEmailUsers(
     @Body('userIds') userIds: string[],

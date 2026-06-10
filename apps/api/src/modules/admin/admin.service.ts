@@ -261,6 +261,142 @@ export class AdminService {
     return { updated: userIds.length };
   }
 
+  // ── System config ────────────────────────────────────────────────────────
+
+  private readonly SUSPICIOUS_RULES_KEY = 'suspicious_rules';
+  private readonly SUSPICIOUS_RULES_DEFAULTS = {
+    noShowThreshold:          3,
+    noShowDays:               30,
+    cancellationThreshold:    5,
+    cancellationDays:         7,
+    minRating:                2.5,
+    minRatedRides:            5,
+    openComplaintsThreshold:  2,
+    sosThreshold:             3,
+  };
+
+  async getSuspiciousRulesConfig() {
+    const row = await this.prisma.systemConfig.findUnique({ where: { key: this.SUSPICIOUS_RULES_KEY } });
+    return { ...this.SUSPICIOUS_RULES_DEFAULTS, ...(row?.value as object ?? {}) };
+  }
+
+  async setSuspiciousRulesConfig(updates: Partial<typeof this.SUSPICIOUS_RULES_DEFAULTS>) {
+    const current = await this.getSuspiciousRulesConfig();
+    const merged = { ...current, ...updates };
+    await this.prisma.systemConfig.upsert({
+      where:  { key: this.SUSPICIOUS_RULES_KEY },
+      create: { key: this.SUSPICIOUS_RULES_KEY, value: merged },
+      update: { value: merged },
+    });
+    return merged;
+  }
+
+  async getSuspiciousUsers() {
+    const cfg = await this.getSuspiciousRulesConfig();
+
+    const noShowSince         = new Date(Date.now() - cfg.noShowDays         * 86400000);
+    const cancellationSince   = new Date(Date.now() - cfg.cancellationDays   * 86400000);
+
+    // Run all five signal queries in parallel
+    const [noShows, cancellations, lowRating, complaints, sos] = await Promise.all([
+      // Signal 1: seekers with ≥ noShowThreshold no-shows in last noShowDays days
+      this.prisma.rideSeeker.findMany({
+        where: { rideRequests: { some: { status: 'NO_SHOW', updatedAt: { gte: noShowSince } } } },
+        select: {
+          userId: true,
+          user: { select: { id: true, fullName: true, email: true, accountStatus: true } },
+          _count: { select: { rideRequests: { where: { status: 'NO_SHOW', updatedAt: { gte: noShowSince } } } } },
+        },
+      }),
+
+      // Signal 2: seekers with ≥ cancellationThreshold cancellations in last cancellationDays days
+      this.prisma.rideSeeker.findMany({
+        where: { rideRequests: { some: { status: 'CANCELLED', updatedAt: { gte: cancellationSince } } } },
+        select: {
+          userId: true,
+          user: { select: { id: true, fullName: true, email: true, accountStatus: true } },
+          _count: { select: { rideRequests: { where: { status: 'CANCELLED', updatedAt: { gte: cancellationSince } } } } },
+        },
+      }),
+
+      // Signal 3: givers OR seekers with average rating < minRating and ≥ minRatedRides rides
+      this.prisma.user.findMany({
+        where: {
+          OR: [
+            { rideGiver: { averageRating: { gt: 0, lt: cfg.minRating }, totalRidesGiven: { gte: cfg.minRatedRides } } },
+            { rideSeeker: { averageRating: { gt: 0, lt: cfg.minRating }, totalRidesTaken: { gte: cfg.minRatedRides } } },
+          ],
+        },
+        select: {
+          id: true, fullName: true, email: true, accountStatus: true,
+          rideGiver:  { select: { averageRating: true, totalRidesGiven: true } },
+          rideSeeker: { select: { averageRating: true, totalRidesTaken: true } },
+        },
+      }),
+
+      // Signal 4: users with ≥ openComplaintsThreshold open complaints against them
+      this.prisma.user.findMany({
+        where: { complaintsReceived: { some: { status: 'OPEN' } } },
+        select: {
+          id: true, fullName: true, email: true, accountStatus: true,
+          _count: { select: { complaintsReceived: { where: { status: 'OPEN' } } } },
+        },
+      }),
+
+      // Signal 5: users with ≥ sosThreshold SOS events
+      this.prisma.user.findMany({
+        where: { sosEvents: { some: {} } },
+        select: {
+          id: true, fullName: true, email: true, accountStatus: true,
+          _count: { select: { sosEvents: true } },
+        },
+      }),
+    ]);
+
+    // Merge into a map keyed by userId
+    const map = new Map<string, { userId: string; fullName: string; email: string; accountStatus: string; flags: string[] }>();
+
+    const getOrCreate = (id: string, fullName: string, email: string, accountStatus: string) => {
+      if (!map.has(id)) map.set(id, { userId: id, fullName, email, accountStatus, flags: [] });
+      return map.get(id)!;
+    };
+
+    for (const s of noShows) {
+      const count = s._count.rideRequests;
+      if (count >= cfg.noShowThreshold)
+        getOrCreate(s.user.id, s.user.fullName, s.user.email, s.user.accountStatus as string)
+          .flags.push(`🚫 ${count} no-show${count !== 1 ? 's' : ''} (${cfg.noShowDays}d)`);
+    }
+    for (const s of cancellations) {
+      const count = s._count.rideRequests;
+      if (count >= cfg.cancellationThreshold)
+        getOrCreate(s.user.id, s.user.fullName, s.user.email, s.user.accountStatus as string)
+          .flags.push(`⚠️ ${count} cancellations (${cfg.cancellationDays}d)`);
+    }
+    for (const u of lowRating) {
+      const rating = u.rideGiver?.averageRating ?? u.rideSeeker?.averageRating ?? 0;
+      getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string)
+        .flags.push(`⭐ Rating ${rating.toFixed(1)}`);
+    }
+    for (const u of complaints) {
+      const count = u._count.complaintsReceived;
+      if (count >= cfg.openComplaintsThreshold)
+        getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string)
+          .flags.push(`📋 ${count} open complaint${count !== 1 ? 's' : ''}`);
+    }
+    for (const u of sos) {
+      const count = u._count.sosEvents;
+      if (count >= cfg.sosThreshold)
+        getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string)
+          .flags.push(`🆘 ${count} SOS event${count !== 1 ? 's' : ''}`);
+    }
+
+    return {
+      config: cfg,
+      users: Array.from(map.values()).sort((a, b) => b.flags.length - a.flags.length),
+    };
+  }
+
   async getTravelAnalytics() {
     // Top giver-seeker pairs by completed-ride count
     const pairs = await this.prisma.$queryRaw<{

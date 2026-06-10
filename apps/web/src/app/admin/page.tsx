@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { adminApi } from '@/lib/api';
 
 type TimeSeriesPoint = { date: string; users: number; rides: number };
@@ -43,11 +44,13 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [sosList, setSosList] = useState<any[]>([]);
   const [timeSeries, setTimeSeries] = useState<TimeSeriesPoint[]>([]);
+  const [suspiciousCount, setSuspiciousCount] = useState<number | null>(null);
 
   useEffect(() => {
     adminApi.getAnalytics().then((r) => setAnalytics(r.data));
     adminApi.getActiveSos().then((r) => setSosList(r.data));
     adminApi.getTimeSeriesMetrics(30).then((r) => setTimeSeries(Array.isArray(r.data) ? r.data : []));
+    adminApi.getSuspiciousUsers().then((r) => setSuspiciousCount(r.data?.users?.length ?? 0));
   }, []);
 
   const kpis = analytics ? [
@@ -59,6 +62,7 @@ export default function AdminDashboard() {
     { label: 'Completed',      value: analytics.completedRides,icon: '✔️' },
     { label: 'CO₂ Saved',      value: `${analytics.totalCo2SavedKg} kg`, icon: '🌿' },
     { label: 'SOS Events',     value: analytics.sosEvents,     icon: '🆘', alert: analytics.sosEvents > 0 },
+    { label: 'Suspicious',     value: suspiciousCount ?? '…',  icon: '🚨', alert: (suspiciousCount ?? 0) > 0, href: '/admin/suspicious' },
   ] : [];
 
   const womenKpis = analytics ? [
@@ -84,13 +88,21 @@ export default function AdminDashboard() {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {kpis.map((k) => (
-          <div key={k.label} className={`bg-white rounded-xl border p-5 ${(k as any).alert ? 'border-red-300' : 'border-gray-200'}`}>
-            <div className="text-2xl mb-1">{k.icon}</div>
-            <p className="text-2xl font-bold text-gray-900">{k.value ?? '—'}</p>
-            <p className="text-sm text-gray-500">{k.label}</p>
-          </div>
-        ))}
+        {kpis.map((k) => {
+          const inner = (
+            <>
+              <div className="text-2xl mb-1">{k.icon}</div>
+              <p className="text-2xl font-bold text-gray-900">{k.value ?? '—'}</p>
+              <p className="text-sm text-gray-500">{k.label}</p>
+            </>
+          );
+          const cls = `bg-white rounded-xl border p-5 ${(k as any).alert ? 'border-red-300' : 'border-gray-200'}`;
+          return (k as any).href ? (
+            <Link key={k.label} href={(k as any).href} className={`${cls} hover:bg-red-50 transition block`}>{inner}</Link>
+          ) : (
+            <div key={k.label} className={cls}>{inner}</div>
+          );
+        })}
       </div>
 
       {timeSeries.length > 0 && (
