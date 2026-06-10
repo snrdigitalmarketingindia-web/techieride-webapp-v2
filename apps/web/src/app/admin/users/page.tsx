@@ -45,12 +45,14 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ accountStatus: '', role: '', search: '' });
+  const [filter, setFilter] = useState({ accountStatus: '', role: '', search: '', compliance: false });
   const [searchInput, setSearchInput] = useState('');
 
   const load = () => {
     setLoading(true);
-    adminApi.listUsers(filter).then((r) => {
+    const params: any = { accountStatus: filter.accountStatus, role: filter.role, search: filter.search };
+    if (filter.compliance) params.compliance = 'true';
+    adminApi.listUsers(params).then((r) => {
       setUsers(r.data.data);
       setTotal(r.data.total);
     }).finally(() => setLoading(false));
@@ -107,6 +109,12 @@ export default function AdminUsersPage() {
             <option value="RIDE_GIVER">Ride Giver / Seeker</option>
             <option value="RIDE_SEEKER">Ride Seeker Only</option>
           </select>
+          <button
+            onClick={() => setFilter((f) => ({ ...f, compliance: !f.compliance }))}
+            className={`text-sm px-3 py-2 rounded-lg border transition whitespace-nowrap ${filter.compliance ? 'bg-red-600 text-white border-red-600' : 'bg-white text-red-600 border-red-300 hover:bg-red-50'}`}
+          >
+            🚩 Flagged Only
+          </button>
         </div>
       </div>
 

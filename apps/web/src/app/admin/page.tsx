@@ -56,7 +56,7 @@ export default function AdminDashboard() {
       </div>
 
       {womenKpis.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Women Participation</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {womenKpis.map((k) => (
@@ -66,6 +66,35 @@ export default function AdminDashboard() {
                 <p className="text-sm text-pink-600">{k.label}</p>
               </div>
             ))}
+          </div>
+
+          {/* Women participation breakdown chart */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="text-sm font-semibold text-gray-700 mb-4">Women vs Total — Breakdown</h3>
+            <div className="space-y-4">
+              {[
+                { label: 'Users',      women: analytics.womenUsersCount,   total: analytics.totalUsers },
+                { label: 'Givers',     women: analytics.womenGiversCount,  total: analytics.giversCount },
+                { label: 'Seekers',    women: analytics.womenSeekersCount, total: analytics.seekersCount },
+                { label: 'Women-Only Rides', women: analytics.womenOnlyRidesCount, total: analytics.totalRides },
+              ].map(({ label, women, total }) => {
+                const pct = total > 0 ? Math.round((women / total) * 100) : 0;
+                return (
+                  <div key={label}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600 font-medium">{label}</span>
+                      <span className="text-pink-700 font-semibold">{women} / {total} ({pct}%)</span>
+                    </div>
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-pink-400 rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

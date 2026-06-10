@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class AdminService {
   constructor(private prisma: PrismaService) {}
 
-  async listUsers(filters: { accountStatus?: string; role?: string; search?: string; page: number; limit: number }) {
+  async listUsers(filters: { accountStatus?: string; role?: string; search?: string; compliance?: boolean; page: number; limit: number }) {
     const where: any = {};
     if (filters.accountStatus) where.accountStatus = filters.accountStatus as AccountStatus;
     if (filters.role) where.role = filters.role;
@@ -18,6 +18,19 @@ export class AdminService {
         { trid:        { contains: q, mode: 'insensitive' } },
         { companyName: { contains: q, mode: 'insensitive' } },
         { phone:       { contains: q } },
+      ];
+    }
+    if (filters.compliance) {
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      where.OR = [
+        // Seeker with 3+ no-shows
+        { rideSeeker: { rideRequests: { some: { status: 'NO_SHOW' } } } },
+        // Seeker with recent cancellations
+        { rideSeeker: { rideRequests: { some: { status: 'CANCELLED', updatedAt: { gte: sevenDaysAgo } } } } },
+        // Giver with low average rating
+        { rideGiver: { averageRating: { gt: 0, lt: 3 } } },
+        // Seeker with low average rating
+        { rideSeeker: { averageRating: { gt: 0, lt: 3 } } },
       ];
     }
 

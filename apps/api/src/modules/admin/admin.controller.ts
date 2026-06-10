@@ -30,10 +30,11 @@ export class AdminController {
     @Query('accountStatus') accountStatus?: string,
     @Query('role') role?: string,
     @Query('search') search?: string,
+    @Query('compliance') compliance?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.adminService.listUsers({ accountStatus, role, search, page: +page, limit: +limit });
+    return this.adminService.listUsers({ accountStatus, role, search, compliance: compliance === 'true', page: +page, limit: +limit });
   }
 
   @Get('users/:id')
