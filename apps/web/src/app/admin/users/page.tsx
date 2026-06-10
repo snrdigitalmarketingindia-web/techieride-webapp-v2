@@ -99,13 +99,18 @@ export default function AdminUsersPage() {
     }
   };
 
-  const bulkAction = async (action: 'suspend' | 'activate') => {
+  const bulkAction = async (action: 'suspend' | 'activate' | 'delete') => {
     const ids = Array.from(selected);
     if (!ids.length) return;
+    if (action === 'delete') {
+      const ok = window.confirm(`Permanently delete ${ids.length} user${ids.length !== 1 ? 's' : ''}? This cannot be undone.`);
+      if (!ok) return;
+    }
     setBulkLoading(true);
     try {
       if (action === 'suspend') await adminApi.bulkSuspendUsers(ids);
-      else await adminApi.bulkActivateUsers(ids);
+      else if (action === 'activate') await adminApi.bulkActivateUsers(ids);
+      else await Promise.all(ids.map(id => adminApi.deleteUser(id).catch(() => {})));
       load();
     } finally {
       setBulkLoading(false);
@@ -195,6 +200,13 @@ export default function AdminUsersPage() {
           >
             ✉️ Send Email
           </button>
+          <button
+            onClick={() => bulkAction('delete')}
+            disabled={bulkLoading}
+            className="text-sm bg-gray-800 text-white px-3 py-1.5 rounded-lg hover:bg-black disabled:opacity-50 transition"
+          >
+            🗑️ Delete
+          </button>
           <button onClick={() => setSelected(new Set())} className="text-sm text-blue-600 hover:underline ml-auto">
             Clear
           </button>
@@ -220,7 +232,7 @@ export default function AdminUsersPage() {
                 {users.map((u) => (
                   <tr key={u.id} onClick={() => router.push(`/admin/users/${u.id}`)} className={`hover:bg-gray-50 cursor-pointer ${selected.has(u.id) ? 'bg-blue-50' : ''} ${!u.isActive ? 'opacity-50' : ''}`}>
                     <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); toggleSelect(u.id); }}>
-                      <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} className="rounded border-gray-300" />
+                      <input type="checkbox" checked={selected.has(u.id)} onChange={() => {}} onClick={(e) => e.stopPropagation()} className="rounded border-gray-300 cursor-pointer" />
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{u.fullName}</p>
@@ -266,9 +278,9 @@ export default function AdminUsersPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-start gap-2 min-w-0">
                     <input type="checkbox" checked={selected.has(u.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={() => toggleSelect(u.id)}
-                      className="mt-0.5 rounded border-gray-300 shrink-0" />
+                      onClick={(e) => { e.stopPropagation(); toggleSelect(u.id); }}
+                      onChange={() => {}}
+                      className="mt-0.5 rounded border-gray-300 shrink-0 cursor-pointer" />
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{u.fullName}</p>
                     <p className="text-xs text-gray-400 truncate">{u.email}</p>
