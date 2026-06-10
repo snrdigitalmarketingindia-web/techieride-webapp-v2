@@ -117,14 +117,27 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     // A plain /cancel on an ONGOING ride is rejected — this was the previous bug.
     await clearActiveRides(token).catch(() => {});
 
-    // Create + publish a ride as the giver
+    // Self-heal: if a prior test left the giver's vehicle with rcVerified=false
+    // (e.g. an admin test that tested RC revocation), re-verify it via the admin API
+    // so this test is resilient to test-ordering state pollution.
     const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
     const vehicles = await page.request.get(`${API}/vehicles/my`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const vBody = await vehicles.json();
-    const vehicleId = vBody.data?.[0]?.id ?? vBody[0]?.id;
+    const allVehicles: any[] = vBody.data ?? vBody ?? [];
+    // Prefer a vehicle with rcVerified=true; fall back to the first vehicle
+    const verifiedVehicle = allVehicles.find((v: any) => v.rcVerified === true) ?? allVehicles[0];
+    const vehicleId = verifiedVehicle?.id;
     if (!vehicleId) { test.skip(true, 'No vehicle found for giver'); return; }
+
+    if (!verifiedVehicle?.rcVerified) {
+      // Re-verify via admin API so publish will succeed
+      const adminToken = await apiLogin(ACCOUNTS.admin.email);
+      await page.request.patch(`${API}/admin/vehicles/${vehicleId}/verify`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      }).catch(() => {});
+    }
 
     const created = await page.request.post(`${API}/rides`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

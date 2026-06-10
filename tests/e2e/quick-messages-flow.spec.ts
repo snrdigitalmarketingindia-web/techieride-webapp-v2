@@ -30,7 +30,16 @@ test.describe('💬 Quick Messages Flow', () => {
     await clearActiveRides(giverToken);
     await clearSeekerRequests(seekerToken);
     const vehicles = await api(giverToken, 'get', '/vehicles/my');
-    vehicleId = (vehicles.data ?? vehicles)[0]?.id;
+    const allVehicles: any[] = vehicles.data ?? vehicles ?? [];
+    // Prefer a vehicle with rcVerified=true; fall back to the first vehicle
+    const verifiedVehicle = allVehicles.find((v: any) => v.rcVerified === true) ?? allVehicles[0];
+    vehicleId = verifiedVehicle?.id;
+
+    // Self-heal: if a prior test left the vehicle RC unverified, re-verify via admin API
+    if (verifiedVehicle && !verifiedVehicle.rcVerified) {
+      const adminToken = await apiLogin(ACCOUNTS.admin.email);
+      await api(adminToken, 'patch', `/admin/vehicles/${vehicleId}/verify`).catch(() => {});
+    }
 
     // Publish a ride with a confirmed seeker
     const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(11, 0, 0, 0);
