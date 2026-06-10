@@ -48,6 +48,15 @@ export class RideRequestsController {
     return this.service.confirm(id, userId);
   }
 
+  @Patch(':id/pickup-time')
+  updatePickupTime(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+    @Body('pickupTime') pickupTime: string,
+  ) {
+    return this.service.updatePickupTime(id, userId, pickupTime);
+  }
+
   @Patch(':id/cancel')
   cancel(
     @Param('id') id: string,

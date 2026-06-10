@@ -71,23 +71,34 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingDone, setRatingDone] = useState<Record<string, boolean>>({});
 
-  // TODO [v2.3]: Pickup time overrides — currently stored in localStorage (per-device only).
-  // Migrate to DB: add `pickupEtaOverride String?` on RideRequest model, expose via
-  // PATCH /ride-requests/:id/eta, read from API instead of localStorage.
-  // Pickup time overrides — keyed by requestId, stored in localStorage
-  const ETA_KEY = (reqId: string) => `tr_pickup_eta_${reqId}`;
+  // Pickup time overrides — persisted in DB via PATCH /ride-requests/:id/pickup-time
   const [etaOverrides, setEtaOverrides] = useState<Record<string, string>>({});
   const [editingEta, setEditingEta] = useState<string | null>(null); // reqId being edited
   const [etaDraft, setEtaDraft] = useState('');
-  const loadEtas = (reqs: any[]) => {
+  const [etaSaving, setEtaSaving] = useState<string | null>(null);
+
+  // Load pickupTime from confirmed requests returned by the ride API
+  const loadEtas = (confirmedReqs: any[]) => {
     const map: Record<string, string> = {};
-    reqs.forEach(r => { try { const v = localStorage.getItem(ETA_KEY(r.id)); if (v) map[r.id] = v; } catch {} });
+    confirmedReqs.forEach((r: any) => { if (r.pickupTime) map[r.id] = r.pickupTime; });
     setEtaOverrides(map);
   };
-  const saveEta = (reqId: string, value: string) => {
-    try { if (value.trim()) localStorage.setItem(ETA_KEY(reqId), value.trim()); else localStorage.removeItem(ETA_KEY(reqId)); } catch {}
-    setEtaOverrides(prev => value.trim() ? { ...prev, [reqId]: value.trim() } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== reqId)));
-    setEditingEta(null);
+
+  const saveEta = async (reqId: string, value: string) => {
+    setEtaSaving(reqId);
+    try {
+      await requestsApi.updatePickupTime(reqId, value.trim());
+      setEtaOverrides(prev =>
+        value.trim()
+          ? { ...prev, [reqId]: value.trim() }
+          : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== reqId)),
+      );
+    } catch {
+      // silently ignore — UI still reflects optimistic state
+    } finally {
+      setEtaSaving(null);
+      setEditingEta(null);
+    }
   };
 
   const reloadRide = () =>
@@ -98,7 +109,6 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       .then(res => {
         const reqs = (res.data ?? []).filter((r: any) => r.status === 'PENDING');
         setPendingRequests(reqs);
-        loadEtas(reqs);
       })
       .catch(() => {});
 
@@ -112,6 +122,11 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     if (ride?.rideGiver?.userId === user?.id && ride?.status === 'PUBLISHED') {
       reloadPending();
+    }
+    // Load ETA overrides from confirmed requests stored in the ride object
+    if (ride?.requests) {
+      const confirmed = ride.requests.filter((r: any) => r.status === 'CONFIRMED');
+      loadEtas(confirmed);
     }
     // Pre-load existing ratings so already-rated users see ✅ Rated instead of the Rate button
     if (ride?.status === 'COMPLETED' && user?.id) {
@@ -476,8 +491,10 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                           onChange={e => setEtaDraft(e.target.value)}
                           className="text-xs px-2 py-1 border border-brand-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400"
                         />
-                        <button onClick={() => saveEta(req.id, etaDraft)} className="text-xs bg-brand-600 text-white px-2 py-1 rounded-lg">Save</button>
-                        <button onClick={() => setEditingEta(null)} className="text-xs text-gray-400 px-1">Cancel</button>
+                        <button onClick={() => saveEta(req.id, etaDraft)} disabled={etaSaving === req.id} className="text-xs bg-brand-600 text-white px-2 py-1 rounded-lg disabled:opacity-50">
+                          {etaSaving === req.id ? 'Saving…' : 'Save'}
+                        </button>
+                        <button onClick={() => setEditingEta(null)} disabled={etaSaving === req.id} className="text-xs text-gray-400 px-1">Cancel</button>
                         {etaOverrides[req.id] && (
                           <button onClick={() => saveEta(req.id, '')} className="text-xs text-red-400 px-1">Clear</button>
                         )}
@@ -598,7 +615,40 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                         📍 {pickupName}{distStr ? ` · 📏 ${distStr} from you` : ''}
                       </p>
                     )}
-                    {eta && <p className="text-xs text-gray-400">🕐 Est. ~{eta}</p>}
+                    {/* ETA override for confirmed passengers */}
+                    {isMyRide && (
+                      editingEta === p.request?.id ? (
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          <input
+                            type="time"
+                            value={etaDraft}
+                            onChange={e => setEtaDraft(e.target.value)}
+                            className="text-xs px-2 py-1 border border-brand-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-400"
+                          />
+                          <button onClick={() => saveEta(p.request.id, etaDraft)} disabled={etaSaving === p.request?.id} className="text-xs bg-brand-600 text-white px-2 py-1 rounded-lg disabled:opacity-50">
+                            {etaSaving === p.request?.id ? '…' : '✓'}
+                          </button>
+                          <button onClick={() => setEditingEta(null)} disabled={etaSaving === p.request?.id} className="text-xs text-gray-400 px-1">✕</button>
+                          {etaOverrides[p.request?.id] && (
+                            <button onClick={() => saveEta(p.request.id, '')} className="text-xs text-red-400 px-1">Clear</button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {etaOverrides[p.request?.id] ? (
+                            <span className="text-xs text-brand-600 font-medium">🕐 Pickup at {etaOverrides[p.request.id]}</span>
+                          ) : (
+                            eta ? <span className="text-xs text-gray-400">🕐 Est. ~{eta}</span> : null
+                          )}
+                          <button
+                            onClick={() => { setEditingEta(p.request?.id); setEtaDraft(etaOverrides[p.request?.id] ?? ''); }}
+                            className="text-xs text-gray-300 hover:text-brand-500 ml-1"
+                            title="Set pickup time"
+                          >✏️</button>
+                        </div>
+                      )
+                    )}
+                    {!isMyRide && eta && <p className="text-xs text-gray-400">🕐 Est. ~{eta}</p>}
                   </div>
                   {/* Status badge + no-show button stacked on right */}
                   <div className="flex flex-col items-end gap-1 shrink-0">

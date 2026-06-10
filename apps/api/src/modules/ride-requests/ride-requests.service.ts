@@ -326,6 +326,29 @@ export class RideRequestsService {
     });
   }
 
+  async updatePickupTime(requestId: string, userId: string, pickupTime: string) {
+    const request = await this.getRequestForGiver(requestId, userId);
+    if (request.status !== 'CONFIRMED') throw new ForbiddenException('Can only update ETA for confirmed requests');
+
+    const trimmed = pickupTime?.trim() ?? '';
+
+    // Update both RideRequest and RideParticipant (if exists)
+    await this.prisma.rideRequest.update({
+      where: { id: requestId },
+      data: { pickupTime: trimmed || null },
+    });
+
+    const participant = await this.prisma.rideParticipant.findUnique({ where: { requestId } });
+    if (participant) {
+      await this.prisma.rideParticipant.update({
+        where: { requestId },
+        data: { pickupTime: trimmed || null },
+      });
+    }
+
+    return { success: true, pickupTime: trimmed || null };
+  }
+
   private async getRequestForGiver(requestId: string, userId: string) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
     if (!giver) throw new ForbiddenException();
