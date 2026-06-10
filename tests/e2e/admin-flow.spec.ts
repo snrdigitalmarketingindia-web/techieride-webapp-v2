@@ -145,7 +145,7 @@ test.describe('🛡️ Admin Full Flow', () => {
     await loginUI(page, 'admin');
     await page.goto('/admin/users');
     await page.waitForLoadState('networkidle', { timeout: 15_000 });
-    await page.getByText(/raghu sri/i).first().click().catch(() => {});
+    await page.getByText(/raghu sri/i).first().click({ timeout: 5_000 }).catch(() => {});
     await expect(page).not.toHaveURL(/error/);
   });
 });

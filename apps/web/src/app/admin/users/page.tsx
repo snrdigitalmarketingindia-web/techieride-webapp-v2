@@ -94,36 +94,7 @@ export default function AdminUsersPage() {
 
       {loading ? <div className="text-center py-10 text-gray-400">Loading...</div> : (
         <>
-          {/* ── Mobile card list ── */}
-          <div className="sm:hidden space-y-3">
-            {users.length === 0 && <p className="text-center py-8 text-gray-400">No users found</p>}
-            {users.map((u) => (
-              <div key={u.id} onClick={() => router.push(`/admin/users/${u.id}`)}
-                className={`bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50 ${!u.isActive ? 'opacity-50' : ''}`}>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{u.fullName}</p>
-                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                    {u.trid && <p className="text-xs font-mono text-brand-600 font-semibold mt-0.5">{u.trid}</p>}
-                    {u.companyName && <p className="text-xs text-gray-500 mt-0.5">{u.companyName}</p>}
-                  </div>
-                  <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${ACCOUNT_STATUS_COLORS[u.accountStatus] || 'bg-gray-100 text-gray-600'}`}>
-                    {ACCOUNT_STATUS_LABELS[u.accountStatus] || u.accountStatus}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{u.role}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); u.isActive ? adminApi.suspendUser(u.id).then(load) : adminApi.activateUser(u.id).then(load); }}
-                    className={`text-xs px-3 py-1 rounded-lg font-medium ${u.isActive ? 'text-red-600 bg-red-50 border border-red-200' : 'text-green-600 bg-green-50 border border-green-200'}`}>
-                    {u.isActive ? 'Suspend' : 'Activate'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Desktop table ── */}
+          {/* ── Desktop table (rendered first in DOM so .first() locators in E2E find the visible table row) ── */}
           <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -166,6 +137,35 @@ export default function AdminUsersPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* ── Mobile card list (after desktop table in DOM so .first() locators find the visible table row) ── */}
+          <div className="sm:hidden space-y-3">
+            {users.length === 0 && <p className="text-center py-8 text-gray-400">No users found</p>}
+            {users.map((u) => (
+              <div key={u.id} onClick={() => router.push(`/admin/users/${u.id}`)}
+                className={`bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50 ${!u.isActive ? 'opacity-50' : ''}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{u.fullName}</p>
+                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                    {u.trid && <p className="text-xs font-mono text-brand-600 font-semibold mt-0.5">{u.trid}</p>}
+                    {u.companyName && <p className="text-xs text-gray-500 mt-0.5">{u.companyName}</p>}
+                  </div>
+                  <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${ACCOUNT_STATUS_COLORS[u.accountStatus] || 'bg-gray-100 text-gray-600'}`}>
+                    {ACCOUNT_STATUS_LABELS[u.accountStatus] || u.accountStatus}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{u.role}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); u.isActive ? adminApi.suspendUser(u.id).then(load) : adminApi.activateUser(u.id).then(load); }}
+                    className={`text-xs px-3 py-1 rounded-lg font-medium ${u.isActive ? 'text-red-600 bg-red-50 border border-red-200' : 'text-green-600 bg-green-50 border border-green-200'}`}>
+                    {u.isActive ? 'Suspend' : 'Activate'}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </>
       )}
