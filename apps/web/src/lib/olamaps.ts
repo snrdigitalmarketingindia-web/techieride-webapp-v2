@@ -32,7 +32,8 @@ export const MAP_PROVIDER: MapProvider = hasOlaKey
  * Passed directly to `new maplibregl.Map({ style: OLA_STYLE_URL })`.
  * MapLibre accepts both a string URL and an inline style object.
  */
-export const OLA_STYLE_URL: string | object =
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const OLA_STYLE_URL: string | any =
   hasOlaKey
     ? `https://api.olamaps.io/tiles/vector/v1/styles/default-light-standard/style.json?api_key=${OLA_KEY}`
     : hasMaplsKey
