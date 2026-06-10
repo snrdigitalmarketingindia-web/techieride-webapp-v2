@@ -176,7 +176,7 @@ export class AdminService {
       this.prisma.user.count({ where: { gender: 'FEMALE' } }),
       this.prisma.rideGiver.count({ where: { user: { gender: 'FEMALE' } } }),
       this.prisma.rideSeeker.count({ where: { user: { gender: 'FEMALE' } } }),
-      this.prisma.ride.count({ where: { isWomenOnly: true } }),
+      this.prisma.ride.count({ where: { womenOnly: true } }),
       this.prisma.rideGiver.count(),
       this.prisma.rideSeeker.count(),
     ]);
@@ -374,7 +374,7 @@ export class AdminService {
       this.prisma.rideRequest.count({ where: { seeker: { userId }, status: 'CONFIRMED' } }),
       this.prisma.ride.count({ where: { rideGiver: { userId }, status: 'COMPLETED' } }),
       this.prisma.ride.count({ where: { rideGiver: { userId }, status: 'CANCELLED' } }),
-      this.prisma.rideParticipant.count({ where: { seeker: { userId }, status: 'NO_SHOW' } }),
+      this.prisma.rideRequest.count({ where: { seeker: { userId }, status: 'NO_SHOW' } }),
       this.prisma.rideRequest.count({ where: { seeker: { userId }, status: 'CANCELLED', updatedAt: { gte: sevenDaysAgo } } }),
       this.prisma.rideRating.count({ where: { rateeId: userId } }),
     ]);
@@ -410,7 +410,7 @@ export class AdminService {
     return this.prisma.savedLocation.findMany({
       where: { userId },
       orderBy: [{ isFavorite: 'desc' }, { createdAt: 'desc' }],
-      select: { id: true, alias: true, address: true, lat: true, lng: true, locationType: true, isFavorite: true, createdAt: true },
+      select: { id: true, alias: true, address: true, lat: true, lng: true, sourceType: true, isFavorite: true, createdAt: true },
     });
   }
 

@@ -519,8 +519,8 @@ export default function AdminUserDetailPage() {
                   <p className="text-xs text-gray-500 truncate">{loc.address}</p>
                   <p className="text-xs text-gray-400 font-mono">{loc.lat?.toFixed(5)}, {loc.lng?.toFixed(5)}</p>
                 </div>
-                {loc.locationType && (
-                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded shrink-0">{loc.locationType}</span>
+                {loc.sourceType && (
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded shrink-0">{loc.sourceType}</span>
                 )}
               </div>
             ))}

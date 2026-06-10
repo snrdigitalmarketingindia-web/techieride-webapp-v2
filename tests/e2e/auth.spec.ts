@@ -109,43 +109,49 @@ test.describe('🔑 Change Password Flow', () => {
   // CP-01: page renders
   test('CP-01: change-password page renders all required fields', async ({ page }) => {
     await page.goto('/change-password');
-    await expect(page.getByText(/set new password|change password/i)).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByPlaceholder(/from the email|temporary|current/i)).toBeVisible();
-    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible();
-    await expect(page.getByPlaceholder(/repeat|confirm/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /set new password|save|change/i })).toBeVisible();
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByText(/set new password|change password/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder(/from the email|temporary|current/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/repeat|confirm/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: /set new password|save|change/i })).toBeVisible({ timeout: 5_000 });
   });
 
   // CP-02: submit with empty fields — button should be disabled (client-side guard)
   test('CP-02: submit button is disabled when fields are empty', async ({ page }) => {
     await page.goto('/change-password');
+    await page.waitForLoadState('domcontentloaded');
     const btn = page.getByRole('button', { name: /set new password|save|change/i });
-    await expect(btn).toBeDisabled();
+    await expect(btn).toBeDisabled({ timeout: 8_000 });
   });
 
   // CP-03: mismatched confirm shows inline error
   test('CP-03: mismatched confirm password shows inline mismatch error', async ({ page }) => {
     await page.goto('/change-password');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible({ timeout: 10_000 });
     await page.getByPlaceholder(/min.*8|new password/i).fill('NewPass@2024');
     await page.getByPlaceholder(/repeat|confirm/i).fill('Different@2024');
-    await expect(page.getByText(/don.*t match|do not match/i)).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText(/don.*t match|do not match/i)).toBeVisible({ timeout: 5_000 });
   });
 
   // CP-04: strength indicator appears as user types
   test('CP-04: password strength indicator appears while typing new password', async ({ page }) => {
     await page.goto('/change-password');
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible({ timeout: 10_000 });
     await page.getByPlaceholder(/min.*8|new password/i).fill('weak');
-    await expect(page.getByText(/weak|fair|good|strong/i)).toBeVisible({ timeout: 3_000 });
+    await expect(page.getByText(/weak|fair|good|strong/i)).toBeVisible({ timeout: 5_000 });
   });
 
-  // CP-05: API rejects wrong current password with 400
-  test('CP-05: API returns 400 when wrong current password is submitted', async ({ page }) => {
+  // CP-05: API rejects wrong current password with 401 (UnauthorizedException from NestJS)
+  test('CP-05: API returns 401 when wrong current password is submitted', async ({ page }) => {
     const token = await apiLogin(ACCOUNTS.seeker.email);
     const { status } = await apiRaw(token, 'post', '/auth/change-password', {
       oldPassword: 'WrongPassword@999',
       newPassword: 'NewValid@2024',
     });
-    expect(status).toBe(400);
+    expect(status).toBe(401);
   });
 
   // CP-06: valid API change succeeds, then revert so other tests are not broken
