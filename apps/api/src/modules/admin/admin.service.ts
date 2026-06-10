@@ -261,6 +261,33 @@ export class AdminService {
     return { updated: userIds.length };
   }
 
+  async bulkForceCompleteRides(olderThanHours = 24, statuses = ['PUBLISHED', 'ONGOING']) {
+    const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+    const stale = await this.prisma.ride.findMany({
+      where: { status: { in: statuses as any[] }, createdAt: { lt: cutoff } },
+      select: { id: true },
+    });
+    let completed = 0;
+    let failed = 0;
+    for (const { id } of stale) {
+      try {
+        // Mark all unresolved participants as NO_SHOW then complete
+        await this.prisma.rideParticipant.updateMany({
+          where: { rideId: id, boardingStatus: { in: ['WAITING', 'BOARDED'] } },
+          data: { boardingStatus: 'NO_SHOW' },
+        });
+        await this.prisma.ride.update({
+          where: { id },
+          data: { status: 'COMPLETED', completedAt: new Date() },
+        });
+        completed++;
+      } catch {
+        failed++;
+      }
+    }
+    return { found: stale.length, completed, failed };
+  }
+
   // ── System config ────────────────────────────────────────────────────────
 
   private readonly SUSPICIOUS_RULES_KEY = 'suspicious_rules';

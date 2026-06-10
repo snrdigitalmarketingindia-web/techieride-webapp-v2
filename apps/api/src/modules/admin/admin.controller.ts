@@ -135,6 +135,14 @@ export class AdminController {
     return this.ridesService.forceCompleteRide(id, 'admin');
   }
 
+  @Post('rides/bulk-force-complete')
+  bulkForceCompleteRides(
+    @Body('olderThanHours') olderThanHours?: number,
+    @Body('statuses') statuses?: string[],
+  ) {
+    return this.adminService.bulkForceCompleteRides(olderThanHours ?? 24, statuses);
+  }
+
   @Get('analytics')
   getAnalytics(@Query('from') from: string, @Query('to') to: string) {
     return this.adminService.getAnalytics(

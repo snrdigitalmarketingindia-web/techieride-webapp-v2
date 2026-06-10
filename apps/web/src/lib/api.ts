@@ -245,6 +245,8 @@ export const adminApi = {
   getSuspiciousUsers: () => api.get('/admin/suspicious'),
   getSuspiciousRulesConfig: () => api.get('/admin/config/suspicious-rules'),
   setSuspiciousRulesConfig: (cfg: Record<string, number>) => api.post('/admin/config/suspicious-rules', cfg),
+  bulkForceCompleteRides: (olderThanHours = 24, statuses?: string[]) =>
+    api.post('/admin/rides/bulk-force-complete', { olderThanHours, statuses }),
   bulkSuspendUsers: (userIds: string[]) => api.post('/admin/users/bulk-suspend', { userIds }),
   bulkActivateUsers: (userIds: string[]) => api.post('/admin/users/bulk-activate', { userIds }),
   bulkEmailUsers: (userIds: string[], subject: string, body: string) =>

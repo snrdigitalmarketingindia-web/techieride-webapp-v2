@@ -146,6 +146,9 @@ export default function AdminRidesPage() {
   const [confirmId, setConfirmId]     = useState<string | null>(null);
   const [selectedRide, setSelectedRide] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [bulkClearing, setBulkClearing] = useState(false);
+  const [confirmBulkClear, setConfirmBulkClear] = useState(false);
+  const [bulkClearResult, setBulkClearResult] = useState<{ found: number; completed: number; failed: number } | null>(null);
 
   // Seed filters from URL params on mount (e.g. navigating from dashboard KPI cards)
   useEffect(() => {
@@ -192,6 +195,21 @@ export default function AdminRidesPage() {
 
   const canForceComplete = (status: string) => ['ONGOING', 'PUBLISHED'].includes(status);
 
+  const handleBulkClear = async () => {
+    setBulkClearing(true);
+    setConfirmBulkClear(false);
+    setBulkClearResult(null);
+    try {
+      const res = await adminApi.bulkForceCompleteRides(24);
+      setBulkClearResult(res.data);
+      load();
+    } catch (e: any) {
+      alert(e?.response?.data?.message || 'Bulk clear failed');
+    } finally {
+      setBulkClearing(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold text-gray-900">Rides ({total})</h1>
@@ -225,8 +243,20 @@ export default function AdminRidesPage() {
             className="text-sm text-brand-600 border border-brand-200 px-4 py-2 rounded-lg hover:bg-brand-50 transition disabled:opacity-50">
             {loading ? '⏳' : '↻'}
           </button>
+          <button onClick={() => setConfirmBulkClear(true)} disabled={bulkClearing}
+            title="Force-complete all PUBLISHED/ONGOING rides older than 24 hours"
+            className="text-sm text-amber-700 border border-amber-300 bg-amber-50 px-3 py-2 rounded-lg hover:bg-amber-100 transition disabled:opacity-50 whitespace-nowrap">
+            {bulkClearing ? '⏳' : '🧹 Clear Stale'}
+          </button>
         </div>
       </div>
+
+      {bulkClearResult && (
+        <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 flex items-center justify-between text-sm">
+          <span className="text-green-800">✅ Found {bulkClearResult.found} stale ride{bulkClearResult.found !== 1 ? 's' : ''} — completed {bulkClearResult.completed}{bulkClearResult.failed > 0 ? `, ${bulkClearResult.failed} failed` : ''}.</span>
+          <button onClick={() => setBulkClearResult(null)} className="text-green-500 hover:text-green-700 ml-3">✕</button>
+        </div>
+      )}
 
       {loading ? <div className="text-center py-10 text-gray-400">Loading...</div> : (
         <div className="flex gap-4">
@@ -333,6 +363,15 @@ export default function AdminRidesPage() {
             completing={completing} confirmId={confirmId}
             setConfirmId={setConfirmId} handleForceComplete={handleForceComplete}
             canForceComplete={canForceComplete} />
+        </div>
+      )}
+
+      {/* ── Bulk clear stale confirm banner ── */}
+      {confirmBulkClear && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 flex items-center gap-4 shadow-lg max-w-sm w-full">
+          <p className="text-amber-800 text-sm font-medium flex-1">🧹 Force-complete all PUBLISHED/ONGOING rides older than 24h?</p>
+          <button onClick={handleBulkClear} className="text-xs bg-red-600 text-white px-3 py-1.5 rounded-lg font-medium">Yes</button>
+          <button onClick={() => setConfirmBulkClear(false)} className="text-xs text-gray-600 border border-gray-300 px-3 py-1.5 rounded-lg">No</button>
         </div>
       )}
 
