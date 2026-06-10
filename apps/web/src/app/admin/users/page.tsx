@@ -49,6 +49,16 @@ export default function AdminUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+
+  // Seed filters from URL params on mount (e.g. navigating from dashboard KPI cards)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const accountStatus = params.get('accountStatus') ?? '';
+    const role          = params.get('role') ?? '';
+    if (accountStatus || role) {
+      setFilter(f => ({ ...f, accountStatus, role }));
+    }
+  }, []);
   const [emailModal, setEmailModal] = useState(false);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');

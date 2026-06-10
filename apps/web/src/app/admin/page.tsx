@@ -54,15 +54,15 @@ export default function AdminDashboard() {
   }, []);
 
   const kpis = analytics ? [
-    { label: 'Total Users',    value: analytics.totalUsers,    icon: '👤' },
-    { label: 'Verified',       value: analytics.verifiedUsers, icon: '✅' },
-    { label: 'Ride Givers',    value: analytics.giversCount,   icon: '🚗' },
-    { label: 'Ride Seekers',   value: analytics.seekersCount,  icon: '🧳' },
-    { label: 'Total Rides',    value: analytics.totalRides,    icon: '🛣️' },
-    { label: 'Completed',      value: analytics.completedRides,icon: '✔️' },
-    { label: 'CO₂ Saved',      value: `${analytics.totalCo2SavedKg} kg`, icon: '🌿' },
-    { label: 'SOS Events',     value: analytics.sosEvents,     icon: '🆘', alert: analytics.sosEvents > 0 },
-    { label: 'Suspicious',     value: suspiciousCount ?? '…',  icon: '🚨', alert: (suspiciousCount ?? 0) > 0, href: '/admin/suspicious' },
+    { label: 'Total Users',  value: analytics.totalUsers,     icon: '👤', href: '/admin/users' },
+    { label: 'Verified',     value: analytics.verifiedUsers,  icon: '✅', href: '/admin/users?accountStatus=SEEKER_VERIFIED' },
+    { label: 'Ride Givers',  value: analytics.giversCount,    icon: '🚗', href: '/admin/users?role=RIDE_GIVER' },
+    { label: 'Ride Seekers', value: analytics.seekersCount,   icon: '🧳', href: '/admin/users?role=RIDE_SEEKER' },
+    { label: 'Total Rides',  value: analytics.totalRides,     icon: '🛣️', href: '/admin/rides' },
+    { label: 'Completed',    value: analytics.completedRides, icon: '✔️', href: '/admin/rides?status=COMPLETED' },
+    { label: 'CO₂ Saved',   value: `${analytics.totalCo2SavedKg} kg`, icon: '🌿' },
+    { label: 'SOS Events',  value: analytics.sosEvents,  icon: '🆘', alert: analytics.sosEvents > 0 },
+    { label: 'Suspicious',  value: suspiciousCount ?? '…', icon: '🚨', alert: (suspiciousCount ?? 0) > 0, href: '/admin/suspicious' },
   ] : [];
 
   const womenKpis = analytics ? [
@@ -96,9 +96,12 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-500">{k.label}</p>
             </>
           );
-          const cls = `bg-white rounded-xl border p-5 ${(k as any).alert ? 'border-red-300' : 'border-gray-200'}`;
-          return (k as any).href ? (
-            <Link key={k.label} href={(k as any).href} className={`${cls} hover:bg-red-50 transition block`}>{inner}</Link>
+          const isAlert = (k as any).alert;
+          const href    = (k as any).href;
+          const cls = `bg-white rounded-xl border p-5 ${isAlert ? 'border-red-300' : 'border-gray-200'}`;
+          const hoverCls = isAlert ? 'hover:bg-red-50' : 'hover:bg-gray-50';
+          return href ? (
+            <Link key={k.label} href={href} className={`${cls} ${hoverCls} transition block`}>{inner}</Link>
           ) : (
             <div key={k.label} className={cls}>{inner}</div>
           );

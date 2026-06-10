@@ -147,6 +147,13 @@ export default function AdminRidesPage() {
   const [selectedRide, setSelectedRide] = useState<any | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  // Seed filters from URL params on mount (e.g. navigating from dashboard KPI cards)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get('status') ?? '';
+    if (status) setFilter(f => ({ ...f, status }));
+  }, []);
+
   const load = useCallback(() => {
     setLoading(true);
     adminApi.listRides({ status: filter.status || undefined, search: filter.search || undefined })
