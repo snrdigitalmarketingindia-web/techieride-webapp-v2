@@ -394,6 +394,12 @@ export class AuthService {
     if (user.emailStatus === 'BOUNCED') throw new UnauthorizedException('EMAIL_BOUNCED');
 
     const tokens = this.generateTokens(user);
+
+    // Record login (fire-and-forget — don't block login on DB write)
+    this.prisma.loginHistory.create({
+      data: { userId: user.id },
+    }).catch(() => {});
+
     return { ...tokens, mustChangePassword: user.mustChangePassword ?? false };
   }
 

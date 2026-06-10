@@ -261,6 +261,50 @@ export class AdminService {
     return { updated: userIds.length };
   }
 
+  async getUserLoginHistory(userId: string, limit = 50) {
+    return this.prisma.loginHistory.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: { id: true, ipAddress: true, userAgent: true, createdAt: true },
+    });
+  }
+
+  async getOccupancyStats() {
+    const rows = await this.prisma.$queryRaw<{
+      giverId: string;
+      fullName: string;
+      totalRides: bigint;
+      completedRides: bigint;
+      totalSeats: bigint;
+      filledSeats: bigint;
+    }[]>`
+      SELECT
+        rg.id                                         AS "giverId",
+        u.full_name                                   AS "fullName",
+        COUNT(r.id)                                   AS "totalRides",
+        COUNT(r.id) FILTER (WHERE r.status = 'COMPLETED') AS "completedRides",
+        COALESCE(SUM(r.total_seats), 0)              AS "totalSeats",
+        COALESCE(SUM(r.total_seats - r.available_seats), 0) AS "filledSeats"
+      FROM ride_givers rg
+      JOIN users u ON u.id = rg.user_id
+      LEFT JOIN rides r ON r.ride_giver_id = rg.id AND r.status IN ('COMPLETED','ONGOING','PUBLISHED')
+      GROUP BY rg.id, u.full_name
+      ORDER BY "completedRides" DESC, "totalRides" DESC
+      LIMIT 100
+    `;
+
+    return rows.map(r => ({
+      giverId:        r.giverId,
+      fullName:       r.fullName,
+      totalRides:     Number(r.totalRides),
+      completedRides: Number(r.completedRides),
+      totalSeats:     Number(r.totalSeats),
+      filledSeats:    Number(r.filledSeats),
+      occupancyPct:   r.totalSeats > 0 ? Math.round((Number(r.filledSeats) / Number(r.totalSeats)) * 100) : 0,
+    }));
+  }
+
   async bulkEmailUsers(userIds: string[], subject: string, body: string) {
     const users = await this.prisma.user.findMany({
       where: { id: { in: userIds } },

@@ -207,6 +207,7 @@ model User {
   complaintsReceived   Complaint[]        @relation("complaintsReceived")
   trustScoreEvents     TrustScoreEvent[]
   savedLocations       SavedLocation[]
+  loginHistory         LoginHistory[]
 
   @@index([email])
   @@index([emailStatus])
@@ -631,4 +632,19 @@ model SavedLocation {
 
   @@index([userId])
   @@map("saved_locations")
+}
+
+// ─── Login History ────────────────────────────────────────────────────────────
+
+model LoginHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("login_history")
 }

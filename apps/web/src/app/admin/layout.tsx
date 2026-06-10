@@ -15,6 +15,7 @@ const links = [
   { href: '/admin/rides',        label: 'Rides',        icon: '🚗' },
   { href: '/admin/complaints',   label: 'Complaints',   icon: '🚩', badge: 'complaints' },
   { href: '/admin/audit-log',    label: 'Audit Log',    icon: '📋' },
+  { href: '/admin/occupancy',    label: 'Occupancy',    icon: '💺' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

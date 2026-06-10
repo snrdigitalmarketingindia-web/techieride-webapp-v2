@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api';
 
-type Tab = 'overview' | 'rides' | 'ratings' | 'activity' | 'locations';
+type Tab = 'overview' | 'rides' | 'ratings' | 'activity' | 'locations' | 'logins';
 
 const STATUS_COLORS: Record<string, string> = {
   DRIVER_VERIFIED:    'bg-green-100 text-green-700',
@@ -34,6 +34,7 @@ export default function AdminUserDetailPage() {
   const [audit, setAudit] = useState<any>(null);
   const [savedLocs, setSavedLocs] = useState<any[]>([]);
   const [activityLog, setActivityLog] = useState<any[]>([]);
+  const [loginHistory, setLoginHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [actionMsg, setActionMsg] = useState('');
@@ -51,11 +52,13 @@ export default function AdminUserDetailPage() {
       adminApi.getUserAudit(id).catch(() => ({ data: null })),
       adminApi.getUserSavedLocations(id).catch(() => ({ data: [] })),
       adminApi.getAuditLog({ actor: id, limit: 30 }).catch(() => ({ data: { entries: [] } })),
-    ]).then(([userRes, auditRes, locsRes, actRes]) => {
+      adminApi.getUserLoginHistory(id).catch(() => ({ data: [] })),
+    ]).then(([userRes, auditRes, locsRes, actRes, loginsRes]) => {
       setUser(userRes.data);
       setAudit(auditRes.data);
       setSavedLocs(locsRes.data ?? []);
       setActivityLog(actRes.data?.entries ?? []);
+      setLoginHistory(Array.isArray(loginsRes.data) ? loginsRes.data : []);
     }).finally(() => setLoading(false));
   };
 
@@ -98,12 +101,12 @@ export default function AdminUserDetailPage() {
 
       {/* Tab nav */}
       <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
-        {(['overview', 'rides', 'ratings', 'activity', 'locations'] as Tab[]).map((t) => (
+        {(['overview', 'rides', 'ratings', 'activity', 'locations', 'logins'] as Tab[]).map((t) => (
           <button key={t} onClick={() => setActiveTab(t)}
             className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition -mb-px ${
               activeTab === t ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}>
-            {t === 'overview' ? '👤 Overview' : t === 'rides' ? '🚗 Rides' : t === 'ratings' ? '⭐ Ratings' : t === 'activity' ? '📋 Activity' : '📍 Locations'}
+            {t === 'overview' ? '👤 Overview' : t === 'rides' ? '🚗 Rides' : t === 'ratings' ? '⭐ Ratings' : t === 'activity' ? '📋 Activity' : t === 'locations' ? '📍 Locations' : '🔐 Logins'}
           </button>
         ))}
       </div>
@@ -525,6 +528,39 @@ export default function AdminUserDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ── Logins tab ──────────────────────────────────────── */}
+      {activeTab === 'logins' && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700">Login History (last 50)</h3>
+            <span className="text-xs text-gray-400">{loginHistory.length} records</span>
+          </div>
+          {loginHistory.length === 0 ? (
+            <p className="text-sm text-gray-400 px-4 py-6">No login records yet</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {loginHistory.map((entry: any, i: number) => (
+                <div key={entry.id ?? i} className="px-4 py-3 flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800">
+                      {new Date(entry.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                    {entry.userAgent && (
+                      <p className="text-xs text-gray-400 truncate max-w-xs mt-0.5">{entry.userAgent}</p>
+                    )}
+                  </div>
+                  {entry.ipAddress && (
+                    <span className="text-xs font-mono text-gray-500 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded shrink-0">
+                      {entry.ipAddress}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

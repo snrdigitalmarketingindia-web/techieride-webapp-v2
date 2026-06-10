@@ -158,6 +158,16 @@ export class AdminController {
     return this.adminService.bulkActivateUsers(userIds);
   }
 
+  @Get('users/:id/login-history')
+  getUserLoginHistory(@Param('id') id: string, @Query('limit') limit?: string) {
+    return this.adminService.getUserLoginHistory(id, limit ? +limit : 50);
+  }
+
+  @Get('occupancy')
+  getOccupancyStats() {
+    return this.adminService.getOccupancyStats();
+  }
+
   @Post('users/bulk-email')
   bulkEmailUsers(
     @Body('userIds') userIds: string[],
