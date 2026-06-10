@@ -201,7 +201,7 @@ test.describe('📍 Location Management (/profile/locations)', () => {
     const addBtn = page.getByTestId('add-saved-location');
     await expect(addBtn).toBeVisible({ timeout: 5_000 });
     await addBtn.click();
-    await expect(page.getByPlaceholder(/label|alias|name/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/e\.g\. Gym|Gym.*Home|add location/i).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('PF-23: saved location is created via API and appears in the list', async ({ page }) => {
