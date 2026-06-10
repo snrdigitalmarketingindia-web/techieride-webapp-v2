@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi, ridesApi } from '@/lib/api';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -141,6 +141,7 @@ export default function AdminRidesPage() {
   const [total, setTotal]             = useState(0);
   const [filter, setFilter]           = useState({ status: '', search: '' });
   const [searchInput, setSearchInput] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading]         = useState(true);
   const [completing, setCompleting]   = useState<string | null>(null);
   const [confirmId, setConfirmId]     = useState<string | null>(null);
@@ -217,19 +218,27 @@ export default function AdminRidesPage() {
       {/* Filters */}
       <div className="space-y-2">
         <div className="flex gap-2">
-          <input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') setFilter((f) => ({ ...f, search: searchInput })); }}
-            placeholder="Search route, giver, plate..."
-            className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
-          />
-          <button onClick={() => setFilter((f) => ({ ...f, search: searchInput }))}
-            className="text-sm bg-brand-600 text-white px-3 py-2 rounded-lg hover:bg-brand-700 transition">🔍</button>
-          {filter.search && (
-            <button onClick={() => { setSearchInput(''); setFilter((f) => ({ ...f, search: '' })); }}
-              className="text-sm text-gray-400 hover:text-gray-600 px-2">✕</button>
-          )}
+          <div className="relative flex-1">
+            <input
+              value={searchInput}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchInput(val);
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                debounceRef.current = setTimeout(() => {
+                  setFilter((f) => ({ ...f, search: val }));
+                }, 300);
+              }}
+              placeholder="Search route, giver, plate..."
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-brand-400"
+            />
+            {searchInput && (
+              <button
+                onClick={() => { setSearchInput(''); setFilter((f) => ({ ...f, search: '' })); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
+              >✕</button>
+            )}
+          </div>
         </div>
         <div className="flex gap-2">
           <select value={filter.status} onChange={(e) => setFilter((f) => ({ ...f, status: e.target.value }))}
