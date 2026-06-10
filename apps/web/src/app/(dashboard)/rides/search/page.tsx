@@ -7,6 +7,7 @@ import { CallButton } from '@/components/ui/CallButton';
 import { formatDistance } from '@/lib/geo';
 import dynamic from 'next/dynamic';
 import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
+import OlaPlacesAutocomplete from '@/components/ui/OlaPlacesAutocomplete';
 
 const RideMap = dynamic(() => import('@/components/maps/RideMap'), { ssr: false });
 
@@ -474,18 +475,36 @@ export default function RideSearchPage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-gray-600">📍 Pickup area</label>
-            <input
+            <OlaPlacesAutocomplete
               value={form.originName}
-              onChange={(e) => setForm((f) => ({ ...f, originName: e.target.value }))}
+              onChange={(v) => setForm((f) => ({ ...f, originName: v }))}
+              onSelect={(address, lat, lng) =>
+                setForm((f) => ({
+                  ...f,
+                  originName: address,
+                  ...(lat !== undefined && lng !== undefined
+                    ? { originLat: lat, originLng: lng }
+                    : {}),
+                }))
+              }
               placeholder="Kondapur"
               className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600">🏢 Drop area</label>
-            <input
+            <OlaPlacesAutocomplete
               value={form.destinationName}
-              onChange={(e) => setForm((f) => ({ ...f, destinationName: e.target.value }))}
+              onChange={(v) => setForm((f) => ({ ...f, destinationName: v }))}
+              onSelect={(address, lat, lng) =>
+                setForm((f) => ({
+                  ...f,
+                  destinationName: address,
+                  ...(lat !== undefined && lng !== undefined
+                    ? { destinationLat: lat, destinationLng: lng }
+                    : {}),
+                }))
+              }
               placeholder="HITEC City"
               className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />

@@ -1,12 +1,20 @@
 'use client';
 
+/**
+ * MapPinModal
+ *
+ * Full-screen modal for pinning a location on an Ola Maps vector-tile map
+ * (MapLibre GL JS). Reverse-geocoding is handled by the Ola Maps Places API.
+ */
+
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { OLA_STYLE_URL, reverseGeocode as olaReverseGeocode } from '@/lib/olamaps';
 
 export interface MapLocation {
   lat: number;
   lng: number;
-  address: string; // reverse-geocoded label from Nominatim (free, no key)
-  alias: string;   // user-given name e.g. "Home", "Office"
+  address: string;
+  alias: string;
 }
 
 interface MapPinModalProps {
@@ -33,6 +41,7 @@ export function MapPinModal({
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef       = useRef<any>(null);
   const markerRef    = useRef<any>(null);
+  const mlRef        = useRef<any>(null); // maplibre-gl module ref
 
   const [pinLat,    setPinLat]    = useState<number | null>(initialLat ?? null);
   const [pinLng,    setPinLng]    = useState<number | null>(initialLng ?? null);
@@ -41,91 +50,96 @@ export function MapPinModal({
   const [geocoding, setGeocoding] = useState(false);
   const [error,     setError]     = useState('');
 
-  // Free reverse geocode via OpenStreetMap Nominatim — no API key required
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     setGeocoding(true);
-    try {
-      const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`;
-      const res  = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-      const data = await res.json();
-      setAddress(data.display_name ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-    } catch {
-      setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-    } finally {
-      setGeocoding(false);
-    }
+    const addr = await olaReverseGeocode(lat, lng);
+    setAddress(addr);
+    setGeocoding(false);
   }, []);
 
-  const placeMarker = useCallback((map: any, L: any, lat: number, lng: number) => {
-    if (markerRef.current) {
-      markerRef.current.setLatLng([lat, lng]);
-    } else {
-      markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(map);
-      markerRef.current.on('dragend', (e: any) => {
-        const pos = e.target.getLatLng();
-        setPinLat(pos.lat);
-        setPinLng(pos.lng);
-        reverseGeocode(pos.lat, pos.lng);
-      });
-    }
-    setPinLat(lat);
-    setPinLng(lng);
-    reverseGeocode(lat, lng);
-  }, [reverseGeocode]);
+  const placeMarker = useCallback(
+    (lat: number, lng: number) => {
+      const map = mapRef.current;
+      const maplibregl = mlRef.current;
+      if (!map || !maplibregl) return;
+
+      if (markerRef.current) {
+        markerRef.current.setLngLat([lng, lat]);
+      } else {
+        markerRef.current = new maplibregl.Marker({ color: '#7c3aed', draggable: true })
+          .setLngLat([lng, lat])
+          .addTo(map);
+        markerRef.current.on('dragend', () => {
+          const pos = markerRef.current.getLngLat();
+          setPinLat(pos.lat);
+          setPinLng(pos.lng);
+          reverseGeocode(pos.lat, pos.lng);
+        });
+      }
+
+      setPinLat(lat);
+      setPinLng(lng);
+      reverseGeocode(lat, lng);
+    },
+    [reverseGeocode],
+  );
 
   useEffect(() => {
     if (!mapContainer.current) return;
-    let map: any;
-    let L: any;
+    let cancelled = false;
 
     (async () => {
-      L = (await import('leaflet')).default;
-      await import('leaflet/dist/leaflet.css' as any);
+      const maplibregl = (await import('maplibre-gl')).default;
+      await import('maplibre-gl/dist/maplibre-gl.css');
+      if (cancelled || !mapContainer.current) return;
 
-      // Fix default marker icons broken by webpack
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
+      mlRef.current = maplibregl;
 
       const startLat = initialLat ?? HYD_LAT;
       const startLng = initialLng ?? HYD_LNG;
 
-      map = L.map(mapContainer.current!, { zoomControl: true }).setView(
-        [startLat, startLng],
-        initialLat ? 15 : 12,
-      );
+      const map = new maplibregl.Map({
+        container: mapContainer.current,
+        style: OLA_STYLE_URL,
+        center: [startLng, startLat],
+        zoom: initialLat ? 15 : 12,
+        attributionControl: false,
+      });
 
-      // OpenStreetMap tiles — free, no key
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
+      map.addControl(
+        new maplibregl.AttributionControl({ compact: true }),
+        'bottom-right',
+      );
 
       mapRef.current = map;
 
       if (initialLat && initialLng) {
-        placeMarker(map, L, initialLat, initialLng);
+        map.on('load', () => placeMarker(initialLat, initialLng));
       }
 
       map.on('click', (e: any) => {
-        placeMarker(map, L, e.latlng.lat, e.latlng.lng);
+        placeMarker(e.lngLat.lat, e.lngLat.lng);
       });
     })();
 
-    return () => { map?.remove(); markerRef.current = null; };
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current  = null;
+      markerRef.current = null;
+      mlRef.current   = null;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const useGPS = () => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
-        mapRef.current?.setView([lat, lng], 16);
-        const L = (await import('leaflet')).default;
-        placeMarker(mapRef.current, L, lat, lng);
+        mapRef.current?.setCenter([lng, lat]);
+        mapRef.current?.setZoom(16);
+        placeMarker(lat, lng);
       },
       () => setError('Could not get your location'),
     );
@@ -156,13 +170,17 @@ export function MapPinModal({
 
       {/* Bottom panel */}
       <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-3 shrink-0">
-        <p className="text-xs text-gray-500 text-center">Tap anywhere on the map to place your pin · drag pin to adjust</p>
+        <p className="text-xs text-gray-500 text-center">
+          Tap anywhere on the map to place your pin · drag pin to adjust
+        </p>
 
         {pinLat && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
             <p className="text-xs text-gray-500 mb-0.5">📍 Pinned location</p>
             <p className="text-sm text-gray-800 font-medium line-clamp-2">
-              {geocoding ? 'Looking up address…' : address || `${pinLat.toFixed(5)}, ${pinLng?.toFixed(5)}`}
+              {geocoding
+                ? 'Looking up address…'
+                : address || `${pinLat.toFixed(5)}, ${pinLng?.toFixed(5)}`}
             </p>
           </div>
         )}

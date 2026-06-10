@@ -1,24 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+/**
+ * LocationPickerMap
+ *
+ * Renders a MapLibre GL map powered by Ola Maps vector tiles.
+ * Tap anywhere on the map (or drag the pin) to pick a coordinate;
+ * the address is reverse-geocoded via Ola Maps.
+ */
 
-// Fix Leaflet default icon in Next.js
-if (typeof window !== 'undefined') {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-  });
-}
-
-const pinIcon = new L.Icon({
-  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-});
+import { useEffect, useRef, useState } from 'react';
+import { OLA_STYLE_URL, reverseGeocode as olaReverseGeocode } from '@/lib/olamaps';
 
 interface Props {
   initialLat?: number;
@@ -26,106 +17,119 @@ interface Props {
   onLocationSelect: (lat: number, lng: number, address: string) => void;
 }
 
-// Inner component — handles map click events
-function MapClickHandler({
-  onPin,
-}: {
-  onPin: (lat: number, lng: number) => void;
-}) {
-  useMapEvents({
-    click(e) {
-      onPin(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
 export default function LocationPickerMap({ initialLat, initialLng, onLocationSelect }: Props) {
-  const defaultLat = initialLat ?? 17.4401;
-  const defaultLng = initialLng ?? 78.3489;
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const mapRef       = useRef<any>(null);
+  const markerRef    = useRef<any>(null);
 
-  const [pinned, setPinned] = useState<{ lat: number; lng: number } | null>(null);
+  const [pinned,  setPinned]  = useState<{ lat: number; lng: number } | null>(
+    initialLat && initialLng ? { lat: initialLat, lng: initialLng } : null,
+  );
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Reverse geocode when pin is set
-  const reverseGeocode = async (lat: number, lng: number) => {
+  const handleGeocode = async (lat: number, lng: number) => {
     setLoading(true);
     setAddress('');
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
-        { headers: { 'Accept-Language': 'en' } }
-      );
-      const data = await res.json();
-      // Build a short readable address
-      const parts = [
-        data.address?.road || data.address?.neighbourhood,
-        data.address?.suburb || data.address?.village,
-        data.address?.city || data.address?.town,
-      ].filter(Boolean);
-      setAddress(parts.join(', ') || data.display_name?.split(',').slice(0, 3).join(', ') || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-    } catch {
-      setAddress(`${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-    } finally {
-      setLoading(false);
-    }
+    const addr = await olaReverseGeocode(lat, lng);
+    setAddress(addr);
+    setLoading(false);
   };
 
-  const handlePin = (lat: number, lng: number) => {
-    setPinned({ lat, lng });
-    reverseGeocode(lat, lng);
-  };
+  useEffect(() => {
+    if (!mapContainer.current) return;
+
+    const defaultLat = initialLat ?? 17.4401;
+    const defaultLng = initialLng ?? 78.3489;
+
+    let map: any;
+    let cancelled = false;
+
+    (async () => {
+      const maplibregl = (await import('maplibre-gl')).default;
+      await import('maplibre-gl/dist/maplibre-gl.css');
+
+      if (cancelled || !mapContainer.current) return;
+
+      map = new maplibregl.Map({
+        container: mapContainer.current,
+        style: OLA_STYLE_URL,
+        center: [defaultLng, defaultLat],
+        zoom: 14,
+        attributionControl: false,
+      });
+
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
+      map.addControl(
+        new maplibregl.AttributionControl({ compact: true }),
+        'bottom-right',
+      );
+
+      mapRef.current = map;
+
+      // Place initial marker if coordinates were supplied
+      if (initialLat && initialLng) {
+        markerRef.current = new maplibregl.Marker({ color: '#7c3aed', draggable: true })
+          .setLngLat([initialLng, initialLat])
+          .addTo(map);
+        markerRef.current.on('dragend', () => {
+          const { lat, lng } = markerRef.current.getLngLat();
+          setPinned({ lat, lng });
+          handleGeocode(lat, lng);
+        });
+        handleGeocode(initialLat, initialLng);
+      }
+
+      // Click anywhere to pin
+      map.on('click', (e: any) => {
+        const { lat, lng } = e.lngLat;
+        if (markerRef.current) {
+          markerRef.current.setLngLat([lng, lat]);
+        } else {
+          markerRef.current = new maplibregl.Marker({ color: '#7c3aed', draggable: true })
+            .setLngLat([lng, lat])
+            .addTo(map);
+          markerRef.current.on('dragend', () => {
+            const pos = markerRef.current.getLngLat();
+            setPinned({ lat: pos.lat, lng: pos.lng });
+            handleGeocode(pos.lat, pos.lng);
+          });
+        }
+        setPinned({ lat, lng });
+        handleGeocode(lat, lng);
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      map?.remove();
+      mapRef.current  = null;
+      markerRef.current = null;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUseLocation = () => {
-    if (!pinned) return;
+    if (!pinned || loading) return;
     onLocationSelect(pinned.lat, pinned.lng, address);
   };
 
   return (
     <div className="space-y-2">
-      {/* Instruction */}
       <p className="text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
         👆 Tap anywhere on the map to drop your boarding pin
       </p>
 
-      {/* Map */}
       <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 260 }}>
-        <MapContainer
-          center={[defaultLat, defaultLng]}
-          zoom={14}
-          style={{ height: '100%', width: '100%' }}
-          zoomControl={true}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='© <a href="https://openstreetmap.org">OpenStreetMap</a>'
-          />
-          <MapClickHandler onPin={handlePin} />
-          {pinned && (
-            <Marker
-              position={[pinned.lat, pinned.lng]}
-              icon={pinIcon}
-              draggable={true}
-              eventHandlers={{
-                dragend(e) {
-                  const { lat, lng } = (e.target as L.Marker).getLatLng();
-                  handlePin(lat, lng);
-                },
-              }}
-            />
-          )}
-        </MapContainer>
+        <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
       </div>
 
-      {/* Pinned location info + confirm button */}
-      {pinned && (
+      {pinned ? (
         <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 space-y-2">
           <div className="flex items-start gap-2">
             <span className="text-brand-600 mt-0.5">📍</span>
             <div className="flex-1 min-w-0">
               {loading ? (
-                <p className="text-sm text-brand-600 animate-pulse">Getting address...</p>
+                <p className="text-sm text-brand-600 animate-pulse">Getting address…</p>
               ) : (
                 <p className="text-sm text-brand-800 font-medium break-words">{address}</p>
               )}
@@ -142,9 +146,7 @@ export default function LocationPickerMap({ initialLat, initialLng, onLocationSe
             ✅ Use this location
           </button>
         </div>
-      )}
-
-      {!pinned && (
+      ) : (
         <p className="text-center text-xs text-gray-400 py-1">No location pinned yet</p>
       )}
     </div>
