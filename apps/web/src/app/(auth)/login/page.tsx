@@ -34,7 +34,9 @@ function LoginContent() {
       await login(email.toLowerCase().trim(), password);
       const { user } = useAuthStore.getState();
       const status = user?.accountStatus;
-      if (status === 'EMAIL_VERIFICATION_PENDING') {
+      if ((user as any)?.mustChangePassword) {
+        router.push('/change-password');
+      } else if (status === 'EMAIL_VERIFICATION_PENDING') {
         // Show inline banner so user can resend or request exception
         setUnverifiedEmail(email.toLowerCase().trim());
       } else if (status === 'PERSONAL_EMAIL_PENDING') {
@@ -81,14 +83,14 @@ function LoginContent() {
               <Image src="/TR_Logo_black.png" alt="TechieRide" width={80} height={80} className="object-contain" priority />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Reset password</h2>
-            <p className="text-sm text-gray-500 mt-1">We'll send a reset link to your office email</p>
+            <p className="text-sm text-gray-500 mt-1">Enter your office email — a temporary password will be sent to your personal email</p>
           </div>
 
           {forgotSent ? (
             <div className="text-center space-y-4">
               <div className="text-4xl">📬</div>
               <p className="text-sm text-gray-700">
-                If an account exists for <strong>{forgotEmail}</strong>, a reset link has been sent. Check your inbox.
+                If an account exists for <strong>{forgotEmail}</strong>, a temporary password has been sent to the registered personal email. Check your personal inbox.
               </p>
               <button
                 onClick={() => { setForgotMode(false); setForgotSent(false); setForgotEmail(''); }}

@@ -93,17 +93,6 @@ export class ForgotPasswordDto {
   email: string;
 }
 
-export class ResetPasswordDto {
-  @IsString()
-  @MaxLength(512)
-  token: string;
-
-  @IsString()
-  @MinLength(8, { message: 'Password must be at least 8 characters' })
-  @MaxLength(64)
-  newPassword: string;
-}
-
 export class ChangePasswordDto {
   @IsString()
   @MinLength(1)

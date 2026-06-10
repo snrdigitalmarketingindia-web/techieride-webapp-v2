@@ -49,26 +49,31 @@ export class EmailService {
     this.logger.log(`Verification email → ${email} | link: ${link}`);
   }
 
-  // ── Password reset email ────────────────────────────────────────────────
-  async sendPasswordResetEmail(email: string, fullName: string, token: string) {
-    const link = `${this.appUrl}/reset-password?token=${token}`;
-
+  // ── Temporary password email (forgot-password flow) ─────────────────────
+  async sendTemporaryPasswordEmail(personalEmail: string, fullName: string, tempPassword: string, ttlHours: number) {
+    const firstName = fullName.split(' ')[0];
     const html = `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
-        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
-        <h2 style="color:#0d9488">Reset your password</h2>
-        <p style="color:#374151">Hi ${fullName.split(' ')[0]}, we received a request to reset your TechieRide password.</p>
-        <a href="${link}"
+        <img src="${this.appUrl}/TR_Logo_black.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">Your temporary password</h2>
+        <p style="color:#374151">Hi ${firstName}, a temporary password was requested for your TechieRide account.</p>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px 24px;margin:20px 0;text-align:center">
+          <p style="color:#6b7280;font-size:12px;margin:0 0 8px">Your temporary password</p>
+          <p style="font-size:24px;font-weight:700;letter-spacing:3px;color:#111827;font-family:monospace;margin:0">${tempPassword}</p>
+        </div>
+        <p style="color:#374151">Log in with this password and you will be prompted to set a new one immediately.</p>
+        <a href="${this.appUrl}/login"
            style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
-          Reset Password
+          Go to Login
         </a>
         <p style="color:#9ca3af;font-size:12px;margin-top:24px">
-          This link expires in 1 hour. If you didn't request this, ignore this email.
+          This temporary password expires in ${ttlHours} hour${ttlHours !== 1 ? 's' : ''}.
+          If you didn't request this, your account is safe — someone may have mistyped their email.
         </p>
       </div>`;
 
-    await this.send(email, 'Reset your TechieRide password', html);
-    this.logger.log(`Password reset email → ${email}`);
+    await this.send(personalEmail, 'Your TechieRide temporary password', html);
+    this.logger.log(`Temporary password email → ${personalEmail}`);
   }
 
   // ── Email change verification ────────────────────────────────────────────

@@ -7,7 +7,7 @@ import { AllowUnverified } from '../../common/decorators/allow-unverified.decora
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   RegisterDto, LoginDto, ForgotPasswordDto,
-  ResetPasswordDto, VerifyEmailDto, RefreshTokenDto, ExceptionVerificationDto,
+  ChangePasswordDto, VerifyEmailDto, RefreshTokenDto, ExceptionVerificationDto,
 } from './dto/auth.dto';
 import { ConfigService } from '@nestjs/config';
 
@@ -68,12 +68,14 @@ export class AuthController {
     return this.authService.forgotPassword(dto.email);
   }
 
-  @Public()
-  @Post('reset-password')
+  @Post('change-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Reset password with token' })
-  resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto);
+  @ApiOperation({ summary: 'Change password (temp or regular). Clears mustChangePassword flag.' })
+  changePassword(
+    @CurrentUser('id') userId: string,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(userId, dto.oldPassword, dto.newPassword);
   }
 
   @Public()

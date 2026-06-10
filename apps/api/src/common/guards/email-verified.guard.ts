@@ -29,7 +29,8 @@ export class EmailVerifiedGuard implements CanActivate {
     ]);
     if (isPublic) return true;
 
-    const { user } = context.switchToHttp().getRequest();
+    const req = context.switchToHttp().getRequest();
+    const { user } = req;
     if (!user) return true; // JWT guard will have already rejected
 
     const status: string = user.accountStatus;
@@ -37,6 +38,14 @@ export class EmailVerifiedGuard implements CanActivate {
 
     // ADMIN and CSR_ADMIN bypass ALL account-status gates — they must always have full access
     if (role === 'ADMIN') return true;
+
+    // mustChangePassword: block everything except POST /auth/change-password
+    if (user.mustChangePassword) {
+      const isChangePassword = req.method === 'POST' && req.path?.endsWith('/auth/change-password');
+      if (!isChangePassword) {
+        throw new ForbiddenException('MUST_CHANGE_PASSWORD');
+      }
+    }
 
     if (LOGIN_BLOCKED.includes(status)) {
       throw new UnauthorizedException('Your account is not accessible. Contact support.');

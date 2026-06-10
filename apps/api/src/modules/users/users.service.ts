@@ -25,7 +25,7 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
     // Strip all sensitive fields before returning
     const { passwordHash, emailVerificationToken, emailVerificationExpiry,
-            passwordResetToken, passwordResetExpiry, ...safeUser } = user;
+            tempPassword, tempPasswordExpiry, ...safeUser } = user;
     return safeUser;
   }
 

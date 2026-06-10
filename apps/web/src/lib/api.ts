@@ -54,7 +54,7 @@ export const authApi = {
   verifyEmail: (token: string) => api.get(`/auth/verify-email?token=${token}`),
   resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token: string, newPassword: string) => api.post('/auth/reset-password', { token, newPassword }),
+  changePassword: (oldPassword: string, newPassword: string) => api.post('/auth/change-password', { oldPassword, newPassword }),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
   requestExceptionVerification: (data: {
     personalEmail: string;
@@ -104,15 +104,18 @@ export const requestsApi = {
   reject: (id: string, reason?: string) => api.patch(`/ride-requests/${id}/reject`, { reason }),
   confirm: (id: string) => api.patch(`/ride-requests/${id}/confirm`),
   cancel: (id: string, reason?: string) => api.patch(`/ride-requests/${id}/cancel`, { reason }),
+  updatePickupTime: (id: string, pickupTime: string) => api.patch(`/ride-requests/${id}/pickup-time`, { pickupTime }),
 };
 
 // ─── Saved Locations ──────────────────────────────────
 export const savedLocationsApi = {
   getMine: () => api.get('/saved-locations/my'),
-  create: (data: { alias: string; lat: number; lng: number; address?: string }) =>
+  create: (data: { alias: string; lat: number; lng: number; address?: string; isFavorite?: boolean; sourceType?: string }) =>
     api.post('/saved-locations', data),
-  update: (id: string, data: { alias?: string; lat?: number; lng?: number; address?: string }) =>
+  update: (id: string, data: { alias?: string; lat?: number; lng?: number; address?: string; isFavorite?: boolean; sourceType?: string }) =>
     api.patch(`/saved-locations/${id}`, data),
+  toggleFavorite: (id: string) => api.patch(`/saved-locations/${id}/favorite`),
+  recordUsage: (id: string) => api.post(`/saved-locations/${id}/use`),
   remove: (id: string) => api.delete(`/saved-locations/${id}`),
 };
 

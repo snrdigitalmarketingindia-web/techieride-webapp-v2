@@ -11,7 +11,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
 import { isAllowedDomain, getDomain } from '../../config/allowed-domains';
-import { RegisterDto, LoginDto, ResetPasswordDto, ExceptionVerificationDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ChangePasswordDto, ExceptionVerificationDto } from './dto/auth.dto';
 
 /** Returns true if the domain has at least one MX record (i.e. it's a real mail domain). */
 async function hasMxRecord(domain: string): Promise<boolean> {
@@ -25,7 +25,17 @@ async function hasMxRecord(domain: string): Promise<boolean> {
 
 const BCRYPT_ROUNDS = 12;
 const VERIFY_TOKEN_TTL_HOURS = 24;
-const RESET_TOKEN_TTL_HOURS = 1;
+
+/** Generates a cryptographically random temp password: 4 segments of 4 chars each */
+function generateTempPassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!';
+  let pw = '';
+  const bytes = randomBytes(16);
+  for (let i = 0; i < 16; i++) {
+    pw += chars[bytes[i] % chars.length];
+  }
+  return pw;
+}
 
 @Injectable()
 export class AuthService {
@@ -374,50 +384,69 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid email or password');
 
     const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordMatch) throw new UnauthorizedException('Invalid email or password');
+    const tempMatch = !passwordMatch && await this.loginWithTempPassword(user, dto.password);
+    if (!passwordMatch && !tempMatch) throw new UnauthorizedException('Invalid email or password');
 
     if (user.accountStatus === 'BANNED') throw new UnauthorizedException('ACCOUNT_BANNED');
     if (user.accountStatus === 'DEACTIVATED') throw new UnauthorizedException('ACCOUNT_DEACTIVATED');
     if (!user.isActive) throw new UnauthorizedException('Account suspended. Contact admin.');
     if (user.emailStatus === 'BOUNCED') throw new UnauthorizedException('EMAIL_BOUNCED');
 
-    return this.generateTokens(user);
+    const tokens = this.generateTokens(user);
+    return { ...tokens, mustChangePassword: user.mustChangePassword ?? false };
   }
 
   // ── Forgot Password ──────────────────────────────────────────────────────
   async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user) return { message: 'If that email exists, a reset link has been sent.' };
+    // Always return same message to prevent email enumeration
+    if (!user) return { message: 'If an account exists for that email, a temporary password has been sent to the registered personal email.' };
 
-    const passwordResetToken = randomBytes(32).toString('hex');
-    const passwordResetExpiry = new Date(
-      Date.now() + RESET_TOKEN_TTL_HOURS * 60 * 60 * 1000
-    );
-
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { passwordResetToken, passwordResetExpiry },
-    });
-
-    await this.email.sendPasswordResetEmail(user.email, user.fullName, passwordResetToken);
-    return { message: 'If that email exists, a reset link has been sent.' };
-  }
-
-  // ── Reset Password ────────────────────────────────────────────────────────
-  async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.prisma.user.findUnique({ where: { passwordResetToken: dto.token } });
-    if (!user) throw new NotFoundException('Invalid or expired reset link');
-    if (user.passwordResetExpiry && user.passwordResetExpiry < new Date()) {
-      throw new BadRequestException('Reset link has expired. Please request a new one.');
+    if (!user.personalEmail) {
+      throw new BadRequestException('No personal email on file. Please contact admin to reset your password.');
     }
 
-    const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    const tempPassword = generateTempPassword();
+    const tempPasswordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS);
+    const ttlHours = parseInt(this.config.get('TEMP_PASSWORD_TTL_HOURS', '24'), 10);
+    const tempPasswordExpiry = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash, passwordResetToken: null, passwordResetExpiry: null },
+      data: { tempPassword: tempPasswordHash, tempPasswordExpiry, mustChangePassword: true },
     });
 
-    return { message: 'Password reset successfully. You can now log in.' };
+    await this.email.sendTemporaryPasswordEmail(user.personalEmail, user.fullName, tempPassword, ttlHours);
+    return { message: 'If an account exists for that email, a temporary password has been sent to the registered personal email.' };
+  }
+
+  // ── Change Password (temp → permanent) ──────────────────────────────────
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Accept either the temp password or their existing password
+    let validCurrent = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!validCurrent && user.tempPassword) {
+      if (user.tempPasswordExpiry && user.tempPasswordExpiry < new Date()) {
+        throw new UnauthorizedException('TEMP_PASSWORD_EXPIRED');
+      }
+      validCurrent = await bcrypt.compare(currentPassword, user.tempPassword);
+    }
+    if (!validCurrent) throw new UnauthorizedException('Current password is incorrect');
+
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash: newHash,
+        tempPassword: null,
+        tempPasswordExpiry: null,
+        mustChangePassword: false,
+      },
+    });
+
+    return { message: 'Password changed successfully.' };
   }
 
   // ── Bounce Webhook ────────────────────────────────────────────────────────
@@ -452,5 +481,12 @@ export class AuthService {
       expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
     });
     return { accessToken, refreshToken };
+  }
+
+  // ── Login with temp password ──────────────────────────────────────────────
+  async loginWithTempPassword(user: any, password: string): Promise<boolean> {
+    if (!user.tempPassword) return false;
+    if (user.tempPasswordExpiry && user.tempPasswordExpiry < new Date()) return false;
+    return bcrypt.compare(password, user.tempPassword);
   }
 }
