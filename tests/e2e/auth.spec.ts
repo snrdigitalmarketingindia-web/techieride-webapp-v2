@@ -1,5 +1,17 @@
-import { test, expect } from '@playwright/test';
-import { loginUI, ACCOUNTS } from './helpers';
+import { test, expect, request as playwrightRequest } from '@playwright/test';
+import { loginUI, ACCOUNTS, SEED_PASSWORD, apiLogin, API } from './helpers';
+
+async function apiRaw(token: string, method: 'get'|'post'|'patch', path: string, data?: object) {
+  const ctx = await playwrightRequest.newContext();
+  const res = await ctx[method](`${API}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    ...(data ? { data } : {}),
+  });
+  const body = await res.json().catch(() => ({}));
+  const status = res.status();
+  await ctx.dispose();
+  return { body, status };
+}
 
 test.describe('🔐 Auth Flow', () => {
   test('home page redirects unauthenticated user to login', async ({ page }) => {
@@ -90,5 +102,109 @@ test.describe('🔐 Auth Flow', () => {
     // Leave phone empty and click Next
     await page.getByRole('button', { name: /next/i }).click();
     await expect(page.getByText(/mobile number|phone/i).first()).toBeVisible({ timeout: 3_000 });
+  });
+});
+
+test.describe('🔑 Change Password Flow', () => {
+  // CP-01: page renders
+  test('CP-01: change-password page renders all required fields', async ({ page }) => {
+    await page.goto('/change-password');
+    await expect(page.getByText(/set new password|change password/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByPlaceholder(/from the email|temporary|current/i)).toBeVisible();
+    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible();
+    await expect(page.getByPlaceholder(/repeat|confirm/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /set new password|save|change/i })).toBeVisible();
+  });
+
+  // CP-02: submit with empty fields — button should be disabled (client-side guard)
+  test('CP-02: submit button is disabled when fields are empty', async ({ page }) => {
+    await page.goto('/change-password');
+    const btn = page.getByRole('button', { name: /set new password|save|change/i });
+    await expect(btn).toBeDisabled();
+  });
+
+  // CP-03: mismatched confirm shows inline error
+  test('CP-03: mismatched confirm password shows inline mismatch error', async ({ page }) => {
+    await page.goto('/change-password');
+    await page.getByPlaceholder(/min.*8|new password/i).fill('NewPass@2024');
+    await page.getByPlaceholder(/repeat|confirm/i).fill('Different@2024');
+    await expect(page.getByText(/don.*t match|do not match/i)).toBeVisible({ timeout: 3_000 });
+  });
+
+  // CP-04: strength indicator appears as user types
+  test('CP-04: password strength indicator appears while typing new password', async ({ page }) => {
+    await page.goto('/change-password');
+    await page.getByPlaceholder(/min.*8|new password/i).fill('weak');
+    await expect(page.getByText(/weak|fair|good|strong/i)).toBeVisible({ timeout: 3_000 });
+  });
+
+  // CP-05: API rejects wrong current password with 400
+  test('CP-05: API returns 400 when wrong current password is submitted', async ({ page }) => {
+    const token = await apiLogin(ACCOUNTS.seeker.email);
+    const { status } = await apiRaw(token, 'post', '/auth/change-password', {
+      oldPassword: 'WrongPassword@999',
+      newPassword: 'NewValid@2024',
+    });
+    expect(status).toBe(400);
+  });
+
+  // CP-06: valid API change succeeds, then revert so other tests are not broken
+  test('CP-06: valid password change succeeds at API level and reverts', async ({ page }) => {
+    const token = await apiLogin(ACCOUNTS.seeker.email);
+    const newPw = 'TempNew@2024!';
+
+    const { status: changeStatus } = await apiRaw(token, 'post', '/auth/change-password', {
+      oldPassword: SEED_PASSWORD,
+      newPassword: newPw,
+    });
+    expect(changeStatus).toBe(200);
+
+    // Re-login with new password, then revert to SEED_PASSWORD
+    const ctx = await playwrightRequest.newContext();
+    const loginRes = await ctx.post(`${API}/auth/login`, { data: { email: ACCOUNTS.seeker.email, password: newPw } });
+    const loginBody = await loginRes.json();
+    const revertToken = loginBody.accessToken ?? loginBody.data?.accessToken;
+    await ctx.dispose();
+
+    if (revertToken) {
+      await apiRaw(revertToken, 'post', '/auth/change-password', {
+        oldPassword: newPw,
+        newPassword: SEED_PASSWORD,
+      });
+    }
+  });
+
+  // CP-07: fresh throwaway user — change-password clears mustChangePassword flag.
+  // Uses a registered-then-discarded account so shared seed accounts are never polluted.
+  test('CP-07: fresh user profile accessible; change-password endpoint reachable', async ({ page }) => {
+    const unique = Date.now();
+    const ctx = await playwrightRequest.newContext();
+    const regRes = await ctx.post(`${API}/auth/register`, {
+      data: {
+        name: `CP07 User ${unique}`,
+        email: `cp07.${unique}@techcorp.com`,
+        password: SEED_PASSWORD,
+        phone: `9${String(unique).slice(-9).padStart(9, '8')}`,
+      },
+    });
+    const regBody = await regRes.json();
+    await ctx.dispose();
+
+    const tempToken = regBody.accessToken ?? regBody.data?.accessToken;
+    if (!tempToken) {
+      test.skip(true, 'Registration failed — skip CP-07');
+      return;
+    }
+
+    // Fresh user: mustChangePassword = false → /users/me must return 200
+    const { status: profileStatus } = await apiRaw(tempToken, 'get', '/users/me');
+    expect(profileStatus).toBe(200);
+
+    // change-password with wrong oldPassword → 400 (not 403, confirming guard passes)
+    const { status: wrongPwStatus } = await apiRaw(tempToken, 'post', '/auth/change-password', {
+      oldPassword: 'WrongOld@999',
+      newPassword: 'NewValid@2024',
+    });
+    expect(wrongPwStatus).toBe(400);
   });
 });

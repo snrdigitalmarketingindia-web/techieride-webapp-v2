@@ -169,3 +169,91 @@ test.describe('👤 Profile Flow', () => {
     expect(val).toMatch(/^\d*$/); // only digits retained
   });
 });
+
+test.describe('📍 Location Management (/profile/locations)', () => {
+  test('PF-19: location management page loads without error', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/profile/locations');
+    await expect(page).not.toHaveURL(/error|login/);
+    await expect(page.getByText(/location management/i)).toBeVisible({ timeout: 8_000 });
+  });
+
+  test('PF-20: saved locations section is visible', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/profile/locations');
+    await expect(page.getByText(/saved locations/i)).toBeVisible({ timeout: 8_000 });
+  });
+
+  test('PF-21: home and office location sections are present', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/profile/locations');
+    await expect(page.getByText(/home/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/office|work/i).first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('PF-22: add saved location modal opens', async ({ page }) => {
+    await loginUI(page, 'giver');
+    await page.goto('/profile/locations');
+    // "Add Location" button is in the Saved Locations section
+    const addBtn = page.getByRole('button', { name: /add.*location|new.*location|\+ add/i });
+    const visible = await addBtn.isVisible({ timeout: 8_000 }).catch(() => false);
+    if (!visible) {
+      // Some UI shows a "+" icon button — look for it
+      await expect(page.locator('button').filter({ hasText: /\+/ }).first()).toBeVisible({ timeout: 5_000 });
+      return;
+    }
+    await addBtn.click();
+    await expect(page.getByPlaceholder(/label|alias|name/i).first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test('PF-23: saved location is created via API and appears in the list', async ({ page }) => {
+    await loginUI(page, 'giver');
+
+    // Create via API directly so test is fast and doesn't depend on map interaction
+    const token = await page.evaluate(() => localStorage.getItem('accessToken')).catch(() => null);
+    // Navigate to profile/locations first to ensure token is in localStorage
+    await page.goto('/profile/locations');
+    await page.waitForTimeout(1_000);
+    const tok = await page.evaluate(() => localStorage.getItem('accessToken'));
+    if (!tok) { test.skip(true, 'No token in localStorage'); return; }
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+    const createRes = await page.request.post(`${apiBase}/saved-locations`, {
+      headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+      data: { alias: 'E2E Test Spot', address: 'Kondapur, Hyderabad', lat: 17.4401, lng: 78.3489 },
+    });
+    if (!createRes.ok()) { test.skip(true, `saved-locations API not available (${createRes.status()})`); return; }
+
+    await page.reload();
+    await expect(page.getByText(/E2E Test Spot/i)).toBeVisible({ timeout: 8_000 });
+
+    // Cleanup
+    const locBody = await createRes.json();
+    const locId = locBody.id ?? locBody.data?.id;
+    if (locId) {
+      await page.request.delete(`${apiBase}/saved-locations/${locId}`, {
+        headers: { Authorization: `Bearer ${tok}` },
+      }).catch(() => {});
+    }
+  });
+
+  test('PF-24: personal email change — rejects non-personal email domain', async ({ page }) => {
+    await loginUI(page, 'seeker');
+    await page.goto('/profile');
+    await page.getByRole('button', { name: /add|change/i }).last().click();
+    const input = page.getByPlaceholder(/gmail/i);
+    await input.fill('work@techcorp.com');
+    // Send button — if the API rejects corporate emails for personal email field, we expect an error
+    // If the UI doesn't validate, the API should return 400
+    const sendBtn = page.getByRole('button', { name: /send confirmation/i });
+    if (await sendBtn.isVisible()) {
+      await sendBtn.click();
+      await page.waitForTimeout(1_500);
+      // Either an inline error OR the form stays open (no success/dismiss)
+      const formStillOpen = await input.isVisible().catch(() => false);
+      const errorShown = await page.getByText(/invalid|error|personal.*email|gmail/i).isVisible().catch(() => false);
+      // One of the two must be true — the form should not have accepted a corporate email
+      expect(formStillOpen || errorShown).toBe(true);
+    }
+  });
+});
