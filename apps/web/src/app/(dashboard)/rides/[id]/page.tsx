@@ -113,7 +113,19 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
     if (ride?.rideGiver?.userId === user?.id && ride?.status === 'PUBLISHED') {
       reloadPending();
     }
-  }, [ride?.id, user?.id]);
+    // Pre-load existing ratings so already-rated users see ✅ Rated instead of the Rate button
+    if (ride?.status === 'COMPLETED' && user?.id) {
+      ratingsApi.getRideRatings(params.id)
+        .then(r => {
+          const done: Record<string, boolean> = {};
+          (r.data ?? []).forEach((rating: any) => {
+            if (rating.raterId === user.id) done[rating.rateeId] = true;
+          });
+          setRatingDone(done);
+        })
+        .catch(() => {});
+    }
+  }, [ride?.id, ride?.status, user?.id]);
 
   const handleNoShow = async (seekerUserId: string) => {
     setActionLoading(`noshow-${seekerUserId}`);
@@ -890,19 +902,18 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
               <h3 className="font-semibold text-gray-900">Rate {ratingTarget.name}</h3>
               <button onClick={() => setShowRatingModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
             </div>
+            <p className="text-center text-xs text-gray-400">Tap a star to select your rating</p>
             <div className="flex gap-2 justify-center">
               {[1, 2, 3, 4, 5].map(star => (
                 <button key={star} onClick={() => setRatingScore(star)}
-                  className={`text-3xl transition ${star <= ratingScore ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}>
+                  className={`text-4xl transition ${star <= ratingScore ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`}>
                   ★
                 </button>
               ))}
             </div>
-            {ratingScore > 0 && (
-              <p className="text-center text-xs text-gray-500">
-                {['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][ratingScore]}
-              </p>
-            )}
+            <p className="text-center text-sm font-medium text-gray-600 min-h-[1.25rem]">
+              {ratingScore > 0 ? ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent'][ratingScore] : ''}
+            </p>
             <textarea
               value={ratingComment}
               onChange={e => setRatingComment(e.target.value)}
