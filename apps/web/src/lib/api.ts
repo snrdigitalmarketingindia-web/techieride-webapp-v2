@@ -241,4 +241,6 @@ export const adminApi = {
   getTimeSeriesMetrics: (days?: number) => api.get('/admin/metrics/timeseries', { params: { days } }),
   bulkSuspendUsers: (userIds: string[]) => api.post('/admin/users/bulk-suspend', { userIds }),
   bulkActivateUsers: (userIds: string[]) => api.post('/admin/users/bulk-activate', { userIds }),
+  bulkEmailUsers: (userIds: string[], subject: string, body: string) =>
+    api.post('/admin/users/bulk-email', { userIds, subject, body }),
 };

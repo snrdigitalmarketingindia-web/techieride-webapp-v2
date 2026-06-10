@@ -331,6 +331,36 @@ export class EmailService {
     }
   }
 
+  // ── Admin bulk email ────────────────────────────────────────────────────
+  async sendAdminBulkEmail(
+    recipients: { email: string; fullName: string }[],
+    subject: string,
+    body: string,
+  ): Promise<{ sent: number; failed: number }> {
+    let sent = 0;
+    let failed = 0;
+
+    for (const { email, fullName } of recipients) {
+      const firstName = fullName.split(' ')[0];
+      const html = `
+        <div style="font-family:sans-serif;max-width:560px;margin:0 auto">
+          <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:40px;margin-bottom:20px"/>
+          <p style="color:#374151">Hi ${firstName},</p>
+          <div style="color:#374151;white-space:pre-wrap;line-height:1.6">${body.replace(/\n/g, '<br/>')}</div>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+          <p style="color:#9ca3af;font-size:12px">This message was sent by the TechieRide admin team.<br/><em>for a better society...</em></p>
+        </div>`;
+      try {
+        await this.send(email, subject, html);
+        sent++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return { sent, failed };
+  }
+
   // ── Internal send ───────────────────────────────────────────────────────
   private async send(to: string, subject: string, html: string) {
     if (!this.resend || this.isDev) {

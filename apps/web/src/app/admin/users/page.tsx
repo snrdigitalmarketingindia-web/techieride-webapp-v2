@@ -49,6 +49,10 @@ export default function AdminUsersPage() {
   const [searchInput, setSearchInput] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [emailModal, setEmailModal] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailResult, setEmailResult] = useState<{ sent: number; failed: number } | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -71,6 +75,19 @@ export default function AdminUsersPage() {
 
   const allSelected = users.length > 0 && users.every(u => selected.has(u.id));
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(users.map(u => u.id)));
+
+  const sendBulkEmail = async () => {
+    if (!emailSubject.trim() || !emailBody.trim()) return;
+    setBulkLoading(true);
+    try {
+      const res = await adminApi.bulkEmailUsers(Array.from(selected), emailSubject.trim(), emailBody.trim());
+      setEmailResult(res.data);
+      setEmailSubject('');
+      setEmailBody('');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   const bulkAction = async (action: 'suspend' | 'activate') => {
     const ids = Array.from(selected);
@@ -160,6 +177,13 @@ export default function AdminUsersPage() {
             className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
           >
             ✅ Activate
+          </button>
+          <button
+            onClick={() => { setEmailModal(true); setEmailResult(null); }}
+            disabled={bulkLoading}
+            className="text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+          >
+            ✉️ Send Email
           </button>
           <button onClick={() => setSelected(new Set())} className="text-sm text-blue-600 hover:underline ml-auto">
             Clear
@@ -263,6 +287,67 @@ export default function AdminUsersPage() {
             ))}
           </div>
         </>
+      )}
+
+      {/* Bulk email compose modal */}
+      {emailModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-900">Send Email to {selected.size} user{selected.size !== 1 ? 's' : ''}</h2>
+              <button onClick={() => { setEmailModal(false); setEmailResult(null); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+
+            {emailResult ? (
+              <div className="text-center py-6 space-y-2">
+                <p className="text-3xl">✉️</p>
+                <p className="font-semibold text-gray-800">Emails sent</p>
+                <p className="text-sm text-gray-500">{emailResult.sent} sent · {emailResult.failed} failed</p>
+                <button onClick={() => { setEmailModal(false); setEmailResult(null); setSelected(new Set()); }}
+                  className="mt-4 text-sm bg-brand-600 text-white px-4 py-2 rounded-lg hover:bg-brand-700 transition">
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">Subject</label>
+                    <input
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="e.g. Important update from TechieRide"
+                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide block mb-1">Message</label>
+                    <textarea
+                      value={emailBody}
+                      onChange={(e) => setEmailBody(e.target.value)}
+                      rows={6}
+                      placeholder="Write your message here. Use {name} to personalise — we'll replace it with each user's first name automatically."
+                      className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-400 resize-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <button onClick={() => setEmailModal(false)}
+                    className="text-sm text-gray-600 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={sendBulkEmail}
+                    disabled={bulkLoading || !emailSubject.trim() || !emailBody.trim()}
+                    className="text-sm bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    {bulkLoading ? 'Sending…' : `Send to ${selected.size} user${selected.size !== 1 ? 's' : ''}`}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

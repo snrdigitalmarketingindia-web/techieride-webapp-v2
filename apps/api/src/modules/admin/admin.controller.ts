@@ -158,6 +158,15 @@ export class AdminController {
     return this.adminService.bulkActivateUsers(userIds);
   }
 
+  @Post('users/bulk-email')
+  bulkEmailUsers(
+    @Body('userIds') userIds: string[],
+    @Body('subject') subject: string,
+    @Body('body') body: string,
+  ) {
+    return this.adminService.bulkEmailUsers(userIds, subject, body);
+  }
+
   @Get('sos/active')
   listActiveSos() {
     return this.adminService.listActiveSos();

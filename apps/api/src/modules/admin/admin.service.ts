@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccountStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   async listUsers(filters: { accountStatus?: string; role?: string; search?: string; compliance?: boolean; page: number; limit: number }) {
     const where: any = {};
@@ -255,6 +259,14 @@ export class AdminService {
       data: { isActive: true },
     });
     return { updated: userIds.length };
+  }
+
+  async bulkEmailUsers(userIds: string[], subject: string, body: string) {
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { email: true, fullName: true },
+    });
+    return this.emailService.sendAdminBulkEmail(users, subject, body);
   }
 
   async listActiveSos() {
