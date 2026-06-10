@@ -3,13 +3,51 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/lib/api';
 
+type TimeSeriesPoint = { date: string; users: number; rides: number };
+
+function MiniChart({ data, keys }: { data: TimeSeriesPoint[]; keys: { key: 'users' | 'rides'; color: string; label: string }[] }) {
+  if (!data.length) return null;
+  const maxVal = Math.max(...data.flatMap(d => keys.map(k => d[k.key])), 1);
+  const W = 560; const H = 80; const barW = Math.max(2, Math.floor(W / data.length) - 1);
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H + 20}`} className="w-full" aria-hidden>
+      {data.map((d, i) => {
+        const x = i * (W / data.length);
+        return keys.map((k, ki) => {
+          const h = Math.max(2, (d[k.key] / maxVal) * H);
+          return (
+            <rect
+              key={`${i}-${ki}`}
+              x={x + ki * (barW / keys.length + 1)}
+              y={H - h}
+              width={barW / keys.length}
+              height={h}
+              fill={k.color}
+              opacity={0.85}
+            />
+          );
+        });
+      })}
+      {/* x-axis labels: first, mid, last */}
+      {[0, Math.floor(data.length / 2), data.length - 1].map(i => (
+        <text key={i} x={i * (W / data.length) + barW / 2} y={H + 16} fontSize={9} fill="#9ca3af" textAnchor="middle">
+          {data[i]?.date.slice(5)}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
 export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [sosList, setSosList] = useState<any[]>([]);
+  const [timeSeries, setTimeSeries] = useState<TimeSeriesPoint[]>([]);
 
   useEffect(() => {
     adminApi.getAnalytics().then((r) => setAnalytics(r.data));
     adminApi.getActiveSos().then((r) => setSosList(r.data));
+    adminApi.getTimeSeriesMetrics(30).then((r) => setTimeSeries(Array.isArray(r.data) ? r.data : []));
   }, []);
 
   const kpis = analytics ? [
@@ -54,6 +92,25 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {timeSeries.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700">Platform Activity — Last 30 Days</h2>
+            <div className="flex gap-4 text-xs text-gray-500">
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm bg-blue-400" /> New Users</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm bg-emerald-400" /> Rides Created</span>
+            </div>
+          </div>
+          <MiniChart
+            data={timeSeries}
+            keys={[
+              { key: 'users', color: '#60a5fa', label: 'New Users' },
+              { key: 'rides', color: '#34d399', label: 'Rides Created' },
+            ]}
+          />
+        </div>
+      )}
 
       {womenKpis.length > 0 && (
         <div className="space-y-3">

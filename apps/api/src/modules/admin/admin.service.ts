@@ -207,6 +207,56 @@ export class AdminService {
     };
   }
 
+  async getTimeSeriesMetrics(days = 30) {
+    const since = new Date();
+    since.setDate(since.getDate() - days + 1);
+    since.setHours(0, 0, 0, 0);
+
+    const [userRows, rideRows] = await Promise.all([
+      this.prisma.$queryRaw<{ day: Date; count: bigint }[]>`
+        SELECT DATE_TRUNC('day', "created_at" AT TIME ZONE 'Asia/Kolkata') AS day, COUNT(*) AS count
+        FROM users
+        WHERE created_at >= ${since}
+        GROUP BY 1 ORDER BY 1
+      `,
+      this.prisma.$queryRaw<{ day: Date; count: bigint }[]>`
+        SELECT DATE_TRUNC('day', "created_at" AT TIME ZONE 'Asia/Kolkata') AS day, COUNT(*) AS count
+        FROM rides
+        WHERE created_at >= ${since}
+        GROUP BY 1 ORDER BY 1
+      `,
+    ]);
+
+    // Build a complete date series so gaps show as 0
+    const result: { date: string; users: number; rides: number }[] = [];
+    const userMap = new Map(userRows.map(r => [r.day.toISOString().slice(0, 10), Number(r.count)]));
+    const rideMap = new Map(rideRows.map(r => [r.day.toISOString().slice(0, 10), Number(r.count)]));
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(since);
+      d.setDate(since.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      result.push({ date: key, users: userMap.get(key) ?? 0, rides: rideMap.get(key) ?? 0 });
+    }
+    return result;
+  }
+
+  async bulkSuspendUsers(userIds: string[]) {
+    await this.prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { accountStatus: 'SUSPENDED' as any, isActive: false },
+    });
+    return { updated: userIds.length };
+  }
+
+  async bulkActivateUsers(userIds: string[]) {
+    await this.prisma.user.updateMany({
+      where: { id: { in: userIds } },
+      data: { isActive: true },
+    });
+    return { updated: userIds.length };
+  }
+
   async listActiveSos() {
     return this.prisma.sosEvent.findMany({
       where: { status: { in: ['TRIGGERED', 'ACKNOWLEDGED'] } },

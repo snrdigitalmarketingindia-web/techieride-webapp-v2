@@ -47,9 +47,12 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ accountStatus: '', role: '', search: '', compliance: false });
   const [searchInput, setSearchInput] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const load = () => {
     setLoading(true);
+    setSelected(new Set());
     const params: any = { accountStatus: filter.accountStatus, role: filter.role, search: filter.search };
     if (filter.compliance) params.compliance = 'true';
     adminApi.listUsers(params).then((r) => {
@@ -59,6 +62,28 @@ export default function AdminUsersPage() {
   };
 
   useEffect(() => { load(); }, [filter]);
+
+  const toggleSelect = (id: string) => setSelected(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const allSelected = users.length > 0 && users.every(u => selected.has(u.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(users.map(u => u.id)));
+
+  const bulkAction = async (action: 'suspend' | 'activate') => {
+    const ids = Array.from(selected);
+    if (!ids.length) return;
+    setBulkLoading(true);
+    try {
+      if (action === 'suspend') await adminApi.bulkSuspendUsers(ids);
+      else await adminApi.bulkActivateUsers(ids);
+      load();
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -118,6 +143,30 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <span className="text-sm font-medium text-blue-800">{selected.size} selected</span>
+          <button
+            onClick={() => bulkAction('suspend')}
+            disabled={bulkLoading}
+            className="text-sm bg-red-600 text-white px-3 py-1.5 rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+          >
+            🚫 Suspend
+          </button>
+          <button
+            onClick={() => bulkAction('activate')}
+            disabled={bulkLoading}
+            className="text-sm bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition"
+          >
+            ✅ Activate
+          </button>
+          <button onClick={() => setSelected(new Set())} className="text-sm text-blue-600 hover:underline ml-auto">
+            Clear
+          </button>
+        </div>
+      )}
+
       {loading ? <div className="text-center py-10 text-gray-400">Loading...</div> : (
         <>
           {/* ── Desktop table (rendered first in DOM so .first() locators in E2E find the visible table row) ── */}
@@ -125,6 +174,9 @@ export default function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-4 py-3">
+                    <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded border-gray-300" />
+                  </th>
                   {['Name', 'TRID', 'Company', 'Role', 'Account Status', 'Actions'].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                   ))}
@@ -132,7 +184,10 @@ export default function AdminUsersPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {users.map((u) => (
-                  <tr key={u.id} onClick={() => router.push(`/admin/users/${u.id}`)} className={`hover:bg-gray-50 cursor-pointer ${!u.isActive ? 'opacity-50' : ''}`}>
+                  <tr key={u.id} onClick={() => router.push(`/admin/users/${u.id}`)} className={`hover:bg-gray-50 cursor-pointer ${selected.has(u.id) ? 'bg-blue-50' : ''} ${!u.isActive ? 'opacity-50' : ''}`}>
+                    <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); toggleSelect(u.id); }}>
+                      <input type="checkbox" checked={selected.has(u.id)} onChange={() => toggleSelect(u.id)} className="rounded border-gray-300" />
+                    </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{u.fullName}</p>
                       <p className="text-xs text-gray-400">{u.email}</p>
@@ -162,7 +217,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No users found</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No users found</td></tr>
                 )}
               </tbody>
             </table>
@@ -173,8 +228,13 @@ export default function AdminUsersPage() {
             {users.length === 0 && <p className="text-center py-8 text-gray-400">No users found</p>}
             {users.map((u) => (
               <div key={u.id} onClick={() => router.push(`/admin/users/${u.id}`)}
-                className={`bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50 ${!u.isActive ? 'opacity-50' : ''}`}>
+                className={`bg-white rounded-xl border p-4 cursor-pointer active:bg-gray-50 ${selected.has(u.id) ? 'border-blue-300 bg-blue-50' : 'border-gray-200'} ${!u.isActive ? 'opacity-50' : ''}`}>
                 <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2 min-w-0">
+                    <input type="checkbox" checked={selected.has(u.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => toggleSelect(u.id)}
+                      className="mt-0.5 rounded border-gray-300 shrink-0" />
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{u.fullName}</p>
                     <p className="text-xs text-gray-400 truncate">{u.email}</p>
@@ -185,6 +245,7 @@ export default function AdminUsersPage() {
                         <span key={f} className="text-xs bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded">{f}</span>
                       ))}
                     </div>
+                  </div>
                   </div>
                   <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${ACCOUNT_STATUS_COLORS[u.accountStatus] || 'bg-gray-100 text-gray-600'}`}>
                     {ACCOUNT_STATUS_LABELS[u.accountStatus] || u.accountStatus}

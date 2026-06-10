@@ -143,6 +143,21 @@ export class AdminController {
     );
   }
 
+  @Get('metrics/timeseries')
+  getTimeSeriesMetrics(@Query('days') days?: string) {
+    return this.adminService.getTimeSeriesMetrics(days ? +days : 30);
+  }
+
+  @Post('users/bulk-suspend')
+  bulkSuspendUsers(@Body('userIds') userIds: string[]) {
+    return this.adminService.bulkSuspendUsers(userIds);
+  }
+
+  @Post('users/bulk-activate')
+  bulkActivateUsers(@Body('userIds') userIds: string[]) {
+    return this.adminService.bulkActivateUsers(userIds);
+  }
+
   @Get('sos/active')
   listActiveSos() {
     return this.adminService.listActiveSos();

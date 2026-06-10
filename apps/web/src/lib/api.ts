@@ -238,4 +238,7 @@ export const adminApi = {
   getUserSavedLocations: (id: string) => api.get(`/admin/users/${id}/saved-locations`),
   getAuditLog: (params?: any) => api.get('/admin/audit-log', { params }),
   exportUsersCsvUrl: () => `${api.defaults.baseURL}/admin/users/export/csv`,
+  getTimeSeriesMetrics: (days?: number) => api.get('/admin/metrics/timeseries', { params: { days } }),
+  bulkSuspendUsers: (userIds: string[]) => api.post('/admin/users/bulk-suspend', { userIds }),
+  bulkActivateUsers: (userIds: string[]) => api.post('/admin/users/bulk-activate', { userIds }),
 };
