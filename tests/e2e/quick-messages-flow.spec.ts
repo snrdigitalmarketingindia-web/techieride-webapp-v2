@@ -167,8 +167,10 @@ test.describe('💬 Quick Messages Flow', () => {
   });
 
   test('QM-07: seeker sees Quick Message button on their ONGOING ride', async ({ page }) => {
-    // Seeker sees Quick Message only when ride is ONGOING; start it here
+    // Seeker sees Quick Message only when ride is ONGOING; start it here.
+    // Wait briefly after start so the status change propagates before the seeker page loads.
     await api(giverToken, 'patch', `/rides/${rideId}/start`).catch(() => {});
+    await new Promise(r => setTimeout(r, 1_000));
 
     await loginUI(page, 'seeker');
     await gotoRidesReady(page, 'taken');

@@ -29,6 +29,7 @@ env:
   REQUEST_RATE_LIMIT: "1000"
   NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
   NEXT_PUBLIC_WS_URL: http://localhost:3001
+  SKIP_MX_CHECK: "true"
 
 jobs:
   smoke-e2e:

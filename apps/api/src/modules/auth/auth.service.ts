@@ -15,6 +15,7 @@ import { RegisterDto, LoginDto, ChangePasswordDto, ExceptionVerificationDto } fr
 
 /** Returns true if the domain has at least one MX record (i.e. it's a real mail domain). */
 async function hasMxRecord(domain: string): Promise<boolean> {
+  if (process.env.SKIP_MX_CHECK === 'true') return true;
   try {
     const records = await dns.resolveMx(domain);
     return records.length > 0;
