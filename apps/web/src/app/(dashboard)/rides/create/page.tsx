@@ -112,15 +112,33 @@ export default function CreateRidePage() {
     // Restore last-used seat count for this giver
     setForm((f) => ({ ...f, totalSeats: loadSeatPref(user.id) }));
 
-    const home = (user as any).homeLocation as string | undefined;
-    const office = (user as any).officeLocation as string | undefined;
-    const direction = getCommuteDirection();
+    const homeAddr   = (user as any).homeAddress   as string | undefined;
+    const officeAddr = (user as any).officeAddress as string | undefined;
+    const homeLat    = (user as any).homeLat    as number | undefined;
+    const homeLng    = (user as any).homeLng    as number | undefined;
+    const officeLat  = (user as any).officeLat  as number | undefined;
+    const officeLng  = (user as any).officeLng  as number | undefined;
+    const direction  = getCommuteDirection();
 
-    if (home && office) {
-      // Change 3: Smart defaults from profile locations
-      const origin = direction === 'morning' ? home : office;
-      const destination = direction === 'morning' ? office : home;
-      setForm((f) => ({ ...f, originName: origin, destinationName: destination }));
+    if (homeAddr && officeAddr) {
+      const isMorning  = direction === 'morning';
+      const originName = isMorning ? homeAddr   : officeAddr;
+      const destName   = isMorning ? officeAddr  : homeAddr;
+      const oLat       = isMorning ? homeLat    : officeLat;
+      const oLng       = isMorning ? homeLng    : officeLng;
+      const dLat       = isMorning ? officeLat  : homeLat;
+      const dLng       = isMorning ? officeLng  : homeLng;
+      setForm((f) => ({
+        ...f,
+        originName,
+        originLat:      oLat ?? f.originLat,
+        originLng:      oLng ?? f.originLng,
+        destinationName: destName,
+        destinationLat: dLat ?? f.destinationLat,
+        destinationLng: dLng ?? f.destinationLng,
+      }));
+      if (oLat)  setOriginPinned(true);
+      if (dLat)  setDestPinned(true);
       setLocationSource('profile');
       return;
     }

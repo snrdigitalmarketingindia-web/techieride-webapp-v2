@@ -177,8 +177,9 @@ model User {
   emailStatus               EmailStatus        @default(PENDING)
   emailVerificationToken    String?            @unique
   emailVerificationExpiry   DateTime?
-  passwordResetToken        String?            @unique
-  passwordResetExpiry       DateTime?
+  tempPassword              String?                       // bcrypt hash of temp password (forgot-password flow)
+  tempPasswordExpiry        DateTime?
+  mustChangePassword        Boolean            @default(false)
   pendingEmail              String?                       // new email awaiting verification
   pendingEmailToken         String?            @unique    // token sent to new email
   pendingEmailExpiry        DateTime?
@@ -615,14 +616,18 @@ model SosEvent {
 // re-pin every time they request a ride.
 
 model SavedLocation {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  alias     String                        // display name e.g. "Home", "Gym"
-  lat       Float
-  lng       Float
-  address   String   @default("")         // reverse-geocoded label
-  createdAt DateTime @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alias      String                        // display name e.g. "Home", "Gym"
+  lat        Float
+  lng        Float
+  address    String    @default("")        // reverse-geocoded label
+  isFavorite Boolean   @default(false)
+  sourceType String    @default("SEARCH") // "SEARCH" | "PIN"
+  usageCount Int       @default(0)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@index([userId])
   @@map("saved_locations")

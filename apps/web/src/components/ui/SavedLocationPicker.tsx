@@ -22,6 +22,9 @@ interface SavedLocation {
   lat: number;
   lng: number;
   address: string;
+  isFavorite?: boolean;
+  sourceType?: string;
+  lastUsedAt?: string | null;
 }
 
 interface Props {
@@ -105,6 +108,12 @@ export function SavedLocationPicker({ label, value, onChange, mapTitle, placehol
   const selectSaved = (loc: SavedLocation) => {
     onChange({ name: loc.alias, lat: loc.lat, lng: loc.lng, address: loc.address });
     setOpen(false);
+    // Fire-and-forget usage tracking
+    savedLocationsApi.recordUsage(loc.id).catch(() => {});
+    // Update local state optimistically
+    setSavedLocs(prev => prev.map(l =>
+      l.id === loc.id ? { ...l, lastUsedAt: new Date().toISOString() } : l,
+    ));
   };
 
   const deleteSaved = async (id: string, e: React.MouseEvent) => {
@@ -223,11 +232,24 @@ export function SavedLocationPicker({ label, value, onChange, mapTitle, placehol
       {open && (
         <div ref={dropdownRef} className="mt-1 border border-gray-200 rounded-xl bg-white shadow-lg z-30 relative overflow-hidden">
 
-          {savedLocs.length > 0 && (
-            <div className="max-h-52 overflow-y-auto">
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide px-3 pt-2 pb-1">Saved locations</p>
-              {savedLocs.map((loc) => (
-                <div key={loc.id} className="group">
+          {savedLocs.length > 0 && (() => {
+            const favorites    = savedLocs.filter(l => l.isFavorite);
+            const recentlyUsed = savedLocs.filter(l => !l.isFavorite && l.lastUsedAt)
+              .sort((a, b) => new Date(b.lastUsedAt!).getTime() - new Date(a.lastUsedAt!).getTime());
+            const rest         = savedLocs.filter(l => !l.isFavorite && !l.lastUsedAt);
+            const ordered      = [...favorites, ...recentlyUsed, ...rest];
+            return (
+            <div className="max-h-56 overflow-y-auto">
+              {favorites.length > 0 && <p className="text-[10px] text-gray-400 uppercase tracking-wide px-3 pt-2 pb-0.5">⭐ Favorites</p>}
+              {recentlyUsed.length > 0 && favorites.length === 0 && <p className="text-[10px] text-gray-400 uppercase tracking-wide px-3 pt-2 pb-0.5">🕐 Recently Used</p>}
+              {ordered.map((loc, idx) => {
+                const showRecentHeader  = idx === favorites.length && recentlyUsed.length > 0 && favorites.length > 0;
+                const showOtherHeader   = idx === favorites.length + recentlyUsed.length && rest.length > 0 && (favorites.length > 0 || recentlyUsed.length > 0);
+                return (
+              <div key={loc.id}>
+                {showRecentHeader  && <p className="text-[10px] text-gray-400 uppercase tracking-wide px-3 pt-2 pb-0.5">🕐 Recently Used</p>}
+                {showOtherHeader   && <p className="text-[10px] text-gray-400 uppercase tracking-wide px-3 pt-2 pb-0.5">📁 All Saved</p>}
+                <div className="group">
                   {editingId === loc.id ? (
                     /* ── Inline rename ── */
                     <div className="flex items-center gap-1 px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
@@ -253,12 +275,14 @@ export function SavedLocationPicker({ label, value, onChange, mapTitle, placehol
                       onClick={() => selectSaved(loc)}
                       className="w-full flex items-center gap-2 px-3 py-2 hover:bg-brand-50 text-left"
                     >
-                      <span className="text-base shrink-0">📍</span>
+                      <span className="text-base shrink-0">
+                        {loc.isFavorite ? '⭐' : loc.sourceType === 'PIN' ? '📍' : '🔍'}
+                      </span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 truncate">{loc.alias}</p>
                         {loc.address && <p className="text-xs text-gray-400 truncate">{loc.address}</p>}
                       </div>
-                      {/* Action icons — always visible on mobile, hover on desktop */}
+                      {/* Action icons */}
                       <div className="flex items-center gap-0.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition">
                         <button
                           type="button"
@@ -282,9 +306,12 @@ export function SavedLocationPicker({ label, value, onChange, mapTitle, placehol
                     </button>
                   )}
                 </div>
-              ))}
+              </div>
+              );
+              })}
             </div>
-          )}
+            );
+          })()}
 
           {savedLocs.length === 0 && (
             <p className="text-xs text-gray-400 px-3 pt-3 pb-1">No saved locations yet. Pin one below!</p>

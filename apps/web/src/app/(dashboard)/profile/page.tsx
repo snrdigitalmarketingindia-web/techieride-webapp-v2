@@ -315,6 +315,12 @@ export default function ProfilePage() {
                 </span>
               </button>
             </div>
+            {/* Saved locations shortcut */}
+            <div className="flex items-center justify-between py-1">
+              <span className="text-xs text-gray-500">📁 Saved Locations</span>
+              <a href="/profile/locations" className="text-xs text-brand-600 hover:underline font-medium">Manage Locations →</a>
+            </div>
+
             <div>
               <label htmlFor="bloodGroup" className="text-xs text-gray-500 mb-1 block">Blood Group</label>
               <select
