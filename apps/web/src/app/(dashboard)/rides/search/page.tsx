@@ -35,6 +35,28 @@ function BoardingModal({
   const [showDropMap, setShowDropMap] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  // Auto-capture GPS on mount — silent fallback if denied
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setPickupLat(lat);
+        setPickupLng(lng);
+        try {
+          const res = await fetch(`/api/maps/reverse-geocode?lat=${lat}&lng=${lng}`);
+          const data = await res.json();
+          if (data.address) setPickupName(data.address);
+        } catch { /* silent */ }
+        setGpsLoading(false);
+      },
+      () => setGpsLoading(false),
+      { timeout: 8000, maximumAge: 60000 },
+    );
+  }, []);
 
   const handleSubmit = async () => {
     if (!pickupName.trim()) { setError('Please pin your boarding point on the map'); return; }
@@ -76,16 +98,24 @@ function BoardingModal({
             <label className="text-sm font-medium text-gray-700">
               📍 Where should the giver pick you up? <span className="text-red-500">*</span>
             </label>
+            {gpsLoading && (
+              <p className="text-xs text-brand-600 flex items-center gap-1">
+                <span className="animate-pulse">📡</span> Detecting your location…
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setShowPickupMap(true)}
-              className={`${inputCls} flex items-center gap-2 text-left`}
+              className={`${inputCls} flex items-center gap-2 text-left ${pickupName ? 'border-brand-400 bg-brand-50' : ''}`}
             >
-              <span>📍</span>
+              <span>{pickupLat ? '✅' : '📍'}</span>
               <span className={pickupName ? 'text-gray-800' : 'text-gray-400'}>
                 {pickupName || 'Tap to pin your pickup on map'}
               </span>
             </button>
+            {pickupLat && (
+              <p className="text-xs text-green-600">📡 Location auto-detected — tap to adjust if needed</p>
+            )}
           </div>
 
           {/* Drop point — map pin */}

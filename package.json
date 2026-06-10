@@ -50,5 +50,8 @@
     "@playwright/test": "^1.60.0",
     "concurrently": "^8.2.2",
     "typescript": "5.3.3"
+  },
+  "dependencies": {
+    "docker": "^1.0.0"
   }
 }
