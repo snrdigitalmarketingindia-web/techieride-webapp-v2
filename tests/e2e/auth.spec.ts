@@ -109,18 +109,17 @@ test.describe('🔑 Change Password Flow', () => {
   // CP-01: page renders
   test('CP-01: change-password page renders all required fields', async ({ page }) => {
     await page.goto('/change-password');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByText(/set new password|change password/i)).toBeVisible({ timeout: 10_000 });
+    // Use role-based selectors to avoid strict-mode multi-match errors
+    await expect(page.getByRole('heading', { name: /set new password|change password/i })).toBeVisible({ timeout: 10_000 });
     await expect(page.getByPlaceholder(/from the email|temporary|current/i)).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByPlaceholder(/repeat|confirm/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/min.*8 chars/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByPlaceholder(/repeat new password/i)).toBeVisible({ timeout: 5_000 });
     await expect(page.getByRole('button', { name: /set new password|save|change/i })).toBeVisible({ timeout: 5_000 });
   });
 
   // CP-02: submit with empty fields — button should be disabled (client-side guard)
   test('CP-02: submit button is disabled when fields are empty', async ({ page }) => {
     await page.goto('/change-password');
-    await page.waitForLoadState('domcontentloaded');
     const btn = page.getByRole('button', { name: /set new password|save|change/i });
     await expect(btn).toBeDisabled({ timeout: 8_000 });
   });
@@ -128,19 +127,20 @@ test.describe('🔑 Change Password Flow', () => {
   // CP-03: mismatched confirm shows inline error
   test('CP-03: mismatched confirm password shows inline mismatch error', async ({ page }) => {
     await page.goto('/change-password');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible({ timeout: 10_000 });
-    await page.getByPlaceholder(/min.*8|new password/i).fill('NewPass@2024');
-    await page.getByPlaceholder(/repeat|confirm/i).fill('Different@2024');
+    // Use exact placeholder to avoid matching "Repeat new password" too
+    const newPwInput = page.getByPlaceholder(/min.*8 chars/i);
+    await expect(newPwInput).toBeVisible({ timeout: 10_000 });
+    await newPwInput.fill('NewPass@2024');
+    await page.getByPlaceholder(/repeat new password/i).fill('Different@2024');
     await expect(page.getByText(/don.*t match|do not match/i)).toBeVisible({ timeout: 5_000 });
   });
 
   // CP-04: strength indicator appears as user types
   test('CP-04: password strength indicator appears while typing new password', async ({ page }) => {
     await page.goto('/change-password');
-    await page.waitForLoadState('domcontentloaded');
-    await expect(page.getByPlaceholder(/min.*8|new password/i)).toBeVisible({ timeout: 10_000 });
-    await page.getByPlaceholder(/min.*8|new password/i).fill('weak');
+    const newPwInput = page.getByPlaceholder(/min.*8 chars/i);
+    await expect(newPwInput).toBeVisible({ timeout: 10_000 });
+    await newPwInput.fill('weak');
     await expect(page.getByText(/weak|fair|good|strong/i)).toBeVisible({ timeout: 5_000 });
   });
 

@@ -292,6 +292,7 @@ export default function LocationManagementPage() {
             </div>
             {locs.length < 30 && (
               <button
+                data-testid="add-saved-location"
                 onClick={openAdd}
                 className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 font-medium"
               >

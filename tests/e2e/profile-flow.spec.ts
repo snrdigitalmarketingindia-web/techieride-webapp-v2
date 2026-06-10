@@ -194,11 +194,10 @@ test.describe('📍 Location Management (/profile/locations)', () => {
   test('PF-22: add saved location modal opens', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/profile/locations');
-    // Wait for the page to fully render (DashboardLayout hydration + page content)
+    // Wait for page content (DashboardLayout hydration)
     await expect(page.getByText(/saved locations/i)).toBeVisible({ timeout: 10_000 });
-    // "+ Add" button is in the Saved Locations section header (always visible when locs.length < 30)
-    const addBtn = page.locator('section').filter({ hasText: /saved locations/i })
-      .locator('button').filter({ hasText: /\+ add|\+ new|add location/i }).first();
+    // Use data-testid for reliable single-element targeting
+    const addBtn = page.getByTestId('add-saved-location');
     await expect(addBtn).toBeVisible({ timeout: 5_000 });
     await addBtn.click();
     await expect(page.getByPlaceholder(/label|alias|name/i).first()).toBeVisible({ timeout: 5_000 });
