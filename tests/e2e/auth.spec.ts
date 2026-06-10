@@ -140,7 +140,9 @@ test.describe('🔑 Change Password Flow', () => {
     await page.goto('/change-password');
     const newPwInput = page.getByPlaceholder(/min.*8 chars/i);
     await expect(newPwInput).toBeVisible({ timeout: 10_000 });
-    await newPwInput.fill('weak');
+    // 'Weak' (capital W) → strength=1 → label renders as "Weak"
+    // 'weak' (all-lower) → strength=0 → label is empty string, nothing visible
+    await newPwInput.fill('Weak');
     await expect(page.getByText(/weak|fair|good|strong/i)).toBeVisible({ timeout: 5_000 });
   });
 

@@ -194,8 +194,9 @@ test.describe('📍 Location Management (/profile/locations)', () => {
   test('PF-22: add saved location modal opens', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/profile/locations');
-    // Wait for page content (DashboardLayout hydration)
-    await expect(page.getByText(/saved locations/i)).toBeVisible({ timeout: 10_000 });
+    // Wait for page content — use exact text to avoid strict-mode matching both
+    // "Saved Locations" heading AND "No saved locations yet" paragraph
+    await expect(page.getByText('Saved Locations', { exact: true })).toBeVisible({ timeout: 10_000 });
     // Use data-testid for reliable single-element targeting
     const addBtn = page.getByTestId('add-saved-location');
     await expect(addBtn).toBeVisible({ timeout: 5_000 });
