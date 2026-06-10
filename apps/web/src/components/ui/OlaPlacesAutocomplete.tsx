@@ -72,8 +72,8 @@ export default function OlaPlacesAutocomplete({
     setOpen(false);
     setPredictions([]);
 
-    // Resolve coordinates via Place Details
-    const loc = await placeDetails(pred.place_id);
+    // Resolve coordinates — Mappls may have pre-filled lat/lng in the prediction
+    const loc = await placeDetails(pred.place_id, { lat: pred.lat, lng: pred.lng });
     onSelect(pred.description, loc?.lat, loc?.lng);
   };
 
