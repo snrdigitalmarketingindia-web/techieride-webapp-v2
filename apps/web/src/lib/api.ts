@@ -234,4 +234,8 @@ export const adminApi = {
   listVehicles: (pending?: boolean) => api.get('/admin/vehicles', { params: pending ? { pending: 'true' } : {} }),
   verifyVehicle: (id: string) => api.patch(`/admin/vehicles/${id}/verify`),
   rejectVehicle: (id: string) => api.patch(`/admin/vehicles/${id}/reject`),
+  getUserAudit: (id: string) => api.get(`/admin/users/${id}/audit`),
+  getUserSavedLocations: (id: string) => api.get(`/admin/users/${id}/saved-locations`),
+  getAuditLog: (params?: any) => api.get('/admin/audit-log', { params }),
+  exportUsersCsvUrl: () => `${api.defaults.baseURL}/admin/users/export/csv`,
 };

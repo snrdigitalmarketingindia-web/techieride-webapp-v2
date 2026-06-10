@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api';
 
+type Tab = 'overview' | 'rides' | 'ratings' | 'activity' | 'locations';
+
 const STATUS_COLORS: Record<string, string> = {
   DRIVER_VERIFIED:    'bg-green-100 text-green-700',
   SEEKER_VERIFIED:    'bg-green-100 text-green-700',
@@ -29,7 +31,11 @@ export default function AdminUserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [audit, setAudit] = useState<any>(null);
+  const [savedLocs, setSavedLocs] = useState<any[]>([]);
+  const [activityLog, setActivityLog] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [actionMsg, setActionMsg] = useState('');
   const [rejReason, setRejReason] = useState('');
   const [suspendReason, setSuspendReason] = useState('');
@@ -40,7 +46,17 @@ export default function AdminUserDetailPage() {
 
   const load = () => {
     setLoading(true);
-    adminApi.getUser(id).then((r) => setUser(r.data)).finally(() => setLoading(false));
+    Promise.all([
+      adminApi.getUser(id),
+      adminApi.getUserAudit(id).catch(() => ({ data: null })),
+      adminApi.getUserSavedLocations(id).catch(() => ({ data: [] })),
+      adminApi.getAuditLog({ actor: id, limit: 30 }).catch(() => ({ data: { entries: [] } })),
+    ]).then(([userRes, auditRes, locsRes, actRes]) => {
+      setUser(userRes.data);
+      setAudit(auditRes.data);
+      setSavedLocs(locsRes.data ?? []);
+      setActivityLog(actRes.data?.entries ?? []);
+    }).finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, [id]);
@@ -79,6 +95,21 @@ export default function AdminUserDetailPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Back */}
       <button onClick={() => router.back()} className="text-sm text-brand-600 hover:underline">← Back to Users</button>
+
+      {/* Tab nav */}
+      <div className="flex gap-1 border-b border-gray-200 overflow-x-auto">
+        {(['overview', 'rides', 'ratings', 'activity', 'locations'] as Tab[]).map((t) => (
+          <button key={t} onClick={() => setActiveTab(t)}
+            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition -mb-px ${
+              activeTab === t ? 'border-brand-600 text-brand-700' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}>
+            {t === 'overview' ? '👤 Overview' : t === 'rides' ? '🚗 Rides' : t === 'ratings' ? '⭐ Ratings' : t === 'activity' ? '📋 Activity' : '📍 Locations'}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Overview tab ────────────────────────────────────── */}
+      {activeTab === 'overview' && (<>
 
       {/* Header */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-start justify-between gap-4 flex-wrap">
@@ -338,6 +369,165 @@ export default function AdminUserDetailPage() {
           </button>
         </div>
       </div>
+
+      </>)}
+
+      {/* ── Rides tab ───────────────────────────────────────── */}
+      {activeTab === 'rides' && audit && (
+        <div className="space-y-4">
+          {/* Stats summary */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Rides Given',    value: audit.summary?.totalRidesGiven ?? 0 },
+              { label: 'Rides Taken',    value: audit.summary?.totalRidesTaken ?? 0 },
+              { label: 'Completed',      value: audit.summary?.completedRidesGiven ?? 0 },
+              { label: 'Cancelled',      value: audit.summary?.cancelledRidesGiven ?? 0 },
+              { label: 'No-shows',       value: audit.summary?.noShowCount ?? 0 },
+              { label: 'Cancels (7d)',   value: audit.summary?.recentCancellationCount ?? 0 },
+              { label: 'Complaints',     value: audit.summary?.openComplaints ?? 0 },
+              { label: 'Ratings count',  value: audit.summary?.totalRatingsCount ?? 0 },
+            ].map((s) => (
+              <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-xl font-bold text-gray-900">{s.value}</p>
+                <p className="text-xs text-gray-500">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Rides given list */}
+          {audit.ridesGiven?.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-gray-700">Recent rides given</h3>
+              {audit.ridesGiven.map((r: any) => (
+                <div key={r.id} className="flex items-center justify-between gap-2 text-sm py-1.5 border-b border-gray-100 last:border-0">
+                  <span className="text-gray-700 truncate">{r.originName} → {r.destinationName}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${r.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : r.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{r.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Rides taken list */}
+          {audit.ridesTaken?.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+              <h3 className="text-sm font-semibold text-gray-700">Recent ride requests</h3>
+              {audit.ridesTaken.map((r: any) => (
+                <div key={r.id} className="flex items-center justify-between gap-2 text-sm py-1.5 border-b border-gray-100 last:border-0">
+                  <span className="text-gray-700 truncate">{r.ride?.originName} → {r.ride?.destinationName}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${r.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' : r.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>{r.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {!audit.ridesGiven?.length && !audit.ridesTaken?.length && (
+            <p className="text-center py-8 text-gray-400 text-sm">No ride history</p>
+          )}
+        </div>
+      )}
+
+      {/* ── Ratings tab ─────────────────────────────────────── */}
+      {activeTab === 'ratings' && audit && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-1">
+            <div className="flex gap-8">
+              {user.rideGiver?.averageRating != null && (
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{'⭐'.repeat(Math.round(user.rideGiver.averageRating))} {user.rideGiver.averageRating.toFixed(1)}</p>
+                  <p className="text-xs text-gray-500">As Ride Giver</p>
+                </div>
+              )}
+              {user.rideSeeker?.averageRating != null && (
+                <div>
+                  <p className="text-2xl font-bold text-gray-900">{'⭐'.repeat(Math.round(user.rideSeeker.averageRating))} {user.rideSeeker.averageRating.toFixed(1)}</p>
+                  <p className="text-xs text-gray-500">As Ride Seeker</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {audit.ratings?.length > 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+              {audit.ratings.map((r: any) => (
+                <div key={r.id} className="p-4 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-gray-800">{r.rater?.fullName ?? 'Unknown'}</span>
+                    <span className="text-sm font-bold text-amber-500">{'⭐'.repeat(r.score)} {r.score}/5</span>
+                  </div>
+                  {r.comment && <p className="text-sm text-gray-600 italic">"{r.comment}"</p>}
+                  <p className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-8 text-gray-400 text-sm">No ratings yet</p>
+          )}
+        </div>
+      )}
+
+      {/* ── Activity tab ────────────────────────────────────── */}
+      {activeTab === 'activity' && (
+        <div className="space-y-2">
+          {activityLog.length === 0 ? (
+            <p className="text-center py-8 text-gray-400 text-sm">No audit activity found</p>
+          ) : activityLog.map((e: any) => (
+            <div key={e.id} className="bg-white rounded-xl border border-gray-200 p-3 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono bg-gray-100 text-gray-800 px-2 py-0.5 rounded">{e.action}</span>
+                  <span className="text-xs text-gray-500">{e.entityType}{e.entityId ? ` · ${e.entityId.slice(0, 12)}…` : ''}</span>
+                </div>
+                {e.metadata && <p className="text-xs text-gray-400 mt-0.5 truncate">{JSON.stringify(e.metadata).slice(0, 80)}</p>}
+              </div>
+              <span className="text-xs text-gray-400 whitespace-nowrap shrink-0">
+                {new Date(e.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Locations tab ───────────────────────────────────── */}
+      {activeTab === 'locations' && (
+        <div className="space-y-4">
+          {/* Home / Office from profile */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700">Profile locations</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-0.5">
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Home</p>
+                <p className="text-sm text-gray-800">{user.homeLocation || '—'}</p>
+                {user.homeLat && <p className="text-xs text-gray-400 font-mono">{user.homeLat?.toFixed(5)}, {user.homeLng?.toFixed(5)}</p>}
+              </div>
+              <div className="space-y-0.5">
+                <p className="text-xs text-gray-400 uppercase tracking-wide">Office</p>
+                <p className="text-sm text-gray-800">{user.officeLocation || '—'}</p>
+                {user.officeLat && <p className="text-xs text-gray-400 font-mono">{user.officeLat?.toFixed(5)}, {user.officeLng?.toFixed(5)}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* Saved locations list */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-2">
+            <h3 className="text-sm font-semibold text-gray-700">Saved locations ({savedLocs.length})</h3>
+            {savedLocs.length === 0 ? (
+              <p className="text-sm text-gray-400">No saved locations</p>
+            ) : savedLocs.map((loc: any) => (
+              <div key={loc.id} className="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{loc.alias} {loc.isFavorite ? '⭐' : ''}</p>
+                  <p className="text-xs text-gray-500 truncate">{loc.address}</p>
+                  <p className="text-xs text-gray-400 font-mono">{loc.lat?.toFixed(5)}, {loc.lng?.toFixed(5)}</p>
+                </div>
+                {loc.locationType && (
+                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded shrink-0">{loc.locationType}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

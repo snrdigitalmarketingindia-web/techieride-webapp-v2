@@ -13,12 +13,21 @@ export default function AdminDashboard() {
   }, []);
 
   const kpis = analytics ? [
-    { label: 'Total Users', value: analytics.totalUsers, icon: '👤' },
-    { label: 'Verified', value: analytics.verifiedUsers, icon: '✅' },
-    { label: 'Total Rides', value: analytics.totalRides, icon: '🚗' },
-    { label: 'Completed', value: analytics.completedRides, icon: '✔️' },
-    { label: 'CO₂ Saved', value: `${analytics.totalCo2SavedKg} kg`, icon: '🌿' },
-    { label: 'SOS Events', value: analytics.sosEvents, icon: '🆘', alert: analytics.sosEvents > 0 },
+    { label: 'Total Users',    value: analytics.totalUsers,    icon: '👤' },
+    { label: 'Verified',       value: analytics.verifiedUsers, icon: '✅' },
+    { label: 'Ride Givers',    value: analytics.giversCount,   icon: '🚗' },
+    { label: 'Ride Seekers',   value: analytics.seekersCount,  icon: '🧳' },
+    { label: 'Total Rides',    value: analytics.totalRides,    icon: '🛣️' },
+    { label: 'Completed',      value: analytics.completedRides,icon: '✔️' },
+    { label: 'CO₂ Saved',      value: `${analytics.totalCo2SavedKg} kg`, icon: '🌿' },
+    { label: 'SOS Events',     value: analytics.sosEvents,     icon: '🆘', alert: analytics.sosEvents > 0 },
+  ] : [];
+
+  const womenKpis = analytics ? [
+    { label: 'Women Users',        value: analytics.womenUsersCount,   icon: '👩' },
+    { label: 'Women Ride Givers',  value: analytics.womenGiversCount,  icon: '👩‍✈️' },
+    { label: 'Women Ride Seekers', value: analytics.womenSeekersCount, icon: '👩‍💼' },
+    { label: 'Women-Only Rides',   value: analytics.womenOnlyRidesCount, icon: '🛡️' },
   ] : [];
 
   return (
@@ -36,15 +45,30 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {kpis.map((k) => (
-          <div key={k.label} className={`bg-white rounded-xl border p-5 ${k.alert ? 'border-red-300' : 'border-gray-200'}`}>
+          <div key={k.label} className={`bg-white rounded-xl border p-5 ${(k as any).alert ? 'border-red-300' : 'border-gray-200'}`}>
             <div className="text-2xl mb-1">{k.icon}</div>
             <p className="text-2xl font-bold text-gray-900">{k.value ?? '—'}</p>
             <p className="text-sm text-gray-500">{k.label}</p>
           </div>
         ))}
       </div>
+
+      {womenKpis.length > 0 && (
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Women Participation</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {womenKpis.map((k) => (
+              <div key={k.label} className="bg-pink-50 rounded-xl border border-pink-100 p-5">
+                <div className="text-2xl mb-1">{k.icon}</div>
+                <p className="text-2xl font-bold text-pink-900">{k.value ?? '—'}</p>
+                <p className="text-sm text-pink-600">{k.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { Controller, Get, Patch, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Body, Param, Query, UseGuards, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { VerificationService } from '../verification/verification.service';
@@ -212,5 +213,19 @@ export class AdminController {
   @Get('users/:id/audit')
   getUserAudit(@Param('id') id: string) {
     return this.adminService.getUserAudit(id);
+  }
+
+  @Get('users/:id/saved-locations')
+  getUserSavedLocations(@Param('id') id: string) {
+    return this.adminService.getUserSavedLocations(id);
+  }
+
+  @Get('users/export/csv')
+  async exportUsersCsv(@Res() res: Response) {
+    const csv = await this.adminService.exportUserscsv();
+    const filename = `techieride-users-${new Date().toISOString().split('T')[0]}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
   }
 }

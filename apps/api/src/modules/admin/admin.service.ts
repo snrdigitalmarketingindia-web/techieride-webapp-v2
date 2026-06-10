@@ -164,6 +164,8 @@ export class AdminService {
     const [
       totalUsers, verifiedUsers, totalRides,
       completedRides, cancelledRides, sosEvents,
+      womenUsersCount, womenGiversCount, womenSeekersCount, womenOnlyRidesCount,
+      giversCount, seekersCount,
     ] = await this.prisma.$transaction([
       this.prisma.user.count(),
       this.prisma.user.count({ where: { accountStatus: { in: ['SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING', 'DRIVER_VERIFIED'] } } }),
@@ -171,6 +173,12 @@ export class AdminService {
       this.prisma.ride.count({ where: { status: 'COMPLETED', createdAt: { gte: from, lte: to } } }),
       this.prisma.ride.count({ where: { status: 'CANCELLED', createdAt: { gte: from, lte: to } } }),
       this.prisma.sosEvent.count({ where: { triggeredAt: { gte: from, lte: to } } }),
+      this.prisma.user.count({ where: { gender: 'FEMALE' } }),
+      this.prisma.rideGiver.count({ where: { user: { gender: 'FEMALE' } } }),
+      this.prisma.rideSeeker.count({ where: { user: { gender: 'FEMALE' } } }),
+      this.prisma.ride.count({ where: { isWomenOnly: true } }),
+      this.prisma.rideGiver.count(),
+      this.prisma.rideSeeker.count(),
     ]);
 
     const co2 = await this.prisma.gamificationPoint.aggregate({
@@ -181,6 +189,8 @@ export class AdminService {
       totalUsers, verifiedUsers, totalRides,
       completedRides, cancelledRides, sosEvents,
       totalCo2SavedKg: ((co2._sum.co2SavedG || 0) / 1000).toFixed(2),
+      giversCount, seekersCount,
+      womenUsersCount, womenGiversCount, womenSeekersCount, womenOnlyRidesCount,
     };
   }
 
@@ -355,14 +365,33 @@ export class AdminService {
       }),
     ]);
 
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [
+      totalRidesGiven, totalRidesTaken, completedRidesGiven, cancelledRidesGiven,
+      noShowCount, recentCancellationCount, totalRatingsCount,
+    ] = await Promise.all([
+      this.prisma.ride.count({ where: { rideGiver: { userId } } }),
+      this.prisma.rideRequest.count({ where: { seeker: { userId }, status: 'CONFIRMED' } }),
+      this.prisma.ride.count({ where: { rideGiver: { userId }, status: 'COMPLETED' } }),
+      this.prisma.ride.count({ where: { rideGiver: { userId }, status: 'CANCELLED' } }),
+      this.prisma.rideParticipant.count({ where: { seeker: { userId }, status: 'NO_SHOW' } }),
+      this.prisma.rideRequest.count({ where: { seeker: { userId }, status: 'CANCELLED', updatedAt: { gte: sevenDaysAgo } } }),
+      this.prisma.rideRating.count({ where: { rateeId: userId } }),
+    ]);
+
     return {
       user,
       summary: {
-        totalRidesGiven: await this.prisma.ride.count({ where: { rideGiver: { userId } } }),
-        totalRidesTaken: await this.prisma.rideRequest.count({ where: { seeker: { userId }, status: 'CONFIRMED' } }),
+        totalRidesGiven,
+        totalRidesTaken,
+        completedRidesGiven,
+        cancelledRidesGiven,
         totalEcoPointsEarned: ecoTransactions.reduce((s, t) => s + (t.points > 0 ? t.points : 0), 0),
         totalEcoPointsLost: ecoTransactions.reduce((s, t) => s + (t.points < 0 ? t.points : 0), 0),
         openComplaints: complaints.filter(c => c.status === 'OPEN').length,
+        noShowCount,
+        recentCancellationCount,
+        totalRatingsCount,
         averageRating: ratings.length
           ? Math.round((ratings.reduce((s, r) => s + r.score, 0) / ratings.length) * 10) / 10
           : null,
@@ -375,5 +404,47 @@ export class AdminService {
       complaints,
       ratings,
     };
+  }
+
+  async getUserSavedLocations(userId: string) {
+    return this.prisma.savedLocation.findMany({
+      where: { userId },
+      orderBy: [{ isFavorite: 'desc' }, { createdAt: 'desc' }],
+      select: { id: true, alias: true, address: true, lat: true, lng: true, locationType: true, isFavorite: true, createdAt: true },
+    });
+  }
+
+  async exportUserscsv(): Promise<string> {
+    const users = await this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        trid: true, fullName: true, email: true, phone: true, role: true,
+        accountStatus: true, gender: true, companyName: true,
+        trustScore: true, ecoPoints: true, createdAt: true,
+        rideGiver: { select: { totalRidesGiven: true, averageRating: true } },
+        rideSeeker: { select: { totalRidesTaken: true, averageRating: true } },
+      },
+    });
+
+    const header = 'TRID,Name,Email,Phone,Role,Status,Gender,Company,TrustScore,EcoPoints,RidesGiven,GiverRating,RidesTaken,SeekerRating,JoinedAt';
+    const rows = users.map((u) => [
+      u.trid ?? '',
+      `"${(u.fullName ?? '').replace(/"/g, '""')}"`,
+      u.email,
+      u.phone ?? '',
+      u.role,
+      u.accountStatus,
+      u.gender ?? '',
+      `"${(u.companyName ?? '').replace(/"/g, '""')}"`,
+      u.trustScore,
+      u.ecoPoints,
+      u.rideGiver?.totalRidesGiven ?? 0,
+      u.rideGiver?.averageRating?.toFixed(1) ?? '',
+      u.rideSeeker?.totalRidesTaken ?? 0,
+      u.rideSeeker?.averageRating?.toFixed(1) ?? '',
+      new Date(u.createdAt).toISOString().split('T')[0],
+    ].join(','));
+
+    return [header, ...rows].join('\n');
   }
 }

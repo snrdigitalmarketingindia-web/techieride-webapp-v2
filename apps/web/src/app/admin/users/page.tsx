@@ -4,6 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/api';
 
+function complianceFlags(u: any): string[] {
+  const flags: string[] = [];
+  if (u.rideSeeker?.noShowCount > 2)           flags.push('🚩 No-shows');
+  if (u.rideSeeker?.recentCancellationCount > 3) flags.push('⚠️ Cancellations');
+  if ((u.rideGiver?.averageRating ?? 5) < 3 && (u.rideGiver?.totalRidesGiven ?? 0) > 5)   flags.push('⭐ Low rating');
+  if ((u.rideSeeker?.averageRating ?? 5) < 3 && (u.rideSeeker?.totalRidesTaken ?? 0) > 5)  flags.push('⭐ Low rating');
+  return flags;
+}
+
 const ACCOUNT_STATUS_COLORS: Record<string, string> = {
   DRIVER_VERIFIED:              'bg-green-100 text-green-700',
   SEEKER_VERIFIED:              'bg-green-100 text-green-700',
@@ -51,7 +60,16 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-bold text-gray-900">Users ({total})</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-xl font-bold text-gray-900">Users ({total})</h1>
+        <a
+          href={adminApi.exportUsersCsvUrl()}
+          download
+          className="text-sm bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
+        >
+          ⬇️ Export CSV
+        </a>
+      </div>
 
       {/* Filters */}
       <div className="space-y-2">
@@ -110,6 +128,9 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{u.fullName}</p>
                       <p className="text-xs text-gray-400">{u.email}</p>
+                      {complianceFlags(u).map((f) => (
+                        <span key={f} className="inline-block text-xs bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded mr-1 mt-0.5">{f}</span>
+                      ))}
                     </td>
                     <td className="px-4 py-3 text-gray-600 font-mono text-xs">{u.trid || '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{u.companyName || '—'}</td>
@@ -151,6 +172,11 @@ export default function AdminUsersPage() {
                     <p className="text-xs text-gray-400 truncate">{u.email}</p>
                     {u.trid && <p className="text-xs font-mono text-brand-600 font-semibold mt-0.5">{u.trid}</p>}
                     {u.companyName && <p className="text-xs text-gray-500 mt-0.5">{u.companyName}</p>}
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {complianceFlags(u).map((f) => (
+                        <span key={f} className="text-xs bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded">{f}</span>
+                      ))}
+                    </div>
                   </div>
                   <span className={`shrink-0 text-xs px-2 py-1 rounded-full font-medium ${ACCOUNT_STATUS_COLORS[u.accountStatus] || 'bg-gray-100 text-gray-600'}`}>
                     {ACCOUNT_STATUS_LABELS[u.accountStatus] || u.accountStatus}
