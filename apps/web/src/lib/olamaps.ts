@@ -68,15 +68,12 @@ export async function reverseGeocode(lat: number, lng: number): Promise<string> 
     } catch { /* fall through */ }
   }
 
-  // ── Mappls ──────────────────────────────────────────────────────────────────
+  // ── Mappls (via Next.js proxy — avoids CORS/401) ───────────────────────────
   if (hasMaplsKey) {
     try {
-      const res  = await fetch(
-        `https://apis.mappls.com/advancedmaps/v1/${MAPPLS_KEY}/rev_geocode?lat=${lat}&lng=${lng}`,
-      );
+      const res  = await fetch(`/api/maps/reverse-geocode?lat=${lat}&lng=${lng}`);
       const data = await res.json();
-      const r    = data.results?.[0];
-      if (r?.formattedAddress) return r.formattedAddress;
+      if (data.address) return data.address;
     } catch { /* fall through */ }
   }
 
@@ -129,24 +126,14 @@ export async function autocomplete(input: string): Promise<OlaPrediction[]> {
     } catch { /* fall through */ }
   }
 
-  // ── Mappls autosuggest ──────────────────────────────────────────────────────
+  // ── Mappls autosuggest (via Next.js proxy — avoids CORS/401) ───────────────
   if (hasMaplsKey) {
     try {
       const res  = await fetch(
-        `https://atlas.mappls.com/api/places/search/json?query=${encodeURIComponent(input)}&itemCount=5&access_token=${MAPPLS_KEY}`,
+        `/api/maps/autocomplete?input=${encodeURIComponent(input)}`,
       );
       const data = await res.json();
-      const suggestions: any[] = data.suggestedLocations ?? data.suggestions ?? [];
-      return suggestions.slice(0, 5).map((s: any) => ({
-        place_id: s.eLoc ?? s.placeId ?? '',
-        description: s.placeAddress ?? s.placeName ?? '',
-        structured_formatting: {
-          main_text: s.placeName ?? '',
-          secondary_text: s.placeAddress ?? '',
-        },
-        lat: s.latitude  ? parseFloat(s.latitude)  : undefined,
-        lng: s.longitude ? parseFloat(s.longitude) : undefined,
-      }));
+      if (data.predictions?.length) return data.predictions as OlaPrediction[];
     } catch { /* fall through */ }
   }
 
@@ -177,17 +164,12 @@ export async function placeDetails(
     } catch { /* fall through */ }
   }
 
-  // ── Mappls place details ────────────────────────────────────────────────────
+  // ── Mappls place details (via Next.js proxy — avoids CORS/401) ─────────────
   if (hasMaplsKey) {
     try {
-      const res  = await fetch(
-        `https://atlas.mappls.com/api/places/place-details/json?placeId=${encodeURIComponent(placeId)}&access_token=${MAPPLS_KEY}`,
-      );
+      const res  = await fetch(`/api/maps/place-details?placeId=${encodeURIComponent(placeId)}`);
       const data = await res.json();
-      const r    = data.pageInfo ?? data.placeInfo ?? data;
-      const lat  = parseFloat(r.latitude  ?? r.lat  ?? '');
-      const lng  = parseFloat(r.longitude ?? r.lng  ?? '');
-      if (!isNaN(lat) && !isNaN(lng)) return { lat, lng };
+      if (data.lat != null && data.lng != null) return { lat: data.lat, lng: data.lng };
     } catch { /* fall through */ }
   }
 
