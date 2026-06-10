@@ -300,7 +300,7 @@ async function run() {
     await test('Register with truly invalid domain → 400 (no MX records)', async () => {
       const ts = Date.now();
       const r = await makeClient().post('/auth/register', {
-        email: `test@totally-invalid-xyz-domain.com`, password: SEED_PASSWORD,
+        email: `test${ts}@totally-invalid-xyz-domain.com`, password: SEED_PASSWORD,
         fullName: 'Invalid Domain Tester', companyName: 'TestCorp', employeeId: 'N/A',
         phone: `9${String(ts).slice(-9)}`,
       });

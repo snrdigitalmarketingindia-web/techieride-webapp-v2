@@ -371,7 +371,7 @@ async function run() {
     // no MX records — the MX validation step returns 400 BadRequest (not 403 Forbidden).
     // When SKIP_MX_CHECK=true (CI environment), the DNS check is bypassed so 201 is acceptable.
     const r = await makeClient().post('/auth/register', {
-      email: 'test@totally-invalid-xyz-domain.com', password: SEED_PASSWORD,
+      email: `test${Date.now()}@totally-invalid-xyz-domain.com`, password: SEED_PASSWORD,
       fullName: 'Test', gender: 'MALE', phone: '9800000099',
       homeLocation: 'Kondapur, Hyderabad',
       officeLocation: 'HITEC City, Madhapur, Hyderabad',
