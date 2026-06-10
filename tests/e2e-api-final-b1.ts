@@ -255,14 +255,15 @@ async function run() {
     const ts22 = Date.now();
     const sharedPhone = `9${String(ts22).slice(-9)}`;
 
+    // Use a real corporate domain (wipro.com has valid MX records and is not in the personal-email blocklist)
     await makeClient().post('/auth/register', {
-      email: `phone-first-${ts22}@gmail.com`, password: SEED_PASSWORD,
+      email: `phone-first-${ts22}@wipro.com`, password: SEED_PASSWORD,
       fullName: 'Phone First', companyName: 'TestCorp', employeeId: 'N/A', phone: sharedPhone,
     });
 
     await test('Second registration with same phone → 409 (not 500)', async () => {
       const r = await makeClient().post('/auth/register', {
-        email: `phone-second-${ts22}@gmail.com`, password: SEED_PASSWORD,
+        email: `phone-second-${ts22}@wipro.com`, password: SEED_PASSWORD,
         fullName: 'Phone Second', companyName: 'TestCorp', employeeId: 'N/A', phone: sharedPhone,
       });
       assert(r.status === 409, `Expected 409 for duplicate phone, got ${r.status}: ${JSON.stringify(r.data)}`);
@@ -270,7 +271,10 @@ async function run() {
   }
 
   // ── 23. PERSONAL EMAIL DOMAINS ────────────────────────────────────────────
-  section('23. Personal Email Domains — gmail/yahoo/outlook temporarily allowed');
+  // Personal email domains (gmail, yahoo, outlook, hotmail, icloud) are blocked by the
+  // server-side blocklist and return 403 Forbidden. Truly invalid domains (no MX records)
+  // return 400 BadRequest from the MX-record validation step.
+  section('23. Personal Email Domains — blocked by server-side blocklist (→ 403)');
   {
     const personalDomains = [
       { domain: 'gmail.com',   label: 'gmail'   },
@@ -281,26 +285,26 @@ async function run() {
     ];
 
     for (const { domain, label } of personalDomains) {
-      await test(`Register with ${label}.com → 200/201 (whitelisted for testing)`, async () => {
+      await test(`Register with ${label}.com → 403 (personal domain blocked)`, async () => {
         const ts = Date.now();
         const r = await makeClient().post('/auth/register', {
           email: `testuser-${ts}@${domain}`, password: SEED_PASSWORD,
           fullName: `${label} Tester`, companyName: 'TestCorp', employeeId: 'N/A',
           phone: `9${String(ts).slice(-9)}`,
         });
-        assert([200, 201].includes(r.status),
-          `Expected 200/201 for @${domain}, got ${r.status}: ${JSON.stringify(r.data)}`);
+        assert(r.status === 403,
+          `Expected 403 for blocked domain @${domain}, got ${r.status}: ${JSON.stringify(r.data)}`);
       });
     }
 
-    await test('Register with truly invalid domain → 403', async () => {
+    await test('Register with truly invalid domain → 400 (no MX records)', async () => {
       const ts = Date.now();
       const r = await makeClient().post('/auth/register', {
         email: `test@totally-invalid-xyz-domain.com`, password: SEED_PASSWORD,
         fullName: 'Invalid Domain Tester', companyName: 'TestCorp', employeeId: 'N/A',
         phone: `9${String(ts).slice(-9)}`,
       });
-      assert(r.status === 403, `Expected 403 for unknown domain, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.status === 400, `Expected 400 for domain with no MX records, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
   }
 

@@ -39,23 +39,26 @@ test.describe('🛡️ Admin Full Flow', () => {
   test('AF-03: users list shows all test accounts', async ({ page }) => {
     await loginUI(page, 'admin');
     await page.goto('/admin/users');
-    await expect(page.getByText(/arjun mehta|rahul sharma|rajendra/i).first()).toBeVisible({ timeout: 8_000 });
+    await page.waitForLoadState('networkidle', { timeout: 15_000 });
+    await expect(page.getByText(/arjun mehta|rahul sharma|rajendra/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('AF-04: admin can view individual user detail', async ({ page }) => {
     await loginUI(page, 'admin');
     await page.goto('/admin/users');
+    await page.waitForLoadState('networkidle', { timeout: 15_000 });
     await page.getByText(/arjun mehta/i).first().click();
     await expect(page).toHaveURL(/\/admin\/users\//);
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test('AF-05: user detail shows account status', async ({ page }) => {
     await loginUI(page, 'admin');
     await page.goto('/admin/users');
+    await page.waitForLoadState('networkidle', { timeout: 15_000 });
     await page.getByText(/arjun mehta/i).first().click();
     // accountStatus badge shows the enum value directly (e.g. SEEKER_VERIFIED, DRIVER_VERIFIED, SUSPENDED…)
-    await expect(page.locator('span').filter({ hasText: /VERIFIED|SUSPENDED|REJECTED|DEACTIVATED|BANNED|DRAFT/i }).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.locator('span').filter({ hasText: /VERIFIED|SUSPENDED|REJECTED|DEACTIVATED|BANNED|DRAFT/i }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('AF-06: admin can search/filter users', async ({ page }) => {
@@ -141,6 +144,7 @@ test.describe('🛡️ Admin Full Flow', () => {
   test('AF-15: admin user detail shows suspend/reinstate action', async ({ page }) => {
     await loginUI(page, 'admin');
     await page.goto('/admin/users');
+    await page.waitForLoadState('networkidle', { timeout: 15_000 });
     await page.getByText(/raghu sri/i).first().click().catch(() => {});
     await expect(page).not.toHaveURL(/error/);
   });
