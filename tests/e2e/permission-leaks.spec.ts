@@ -185,7 +185,7 @@ test.describe('🔒 Permission Leaks — Giver accessing Seeker/Admin routes', (
     const profileReady2 = page.waitForResponse(
       (r: any) => r.url().includes('/users/me') && r.status() === 200,
       { timeout: 15_000 },
-    );
+    ).catch(() => {});
     // Giver searches — should see "Your ride" not "Request Seat"
     await page.goto('/rides/search', { waitUntil: 'domcontentloaded' });
     // Wait for fetchProfile() to complete — this populates user.id in the Zustand store

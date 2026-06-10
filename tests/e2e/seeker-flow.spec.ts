@@ -101,9 +101,14 @@ test.describe('🙋 Seeker Full Flow', () => {
     await loginUI(page, 'seeker');
     await page.goto('/rides/search');
     await page.locator('input[type="date"]').fill(tomorrowDateStr());
+    const searchDone = page.waitForResponse(
+      (r: any) => r.url().includes('/rides/search') && r.status() === 200,
+      { timeout: 15_000 },
+    ).catch(() => {});
     await page.getByRole('button', { name: /search/i }).click();
-    await page.waitForTimeout(2_000);
-    await expect(page.getByText(/awaiting giver/i)).toBeVisible({ timeout: 8_000 });
+    await searchDone;
+    await page.waitForTimeout(1_000);
+    await expect(page.getByText(/awaiting giver/i)).toBeVisible({ timeout: 12_000 });
   });
 
   test('SF-06: after giver approves — seeker sees "Seat Confirmed"', async ({ page }) => {

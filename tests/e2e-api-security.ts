@@ -126,7 +126,10 @@ function assert(cond: boolean, msg: string) {
     const r = await makeClient(token).get('/users/me');
     assert(r.status === 200, `Expected 200, got ${r.status}`);
     const body = JSON.stringify(r.data).toLowerCase();
-    assert(!body.includes('password'), 'Password hash must not be in profile response');
+    // mustChangePassword is a safe boolean flag — only sensitive password secrets must not appear
+    assert(!body.includes('passwordhash'), 'passwordHash must not be in profile response');
+    assert(!body.includes('temppassword"'), 'tempPassword must not be in profile response');
+    assert(!body.includes('passwordresettoken'), 'passwordResetToken must not be in profile response');
   });
 
   await test('SEC-AUTH-04: registration with invalid domain rejected', async () => {
