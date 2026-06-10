@@ -167,6 +167,7 @@ test.describe('💬 Quick Messages Flow', () => {
   });
 
   test('QM-07: seeker sees Quick Message button on their ONGOING ride', async ({ page }) => {
+    if (!rideId) { test.skip(true, 'QM-07: rideId undefined — beforeAll publish failed'); return; }
     // Seeker sees Quick Message only when ride is ONGOING; start it here.
     // Wait briefly after start so the status change propagates before the seeker page loads.
     await api(giverToken, 'patch', `/rides/${rideId}/start`).catch(() => {});

@@ -56,18 +56,11 @@ export async function clearActiveRides(giverToken: string) {
         headers: { Authorization: `Bearer ${giverToken}` },
       }).catch(() => {});
     } else if (ride.status === 'ONGOING') {
-      // Mark all WAITING/BOARDED participants as no-show so complete is unblocked
-      const participants: any[] = ride.participants ?? [];
-      for (const p of participants) {
-        if (p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED') {
-          // no-show endpoint takes seekerId (RideSeeker.id), not the participant record id
-          await ctx.patch(`${API}/rides/${ride.id}/no-show/${p.seekerId}`, {
-            headers: { Authorization: `Bearer ${giverToken}` },
-          }).catch(() => {});
-        }
-      }
-      await ctx.patch(`${API}/rides/${ride.id}/complete`, {
+      // Use abort: atomically marks all WAITING/BOARDED participants as NO_SHOW and cancels.
+      // Regular no-show endpoint rejects BOARDED participants, so complete() would be blocked.
+      await ctx.patch(`${API}/rides/${ride.id}/abort`, {
         headers: { Authorization: `Bearer ${giverToken}` },
+        data: { reason: 'Test cleanup' },
       }).catch(() => {});
     }
   }
