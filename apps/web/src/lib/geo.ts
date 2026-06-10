@@ -1,11 +1,34 @@
 /**
- * Shared geo utilities — distance calculation and formatting.
- * Used across ride search, ride detail, My Rides, and dashboard pages.
- *
- * TODO [v2.3]: estimatePickupTime — replace haversine-based estimate with
- * Google Distance Matrix API (real traffic). Speed constant (AVG_CITY_SPEED_KMH)
- * may be removed once real ETA is available.
+ * Shared geo utilities — distance calculation, formatting, and reverse-geocode cache.
  */
+
+const GEOCACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const GEOCACHE_PREFIX = 'tr_rgc_';
+
+/** Cached reverse geocode — avoids repeat API calls for the same coordinates. */
+export async function reverseGeocodeWithCache(lat: number, lng: number): Promise<string> {
+  const key = `${GEOCACHE_PREFIX}${lat.toFixed(4)},${lng.toFixed(4)}`;
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      const { address, ts } = JSON.parse(cached);
+      if (Date.now() - ts < GEOCACHE_TTL_MS) return address;
+    }
+  } catch { /* ignore */ }
+
+  const res = await fetch(
+    `/api/maps/reverse-geocode?lat=${lat}&lng=${lng}`,
+    { next: { revalidate: 0 } } as any,
+  );
+  const data = await res.json();
+  const address = data.address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+  try {
+    localStorage.setItem(key, JSON.stringify({ address, ts: Date.now() }));
+  } catch { /* storage full — ignore */ }
+
+  return address;
+}
 
 const AVG_CITY_SPEED_KMH = 20;
 

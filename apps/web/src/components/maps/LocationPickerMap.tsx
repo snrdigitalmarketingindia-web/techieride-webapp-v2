@@ -9,7 +9,8 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { OLA_STYLE_URL, reverseGeocode as olaReverseGeocode } from '@/lib/olamaps';
+import { OLA_STYLE_URL } from '@/lib/olamaps';
+import { reverseGeocodeWithCache } from '@/lib/geo';
 
 interface Props {
   initialLat?: number;
@@ -27,11 +28,22 @@ export default function LocationPickerMap({ initialLat, initialLng, onLocationSe
   );
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
+  const lastGeocodedPos = useRef<{ lat: number; lng: number } | null>(null);
 
   const handleGeocode = async (lat: number, lng: number) => {
+    const prev = lastGeocodedPos.current;
+    if (prev) {
+      const R = 6_371_000;
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const dLat = toRad(lat - prev.lat);
+      const dLng = toRad(lng - prev.lng);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(prev.lat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2;
+      const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (dist < 30) return;
+    }
+    lastGeocodedPos.current = { lat, lng };
     setLoading(true);
-    setAddress('');
-    const addr = await olaReverseGeocode(lat, lng);
+    const addr = await reverseGeocodeWithCache(lat, lng);
     setAddress(addr);
     setLoading(false);
   };

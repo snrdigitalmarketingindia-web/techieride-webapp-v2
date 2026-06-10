@@ -8,7 +8,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { OLA_STYLE_URL, reverseGeocode as olaReverseGeocode } from '@/lib/olamaps';
+import { OLA_STYLE_URL } from '@/lib/olamaps';
+import { reverseGeocodeWithCache } from '@/lib/geo';
 
 export interface MapLocation {
   lat: number;
@@ -50,9 +51,23 @@ export function MapPinModal({
   const [geocoding, setGeocoding] = useState(false);
   const [error,     setError]     = useState('');
 
+  const lastGeocodedPos = useRef<{ lat: number; lng: number } | null>(null);
+
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
+    // Skip if pin hasn't moved more than 30m (avoids redundant calls on tiny drags)
+    const prev = lastGeocodedPos.current;
+    if (prev) {
+      const R = 6_371_000;
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const dLat = toRad(lat - prev.lat);
+      const dLng = toRad(lng - prev.lng);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(prev.lat)) * Math.cos(toRad(lat)) * Math.sin(dLng / 2) ** 2;
+      const dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (dist < 30) return;
+    }
+    lastGeocodedPos.current = { lat, lng };
     setGeocoding(true);
-    const addr = await olaReverseGeocode(lat, lng);
+    const addr = await reverseGeocodeWithCache(lat, lng);
     setAddress(addr);
     setGeocoding(false);
   }, []);

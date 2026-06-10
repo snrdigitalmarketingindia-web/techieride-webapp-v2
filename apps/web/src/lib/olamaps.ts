@@ -147,8 +147,9 @@ export async function placeDetails(
   placeId: string,
   prefilled?: { lat?: number; lng?: number },
 ): Promise<{ lat: number; lng: number } | null> {
-  // If Mappls already embedded coords in the autocomplete result, use them
-  if (prefilled?.lat != null && prefilled?.lng != null) {
+  // Use inline coords when available — avoids a round-trip API call
+  if (prefilled?.lat != null && prefilled?.lng != null &&
+      !isNaN(prefilled.lat) && !isNaN(prefilled.lng)) {
     return { lat: prefilled.lat, lng: prefilled.lng };
   }
 
