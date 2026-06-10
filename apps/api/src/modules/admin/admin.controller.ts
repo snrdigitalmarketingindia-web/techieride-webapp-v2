@@ -168,6 +168,11 @@ export class AdminController {
     return this.adminService.getOccupancyStats();
   }
 
+  @Get('travel-analytics')
+  getTravelAnalytics() {
+    return this.adminService.getTravelAnalytics();
+  }
+
   @Post('users/bulk-email')
   bulkEmailUsers(
     @Body('userIds') userIds: string[],

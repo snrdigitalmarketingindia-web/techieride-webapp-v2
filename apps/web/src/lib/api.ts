@@ -241,6 +241,7 @@ export const adminApi = {
   getTimeSeriesMetrics: (days?: number) => api.get('/admin/metrics/timeseries', { params: { days } }),
   getUserLoginHistory: (id: string) => api.get(`/admin/users/${id}/login-history`),
   getOccupancyStats: () => api.get('/admin/occupancy'),
+  getTravelAnalytics: () => api.get('/admin/travel-analytics'),
   bulkSuspendUsers: (userIds: string[]) => api.post('/admin/users/bulk-suspend', { userIds }),
   bulkActivateUsers: (userIds: string[]) => api.post('/admin/users/bulk-activate', { userIds }),
   bulkEmailUsers: (userIds: string[], subject: string, body: string) =>

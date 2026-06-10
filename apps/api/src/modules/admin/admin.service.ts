@@ -261,6 +261,56 @@ export class AdminService {
     return { updated: userIds.length };
   }
 
+  async getTravelAnalytics() {
+    // Top giver-seeker pairs by completed-ride count
+    const pairs = await this.prisma.$queryRaw<{
+      giverUserId: string;
+      giverName: string;
+      seekerUserId: string;
+      seekerName: string;
+      rideCount: bigint;
+      lastRideDate: Date;
+    }[]>`
+      SELECT
+        gu.id            AS "giverUserId",
+        gu.full_name     AS "giverName",
+        su.id            AS "seekerUserId",
+        su.full_name     AS "seekerName",
+        COUNT(rp.id)     AS "rideCount",
+        MAX(r.departure_date) AS "lastRideDate"
+      FROM ride_participants rp
+      JOIN rides           r   ON r.id   = rp.ride_id
+      JOIN ride_givers     rg  ON rg.id  = r.ride_giver_id
+      JOIN users           gu  ON gu.id  = rg.user_id
+      JOIN ride_seekers    rs  ON rs.id  = rp.seeker_id
+      JOIN users           su  ON su.id  = rs.user_id
+      WHERE r.status IN ('COMPLETED', 'ONGOING')
+      GROUP BY gu.id, gu.full_name, su.id, su.full_name
+      ORDER BY "rideCount" DESC, "lastRideDate" DESC
+      LIMIT 200
+    `;
+
+    // Summary stats
+    const [totalParticipations, uniqueGivers, uniqueSeekers, totalRides] = await Promise.all([
+      this.prisma.rideParticipant.count(),
+      this.prisma.rideGiver.count({ where: { rides: { some: { status: { in: ['COMPLETED', 'ONGOING'] } } } } }),
+      this.prisma.rideSeeker.count({ where: { rideParticipants: { some: {} } } }),
+      this.prisma.ride.count({ where: { status: 'COMPLETED' } }),
+    ]);
+
+    return {
+      summary: { totalParticipations, uniqueGivers, uniqueSeekers, totalCompletedRides: totalRides },
+      pairs: pairs.map(p => ({
+        giverUserId:  p.giverUserId,
+        giverName:    p.giverName,
+        seekerUserId: p.seekerUserId,
+        seekerName:   p.seekerName,
+        rideCount:    Number(p.rideCount),
+        lastRideDate: p.lastRideDate,
+      })),
+    };
+  }
+
   async getUserLoginHistory(userId: string, limit = 50) {
     return this.prisma.loginHistory.findMany({
       where: { userId },
