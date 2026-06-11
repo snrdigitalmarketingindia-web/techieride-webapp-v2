@@ -66,10 +66,10 @@ export default function AdminDashboard() {
   ] : [];
 
   const womenKpis = analytics ? [
-    { label: 'Women Users',        value: analytics.womenUsersCount,   icon: '👩' },
-    { label: 'Women Ride Givers',  value: analytics.womenGiversCount,  icon: '👩‍✈️' },
-    { label: 'Women Ride Seekers', value: analytics.womenSeekersCount, icon: '👩‍💼' },
-    { label: 'Women-Only Rides',   value: analytics.womenOnlyRidesCount, icon: '🛡️' },
+    { label: 'Women Users',        value: analytics.womenUsersCount,      icon: '👩',    href: '/admin/users?gender=FEMALE' },
+    { label: 'Women Ride Givers',  value: analytics.womenGiversCount,     icon: '👩‍✈️',  href: '/admin/users?role=RIDE_GIVER&gender=FEMALE' },
+    { label: 'Women Ride Seekers', value: analytics.womenSeekersCount,    icon: '👩‍💼',  href: '/admin/users?role=RIDE_SEEKER&gender=FEMALE' },
+    { label: 'Women-Only Rides',   value: analytics.womenOnlyRidesCount,  icon: '🛡️',   href: '/admin/rides?womenOnly=true' },
   ] : [];
 
   return (
@@ -132,11 +132,13 @@ export default function AdminDashboard() {
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Women Participation</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {womenKpis.map((k) => (
-              <div key={k.label} className="bg-pink-50 rounded-xl border border-pink-100 p-5">
+              <Link key={k.label} href={k.href ?? '#'}
+                className="bg-pink-50 rounded-xl border border-pink-100 p-5 hover:bg-pink-100 hover:border-pink-300 transition-colors cursor-pointer block">
                 <div className="text-2xl mb-1">{k.icon}</div>
                 <p className="text-2xl font-bold text-pink-900">{k.value ?? '—'}</p>
                 <p className="text-sm text-pink-600">{k.label}</p>
-              </div>
+                <p className="text-xs text-pink-400 mt-1">View all →</p>
+              </Link>
             ))}
           </div>
 

@@ -10,10 +10,11 @@ export class AdminService {
     private emailService: EmailService,
   ) {}
 
-  async listUsers(filters: { accountStatus?: string; role?: string; search?: string; compliance?: boolean; page: number; limit: number }) {
+  async listUsers(filters: { accountStatus?: string; role?: string; gender?: string; search?: string; compliance?: boolean; page: number; limit: number }) {
     const where: any = {};
     if (filters.accountStatus) where.accountStatus = filters.accountStatus as AccountStatus;
     if (filters.role) where.role = filters.role;
+    if (filters.gender) where.gender = filters.gender;
     if (filters.search) {
       const q = filters.search.trim();
       where.OR = [
@@ -570,10 +571,11 @@ export class AdminService {
     });
   }
 
-  async listAllRides(filters: { status?: string; search?: string; page?: number; limit?: number }) {
-    const { status, search, page = 1, limit = 20 } = filters;
+  async listAllRides(filters: { status?: string; search?: string; womenOnly?: boolean; page?: number; limit?: number }) {
+    const { status, search, womenOnly, page = 1, limit = 20 } = filters;
     const where: any = {};
     if (status) where.status = status;
+    if (womenOnly) where.womenOnly = true;
     if (search) {
       const q = search.trim();
       where.OR = [

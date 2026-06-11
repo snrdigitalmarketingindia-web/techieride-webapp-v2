@@ -140,7 +140,7 @@ function RideDetailContent({
 export default function AdminRidesPage() {
   const [rides, setRides]             = useState<any[]>([]);
   const [total, setTotal]             = useState(0);
-  const [filter, setFilter]           = useState({ status: '', search: '' });
+  const [filter, setFilter]           = useState({ status: '', search: '', womenOnly: false });
   const [searchInput, setSearchInput] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [loading, setLoading]         = useState(true);
@@ -157,12 +157,13 @@ export default function AdminRidesPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get('status') ?? '';
-    if (status) setFilter(f => ({ ...f, status }));
+    const womenOnly = params.get('womenOnly') === 'true';
+    if (status || womenOnly) setFilter(f => ({ ...f, status, womenOnly }));
   }, []);
 
   const load = useCallback(() => {
     setLoading(true);
-    adminApi.listRides({ status: filter.status || undefined, search: filter.search || undefined })
+    adminApi.listRides({ status: filter.status || undefined, search: filter.search || undefined, womenOnly: filter.womenOnly || undefined })
       .then((r) => { setRides(r.data.data); setTotal(r.data.total); })
       .finally(() => setLoading(false));
   }, [filter]);
@@ -250,6 +251,11 @@ export default function AdminRidesPage() {
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          <button
+            onClick={() => setFilter((f) => ({ ...f, womenOnly: !f.womenOnly }))}
+            className={`text-sm px-3 py-2 rounded-lg border transition whitespace-nowrap ${filter.womenOnly ? 'bg-pink-600 text-white border-pink-600' : 'bg-white text-pink-600 border-pink-300 hover:bg-pink-50'}`}>
+            🛡️ Women-Only
+          </button>
           <button onClick={load} disabled={loading}
             className="text-sm text-brand-600 border border-brand-200 px-4 py-2 rounded-lg hover:bg-brand-50 transition disabled:opacity-50">
             {loading ? '⏳' : '↻'}

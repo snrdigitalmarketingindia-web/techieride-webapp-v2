@@ -45,7 +45,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState({ accountStatus: '', role: '', search: '', compliance: false });
+  const [filter, setFilter] = useState({ accountStatus: '', role: '', gender: '', search: '', compliance: false });
   const [searchInput, setSearchInput] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -55,8 +55,9 @@ export default function AdminUsersPage() {
     const params = new URLSearchParams(window.location.search);
     const accountStatus = params.get('accountStatus') ?? '';
     const role          = params.get('role') ?? '';
-    if (accountStatus || role) {
-      setFilter(f => ({ ...f, accountStatus, role }));
+    const gender        = params.get('gender') ?? '';
+    if (accountStatus || role || gender) {
+      setFilter(f => ({ ...f, accountStatus, role, gender }));
     }
   }, []);
   const [emailModal, setEmailModal] = useState(false);
@@ -67,7 +68,7 @@ export default function AdminUsersPage() {
   const load = () => {
     setLoading(true);
     setSelected(new Set());
-    const params: any = { accountStatus: filter.accountStatus, role: filter.role, search: filter.search };
+    const params: any = { accountStatus: filter.accountStatus, role: filter.role, gender: filter.gender, search: filter.search };
     if (filter.compliance) params.compliance = 'true';
     adminApi.listUsers(params).then((r) => {
       setUsers(r.data.data);
@@ -165,6 +166,13 @@ export default function AdminUsersPage() {
             <option value="">All Roles</option>
             <option value="RIDE_GIVER">Ride Giver / Seeker</option>
             <option value="RIDE_SEEKER">Ride Seeker Only</option>
+          </select>
+          <select value={filter.gender} onChange={(e) => setFilter((f) => ({ ...f, gender: e.target.value }))}
+            className={`flex-1 min-w-0 text-sm border rounded-lg px-3 py-2 ${filter.gender === 'FEMALE' ? 'border-pink-400 bg-pink-50 text-pink-800' : 'border-gray-300'}`}>
+            <option value="">All Genders</option>
+            <option value="FEMALE">👩 Women</option>
+            <option value="MALE">👨 Men</option>
+            <option value="OTHER">⚧ Other</option>
           </select>
           <button
             onClick={() => setFilter((f) => ({ ...f, compliance: !f.compliance }))}

@@ -29,12 +29,13 @@ export class AdminController {
   listUsers(
     @Query('accountStatus') accountStatus?: string,
     @Query('role') role?: string,
+    @Query('gender') gender?: string,
     @Query('search') search?: string,
     @Query('compliance') compliance?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.adminService.listUsers({ accountStatus, role, search, compliance: compliance === 'true', page: +page, limit: +limit });
+    return this.adminService.listUsers({ accountStatus, role, gender, search, compliance: compliance === 'true', page: +page, limit: +limit });
   }
 
   @Get('users/:id')
@@ -124,10 +125,11 @@ export class AdminController {
   listRides(
     @Query('status') status?: string,
     @Query('search') search?: string,
+    @Query('womenOnly') womenOnly?: string,
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ) {
-    return this.adminService.listAllRides({ status, search, page: +page, limit: +limit });
+    return this.adminService.listAllRides({ status, search, womenOnly: womenOnly === 'true', page: +page, limit: +limit });
   }
 
   @Get('rides/:id/detail')
