@@ -668,9 +668,9 @@ async function run() {
 
     await test('Search returns the ONGOING ride', async () => {
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-      // Use a large limit and omit coords so no distance filter is applied — avoids pagination miss
+      // Omit coords so no distance filter is applied — avoids pagination miss from many test rides
       const r = await seeker.client.get('/rides/search', {
-        params: { date: tomorrow, limit: 200 },
+        params: { date: tomorrow },
       });
       assert(r.status === 200, `Expected 200 from search, got ${r.status}`);
       const found = r.data.find((rd: any) => rd.id === rideId);

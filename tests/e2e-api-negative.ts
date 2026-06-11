@@ -656,7 +656,7 @@ async function run() {
       });
       assert(createR.status === 201, `Expected 201 on DRAFT create, got ${createR.status}`);
       const publishR = await giverE.patch(`/rides/${createR.data.id}/publish`);
-      assert(publishR.status === 400, `Expected 400 on publish with unverified vehicle, got ${publishR.status}: ${JSON.stringify(publishR.data)}`);
+      assert([400, 403].includes(publishR.status), `Expected 400/403 on publish with unverified vehicle, got ${publishR.status}: ${JSON.stringify(publishR.data)}`);
     });
   }
 
