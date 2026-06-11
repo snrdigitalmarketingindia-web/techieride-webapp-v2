@@ -93,8 +93,13 @@ async function createGiver(admin: AxiosInstance, suffix: string) {
   const empQueue = await admin.get('/admin/verification/pending');
   const empReq = empQueue.data.find((v: any) => v.userId === giverId && v.verificationType === 'IDENTITY');
   if (empReq) await admin.patch(`/admin/verification/${empReq.id}/review`, { decision: 'APPROVED' });
-  // Step 2: Driver verification
-  await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  // Step 2: Driver verification (vehicleId required)
+  const vehForVerif = await client.post('/vehicles', {
+    make: 'Honda', model: 'City', color: 'Silver',
+    plateNumber: `VX${ts.toString().slice(-7)}`, totalSeats: 4,
+  });
+  await client.patch(`/vehicles/${vehForVerif.data.id}/rc`, { rcUrl: 'mock://rc' });
+  await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', vehicleId: vehForVerif.data.id });
   const drQueue = await admin.get('/admin/verification/pending');
   const drReq = drQueue.data.find((v: any) => v.userId === giverId && v.verificationType === 'DRIVER');
   if (drReq) await admin.patch(`/admin/verification/${drReq.id}/review`, { decision: 'APPROVED' });

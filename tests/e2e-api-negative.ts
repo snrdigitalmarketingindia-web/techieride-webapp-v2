@@ -105,8 +105,13 @@ async function run() {
   const empQueue = await admin.get('/admin/verification/pending');
   const empEntry = empQueue.data.find((v: any) => v.userId === giverAcc.userId && v.verificationType === 'IDENTITY');
   if (empEntry) await admin.patch(`/admin/verification/${empEntry.id}/review`, { decision: 'APPROVED' });
-  // Driver verification
-  await giver.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  // Driver verification (vehicleId required)
+  const vehForVerif = await giver.post('/vehicles', {
+    make: 'Honda', model: 'City', color: 'Silver',
+    plateNumber: `VN${ts.toString().slice(-7)}`, totalSeats: 4,
+  });
+  await giver.patch(`/vehicles/${vehForVerif.data.id}/rc`, { rcUrl: 'mock://rc' });
+  await giver.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', vehicleId: vehForVerif.data.id });
   const drQueue = await admin.get('/admin/verification/pending');
   const drEntry = drQueue.data.find((v: any) => v.userId === giverAcc.userId && v.verificationType === 'DRIVER');
   if (drEntry) await admin.patch(`/admin/verification/${drEntry.id}/review`, { decision: 'APPROVED' });
@@ -136,9 +141,12 @@ async function run() {
   });
 
   await test('Seeker cannot add a vehicle → 403', async () => {
-    const r = await seeker.post('/vehicles', {
+    // SEEKER_VERIFIED users can add vehicles (become-giver flow) — test with an unverified account
+    const unverifiedAcc = await registerAndLogin(`neg_unverified_${ts}@test.com`);
+    const unverified = makeClient(unverifiedAcc.token);
+    const r = await unverified.post('/vehicles', {
       make: 'Honda', model: 'City', color: 'Black',
-      plateNumber: 'TS01ZZ9999', totalSeats: 4,
+      plateNumber: `TS01ZZ${ts.toString().slice(-4)}`, totalSeats: 4,
     });
     assert(r.status === 403, `Expected 403, got ${r.status}`);
   });

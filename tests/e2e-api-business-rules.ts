@@ -140,8 +140,13 @@ async function setupFreshPair(suffix: string) {
   const empQ = await admin.get('/admin/verification/pending');
   const empReq = empQ.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'IDENTITY');
   if (empReq) await admin.patch(`/admin/verification/${empReq.id}/review`, { decision: 'APPROVED' });
-  // Driver verification
-  await giverClient.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+  // Driver verification (vehicleId required)
+  const vehForVerif = await giverClient.post('/vehicles', {
+    make: 'Honda', model: 'City', color: 'Silver',
+    plateNumber: `VB${ts.toString().slice(-7)}`, totalSeats: 4,
+  });
+  await giverClient.patch(`/vehicles/${vehForVerif.data.id}/rc`, { rcUrl: 'mock://rc' });
+  await giverClient.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', vehicleId: vehForVerif.data.id });
   const drQ = await admin.get('/admin/verification/pending');
   const drReq = drQ.data.find((v: any) => v.userId === giver.userId && v.verificationType === 'DRIVER');
   if (drReq) await admin.patch(`/admin/verification/${drReq.id}/review`, { decision: 'APPROVED' });
