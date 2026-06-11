@@ -71,6 +71,30 @@ export default function BecomeGiverPage() {
       .catch(() => setMinioAvailable(false));
   }, []);
 
+  // Must be checked before the account-status guard — fetchProfile() changes
+  // accountStatus to DRIVER_VERIFICATION_PENDING before setSubmitted(true) fires
+  if (submitted) {
+    return (
+      <div className="max-w-lg mx-auto py-12 text-center space-y-4">
+        <div className="text-6xl">🎉</div>
+        <h1 className="text-2xl font-bold text-gray-900">Application submitted!</h1>
+        <p className="text-gray-600">Your driving license, RC, and vehicle are under review. Admin will approve within 2 business days.</p>
+        <div className="bg-brand-50 rounded-xl p-4 text-sm text-brand-700 text-left space-y-2">
+          <p className="font-medium">What happens next:</p>
+          <ol className="list-decimal list-inside space-y-1 text-brand-600">
+            <li>Admin reviews your DL, RC, and vehicle details together</li>
+            <li>Once approved, your vehicle RC is verified automatically</li>
+            <li>You'll receive an in-app notification when approved</li>
+            <li>Your role upgrades to Ride Giver — you can offer rides immediately</li>
+          </ol>
+        </div>
+        <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
+          Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
   // Guard: only SEEKER_VERIFIED can access this page
   if (user && !['SEEKER_VERIFIED'].includes(user.accountStatus)) {
     if (user.accountStatus === 'DRIVER_VERIFIED' || user.accountStatus === 'DRIVER_VERIFICATION_PENDING') {
@@ -200,28 +224,6 @@ export default function BecomeGiverPage() {
       setSubmitting(false);
     }
   };
-
-  if (submitted) {
-    return (
-      <div className="max-w-lg mx-auto py-12 text-center space-y-4">
-        <div className="text-6xl">🎉</div>
-        <h1 className="text-2xl font-bold text-gray-900">Application submitted!</h1>
-        <p className="text-gray-600">Your driving license, RC, and vehicle are under review. Admin will approve within 2 business days.</p>
-        <div className="bg-brand-50 rounded-xl p-4 text-sm text-brand-700 text-left space-y-2">
-          <p className="font-medium">What happens next:</p>
-          <ol className="list-decimal list-inside space-y-1 text-brand-600">
-            <li>Admin reviews your DL, RC, and vehicle details together</li>
-            <li>Once approved, your vehicle RC is verified automatically</li>
-            <li>You'll receive an in-app notification when approved</li>
-            <li>Your role upgrades to Ride Giver — you can offer rides immediately</li>
-          </ol>
-        </div>
-        <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
-          Back to Dashboard
-        </Link>
-      </div>
-    );
-  }
 
   const canProceedStep1 = docs.drivingLicenseUrl && docs.rcUrl;
   const vehicleSaved = !!vehicleId;
