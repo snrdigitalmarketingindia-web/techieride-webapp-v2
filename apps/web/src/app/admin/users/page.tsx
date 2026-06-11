@@ -231,7 +231,7 @@ export default function AdminUsersPage() {
                   <th className="px-4 py-3">
                     <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded border-gray-300" />
                   </th>
-                  {['Name', 'TRID', 'Company', 'Role', 'Account Status', 'Actions'].map((h) => (
+                  {['Name', 'TRID', 'Company', 'Role', 'Account Status', 'Ride Stats', 'Actions'].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -259,6 +259,15 @@ export default function AdminUsersPage() {
                         {ACCOUNT_STATUS_LABELS[u.accountStatus] || u.accountStatus}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-xs text-gray-500 space-y-0.5 whitespace-nowrap">
+                      {u.rideGiver && (
+                        <div>🚗 {u.rideGiver.totalRidesGiven ?? 0} rides · ⭐ {u.rideGiver.averageRating?.toFixed(1) ?? '—'}</div>
+                      )}
+                      {u.rideSeeker && (
+                        <div>🧳 {u.rideSeeker.totalRidesTaken ?? 0} taken · ⭐ {u.rideSeeker.averageRating?.toFixed(1) ?? '—'}</div>
+                      )}
+                      {!u.rideGiver && !u.rideSeeker && <span className="text-gray-300">—</span>}
+                    </td>
                     <td className="px-4 py-3">
                       {u.isActive ? (
                         <button onClick={(e) => { e.stopPropagation(); adminApi.suspendUser(u.id).then(load); }}
@@ -271,7 +280,7 @@ export default function AdminUsersPage() {
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No users found</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No users found</td></tr>
                 )}
               </tbody>
             </table>
@@ -313,6 +322,12 @@ export default function AdminUsersPage() {
                     {u.isActive ? 'Suspend' : 'Activate'}
                   </button>
                 </div>
+                {(u.rideGiver || u.rideSeeker) && (
+                  <div className="flex gap-3 mt-2 text-xs text-gray-500">
+                    {u.rideGiver && <span>🚗 {u.rideGiver.totalRidesGiven ?? 0} given · ⭐ {u.rideGiver.averageRating?.toFixed(1) ?? '—'}</span>}
+                    {u.rideSeeker && <span>🧳 {u.rideSeeker.totalRidesTaken ?? 0} taken · ⭐ {u.rideSeeker.averageRating?.toFixed(1) ?? '—'}</span>}
+                  </div>
+                )}
               </div>
             ))}
           </div>

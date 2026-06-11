@@ -246,6 +246,7 @@ export const adminApi = {
   getTimeSeriesMetrics: (days?: number) => api.get('/admin/metrics/timeseries', { params: { days } }),
   getUserLoginHistory: (id: string) => api.get(`/admin/users/${id}/login-history`),
   getOccupancyStats: () => api.get('/admin/occupancy'),
+  getWomenOnlyOccupancyStats: () => api.get('/admin/analytics/women-occupancy'),
   getTravelAnalytics: () => api.get('/admin/travel-analytics'),
   getSuspiciousUsers: () => api.get('/admin/suspicious'),
   getSuspiciousRulesConfig: () => api.get('/admin/config/suspicious-rules'),

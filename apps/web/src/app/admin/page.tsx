@@ -45,12 +45,14 @@ export default function AdminDashboard() {
   const [sosList, setSosList] = useState<any[]>([]);
   const [timeSeries, setTimeSeries] = useState<TimeSeriesPoint[]>([]);
   const [suspiciousCount, setSuspiciousCount] = useState<number | null>(null);
+  const [occupancy, setOccupancy] = useState<{ womenOnly: { rides: number; fillPct: number; filled: number; seats: number }; regular: { rides: number; fillPct: number; filled: number; seats: number } } | null>(null);
 
   useEffect(() => {
     adminApi.getAnalytics().then((r) => setAnalytics(r.data));
     adminApi.getActiveSos().then((r) => setSosList(r.data));
     adminApi.getTimeSeriesMetrics(30).then((r) => setTimeSeries(Array.isArray(r.data) ? r.data : []));
     adminApi.getSuspiciousUsers().then((r) => setSuspiciousCount(r.data?.users?.length ?? 0));
+    adminApi.getWomenOnlyOccupancyStats().then((r) => setOccupancy(r.data));
   }, []);
 
   const kpis = analytics ? [
@@ -141,6 +143,30 @@ export default function AdminDashboard() {
               </Link>
             ))}
           </div>
+
+          {/* Occupancy fill-rate comparison */}
+          {occupancy && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="text-sm font-semibold text-gray-700 mb-4">Seat Occupancy — Women-Only vs Regular Rides</h3>
+              <div className="grid grid-cols-2 gap-6">
+                {[
+                  { label: '🛡️ Women-Only', data: occupancy.womenOnly, color: 'bg-pink-400' },
+                  { label: '🚗 Regular',    data: occupancy.regular,   color: 'bg-blue-400' },
+                ].map(({ label, data, color }) => (
+                  <div key={label} className="space-y-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-sm font-medium text-gray-700">{label}</span>
+                      <span className="text-2xl font-bold text-gray-900">{data.fillPct}%</span>
+                    </div>
+                    <div className="h-4 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${data.fillPct}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400">{data.filled} / {data.seats} seats filled across {data.rides} rides</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Women participation breakdown chart */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">

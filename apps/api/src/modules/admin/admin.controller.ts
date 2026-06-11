@@ -203,6 +203,11 @@ export class AdminController {
     return this.adminService.getOccupancyStats();
   }
 
+  @Get('analytics/women-occupancy')
+  getWomenOnlyOccupancyStats() {
+    return this.adminService.getWomenOnlyOccupancyStats();
+  }
+
   @Get('travel-analytics')
   getTravelAnalytics() {
     return this.adminService.getTravelAnalytics();

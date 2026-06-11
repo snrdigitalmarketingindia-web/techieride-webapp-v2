@@ -48,7 +48,9 @@ export class AdminService {
         select: {
           id: true, fullName: true, phone: true, email: true,
           role: true, accountStatus: true, verificationStatus: true,
-          isActive: true, companyName: true, trid: true, createdAt: true,
+          isActive: true, companyName: true, trid: true, createdAt: true, gender: true,
+          rideGiver: { select: { totalRidesGiven: true, averageRating: true } },
+          rideSeeker: { select: { totalRidesTaken: true, averageRating: true } },
         },
       }),
       this.prisma.user.count({ where }),
@@ -517,6 +519,34 @@ export class AdminService {
       filledSeats:    Number(r.filledSeats),
       occupancyPct:   r.totalSeats > 0 ? Math.round((Number(r.filledSeats) / Number(r.totalSeats)) * 100) : 0,
     }));
+  }
+
+  async getWomenOnlyOccupancyStats() {
+    const rows = await this.prisma.$queryRaw<{
+      womenOnly: boolean;
+      totalRides: bigint;
+      totalSeats: bigint;
+      filledSeats: bigint;
+    }[]>`
+      SELECT
+        r.women_only                                             AS "womenOnly",
+        COUNT(r.id)                                             AS "totalRides",
+        COALESCE(SUM(r.total_seats), 0)                        AS "totalSeats",
+        COALESCE(SUM(r.total_seats - r.available_seats), 0)    AS "filledSeats"
+      FROM rides r
+      WHERE r.status IN ('COMPLETED', 'ONGOING', 'PUBLISHED')
+      GROUP BY r.women_only
+    `;
+
+    const result = { womenOnly: { rides: 0, seats: 0, filled: 0, fillPct: 0 }, regular: { rides: 0, seats: 0, filled: 0, fillPct: 0 } };
+    for (const row of rows) {
+      const key = row.womenOnly ? 'womenOnly' : 'regular';
+      result[key].rides  = Number(row.totalRides);
+      result[key].seats  = Number(row.totalSeats);
+      result[key].filled = Number(row.filledSeats);
+      result[key].fillPct = result[key].seats > 0 ? Math.round((result[key].filled / result[key].seats) * 100) : 0;
+    }
+    return result;
   }
 
   async bulkEmailUsers(userIds: string[], subject: string, body: string) {
