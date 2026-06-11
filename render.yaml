@@ -36,3 +36,5 @@ services:
         sync: false        # paste from Cloudinary dashboard
       - key: GEMINI_API_KEY
         sync: false        # paste from aistudio.google.com (free tier)
+      - key: FEATURE_ATTENDANCE_TRACKING
+        value: "false"     # parked feature — flip with the NEXT_PUBLIC twin on Vercel

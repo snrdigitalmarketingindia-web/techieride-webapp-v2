@@ -98,6 +98,8 @@ async function runBoardingTests() {
       const unresolved = (ride.data.participants ?? []).filter(
         (p: any) => p.boardingStatus !== 'DEBOARDED' && p.boardingStatus !== 'NO_SHOW');
       assert(unresolved.length === 0, `Auto-resolve left ${unresolved.length} unresolved participants`);
+      const penalised = (ride.data.participants ?? []).filter((p: any) => p.boardingStatus === 'NO_SHOW');
+      assert(penalised.length === 0, 'Auto-resolve must use DEBOARDED, not NO_SHOW (no trust penalty)');
     }
   });
 

@@ -815,6 +815,90 @@ async function run() {
     });
   }
 
+  // ── 17. RATINGS — PENDING PROMPTS ─────────────────────────────────────────
+  section('17. Ratings — Pending prompt list');
+  {
+    const { rideId, giver, seeker } = await completeFullRide();
+
+    await test('GET /ratings/pending lists completed ride with unrated counterpart', async () => {
+      const r = await seeker.client.get('/ratings/pending');
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(Array.isArray(r.data), 'Expected array');
+      const entry = r.data.find((x: any) => x.rideId === rideId);
+      assert(!!entry, `Completed ride ${rideId} missing from pending list`);
+      assert(entry.unrated.some((u: any) => u.id === giver.userId), 'Giver should be in unrated list');
+    });
+
+    await test('Ride disappears from pending after rating is submitted', async () => {
+      const sub = await seeker.client.post('/ratings', { rideId, rateeId: giver.userId, score: 5 });
+      assert(sub.status === 201, `Rating failed: ${sub.status}`);
+      const r = await seeker.client.get('/ratings/pending');
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      const entry = r.data.find((x: any) => x.rideId === rideId);
+      assert(!entry, 'Ride should no longer be pending for seeker after rating');
+    });
+
+    await test('Giver still sees the ride as pending (has not rated yet)', async () => {
+      const r = await giver.client.get('/ratings/pending');
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      const entry = r.data.find((x: any) => x.rideId === rideId);
+      assert(!!entry, 'Giver has not rated — ride should be pending');
+    });
+
+    await test('User with no completed rides gets empty pending list', async () => {
+      const fresh = await freshSeeker('pend-empty');
+      const r = await fresh.client.get('/ratings/pending');
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(Array.isArray(r.data) && r.data.length === 0, `Expected [], got ${JSON.stringify(r.data)}`);
+    });
+  }
+
+  // ── 18. UPLOAD SIZE LIMIT ─────────────────────────────────────────────────
+  section('18. Uploads — 5MB size limit');
+  {
+    await test('POST /uploads/document with >5MB file → 400/413', async () => {
+      const giver = await freshGiver('upload-big');
+      // 6MB buffer with a JPEG magic header so it passes the mimetype filter
+      const big = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(6 * 1024 * 1024)]);
+      const form = new FormData();
+      form.append('file', new Blob([big], { type: 'image/jpeg' }), 'huge.jpg');
+      const r = await giver.client.post('/uploads/document?type=driving_license', form);
+      assert([400, 413].includes(r.status), `Expected 400/413 for 6MB file, got ${r.status}`);
+    });
+  }
+
+  // ── 19. SAVED LOCATIONS — 30 CAP ──────────────────────────────────────────
+  section('19. Saved Locations — max 30 per user');
+  {
+    const seeker = await freshSeeker('loc-cap');
+
+    await test('User can save up to 30 locations; 31st → 400', async () => {
+      for (let i = 0; i < 30; i++) {
+        // Spread coords >50m apart to bypass the duplicate-radius check
+        const r = await seeker.client.post('/saved-locations', {
+          alias: `Spot ${i}`, lat: 17.40 + i * 0.01, lng: 78.40 + i * 0.01, address: `Addr ${i}`,
+        });
+        assert(r.status === 201, `Save #${i + 1} failed: ${r.status} ${JSON.stringify(r.data)}`);
+      }
+      const r31 = await seeker.client.post('/saved-locations', {
+        alias: 'One too many', lat: 17.90, lng: 78.90, address: 'Overflow',
+      });
+      assert(r31.status === 400, `Expected 400 on 31st location, got ${r31.status}`);
+      assert(String(r31.data.message).includes('30'), `Expected cap message, got: ${r31.data.message}`);
+    });
+
+    await test('Deleting one frees a slot', async () => {
+      const list = await seeker.client.get('/saved-locations/my');
+      assert(list.status === 200 && list.data.length === 30, `Expected 30 locations, got ${list.data?.length}`);
+      const del = await seeker.client.delete(`/saved-locations/${list.data[0].id}`);
+      assert([200, 204].includes(del.status), `Delete failed: ${del.status}`);
+      const r = await seeker.client.post('/saved-locations', {
+        alias: 'Replacement', lat: 17.95, lng: 78.95, address: 'New spot',
+      });
+      assert(r.status === 201, `Expected 201 after freeing a slot, got ${r.status}`);
+    });
+  }
+
   // ── Results ───────────────────────────────────────────────────────────────
   const passed = results.filter(r => r.passed).length;
   const failed = results.filter(r => !r.passed).length;
