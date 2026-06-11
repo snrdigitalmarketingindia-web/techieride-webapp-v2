@@ -156,7 +156,7 @@ export class RidesService {
 
     return this.prisma.ride.update({
       where: { id: rideId },
-      data: { status: RideStatus.PUBLISHED },
+      data: { status: RideStatus.PUBLISHED, publishedAt: new Date() },
     });
   }
 

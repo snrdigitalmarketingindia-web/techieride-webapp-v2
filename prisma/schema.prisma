@@ -373,6 +373,7 @@ model Ride {
   womenOnly            Boolean    @default(false)
   status               RideStatus @default(DRAFT)
   notes                String?
+  publishedAt          DateTime?
   startedAt            DateTime?
   completedAt          DateTime?
   cancelledAt          DateTime?

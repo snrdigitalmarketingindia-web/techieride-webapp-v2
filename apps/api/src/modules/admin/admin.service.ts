@@ -597,6 +597,82 @@ export class AdminService {
     return { data, total, page, limit };
   }
 
+  // ── Ride 360° Detail ────────────────────────────────────────────────────
+  async getRideDetail(rideId: string) {
+    const ride = await this.prisma.ride.findUnique({
+      where: { id: rideId },
+      include: {
+        vehicle: true,
+        rideGiver: {
+          include: {
+            user: {
+              select: {
+                id: true, fullName: true, email: true, phone: true,
+                profilePhoto: true, trustScore: true, trustBand: true,
+                accountStatus: true, createdAt: true,
+              },
+            },
+          },
+        },
+        requests: {
+          include: {
+            seeker: {
+              include: {
+                user: {
+                  select: {
+                    id: true, fullName: true, email: true, phone: true,
+                    profilePhoto: true, trustScore: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+        participants: {
+          include: {
+            seeker: {
+              include: {
+                user: {
+                  select: {
+                    id: true, fullName: true, email: true, profilePhoto: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        ratings: {
+          include: {
+            rater: { select: { id: true, fullName: true } },
+            ratee: { select: { id: true, fullName: true } },
+          },
+        },
+        sosEvents: { orderBy: { triggeredAt: 'desc' }, take: 5 },
+        complaints: {
+          include: {
+            reporter: { select: { id: true, fullName: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+    if (!ride) throw new NotFoundException('Ride not found');
+
+    // Giver's last 5 rides for history panel
+    const giverHistory = await this.prisma.ride.findMany({
+      where: { rideGiverId: ride.rideGiverId, id: { not: rideId } },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: {
+        id: true, status: true, originName: true, destinationName: true,
+        departureDate: true, totalSeats: true, availableSeats: true, createdAt: true,
+      },
+    });
+
+    return { ...ride, giverHistory };
+  }
+
   // ── User Audit — one-shot complaint debugger ──────────────────────────────
   async getUserAudit(userId: string) {
     const user = await this.prisma.user.findUnique({

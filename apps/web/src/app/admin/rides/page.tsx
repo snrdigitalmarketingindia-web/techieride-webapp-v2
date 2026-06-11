@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { adminApi, ridesApi } from '@/lib/api';
+import RideDetailPanel from './RideDetailPanel';
 
 const STATUS_COLORS: Record<string, string> = {
   PUBLISHED: 'bg-blue-100 text-blue-700',
@@ -150,6 +151,7 @@ export default function AdminRidesPage() {
   const [bulkClearing, setBulkClearing] = useState(false);
   const [confirmBulkClear, setConfirmBulkClear] = useState(false);
   const [bulkClearResult, setBulkClearResult] = useState<{ found: number; completed: number; failed: number } | null>(null);
+  const [detailRideId, setDetailRideId] = useState<string | null>(null);
 
   // Seed filters from URL params on mount (e.g. navigating from dashboard KPI cards)
   useEffect(() => {
@@ -288,12 +290,18 @@ export default function AdminRidesPage() {
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                   <span className="text-xs text-gray-400">{r.availableSeats}/{r.totalSeats} seats · {r.vehicle?.plateNumber ?? '—'}</span>
-                  {canForceComplete(r.status) && (
-                    <button onClick={(e) => { e.stopPropagation(); setConfirmId(r.id); openDetail(r.id); }}
-                      className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-medium">
-                      🔒 Force Complete
+                  <div className="flex gap-2">
+                    <button onClick={(e) => { e.stopPropagation(); setDetailRideId(r.id); }}
+                      className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg font-medium">
+                      360°
                     </button>
-                  )}
+                    {canForceComplete(r.status) && (
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmId(r.id); openDetail(r.id); }}
+                        className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-medium">
+                        🔒 Force Complete
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -327,13 +335,20 @@ export default function AdminRidesPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        {canForceComplete(r.status) && (
-                          <button onClick={() => setConfirmId(r.id)}
-                            disabled={completing === r.id}
-                            className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-medium hover:bg-red-100 transition disabled:opacity-50 whitespace-nowrap">
-                            {completing === r.id ? '⏳ Closing…' : '🔒 Force Complete'}
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setDetailRideId(r.id)}
+                            className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg font-medium hover:bg-indigo-100 transition whitespace-nowrap">
+                            360°
                           </button>
-                        )}
+                          {canForceComplete(r.status) && (
+                            <button onClick={() => setConfirmId(r.id)}
+                              disabled={completing === r.id}
+                              className="text-xs bg-red-50 text-red-700 border border-red-200 px-2.5 py-1 rounded-lg font-medium hover:bg-red-100 transition disabled:opacity-50 whitespace-nowrap">
+                              {completing === r.id ? '⏳ Closing…' : '🔒 Force Complete'}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -374,6 +389,9 @@ export default function AdminRidesPage() {
             canForceComplete={canForceComplete} />
         </div>
       )}
+
+      {/* ── Ride 360° Detail Panel ── */}
+      <RideDetailPanel rideId={detailRideId} onClose={() => setDetailRideId(null)} />
 
       {/* ── Bulk clear stale confirm banner ── */}
       {confirmBulkClear && (

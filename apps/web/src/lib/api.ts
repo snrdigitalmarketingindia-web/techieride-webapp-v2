@@ -227,6 +227,7 @@ export const adminApi = {
   getPendingVerifications: () => api.get('/admin/verification/pending'),
   deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
   listRides: (params?: any) => api.get('/admin/rides', { params }),
+  getRideDetail: (id: string) => api.get(`/admin/rides/${id}/detail`),
   forceCompleteRide: (id: string) => api.post(`/admin/rides/${id}/force-complete`),
   getAnalytics: (from?: string, to?: string) => api.get('/admin/analytics', { params: { from, to } }),
   getActiveSos: () => api.get('/admin/sos/active'),

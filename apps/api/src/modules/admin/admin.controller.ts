@@ -130,6 +130,11 @@ export class AdminController {
     return this.adminService.listAllRides({ status, search, page: +page, limit: +limit });
   }
 
+  @Get('rides/:id/detail')
+  getRideDetail(@Param('id') id: string) {
+    return this.adminService.getRideDetail(id);
+  }
+
   @Post('rides/:id/force-complete')
   forceCompleteRide(@Param('id') id: string) {
     return this.ridesService.forceCompleteRide(id, 'admin');
