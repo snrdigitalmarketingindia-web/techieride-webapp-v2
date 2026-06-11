@@ -53,14 +53,23 @@ export async function clearActiveRides(giverToken: string) {
   const rides: any[] = body.data ?? body;
   if (!Array.isArray(rides)) { await ctx.dispose(); return; }
 
+  // Force-complete PUBLISHED/ONGOING via admin — bypasses all validation gates
   const active = rides.filter(r => r.status === 'PUBLISHED' || r.status === 'ONGOING');
-  if (active.length === 0) { await ctx.dispose(); return; }
+  const drafts = rides.filter(r => r.status === 'DRAFT');
 
-  // Use admin token to force-complete — bypasses all validation gates
+  if (active.length === 0 && drafts.length === 0) { await ctx.dispose(); return; }
+
   const adminToken = await apiLogin(ACCOUNTS.admin.email);
   for (const ride of active) {
     await ctx.post(`${API}/admin/rides/${ride.id}/force-complete`, {
       headers: { Authorization: `Bearer ${adminToken}` },
+    }).catch(() => {});
+  }
+  // Cancel DRAFT rides directly (no validation gates — DRAFT → CANCELLED is always allowed)
+  for (const ride of drafts) {
+    await ctx.patch(`${API}/rides/${ride.id}/cancel`, {
+      headers: { Authorization: `Bearer ${giverToken}` },
+      data: { reason: 'Test cleanup' },
     }).catch(() => {});
   }
   await ctx.dispose();
