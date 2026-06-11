@@ -200,8 +200,13 @@ async function run() {
     const eq = await admin.get('/admin/verification/pending');
     const ee = eq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
     if (ee) await admin.patch(`/admin/verification/${ee.id}/review`, { decision: 'APPROVED' });
-    // Driver verification
-    await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc' });
+    // Driver verification (vehicleId required)
+    const vehForVerif = await client.post('/vehicles', {
+      make: 'Honda', model: 'City', color: 'Silver',
+      plateNumber: `VF${suffix}${ts.toString().slice(-5)}`, totalSeats: 4,
+    });
+    await client.patch(`/vehicles/${vehForVerif.data.id}/rc`, { rcUrl: 'mock://rc' });
+    await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', vehicleId: vehForVerif.data.id });
     const dq = await admin.get('/admin/verification/pending');
     const de = dq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'DRIVER');
     if (de) await admin.patch(`/admin/verification/${de.id}/review`, { decision: 'APPROVED' });
