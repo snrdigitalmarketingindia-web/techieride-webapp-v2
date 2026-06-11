@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '@/lib/api';
 
 interface Props {
@@ -59,15 +59,40 @@ function TimelineStep({
 export default function RideDetailPanel({ rideId, onClose }: Props) {
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [relationships, setRelationships] = useState<any[]>([]);
+  const [seekerStats, setSeekerStats] = useState<Record<string, any>>({});
+  const [expandedSeeker, setExpandedSeeker] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!rideId) { setRide(null); return; }
+    if (!rideId) { setRide(null); setRelationships([]); setSeekerStats({}); return; }
     setLoading(true);
     adminApi.getRideDetail(rideId)
-      .then((r: any) => setRide(r.data ?? r))
+      .then((r: any) => {
+        const data = r.data ?? r;
+        setRide(data);
+        // Fetch travel relationships for this giver
+        const giverUserId = data?.rideGiver?.user?.id;
+        if (giverUserId) {
+          adminApi.getGiverSeekerRelationships(giverUserId)
+            .then((res: any) => setRelationships(res.data ?? res))
+            .catch(() => {});
+        }
+      })
       .catch(() => setRide(null))
       .finally(() => setLoading(false));
   }, [rideId]);
+
+  const loadSeekerStats = useCallback(async (userId: string) => {
+    if (seekerStats[userId]) {
+      setExpandedSeeker(expandedSeeker === userId ? null : userId);
+      return;
+    }
+    try {
+      const res = await adminApi.getSeekerStats(userId);
+      setSeekerStats((prev) => ({ ...prev, [userId]: res.data ?? res }));
+      setExpandedSeeker(userId);
+    } catch { /* silently ignore */ }
+  }, [seekerStats, expandedSeeker]);
 
   if (!rideId) return null;
 
@@ -302,6 +327,56 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                                 </div>
                               );
                             })()}
+
+                            {/* Seeker stats expand */}
+                            {u && (
+                              <div className="mt-2">
+                                <button
+                                  onClick={() => loadSeekerStats(u.id)}
+                                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
+                                  {expandedSeeker === u.id ? '▲ Hide stats' : '▼ Seeker stats'}
+                                </button>
+                                {expandedSeeker === u.id && seekerStats[u.id] && (() => {
+                                  const s = seekerStats[u.id];
+                                  return (
+                                    <div className="mt-2 bg-white border border-gray-200 rounded-lg p-2.5 space-y-1.5 text-xs">
+                                      <div className="grid grid-cols-3 gap-2 text-center">
+                                        <div>
+                                          <p className="text-gray-400">Total rides</p>
+                                          <p className="font-bold text-gray-800">{s.totalRides}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-400">No-shows</p>
+                                          <p className={`font-bold ${s.noShows > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            {s.noShows} ({s.noShowRate}%)
+                                          </p>
+                                        </div>
+                                        <div>
+                                          <p className="text-gray-400">Complaints</p>
+                                          <p className={`font-bold ${s.complaints > 0 ? 'text-orange-600' : 'text-green-600'}`}>
+                                            {s.complaints}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      {s.trustEvents?.length > 0 && (
+                                        <div className="border-t pt-1.5">
+                                          <p className="text-gray-400 mb-1">Recent trust events</p>
+                                          {s.trustEvents.slice(0, 3).map((e: any, i: number) => (
+                                            <div key={i} className="flex items-center justify-between">
+                                              <span className="text-gray-600 truncate">{e.eventType.replace(/_/g, ' ')}</span>
+                                              <span className={`font-medium ${e.delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                {e.delta >= 0 ? '+' : ''}{e.delta} → {e.scoreAfter}
+                                              </span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -383,6 +458,45 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                         {c.description && <p className="text-xs text-gray-700 mt-1">{c.description}</p>}
                       </div>
                     ))}
+                  </div>
+                </section>
+              )}
+
+              {/* ── Section 7: Travel Relationships ── */}
+              {relationships.length > 0 && (
+                <section>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                    🔁 Regular Travel Pairs
+                  </h3>
+                  <div className="space-y-2">
+                    {relationships.map((rel: any, i: number) => {
+                      const u = rel.seeker?.user;
+                      if (!u) return null;
+                      const strength = rel.rideCount >= 5 ? { label: 'Regular', color: 'bg-green-100 text-green-700' }
+                        : rel.rideCount >= 2 ? { label: 'Occasional', color: 'bg-blue-100 text-blue-700' }
+                        : { label: 'Once', color: 'bg-gray-100 text-gray-500' };
+                      return (
+                        <div key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5">
+                          {u.profilePhoto ? (
+                            <img src={u.profilePhoto} alt={u.fullName} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-bold shrink-0">
+                              {u.fullName?.[0]?.toUpperCase() ?? '?'}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{u.fullName}</p>
+                            <p className="text-xs text-gray-500">
+                              {rel.rideCount} ride{rel.rideCount !== 1 ? 's' : ''} together ·{' '}
+                              {new Date(rel.firstRide).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              {' '}–{' '}
+                              {new Date(rel.lastRide).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </p>
+                          </div>
+                          <Badge label={strength.label} colorClass={strength.color} />
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
               )}

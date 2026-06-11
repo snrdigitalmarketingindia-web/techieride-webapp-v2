@@ -135,6 +135,16 @@ export class AdminController {
     return this.adminService.getRideDetail(id);
   }
 
+  @Get('seekers/:userId/stats')
+  getSeekerStats(@Param('userId') userId: string) {
+    return this.adminService.getSeekerStats(userId);
+  }
+
+  @Get('givers/:userId/seeker-relationships')
+  getGiverSeekerRelationships(@Param('userId') userId: string) {
+    return this.adminService.getGiverSeekerRelationships(userId);
+  }
+
   @Post('rides/:id/force-complete')
   forceCompleteRide(@Param('id') id: string) {
     return this.ridesService.forceCompleteRide(id, 'admin');

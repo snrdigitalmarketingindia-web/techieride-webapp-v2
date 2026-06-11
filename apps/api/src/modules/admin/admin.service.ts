@@ -673,6 +673,65 @@ export class AdminService {
     return { ...ride, giverHistory };
   }
 
+  // ── Seeker Stats (for 360° participant panel) ────────────────────────────
+  async getSeekerStats(seekerUserId: string) {
+    const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId: seekerUserId } });
+    if (!seeker) return null;
+
+    const [totalRides, noShows, cancelledRequests, complaints, trustEvents] = await Promise.all([
+      this.prisma.rideParticipant.count({ where: { seekerId: seeker.id } }),
+      this.prisma.rideParticipant.count({ where: { seekerId: seeker.id, boardingStatus: 'NO_SHOW' } }),
+      this.prisma.rideRequest.count({ where: { seekerId: seeker.id, status: 'CANCELLED' } }),
+      this.prisma.complaint.count({ where: { reported: { id: seekerUserId } } }),
+      this.prisma.trustScoreEvent.findMany({
+        where: { userId: seekerUserId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+        select: { delta: true, eventType: true, scoreAfter: true, createdAt: true },
+      }),
+    ]);
+
+    const noShowRate = totalRides > 0 ? Math.round((noShows / totalRides) * 100) : 0;
+
+    return { totalRides, noShows, noShowRate, cancelledRequests, complaints, trustEvents };
+  }
+
+  // ── Giver ↔ Seeker Travel Relationships ──────────────────────────────────
+  async getGiverSeekerRelationships(giverUserId: string) {
+    const giver = await this.prisma.rideGiver.findUnique({ where: { userId: giverUserId } });
+    if (!giver) return [];
+
+    // Aggregate seeker ride counts for this giver's rides
+    const rows = await this.prisma.$queryRaw<
+      { seeker_id: string; ride_count: bigint; first_ride: Date; last_ride: Date }[]
+    >`
+      SELECT rp.seeker_id, COUNT(*) AS ride_count,
+             MIN(r.departure_date) AS first_ride, MAX(r.departure_date) AS last_ride
+      FROM ride_participants rp
+      JOIN rides r ON r.id = rp.ride_id
+      WHERE r.ride_giver_id = ${giver.id}
+      GROUP BY rp.seeker_id
+      ORDER BY ride_count DESC
+      LIMIT 10
+    `;
+
+    if (!rows.length) return [];
+
+    const seekerIds = rows.map((r) => r.seeker_id);
+    const seekers = await this.prisma.rideSeeker.findMany({
+      where: { id: { in: seekerIds } },
+      include: { user: { select: { id: true, fullName: true, email: true, profilePhoto: true, trustScore: true } } },
+    });
+    const seekerMap = Object.fromEntries(seekers.map((s) => [s.id, s]));
+
+    return rows.map((r) => ({
+      seeker: seekerMap[r.seeker_id],
+      rideCount: Number(r.ride_count),
+      firstRide: r.first_ride,
+      lastRide: r.last_ride,
+    })).filter((r) => r.seeker);
+  }
+
   // ── User Audit — one-shot complaint debugger ──────────────────────────────
   async getUserAudit(userId: string) {
     const user = await this.prisma.user.findUnique({
