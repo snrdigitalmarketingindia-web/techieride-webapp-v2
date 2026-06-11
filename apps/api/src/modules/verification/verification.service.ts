@@ -74,7 +74,7 @@ export class VerificationService {
   // ── Driver verification (Queue 4) — requires SEEKER_VERIFIED ─────────────
   async submitDriverDocs(
     userId: string,
-    docs: { drivingLicenseUrl: string; rcUrl: string },
+    docs: { drivingLicenseUrl: string; rcUrl: string; vehicleId?: string },
   ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
@@ -85,6 +85,7 @@ export class VerificationService {
 
     if (!docs.drivingLicenseUrl) throw new BadRequestException('Driving License is required');
     if (!docs.rcUrl) throw new BadRequestException('Vehicle RC is required');
+    if (!docs.vehicleId) throw new BadRequestException('Vehicle details are required');
 
     await this.prisma.verificationRequest.upsert({
       where: { userId_verificationType: { userId, verificationType: 'DRIVER' } },
@@ -190,18 +191,15 @@ export class VerificationService {
             ...(trid ? { trid } : {}),
           },
         });
-        // Mark the user's most-recent vehicle as RC-verified using the RC from the verification request
-        if (req.rcUrl) {
-          const latestVehicle = await this.prisma.vehicle.findFirst({
-            where: { rideGiverId: rideGiver.id },
-            orderBy: { createdAt: 'desc' },
+        // Mark the linked vehicle as RC-verified using the vehicleId stored on the request
+        const vehicleToVerify = req.vehicleId
+          ? await this.prisma.vehicle.findFirst({ where: { id: req.vehicleId, rideGiverId: rideGiver.id } })
+          : await this.prisma.vehicle.findFirst({ where: { rideGiverId: rideGiver.id }, orderBy: { createdAt: 'desc' } });
+        if (vehicleToVerify && req.rcUrl) {
+          await this.prisma.vehicle.update({
+            where: { id: vehicleToVerify.id },
+            data: { rcUrl: req.rcUrl, rcVerified: true },
           });
-          if (latestVehicle) {
-            await this.prisma.vehicle.update({
-              where: { id: latestVehicle.id },
-              data: { rcUrl: req.rcUrl, rcVerified: true },
-            });
-          }
         }
       }
     } else {
@@ -276,6 +274,7 @@ export class VerificationService {
       where: { status: 'PENDING', verificationType },
       include: {
         user: { select: { fullName: true, email: true, phone: true, companyName: true, accountStatus: true, trid: true } },
+        vehicle: { select: { make: true, model: true, color: true, plateNumber: true, totalSeats: true, photoUrl: true, rcVerified: true } },
       },
       orderBy: { submittedAt: 'asc' },
     });
@@ -286,6 +285,7 @@ export class VerificationService {
       where: { status: 'PENDING' },
       include: {
         user: { select: { fullName: true, email: true, phone: true, companyName: true, accountStatus: true, trid: true } },
+        vehicle: { select: { make: true, model: true, color: true, plateNumber: true, totalSeats: true, photoUrl: true, rcVerified: true } },
       },
       orderBy: { submittedAt: 'asc' },
     });

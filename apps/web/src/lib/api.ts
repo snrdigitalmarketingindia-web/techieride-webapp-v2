@@ -149,7 +149,7 @@ export const verificationApi = {
     selfDeclarationAccepted: boolean;
     profilePhotoUrl?: string;
   }) => api.post('/verification/identity', data),
-  submitDriver: (data: { drivingLicenseUrl: string; rcUrl: string }) =>
+  submitDriver: (data: { drivingLicenseUrl: string; rcUrl: string; vehicleId?: string }) =>
     api.post('/verification/driver', data),
   getStatus: () => api.get('/verification/status'),
 };

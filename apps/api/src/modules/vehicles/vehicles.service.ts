@@ -1,10 +1,15 @@
 import { Injectable, ForbiddenException, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '@techieride/shared';
 import { CreateVehicleDto } from './dto/create-vehicle.dto';
 
 @Injectable()
 export class VehiclesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(userId: string, dto: CreateVehicleDto) {
     const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
@@ -66,13 +71,27 @@ export class VehiclesService {
       }
     }
 
-    return this.prisma.vehicle.update({
+    const updated = await this.prisma.vehicle.update({
       where: { id: vehicleId },
       data: {
         rcUrl,
         ...(parsedData ? { rcParsedData: parsedData, rcMatchStatus: 'MATCHED' } : {}),
       },
+      include: { rideGiver: { include: { user: true } } },
     });
+
+    // Notify all admins that a new RC was uploaded and needs review
+    const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+    await Promise.all(admins.map(admin =>
+      this.notifications.create(admin.id, {
+        type: NotificationType.GENERIC,
+        title: '🚗 New RC uploaded — awaiting verification',
+        body: `${updated.rideGiver.user.fullName} uploaded RC for ${updated.make} ${updated.model} (${updated.plateNumber})`,
+        data: { vehicleId },
+      })
+    ));
+
+    return updated;
   }
 
   async remove(vehicleId: string, userId: string) {

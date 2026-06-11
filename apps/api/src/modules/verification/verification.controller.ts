@@ -26,12 +26,12 @@ export class VerificationController {
     return this.service.submitIdentityDocs(userId, body);
   }
 
-  // Driver verification — submit DL + RC (requires SEEKER_VERIFIED)
+  // Driver verification — submit DL + RC + vehicle (requires SEEKER_VERIFIED)
   @Post('driver')
   @HttpCode(HttpStatus.OK)
   submitDriverDocs(
     @CurrentUser('id') userId: string,
-    @Body() body: { drivingLicenseUrl: string; rcUrl: string },
+    @Body() body: { drivingLicenseUrl: string; rcUrl: string; vehicleId?: string },
   ) {
     return this.service.submitDriverDocs(userId, body);
   }

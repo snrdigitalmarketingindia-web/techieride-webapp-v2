@@ -557,6 +557,17 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Phase 3 — Prompt for existing DRIVER_VERIFIED users with no rcVerified vehicle */}
+      {user?.accountStatus === 'DRIVER_VERIFIED' && vehicles.length > 0 && vehicles.every(v => !v.rcVerified) && (
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 space-y-2">
+          <p className="text-sm font-semibold text-amber-800">⚠️ Your vehicle RC is not yet verified</p>
+          <p className="text-xs text-amber-700">
+            To publish rides, at least one of your vehicles must have a verified RC.
+            Upload your RC below and admin will approve it shortly.
+          </p>
+        </div>
+      )}
+
       {/* Vehicles — givers only */}
       {isGiver && <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-3">

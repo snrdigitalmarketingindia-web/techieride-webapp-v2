@@ -118,6 +118,13 @@ export default function AdminVerificationPage() {
                     {req.selfDeclarationAccepted && <span className="text-xs text-green-600 bg-green-50 border border-green-100 px-2 py-1 rounded-lg">✅ Declaration</span>}
                     {!req.employeeIdUrl && !req.govtIdUrl && !req.drivingLicenseUrl && !req.rcUrl && <span className="text-xs text-gray-400">No docs uploaded</span>}
                   </div>
+                  {req.vehicle && (
+                    <div className="bg-gray-50 rounded-lg px-3 py-2 space-y-1">
+                      <p className="text-xs font-medium text-gray-700">🚙 {req.vehicle.make} {req.vehicle.model} · {req.vehicle.color}</p>
+                      <p className="text-xs text-gray-500 font-mono">{req.vehicle.plateNumber} · {req.vehicle.totalSeats} seats</p>
+                      {req.vehicle.photoUrl && <a href={req.vehicle.photoUrl} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">📸 Vehicle Photo</a>}
+                    </div>
+                  )}
                   {req.exceptionReason && <p className="text-xs text-orange-600 italic">"{req.exceptionReason}"</p>}
                   <p className="text-xs text-gray-400">Submitted: {new Date(req.submittedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</p>
 
@@ -200,6 +207,13 @@ export default function AdminVerificationPage() {
                           {req.selfDeclarationAccepted && <span className="text-xs text-green-600">✅ Self-declaration accepted</span>}
                           {req.exceptionReason && <p className="text-xs text-orange-600 italic max-w-xs">"{req.exceptionReason}"</p>}
                           {!req.employeeIdUrl && !req.govtIdUrl && !req.drivingLicenseUrl && !req.rcUrl && <span className="text-xs text-gray-400">No docs uploaded yet</span>}
+                          {req.vehicle && (
+                            <div className="mt-1 pt-1 border-t border-gray-100 space-y-0.5">
+                              <p className="text-xs font-medium text-gray-700">🚙 {req.vehicle.make} {req.vehicle.model} · {req.vehicle.color}</p>
+                              <p className="text-xs text-gray-500 font-mono">{req.vehicle.plateNumber} · {req.vehicle.totalSeats} seats</p>
+                              {req.vehicle.photoUrl && <a href={req.vehicle.photoUrl} target="_blank" rel="noreferrer" className="text-xs text-brand-600 hover:underline">📸 Vehicle Photo</a>}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-4 text-xs text-gray-400 whitespace-nowrap">

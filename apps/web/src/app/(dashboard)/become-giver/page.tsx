@@ -9,7 +9,6 @@ import { convertToWebp } from '@/lib/convertToWebp';
 
 const STEPS = ['Requirements', 'Documents', 'Vehicle', 'Submit'];
 
-
 // ── Reusable upload field ──────────────────────────────────────────────────
 function UploadField({
   label, hint, docType, url, uploading, disabled, onFile,
@@ -59,8 +58,8 @@ export default function BecomeGiverPage() {
   const [step, setStep] = useState(0);
   const [uploading, setUploading] = useState<string | null>(null);
   const [docs, setDocs] = useState({ drivingLicenseUrl: '', rcUrl: '' });
-  const [vehicle, setVehicle] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: '4' });
-  const [vehicleSaved, setVehicleSaved] = useState(false);
+  const [vehicle, setVehicle] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: '4', photoUrl: '' });
+  const [vehicleId, setVehicleId] = useState<string | null>(null);
   const [minioAvailable, setMinioAvailable] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -132,19 +131,43 @@ export default function BecomeGiverPage() {
     }
   };
 
+  const handleVehiclePhoto = async (file: File) => {
+    setUploading('vehicle_photo');
+    setError('');
+    try {
+      const url = await uploadFile(file, 'vehicle_photo');
+      setVehicle(v => ({ ...v, photoUrl: url }));
+    } catch {
+      setError('Photo upload failed. Make sure document storage is running.');
+    } finally {
+      setUploading(null);
+    }
+  };
+
   const saveVehicle = async () => {
     setError('');
     if (!vehicle.make || !vehicle.model || !vehicle.plateNumber) {
       setError('Please fill in make, model, and plate number');
       return;
     }
+    if (!docs.rcUrl) {
+      setError('Please upload your RC before saving the vehicle');
+      return;
+    }
     try {
-      const created = await vehiclesApi.create({ ...vehicle, totalSeats: parseInt(vehicle.totalSeats) });
-      const vehicleId = created.data?.id;
-      if (vehicleId && docs.rcUrl) {
-        await vehiclesApi.updateRc(vehicleId, docs.rcUrl, null);
+      const created = await vehiclesApi.create({
+        make: vehicle.make,
+        model: vehicle.model,
+        color: vehicle.color,
+        plateNumber: vehicle.plateNumber,
+        totalSeats: parseInt(vehicle.totalSeats),
+        ...(vehicle.photoUrl ? { photoUrl: vehicle.photoUrl } : {}),
+      });
+      const createdId = created.data?.id;
+      if (createdId) {
+        await vehiclesApi.updateRc(createdId, docs.rcUrl, null);
+        setVehicleId(createdId);
       }
-      setVehicleSaved(true);
     } catch (e: any) {
       const msg = e.response?.data?.message;
       setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Failed to save vehicle');
@@ -157,9 +180,17 @@ export default function BecomeGiverPage() {
       setError('Please upload both your Driving License and RC before submitting');
       return;
     }
+    if (!vehicleId) {
+      setError('Please save your vehicle details before submitting');
+      return;
+    }
     setSubmitting(true);
     try {
-      await verificationApi.submitDriver({ drivingLicenseUrl: docs.drivingLicenseUrl, rcUrl: docs.rcUrl });
+      await verificationApi.submitDriver({
+        drivingLicenseUrl: docs.drivingLicenseUrl,
+        rcUrl: docs.rcUrl,
+        vehicleId,
+      });
       await fetchProfile();
       setSubmitted(true);
     } catch (e: any) {
@@ -175,14 +206,14 @@ export default function BecomeGiverPage() {
       <div className="max-w-lg mx-auto py-12 text-center space-y-4">
         <div className="text-6xl">🎉</div>
         <h1 className="text-2xl font-bold text-gray-900">Application submitted!</h1>
-        <p className="text-gray-600">Your driving license and RC are under review. Admin will approve within 2 business days.</p>
+        <p className="text-gray-600">Your driving license, RC, and vehicle are under review. Admin will approve within 2 business days.</p>
         <div className="bg-brand-50 rounded-xl p-4 text-sm text-brand-700 text-left space-y-2">
           <p className="font-medium">What happens next:</p>
           <ol className="list-decimal list-inside space-y-1 text-brand-600">
-            <li>Admin reviews your DL and RC</li>
-            <li>Your vehicle RC will also be verified</li>
+            <li>Admin reviews your DL, RC, and vehicle details together</li>
+            <li>Once approved, your vehicle RC is verified automatically</li>
             <li>You'll receive an in-app notification when approved</li>
-            <li>Your role upgrades to Ride Giver automatically</li>
+            <li>Your role upgrades to Ride Giver — you can offer rides immediately</li>
           </ol>
         </div>
         <Link href="/dashboard" className="inline-block bg-brand-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-brand-700 transition">
@@ -193,6 +224,8 @@ export default function BecomeGiverPage() {
   }
 
   const canProceedStep1 = docs.drivingLicenseUrl && docs.rcUrl;
+  const vehicleSaved = !!vehicleId;
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
@@ -223,9 +256,10 @@ export default function BecomeGiverPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="font-semibold text-gray-900">What you'll need</h2>
             {[
-              { icon: '🪪', title: 'Driving License', desc: 'Valid Indian DL — photo or scan' },
-              { icon: '🚗', title: 'Vehicle RC', desc: 'Registration Certificate for your vehicle' },
-              { icon: '🚙', title: 'Vehicle Details', desc: 'Make, model, colour, plate number, seating capacity' },
+              { icon: '🪪', title: 'Driving License', desc: 'Valid Indian DL — photo or scan', required: true },
+              { icon: '🚗', title: 'Vehicle RC', desc: 'Registration Certificate for your vehicle', required: true },
+              { icon: '🚙', title: 'Vehicle Details', desc: 'Make, model, colour, plate number, seating capacity', required: true },
+              { icon: '📸', title: 'Vehicle Photo', desc: 'A clear photo of your vehicle (front or side)', required: false },
             ].map(item => (
               <div key={item.title} className="flex items-start gap-3">
                 <span className="text-2xl">{item.icon}</span>
@@ -233,14 +267,16 @@ export default function BecomeGiverPage() {
                   <p className="font-medium text-gray-800 text-sm">{item.title}</p>
                   <p className="text-xs text-gray-500">{item.desc}</p>
                 </div>
-                <span className="ml-auto text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">Required</span>
+                <span className={`ml-auto text-xs px-2 py-0.5 rounded font-medium ${item.required ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                  {item.required ? 'Required' : 'Optional'}
+                </span>
               </div>
             ))}
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
             <p className="font-medium mb-1">Admin review — up to 2 business days</p>
-            <p>Your documents are reviewed manually. You'll get an in-app notification when approved.</p>
+            <p>Your documents are reviewed manually. Once approved, your vehicle is verified and you can offer rides immediately — no second submission needed.</p>
           </div>
 
           <button onClick={() => { setError(''); setStep(1); }}
@@ -303,10 +339,17 @@ export default function BecomeGiverPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="font-semibold text-gray-900">Add your vehicle</h2>
+            <p className="text-xs text-gray-500">Vehicle details are required. Admin will review them together with your documents.</p>
 
             {vehicleSaved ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">
                 ✅ Vehicle saved — <strong>{vehicle.make} {vehicle.model}</strong> ({vehicle.plateNumber})
+                <button
+                  onClick={() => setVehicleId(null)}
+                  className="ml-3 text-xs text-green-600 underline"
+                >
+                  Edit
+                </button>
               </div>
             ) : (
               <>
@@ -342,6 +385,29 @@ export default function BecomeGiverPage() {
                   </select>
                 </div>
 
+                {/* Optional vehicle photo */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle Photo <span className="text-gray-400">(optional)</span></label>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) { handleVehiclePhoto(f); e.target.value = ''; } }}
+                  />
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={minioAvailable === false || uploading === 'vehicle_photo'}
+                      className="text-xs px-3 py-1.5 rounded-lg font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 transition"
+                    >
+                      {uploading === 'vehicle_photo' ? '⏳ Uploading…' : vehicle.photoUrl ? '🔄 Replace Photo' : '📸 Upload Photo'}
+                    </button>
+                    {vehicle.photoUrl && <span className="text-xs text-green-600">✅ Photo uploaded</span>}
+                  </div>
+                </div>
+
                 <button onClick={saveVehicle}
                   className="w-full bg-brand-600 text-white py-2.5 rounded-xl font-medium hover:bg-brand-700 transition">
                   Save Vehicle
@@ -356,9 +422,13 @@ export default function BecomeGiverPage() {
               ← Back
             </button>
             <button
-              onClick={() => { setError(''); setStep(3); }}
+              onClick={() => {
+                if (!vehicleSaved) { setError('Please save your vehicle details to continue'); return; }
+                setError('');
+                setStep(3);
+              }}
               className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl font-medium hover:bg-brand-700 transition">
-              {vehicleSaved ? 'Next →' : 'Skip for now →'}
+              Next →
             </button>
           </div>
         </div>
@@ -383,22 +453,28 @@ export default function BecomeGiverPage() {
                   {docs.rcUrl ? '✅ Uploaded' : '❌ Missing'}
                 </span>
               </div>
-              <div className="flex justify-between py-2">
+              <div className="flex justify-between py-2 border-b border-gray-100">
                 <span className="text-gray-500">Vehicle</span>
-                <span className={vehicleSaved ? 'text-green-600 font-medium' : 'text-gray-400'}>
-                  {vehicleSaved ? `✅ ${vehicle.make} ${vehicle.model} · RC attached` : '— (can add later)'}
+                <span className={vehicleSaved ? 'text-green-600 font-medium' : 'text-red-500'}>
+                  {vehicleSaved ? `✅ ${vehicle.make} ${vehicle.model} · RC attached` : '❌ Missing'}
+                </span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-500">Vehicle Photo</span>
+                <span className={vehicle.photoUrl ? 'text-green-600 font-medium' : 'text-gray-400'}>
+                  {vehicle.photoUrl ? '✅ Uploaded' : '— (optional)'}
                 </span>
               </div>
             </div>
           </div>
 
-          {!docs.drivingLicenseUrl || !docs.rcUrl ? (
+          {(!docs.drivingLicenseUrl || !docs.rcUrl || !vehicleSaved) ? (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-              Please go back and upload your Driving License and RC before submitting.
+              Please complete all required steps before submitting.
             </div>
           ) : (
             <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 text-sm text-brand-700">
-              By submitting, you confirm these are your genuine documents. False submissions will result in a permanent ban.
+              By submitting, you confirm these are your genuine documents. Admin will review everything together — once approved you can offer rides immediately.
             </div>
           )}
 
@@ -409,7 +485,7 @@ export default function BecomeGiverPage() {
             </button>
             <button
               onClick={submitDriver}
-              disabled={submitting || !docs.drivingLicenseUrl || !docs.rcUrl}
+              disabled={submitting || !docs.drivingLicenseUrl || !docs.rcUrl || !vehicleSaved}
               className="flex-1 bg-brand-600 text-white py-2.5 rounded-xl font-medium hover:bg-brand-700 disabled:opacity-50 transition">
               {submitting ? '⏳ Submitting…' : 'Submit Application 🚀'}
             </button>
