@@ -58,8 +58,14 @@ async function bootstrap() {
 
   // ── Public health endpoint (no auth) — used by UptimeRobot to keep Render awake
   const httpAdapter = app.getHttpAdapter();
+  // Render injects RENDER_GIT_COMMIT — exposing it lets the deploy-verify
+  // workflow (and humans) confirm which commit is actually live.
   httpAdapter.get('/health', (_req: any, res: any) => {
-    res.status(200).json({ status: 'ok', ts: new Date().toISOString() });
+    res.status(200).json({
+      status: 'ok',
+      ts: new Date().toISOString(),
+      commit: process.env.RENDER_GIT_COMMIT || 'unknown',
+    });
   });
 
   const port = process.env.PORT || 3001;

@@ -1,0 +1,97 @@
+name: 🔍 Deploy Verify
+
+# Verifies that Render (API) and Vercel (frontend) actually picked up the
+# pushed commit. Polls the live /health and /api/version endpoints for up to
+# ~12 minutes. On mismatch or timeout, the workflow fails and emails a report
+# via Resend. Manual runs are also supported.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  API_URL: https://techieride-webapp-v2.onrender.com
+  WEB_URL: https://techieride-webapp-v2-web.vercel.app
+
+jobs:
+  verify:
+    name: Verify Render + Vercel picked up this commit
+    runs-on: ubuntu-latest
+    # Version-bump commits are tagged [vercel skip] — Vercel intentionally
+    # doesn't deploy them, so verifying would always fail.
+    if: ${{ !contains(github.event.head_commit.message, '[vercel skip]') }}
+    steps:
+      - name: Wait for deploys and compare commits
+        id: check
+        run: |
+          EXPECTED="${{ github.sha }}"
+          echo "Expecting commit: $EXPECTED"
+
+          check_endpoint () {
+            # $1 = name, $2 = url
+            DEPLOYED=$(curl -sf --max-time 20 "$2" | jq -r '.commit // "unreachable"' 2>/dev/null || echo "unreachable")
+            echo "$DEPLOYED"
+          }
+
+          API_OK=false
+          WEB_OK=false
+          API_SEEN="never reached"
+          WEB_SEEN="never reached"
+
+          # 24 attempts x 30s = up to 12 minutes for builds to finish
+          for i in $(seq 1 24); do
+            if [ "$API_OK" != "true" ]; then
+              API_SEEN=$(check_endpoint "render" "$API_URL/health")
+              [ "$API_SEEN" = "$EXPECTED" ] && API_OK=true
+            fi
+            if [ "$WEB_OK" != "true" ]; then
+              WEB_SEEN=$(check_endpoint "vercel" "$WEB_URL/api/version")
+              [ "$WEB_SEEN" = "$EXPECTED" ] && WEB_OK=true
+            fi
+            echo "attempt $i/24 — render: $API_SEEN | vercel: $WEB_SEEN"
+            [ "$API_OK" = "true" ] && [ "$WEB_OK" = "true" ] && break
+            sleep 30
+          done
+
+          {
+            echo "expected=$EXPECTED"
+            echo "api_ok=$API_OK"
+            echo "web_ok=$WEB_OK"
+            echo "api_seen=$API_SEEN"
+            echo "web_seen=$WEB_SEEN"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "## 🔍 Deploy Verification" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Target | Expected | Live | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Render API | \`${EXPECTED:0:7}\` | \`${API_SEEN:0:7}\` | $([ "$API_OK" = true ] && echo ✅ || echo ❌) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Vercel Web | \`${EXPECTED:0:7}\` | \`${WEB_SEEN:0:7}\` | $([ "$WEB_OK" = true ] && echo ✅ || echo ❌) |" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$API_OK" != "true" ] || [ "$WEB_OK" != "true" ]; then
+            echo "❌ Deploy verification failed"
+            exit 1
+          fi
+          echo "✅ Both deploys match $EXPECTED"
+
+      - name: Email failure report (Resend)
+        if: failure()
+        run: |
+          SHORT="${{ github.sha }}"
+          SHORT="${SHORT:0:7}"
+          curl -s -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer ${{ secrets.RESEND_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg from "TechieRide CI <noreply@techieride.in>" \
+              --arg to "${{ secrets.CONTACTS_EMAIL || 'hydtechieride@gmail.com' }}" \
+              --arg subject "🚨 Deploy verification FAILED for $SHORT" \
+              --arg html "<h2>Deploy verification failed</h2>
+                <p><strong>Expected commit:</strong> ${{ github.sha }}</p>
+                <ul>
+                  <li>Render API: ${{ steps.check.outputs.api_ok == 'true' && '✅ matched' || format('❌ live = {0}', steps.check.outputs.api_seen) }}</li>
+                  <li>Vercel Web: ${{ steps.check.outputs.web_ok == 'true' && '✅ matched' || format('❌ live = {0}', steps.check.outputs.web_seen) }}</li>
+                </ul>
+                <p><a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Open the workflow run</a></p>
+                <p>Check the Render / Vercel dashboards — the deploy may have failed to build or is still queued.</p>" \
+              '{from: $from, to: [$to], subject: $subject, html: $html}')"
