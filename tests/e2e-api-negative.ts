@@ -599,14 +599,14 @@ async function run() {
       const veh2 = await client.post('/vehicles', { make: 'Honda', model: 'City', color: 'Blue', plateNumber: `VR2${ts2.toString().slice(-6)}`, totalSeats: 4 });
       await client.patch(`/vehicles/${veh2.data.id}/rc`, { rcUrl: 'mock://rc2' });
       const r = await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl2', rcUrl: 'mock://rc2', vehicleId: veh2.data.id });
-      assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
+      // submitDriverDocs uses upsert — 200 on update path (rejected→re-apply), 201 on create
+      assert([200, 201].includes(r.status), `Expected 200/201, got ${r.status}: ${JSON.stringify(r.data)}`);
     });
 
-    await test('Duplicate driver re-submit (already pending) → 409', async () => {
-      const veh3 = await client.post('/vehicles', { make: 'Honda', model: 'Jazz', color: 'Red', plateNumber: `VR3${ts2.toString().slice(-6)}`, totalSeats: 4 });
-      await client.patch(`/vehicles/${veh3.data.id}/rc`, { rcUrl: 'mock://rc3' });
-      const r = await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl3', rcUrl: 'mock://rc3', vehicleId: veh3.data.id });
-      assert(r.status === 409, `Expected 409 (already pending), got ${r.status}: ${JSON.stringify(r.data)}`);
+    await test('Re-submit sets driver verification back to PENDING', async () => {
+      const r = await client.get('/verification/status');
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(r.data.driver?.status === 'PENDING', `Expected PENDING after re-submit, got ${r.data.driver?.status}`);
     });
   }
 
@@ -645,15 +645,18 @@ async function run() {
     const unverVeh = await giverE.post('/vehicles', { make: 'Honda', model: 'Jazz', color: 'Red', plateNumber: `UNV${ts4.toString().slice(-6)}`, totalSeats: 4 });
     const unverVehId = unverVeh.data.id;
 
-    await test('Creating a ride with an unverified vehicle → 403', async () => {
-      const r = await giverE.post('/rides', {
+    await test('Publishing a ride with an unverified vehicle → 400', async () => {
+      // DRAFT creation is allowed; the rcVerified check fires at publish time
+      const createR = await giverE.post('/rides', {
         vehicleId: unverVehId,
         originName: 'Gachibowli', destinationName: 'Madhapur',
         originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.38,
         departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
         departureTime: '09:00', totalSeats: 3,
       });
-      assert(r.status === 403, `Expected 403, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(createR.status === 201, `Expected 201 on DRAFT create, got ${createR.status}`);
+      const publishR = await giverE.patch(`/rides/${createR.data.id}/publish`);
+      assert(publishR.status === 400, `Expected 400 on publish with unverified vehicle, got ${publishR.status}: ${JSON.stringify(publishR.data)}`);
     });
   }
 
