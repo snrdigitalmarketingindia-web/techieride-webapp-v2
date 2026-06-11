@@ -111,9 +111,23 @@ export async function approveDriverVerification(
   userClient: AxiosInstance,
   adminClient: AxiosInstance,
 ) {
+  // Create a vehicle first — required since vehicleId is now mandatory on driver verification
+  const ts = Date.now();
+  const veh = await userClient.post('/vehicles', {
+    make: 'Honda', model: 'City', color: 'Silver',
+    plateNumber: `VDV${ts.toString().slice(-6)}`,
+    totalSeats: 4,
+  });
+  if (![200, 201].includes(veh.status)) {
+    throw new Error(`Could not create vehicle for driver verification: ${JSON.stringify(veh.data)}`);
+  }
+  const vehicleId: string = veh.data.id;
+  await userClient.patch(`/vehicles/${vehicleId}/rc`, { rcUrl: 'https://mock.storage/rc.jpg' });
+
   const submit = await userClient.post('/verification/driver', {
     drivingLicenseUrl: 'https://mock.storage/dl.jpg',
     rcUrl: 'https://mock.storage/rc.jpg',
+    vehicleId,
   });
   if (![200, 201].includes(submit.status)) {
     throw new Error(`Driver verification submit failed: ${JSON.stringify(submit.data)}`);
