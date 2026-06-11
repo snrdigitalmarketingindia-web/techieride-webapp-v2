@@ -22,6 +22,28 @@ jobs:
     # doesn't deploy them, so verifying would always fail.
     if: ${{ !contains(github.event.head_commit.message, '[vercel skip]') }}
     steps:
+      - name: Render build status (early failure detection)
+        if: ${{ secrets.RENDER_API_KEY != '' }}
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+        run: |
+          # Poll the Render API for the deploy of THIS commit; fail fast on build errors
+          SID="${{ secrets.RENDER_SERVICE_ID }}"
+          if [ -z "$SID" ]; then
+            SID=$(curl -sf -H "Authorization: Bearer $RENDER_API_KEY"               "https://api.render.com/v1/services?name=techieride-api&limit=5" | jq -r '.[0].service.id // empty')
+          fi
+          [ -z "$SID" ] && { echo "⚠️ Could not resolve Render service id — skipping"; exit 0; }
+          for i in $(seq 1 20); do
+            ROW=$(curl -sf -H "Authorization: Bearer $RENDER_API_KEY"               "https://api.render.com/v1/services/$SID/deploys?limit=10"               | jq -r --arg sha "${{ github.sha }}" '.[].deploy | select(.commit.id == $sha) | .status' | head -1)
+            echo "attempt $i/20 — render deploy status for ${GITHUB_SHA:0:7}: ${ROW:-not started yet}"
+            case "$ROW" in
+              live) echo "✅ Render deploy is live"; exit 0 ;;
+              *failed*|canceled|deactivated) echo "❌ Render build failed: $ROW"; exit 1 ;;
+            esac
+            sleep 30
+          done
+          echo "⏳ Render deploy still building after 10 min — endpoint check below will verify"
+
       - name: Wait for deploys and compare commits
         id: check
         run: |
