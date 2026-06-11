@@ -1,5 +1,6 @@
 'use client';
 
+import { FEATURES } from '@/lib/featureFlags';
 import { useState } from 'react';
 import Link from 'next/link';
 import { CallButton } from './CallButton';
@@ -143,9 +144,11 @@ export function RideCard({ ride, viewAs, actions, participantActions }: RideCard
             const phone     = p.seeker?.user?.phone;
             const cc        = p.seeker?.user?.countryCode;
             const recvId    = p.seeker?.userId;
-            const badge     = p.boardingStatus === 'WAITING'
-              ? waitingBadge(ride.status)
-              : BOARDING_BADGE[p.boardingStatus];
+            const badge     = !FEATURES.ATTENDANCE_TRACKING_ENABLED
+              ? null
+              : p.boardingStatus === 'WAITING'
+                ? waitingBadge(ride.status)
+                : BOARDING_BADGE[p.boardingStatus];
             const noShow    = p.boardingStatus === 'NO_SHOW';
             // Pickup info — prefer request coords, fallback to participant pickupName
             const pickupName = p.request?.pickupName ?? p.pickupName;

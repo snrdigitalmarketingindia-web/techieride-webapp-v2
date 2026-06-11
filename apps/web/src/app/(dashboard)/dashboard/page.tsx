@@ -8,6 +8,7 @@ import { RideCard } from '@/components/ui/RideCard';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideStatus, EcoLevel } from '@techieride/shared';
 import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
+import { FEATURES } from '@/lib/featureFlags';
 
 const ECO_BADGES: Record<string, string> = {
   SEED: '🌱', SPROUT: '🌿', LEAF: '🍃', TREE: '🌳', FOREST: '🌲',
@@ -419,13 +420,13 @@ export default function DashboardPage() {
                 const bs = myParticipant?.boardingStatus;
                 const seekerActions = (
                   <div className="flex gap-2 flex-wrap">
-                    {bs === 'WAITING' && (
+                    {FEATURES.ATTENDANCE_TRACKING_ENABLED && bs === 'WAITING' && (
                       <button onClick={() => handleBoard(ride.id)} disabled={processing === ride.id}
                         className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition">
                         ✅ I've Boarded
                       </button>
                     )}
-                    {bs === 'BOARDED' && (
+                    {FEATURES.ATTENDANCE_TRACKING_ENABLED && bs === 'BOARDED' && (
                       <button onClick={() => handleDeboard(ride.id)} disabled={processing === ride.id}
                         className="text-xs bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition">
                         🏁 I've Deboarded
@@ -565,13 +566,13 @@ export default function DashboardPage() {
                 const bs = myParticipant?.boardingStatus;
                 const seekerActions = ride.status === 'ONGOING' ? (
                   <div className="flex gap-2 flex-wrap">
-                    {bs === 'WAITING' && (
+                    {FEATURES.ATTENDANCE_TRACKING_ENABLED && bs === 'WAITING' && (
                       <button onClick={() => handleBoard(ride.id)} disabled={processing === ride.id}
                         className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 disabled:opacity-50 transition">
                         ✅ I've Boarded
                       </button>
                     )}
-                    {bs === 'BOARDED' && (
+                    {FEATURES.ATTENDANCE_TRACKING_ENABLED && bs === 'BOARDED' && (
                       <button onClick={() => handleDeboard(ride.id)} disabled={processing === ride.id}
                         className="text-xs bg-gray-600 text-white px-3 py-1.5 rounded-lg hover:bg-gray-700 disabled:opacity-50 transition">
                         🏁 I've Deboarded
