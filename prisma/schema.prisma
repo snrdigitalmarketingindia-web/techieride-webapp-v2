@@ -208,6 +208,7 @@ model User {
   trustScoreEvents     TrustScoreEvent[]
   savedLocations       SavedLocation[]
   loginHistory         LoginHistory[]
+  quickMessages        QuickMessage[]
 
   @@index([email])
   @@index([emailStatus])
@@ -389,7 +390,8 @@ model Ride {
   participants RideParticipant[]
   ratings      RideRating[]
   sosEvents    SosEvent[]
-  complaints   Complaint[]
+  complaints    Complaint[]
+  quickMessages QuickMessage[]
 
   @@index([rideGiverId])
   @@index([status])
@@ -616,6 +618,26 @@ model SosEvent {
 // Ride seekers can save up to 20 frequently used pickup/drop locations with a
 // custom alias (e.g. "Home", "Gym", "HITEC City Office") so they don't have to
 // re-pin every time they request a ride.
+
+// ─── Quick Message Log ────────────────────────────────────────────────────────
+// Persists every quick-message send for admin audit / 360° view.
+// Historical messages (before this model was added) are not backfilled.
+
+model QuickMessage {
+  id          String   @id @default(uuid())
+  rideId      String
+  senderId    String
+  messageKey  String                          // e.g. "ON_MY_WAY" or "CUSTOM"
+  messageText String                          // resolved text at send time
+  sentAt      DateTime @default(now())
+
+  ride   Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@index([rideId])
+  @@index([senderId])
+  @@map("quick_messages")
+}
 
 model SavedLocation {
   id         String    @id @default(cuid())

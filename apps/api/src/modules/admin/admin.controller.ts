@@ -145,6 +145,16 @@ export class AdminController {
     return this.adminService.getGiverSeekerRelationships(userId);
   }
 
+  @Get('rides/:id/messages')
+  getRideMessages(@Param('id') id: string) {
+    return this.adminService.getRideMessages(id);
+  }
+
+  @Get('givers/:userId/trust-timeline')
+  getGiverTrustTimeline(@Param('userId') userId: string) {
+    return this.adminService.getGiverTrustTimeline(userId);
+  }
+
   @Post('rides/:id/force-complete')
   forceCompleteRide(@Param('id') id: string) {
     return this.ridesService.forceCompleteRide(id, 'admin');

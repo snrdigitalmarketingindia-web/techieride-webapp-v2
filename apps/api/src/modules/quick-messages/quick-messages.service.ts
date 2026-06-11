@@ -79,6 +79,11 @@ export class QuickMessagesService {
     const senderName = senderUser?.fullName?.split(' ')[0] ?? 'Someone';
     const rideLabel = `${ride.originName} → ${ride.destinationName}`;
 
+    // Persist message for admin audit log before firing notifications
+    await this.prisma.quickMessage.create({
+      data: { rideId, senderId, messageKey, messageText: msgText },
+    });
+
     if (isGiver) {
       // Giver → all confirmed seekers
       for (const seekerUserId of confirmedSeekerUserIds) {

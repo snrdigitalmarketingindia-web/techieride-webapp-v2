@@ -62,21 +62,34 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
   const [relationships, setRelationships] = useState<any[]>([]);
   const [seekerStats, setSeekerStats] = useState<Record<string, any>>({});
   const [expandedSeeker, setExpandedSeeker] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [trustTimeline, setTrustTimeline] = useState<any[]>([]);
+  const [showTrust, setShowTrust] = useState(false);
 
   useEffect(() => {
-    if (!rideId) { setRide(null); setRelationships([]); setSeekerStats({}); return; }
+    if (!rideId) {
+      setRide(null); setRelationships([]); setSeekerStats({});
+      setMessages([]); setTrustTimeline([]); setShowTrust(false);
+      return;
+    }
     setLoading(true);
     adminApi.getRideDetail(rideId)
       .then((r: any) => {
         const data = r.data ?? r;
         setRide(data);
-        // Fetch travel relationships for this giver
         const giverUserId = data?.rideGiver?.user?.id;
         if (giverUserId) {
           adminApi.getGiverSeekerRelationships(giverUserId)
             .then((res: any) => setRelationships(res.data ?? res))
             .catch(() => {});
+          adminApi.getGiverTrustTimeline(giverUserId)
+            .then((res: any) => setTrustTimeline(res.data ?? res))
+            .catch(() => {});
         }
+        // Fetch message history for this ride
+        adminApi.getRideMessages(rideId)
+          .then((res: any) => setMessages(res.data ?? res))
+          .catch(() => {});
       })
       .catch(() => setRide(null))
       .finally(() => setLoading(false));
@@ -277,6 +290,35 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Trust score timeline toggle */}
+                  {trustTimeline.length > 0 && (
+                    <div className="mt-3">
+                      <button
+                        onClick={() => setShowTrust((v) => !v)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        {showTrust ? '▲ Hide trust timeline' : `▼ Trust score timeline (${trustTimeline.length} events)`}
+                      </button>
+                      {showTrust && (
+                        <div className="mt-2 space-y-1">
+                          {trustTimeline.slice(-15).map((e: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between text-xs">
+                              <span className="text-gray-600 truncate max-w-[200px]">
+                                {e.eventType.replace(/_/g, ' ')}
+                              </span>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className={`font-medium ${e.delta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {e.delta >= 0 ? '+' : ''}{e.delta}
+                                </span>
+                                <span className="text-gray-400">→ {e.scoreAfter}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </section>
@@ -500,6 +542,41 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                   </div>
                 </section>
               )}
+
+              {/* ── Section 8: Quick Messages ── */}
+              <section>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                  💬 Quick Messages {messages.length > 0 && `(${messages.length})`}
+                </h3>
+                {messages.length === 0 ? (
+                  <p className="text-sm text-gray-400">No messages logged for this ride yet. Messages sent going forward will appear here.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {messages.map((m: any) => {
+                      const isGiverMsg = m.senderId === ride?.rideGiver?.user?.id;
+                      return (
+                        <div key={m.id} className={`flex gap-2.5 ${isGiverMsg ? '' : 'flex-row-reverse'}`}>
+                          {m.sender?.profilePhoto ? (
+                            <img src={m.sender.profilePhoto} alt={m.sender.fullName} className="w-7 h-7 rounded-full object-cover shrink-0 mt-0.5" />
+                          ) : (
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${isGiverMsg ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                              {m.sender?.fullName?.[0]?.toUpperCase() ?? '?'}
+                            </div>
+                          )}
+                          <div className={`max-w-[75%] ${isGiverMsg ? '' : 'items-end flex flex-col'}`}>
+                            <div className={`rounded-2xl px-3 py-2 text-sm ${isGiverMsg ? 'bg-blue-50 text-blue-900 rounded-tl-sm' : 'bg-green-50 text-green-900 rounded-tr-sm'}`}>
+                              {m.messageText}
+                            </div>
+                            <p className="text-xs text-gray-400 mt-0.5 px-1">
+                              {m.sender?.fullName?.split(' ')[0]} · {fmt(m.sentAt)}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             </>
           )}
 

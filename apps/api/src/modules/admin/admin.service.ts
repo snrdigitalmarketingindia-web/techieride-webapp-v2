@@ -673,6 +673,26 @@ export class AdminService {
     return { ...ride, giverHistory };
   }
 
+  // ── Ride Message History ──────────────────────────────────────────────────
+  async getRideMessages(rideId: string) {
+    return this.prisma.quickMessage.findMany({
+      where: { rideId },
+      include: {
+        sender: { select: { id: true, fullName: true, profilePhoto: true } },
+      },
+      orderBy: { sentAt: 'asc' },
+    });
+  }
+
+  // ── Giver Trust Score Timeline ────────────────────────────────────────────
+  async getGiverTrustTimeline(giverUserId: string) {
+    return this.prisma.trustScoreEvent.findMany({
+      where: { userId: giverUserId },
+      orderBy: { createdAt: 'asc' },
+      select: { delta: true, eventType: true, reason: true, scoreAfter: true, createdAt: true },
+    });
+  }
+
   // ── Seeker Stats (for 360° participant panel) ────────────────────────────
   async getSeekerStats(seekerUserId: string) {
     const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId: seekerUserId } });
