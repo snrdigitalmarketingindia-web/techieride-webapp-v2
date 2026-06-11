@@ -12,8 +12,16 @@ export class VehiclesService {
   ) {}
 
   async create(userId: string, dto: CreateVehicleDto) {
-    const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
-    if (!giver) throw new ForbiddenException('Only ride givers can add vehicles');
+    let giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
+    if (!giver) {
+      // Allow SEEKER_VERIFIED and DRIVER_VERIFICATION_PENDING users to add vehicles
+      // (they are applying to become givers and need to attach a vehicle to their request)
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { accountStatus: true } });
+      if (!user || !['SEEKER_VERIFIED', 'DRIVER_VERIFICATION_PENDING'].includes(user.accountStatus)) {
+        throw new ForbiddenException('Only ride givers can add vehicles');
+      }
+      giver = await this.prisma.rideGiver.create({ data: { userId } });
+    }
     try {
       return await this.prisma.vehicle.create({
         data: { rideGiverId: giver.id, ...dto },

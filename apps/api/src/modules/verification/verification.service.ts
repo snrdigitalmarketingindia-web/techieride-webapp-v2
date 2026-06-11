@@ -93,6 +93,13 @@ export class VerificationService {
       update: { ...docs, status: 'PENDING', rejectionReason: null, reviewedBy: null, reviewedAt: null },
     });
 
+    // Create RideGiver record so the user can add/manage vehicles while pending review
+    await this.prisma.rideGiver.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
+
     await this.prisma.user.update({
       where: { id: userId },
       data: { accountStatus: 'DRIVER_VERIFICATION_PENDING' },
