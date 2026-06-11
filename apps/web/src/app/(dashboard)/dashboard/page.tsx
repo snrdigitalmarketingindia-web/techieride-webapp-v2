@@ -295,9 +295,12 @@ export default function DashboardPage() {
         </div>
       )}
       {user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-blue-800 text-sm font-medium">🚗 Ride Giver verification is in progress</p>
-          <p className="text-blue-700 text-sm">Thank you! Your driving licence and RC are under review. We'll notify you once approved.</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-blue-800 text-sm font-medium">🚗 Ride Giver verification is in progress</p>
+            <p className="text-blue-700 text-sm">Thank you! Your driving licence and RC are under review. We'll notify you once approved.</p>
+          </div>
+          <Link href="/become-giver" className="shrink-0 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700 transition">Check status →</Link>
         </div>
       )}
       {user?.accountStatus === 'REJECTED' && (

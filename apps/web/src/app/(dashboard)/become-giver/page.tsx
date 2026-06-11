@@ -60,6 +60,7 @@ export default function BecomeGiverPage() {
   const [docs, setDocs] = useState({ drivingLicenseUrl: '', rcUrl: '' });
   const [vehicle, setVehicle] = useState({ make: '', model: '', color: '', plateNumber: '', totalSeats: '4', photoUrl: '' });
   const [vehicleId, setVehicleId] = useState<string | null>(null);
+  const [existingVehicles, setExistingVehicles] = useState<any[]>([]);
   const [minioAvailable, setMinioAvailable] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -76,6 +77,9 @@ export default function BecomeGiverPage() {
     verificationApi.getStatus().then(r => {
       const driver = r.data?.driver;
       if (driver?.status === 'REJECTED') setPrevRejectionReason(driver.rejectionReason ?? null);
+    }).catch(() => {});
+    vehiclesApi.getMine().then(r => {
+      setExistingVehicles(r.data || []);
     }).catch(() => {});
   }, []);
 
@@ -358,6 +362,30 @@ export default function BecomeGiverPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
             <h2 className="font-semibold text-gray-900">Add your vehicle</h2>
             <p className="text-xs text-gray-500">Vehicle details are required. Admin will review them together with your documents.</p>
+
+            {existingVehicles.length > 0 && !vehicleSaved && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                <p className="text-sm font-medium text-blue-800">You already have a vehicle on file — select it or add a new one.</p>
+                <div className="space-y-2">
+                  {existingVehicles.map(v => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => {
+                        setVehicleId(v.id);
+                        setVehicle({ make: v.make, model: v.model, color: v.color || '', plateNumber: v.plateNumber, totalSeats: String(v.totalSeats), photoUrl: v.photoUrl || '' });
+                      }}
+                      className="w-full text-left px-4 py-2.5 bg-white border border-blue-300 rounded-lg text-sm hover:bg-blue-50 transition"
+                    >
+                      <span className="font-medium">{v.make} {v.model}</span>
+                      <span className="text-gray-500 ml-2">· {v.plateNumber}</span>
+                      {v.rcVerified && <span className="ml-2 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">RC Verified</span>}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-blue-600">— or fill in the form below to add a new vehicle —</p>
+              </div>
+            )}
 
             {vehicleSaved ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700">

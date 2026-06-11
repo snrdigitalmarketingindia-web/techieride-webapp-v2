@@ -62,6 +62,9 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [approvePickupTime, setApprovePickupTime] = useState('');
   const [showAbortModal, setShowAbortModal] = useState(false);
   const [abortReason, setAbortReason] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelBlockedByPassengers, setCancelBlockedByPassengers] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [editFields, setEditFields] = useState<{ totalSeats?: number; notes?: string; departureTime?: string }>({});
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -177,6 +180,26 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       await reloadRide();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Failed to abort ride');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancel = async () => {
+    setActionLoading('cancel');
+    setError('');
+    setCancelBlockedByPassengers(false);
+    try {
+      await ridesApi.cancel(params.id, cancelReason);
+      setShowCancelModal(false);
+      await reloadRide();
+    } catch (e: any) {
+      const msg: string = e.response?.data?.message || '';
+      if (msg.includes('confirmed seats')) {
+        setCancelBlockedByPassengers(true);
+      } else {
+        setError(msg || 'Failed to cancel ride');
+      }
     } finally {
       setActionLoading(null);
     }
@@ -696,6 +719,12 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                 >
                   ✏️ Edit Ride Details
                 </button>
+                <button
+                  onClick={() => { setCancelReason(''); setCancelBlockedByPassengers(false); setShowCancelModal(true); }}
+                  className="w-full bg-white border border-red-200 text-red-600 py-2.5 rounded-xl text-sm font-medium hover:bg-red-50 transition"
+                >
+                  ✕ Cancel Ride
+                </button>
               </div>
             )}
             {ride.status === 'ONGOING' && (() => {
@@ -877,6 +906,54 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
           </div>
         </div>
       )}
+      {/* Cancel ride modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/40 z-40 flex items-end" onClick={() => setShowCancelModal(false)}>
+          <div className="bg-white rounded-t-2xl w-full p-6 space-y-4 max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-red-700">✕ Cancel ride?</h3>
+              <button onClick={() => setShowCancelModal(false)} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
+            </div>
+            {cancelBlockedByPassengers ? (
+              <div className="space-y-3">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                  <p className="font-medium mb-1">⚠️ Cannot cancel — passengers have confirmed seats</p>
+                  <p>One or more passengers have already confirmed their booking. Please contact the admin to cancel this ride.</p>
+                </div>
+                <a
+                  href={`mailto:support@techieride.in?subject=Cancel%20ride%20request&body=Please%20cancel%20my%20ride%20(ID%3A%20${params.id})`}
+                  className="block w-full text-center bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 transition"
+                >
+                  📧 Email Admin to Cancel
+                </a>
+                <button onClick={() => setShowCancelModal(false)} className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+                  Keep Ride
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-gray-500">This will cancel the ride and notify all passengers.</p>
+                <textarea
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  placeholder="Reason for cancellation (optional)"
+                  rows={3}
+                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+                />
+                {error && <p className="text-xs text-red-600">{error}</p>}
+                <button
+                  onClick={handleCancel}
+                  disabled={actionLoading === 'cancel'}
+                  className="w-full bg-red-600 text-white py-3 rounded-xl font-medium hover:bg-red-700 disabled:opacity-50 transition"
+                >
+                  {actionLoading === 'cancel' ? 'Cancelling…' : 'Yes, cancel this ride'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Abort modal */}
       {showAbortModal && (
         <div className="fixed inset-0 bg-black/40 z-40 flex items-end" onClick={() => setShowAbortModal(false)}>

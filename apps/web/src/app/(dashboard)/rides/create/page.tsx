@@ -172,8 +172,9 @@ export default function CreateRidePage() {
 
   useEffect(() => {
     vehiclesApi.getMine().then((r) => {
-      setVehicles(r.data);
-      if (r.data.length > 0) setForm((f) => ({ ...f, vehicleId: r.data[0].id }));
+      const verified = (r.data || []).filter((v: any) => v.rcVerified);
+      setVehicles(verified);
+      if (verified.length > 0) setForm((f) => ({ ...f, vehicleId: verified[0].id }));
     });
     ridesApi.getGiven('PUBLISHED').then((r) => {
       const active = (r.data || []).find((ride: any) =>

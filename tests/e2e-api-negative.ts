@@ -569,6 +569,127 @@ async function run() {
     });
   }
 
+  // ── Driver verification: re-submit after rejection ────────────────────────
+  console.log(`\n${c.bold}${c.cyan}── Driver Verification Re-submit After Rejection ──${c.reset}`);
+  {
+    const ts2 = Date.now();
+    const acc = await registerAndLogin(`neg_rejreapply_${ts2}@wipro.com`);
+    const client = makeClient(acc.token);
+    // Employee verify
+    await client.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt', selfDeclarationAccepted: true });
+    const ieq = await admin.get('/admin/verification/pending');
+    const ie = ieq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'IDENTITY');
+    if (ie) await admin.patch(`/admin/verification/${ie.id}/review`, { decision: 'APPROVED' });
+    // Submit driver docs
+    const veh1 = await client.post('/vehicles', { make: 'Honda', model: 'City', color: 'White', plateNumber: `VR1${ts2.toString().slice(-6)}`, totalSeats: 4 });
+    await client.patch(`/vehicles/${veh1.data.id}/rc`, { rcUrl: 'mock://rc' });
+    await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl', rcUrl: 'mock://rc', vehicleId: veh1.data.id });
+    const dq = await admin.get('/admin/verification/pending');
+    const de = dq.data.find((v: any) => v.userId === acc.userId && v.verificationType === 'DRIVER');
+    if (de) await admin.patch(`/admin/verification/${de.id}/review`, { decision: 'REJECTED', rejectionReason: 'DL image unclear' });
+
+    await test('After driver rejection, GET /verification/status shows driver.status=REJECTED', async () => {
+      const r = await client.get('/verification/status');
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(r.data.driver?.status === 'REJECTED', `Expected REJECTED, got ${r.data.driver?.status}`);
+      assert(r.data.driver?.rejectionReason === 'DL image unclear', `Expected reason, got ${r.data.driver?.rejectionReason}`);
+    });
+
+    await test('After driver rejection, user can re-submit driver verification', async () => {
+      const veh2 = await client.post('/vehicles', { make: 'Honda', model: 'City', color: 'Blue', plateNumber: `VR2${ts2.toString().slice(-6)}`, totalSeats: 4 });
+      await client.patch(`/vehicles/${veh2.data.id}/rc`, { rcUrl: 'mock://rc2' });
+      const r = await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl2', rcUrl: 'mock://rc2', vehicleId: veh2.data.id });
+      assert(r.status === 201, `Expected 201, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+
+    await test('Duplicate driver re-submit (already pending) → 409', async () => {
+      const veh3 = await client.post('/vehicles', { make: 'Honda', model: 'Jazz', color: 'Red', plateNumber: `VR3${ts2.toString().slice(-6)}`, totalSeats: 4 });
+      await client.patch(`/vehicles/${veh3.data.id}/rc`, { rcUrl: 'mock://rc3' });
+      const r = await client.post('/verification/driver', { drivingLicenseUrl: 'mock://dl3', rcUrl: 'mock://rc3', vehicleId: veh3.data.id });
+      assert(r.status === 409, `Expected 409 (already pending), got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+  }
+
+  // ── Plate number collision ─────────────────────────────────────────────────
+  console.log(`\n${c.bold}${c.cyan}── Plate Number Collision ──${c.reset}`);
+  {
+    const ts3 = Date.now();
+    const acc1 = await registerAndLogin(`neg_plate1_${ts3}@wipro.com`);
+    const c1 = makeClient(acc1.token);
+    await c1.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt', selfDeclarationAccepted: true });
+    const ieq = await admin.get('/admin/verification/pending');
+    const ie = ieq.data.find((v: any) => v.userId === acc1.userId && v.verificationType === 'IDENTITY');
+    if (ie) await admin.patch(`/admin/verification/${ie.id}/review`, { decision: 'APPROVED' });
+    const plateNum = `PLT${ts3.toString().slice(-7)}`;
+    const v1 = await c1.post('/vehicles', { make: 'Maruti', model: 'Swift', color: 'Red', plateNumber: plateNum, totalSeats: 4 });
+    assert(v1.status === 201, `First vehicle create should succeed, got ${v1.status}`);
+
+    await test('Second vehicle with same plate number → 409', async () => {
+      const acc2 = await registerAndLogin(`neg_plate2_${ts3}@wipro.com`);
+      const c2 = makeClient(acc2.token);
+      await c2.post('/verification/identity', { employeeIdUrl: 'mock://emp', govtIdUrl: 'mock://govt', selfDeclarationAccepted: true });
+      const ieq2 = await admin.get('/admin/verification/pending');
+      const ie2 = ieq2.data.find((v: any) => v.userId === acc2.userId && v.verificationType === 'IDENTITY');
+      if (ie2) await admin.patch(`/admin/verification/${ie2.id}/review`, { decision: 'APPROVED' });
+      const v2 = await c2.post('/vehicles', { make: 'Honda', model: 'City', color: 'Blue', plateNumber: plateNum, totalSeats: 4 });
+      assert(v2.status === 409, `Expected 409 for duplicate plate, got ${v2.status}: ${JSON.stringify(v2.data)}`);
+    });
+  }
+
+  // ── Publish ride with unverified vehicle → 403 ────────────────────────────
+  console.log(`\n${c.bold}${c.cyan}── Publish Ride With Unverified Vehicle ──${c.reset}`);
+  {
+    const ts4 = Date.now();
+    const { client: giverE, vehicleId: vehE } = await freshVerifiedGiver('E', `TSE${ts4.toString().slice(-4)}`);
+    // Create a second vehicle that is NOT rc-verified
+    const unverVeh = await giverE.post('/vehicles', { make: 'Honda', model: 'Jazz', color: 'Red', plateNumber: `UNV${ts4.toString().slice(-6)}`, totalSeats: 4 });
+    const unverVehId = unverVeh.data.id;
+
+    await test('Creating a ride with an unverified vehicle → 403', async () => {
+      const r = await giverE.post('/rides', {
+        vehicleId: unverVehId,
+        originName: 'Gachibowli', destinationName: 'Madhapur',
+        originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.38,
+        departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        departureTime: '09:00', totalSeats: 3,
+      });
+      assert(r.status === 403, `Expected 403, got ${r.status}: ${JSON.stringify(r.data)}`);
+    });
+  }
+
+  // ── Giver cancel blocked by confirmed passenger ───────────────────────────
+  console.log(`\n${c.bold}${c.cyan}── Giver Cancel Blocked By Confirmed Passenger ──${c.reset}`);
+  {
+    const ts5 = Date.now();
+    const { client: giverF, vehicleId: vehF } = await freshVerifiedGiver('F', `TSF${ts5.toString().slice(-4)}`);
+    const rideR = await giverF.post('/rides', {
+      vehicleId: vehF, originName: 'Gachibowli', destinationName: 'Madhapur',
+      originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.38,
+      departureDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+      departureTime: '11:00', totalSeats: 3,
+    });
+    const rideId = rideR.data?.id;
+    if (rideId) {
+      await giverF.patch(`/rides/${rideId}/publish`);
+      // Seeker books + giver confirms
+      const seekerAcc = await registerAndLogin(`neg_seeker_cf_${ts5}@wipro.com`, 'RIDE_SEEKER');
+      const seekerC = makeClient(seekerAcc.token);
+      const reqR = await seekerC.post('/ride-requests', { rideId, pickupName: 'Kondapur', pickupLat: 17.46, pickupLng: 78.35 });
+      if (reqR.status === 201) {
+        await giverF.patch(`/ride-requests/${reqR.data.id}/approve`);
+
+        await test('Giver cancel with confirmed passenger → 400 with escalation message', async () => {
+          const r = await giverF.patch(`/rides/${rideId}/cancel`, { reason: 'Test cancel' });
+          assert(r.status === 400, `Expected 400, got ${r.status}`);
+          assert(
+            typeof r.data.message === 'string' && r.data.message.includes('confirmed'),
+            `Expected "confirmed" in message, got: ${r.data.message}`,
+          );
+        });
+      }
+    }
+  }
+
   // ── Results ───────────────────────────────────────────────────────────────
   const passed = results.filter(r => r.passed).length;
   const failed = results.filter(r => !r.passed).length;

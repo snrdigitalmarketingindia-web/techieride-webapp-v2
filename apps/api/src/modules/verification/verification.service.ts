@@ -267,6 +267,15 @@ export class VerificationService {
       }
     }
 
+    // Send driver rejection email
+    if (decision === 'REJECTED' && req.verificationType === 'DRIVER') {
+      await this.email.sendDriverVerificationRejectedEmail(
+        req.user.email,
+        req.user.fullName,
+        rejectionReason || '',
+      ).catch(() => {});
+    }
+
     // ── Send contacts CSV for today's session ──────────────────────────────
     if (decision === 'APPROVED') {
       await this.sendTodayContactsCsv();
