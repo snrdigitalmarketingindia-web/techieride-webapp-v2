@@ -53,6 +53,9 @@ export default function DashboardPage() {
   };
 
   const [identityStatus, setIdentityStatus] = useState<string | null>(null);
+  const [driverRejected, setDriverRejected] = useState(false);
+  const [driverRejectionReason, setDriverRejectionReason] = useState<string | null>(null);
+
   // Check if identity docs have been submitted (for DOCUMENT_VERIFICATION_PENDING banner)
   useEffect(() => {
     if (user?.accountStatus !== 'DOCUMENT_VERIFICATION_PENDING') return;
@@ -60,6 +63,20 @@ export default function DashboardPage() {
       const identity = r.data?.identity;
       setDocsSubmitted(!!(identity?.hasDocuments));
       setIdentityStatus(identity?.status ?? null);
+    }).catch(() => {});
+  }, [user?.accountStatus]);
+
+  // Check if driver verification was rejected (user rolled back to SEEKER_VERIFIED)
+  useEffect(() => {
+    if (user?.accountStatus !== 'SEEKER_VERIFIED') return;
+    verificationApi.getStatus().then((r) => {
+      const driver = r.data?.driver;
+      if (driver?.status === 'REJECTED') {
+        setDriverRejected(true);
+        setDriverRejectionReason(driver.rejectionReason ?? null);
+      } else {
+        setDriverRejected(false);
+      }
     }).catch(() => {});
   }, [user?.accountStatus]);
 
@@ -249,7 +266,26 @@ export default function DashboardPage() {
           </div>
         )
       )}
-      {user?.accountStatus === 'SEEKER_VERIFIED' && (
+      {user?.accountStatus === 'SEEKER_VERIFIED' && driverRejected && (
+        <div className="bg-red-50 border border-red-300 rounded-xl p-4 space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-red-800 text-sm font-semibold">❌ Ride Giver application was not approved</p>
+              {driverRejectionReason && (
+                <p className="text-red-700 text-sm mt-0.5">
+                  <span className="font-medium">Reason:</span> {driverRejectionReason}
+                </p>
+              )}
+              <p className="text-red-600 text-xs mt-1">Please review the reason above and re-submit your application with correct documents.</p>
+            </div>
+            <Link href="/become-giver"
+              className="shrink-0 bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium hover:bg-red-700 transition whitespace-nowrap">
+              Re-apply →
+            </Link>
+          </div>
+        </div>
+      )}
+      {user?.accountStatus === 'SEEKER_VERIFIED' && !driverRejected && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
           <div>
             <p className="text-green-800 text-sm font-medium">✅ Verified Ride Seeker — <strong>{user.trid}</strong></p>

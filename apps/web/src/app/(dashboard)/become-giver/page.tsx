@@ -64,11 +64,19 @@ export default function BecomeGiverPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [prevRejectionReason, setPrevRejectionReason] = useState<string | null>(null);
 
   useEffect(() => {
     api.get('/uploads/status')
       .then(r => setMinioAvailable(r.data.available))
       .catch(() => setMinioAvailable(false));
+  }, []);
+
+  useEffect(() => {
+    verificationApi.getStatus().then(r => {
+      const driver = r.data?.driver;
+      if (driver?.status === 'REJECTED') setPrevRejectionReason(driver.rejectionReason ?? null);
+    }).catch(() => {});
   }, []);
 
   // Must be checked before the account-status guard — fetchProfile() changes
@@ -247,6 +255,14 @@ export default function BecomeGiverPage() {
           </div>
         ))}
       </div>
+
+      {prevRejectionReason && (
+        <div className="bg-red-50 border border-red-300 rounded-xl p-4 space-y-1">
+          <p className="text-red-800 text-sm font-semibold">❌ Your previous application was not approved</p>
+          <p className="text-red-700 text-sm"><span className="font-medium">Reason:</span> {prevRejectionReason}</p>
+          <p className="text-red-600 text-xs">Please address the above and re-submit your documents.</p>
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">{error}</div>
