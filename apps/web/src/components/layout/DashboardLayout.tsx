@@ -57,6 +57,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [_hasHydrated, isAuthenticated, user?.accountStatus, pathname]);
 
+  // Refresh the cached profile when the app regains focus — without this,
+  // admin approvals (e.g. Ride Giver) don't reflect until logout/login.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let last = 0;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - last < 30_000) return; // throttle to once per 30s
+      last = now;
+      fetchProfile().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    // Pending statuses also poll every 60s while the tab stays open
+    const pending = typeof user?.accountStatus === 'string' && user.accountStatus.includes('PENDING');
+    const interval = pending ? setInterval(() => { last = 0; refresh(); }, 60_000) : undefined;
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
+      if (interval) clearInterval(interval);
+    };
+  }, [isAuthenticated, user?.accountStatus]);
+
   // Show loading skeleton while Zustand is hydrating from localStorage
   if (!_hasHydrated) {
     return (

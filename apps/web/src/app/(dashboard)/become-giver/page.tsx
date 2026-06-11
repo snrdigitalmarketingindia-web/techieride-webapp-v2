@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
 import { verificationApi, vehiclesApi, api } from '@/lib/api';
-import { convertToWebp } from '@/lib/convertToWebp';
+import { uploadDocument } from '@/lib/uploadDocument';
 
 const STEPS = ['Requirements', 'Documents', 'Vehicle', 'Submit'];
 
@@ -66,6 +66,10 @@ export default function BecomeGiverPage() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [prevRejectionReason, setPrevRejectionReason] = useState<string | null>(null);
+  // Hooks must all run before any conditional return below — calling useRef
+  // after the early-return guards crashes React when accountStatus changes
+  // mid-flow ("Rendered fewer hooks than expected").
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.get('/uploads/status')
@@ -139,29 +143,19 @@ export default function BecomeGiverPage() {
     );
   }
 
-  const uploadFile = async (file: File, docType: string): Promise<string> => {
-    const webp = await convertToWebp(file);
-    const form = new FormData();
-    form.append('file', webp);
-    const { data } = await api.post(`/uploads/document?type=${docType}`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data.url;
-  };
-
   const handleFile = async (file: File, docType: string) => {
     setUploading(docType);
     setError('');
     try {
-      const url = await uploadFile(file, docType);
+      const url = await uploadDocument(file, docType);
       const keyMap: Record<string, keyof typeof docs> = {
         driving_license: 'drivingLicenseUrl',
         rc: 'rcUrl',
       };
       const key = keyMap[docType];
       if (key) setDocs(prev => ({ ...prev, [key]: url }));
-    } catch {
-      setError('Upload failed. Make sure document storage is running.');
+    } catch (e: any) {
+      setError(e?.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(null);
     }
@@ -171,10 +165,10 @@ export default function BecomeGiverPage() {
     setUploading('vehicle_photo');
     setError('');
     try {
-      const url = await uploadFile(file, 'vehicle_photo');
+      const url = await uploadDocument(file, 'vehicle_photo');
       setVehicle(v => ({ ...v, photoUrl: url }));
-    } catch {
-      setError('Photo upload failed. Make sure document storage is running.');
+    } catch (e: any) {
+      setError(e?.message || 'Photo upload failed. Please try again.');
     } finally {
       setUploading(null);
     }
@@ -227,8 +221,10 @@ export default function BecomeGiverPage() {
         rcUrl: docs.rcUrl,
         vehicleId,
       });
-      await fetchProfile();
+      // Show success screen first — fetchProfile() flips accountStatus which
+      // re-renders the guard branches, so `submitted` must already be true.
       setSubmitted(true);
+      fetchProfile().catch(() => {});
     } catch (e: any) {
       const msg = e.response?.data?.message;
       setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Submission failed. Please try again.');
@@ -239,7 +235,6 @@ export default function BecomeGiverPage() {
 
   const canProceedStep1 = docs.drivingLicenseUrl && docs.rcUrl;
   const vehicleSaved = !!vehicleId;
-  const photoInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="max-w-lg mx-auto space-y-6">

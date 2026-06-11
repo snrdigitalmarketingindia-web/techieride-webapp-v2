@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -10,6 +10,12 @@ export const metadata: Metadata = {
   description: 'Safe, verified carpooling for Hyderabad IT professionals',
   manifest: '/manifest.json',
   icons: { icon: '/TR_Logo_black.png', apple: '/TR_Logo_black.png' },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

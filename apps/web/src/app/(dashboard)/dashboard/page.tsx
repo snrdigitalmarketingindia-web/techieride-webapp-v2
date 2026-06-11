@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth.store';
-import { ridesApi, gamificationApi, requestsApi, verificationApi } from '@/lib/api';
+import { ridesApi, gamificationApi, requestsApi, verificationApi, ratingsApi } from '@/lib/api';
 import { RideCard } from '@/components/ui/RideCard';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideStatus, EcoLevel } from '@techieride/shared';
@@ -37,6 +37,7 @@ export default function DashboardPage() {
   // True when user has submitted identity docs but admin hasn't approved yet
   const [docsSubmitted, setDocsSubmitted] = useState(false);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
+  const [pendingRatings, setPendingRatings] = useState<any[]>([]);
   const [processing, setProcessing] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -57,6 +58,10 @@ export default function DashboardPage() {
   const [driverRejectionReason, setDriverRejectionReason] = useState<string | null>(null);
 
   // Check if identity docs have been submitted (for DOCUMENT_VERIFICATION_PENDING banner)
+  useEffect(() => {
+    ratingsApi.getPending().then(r => setPendingRatings(r.data ?? [])).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (user?.accountStatus !== 'DOCUMENT_VERIFICATION_PENDING') return;
     verificationApi.getStatus().then((r) => {
@@ -294,6 +299,18 @@ export default function DashboardPage() {
           <Link href="/become-giver" className="shrink-0 text-sm text-green-700 font-medium underline">Become a Giver →</Link>
         </div>
       )}
+      {pendingRatings.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+          <p className="text-amber-800 text-sm font-medium">⭐ Rate your recent ride{pendingRatings.length > 1 ? 's' : ''}</p>
+          {pendingRatings.slice(0, 3).map((r: any) => (
+            <Link key={r.rideId} href={`/rides/${r.rideId}`}
+              className="flex items-center justify-between gap-2 bg-white border border-amber-100 rounded-lg px-3 py-2 hover:bg-amber-100 transition">
+              <span className="text-xs text-gray-700 truncate">{r.originName} → {r.destinationName}</span>
+              <span className="shrink-0 text-xs text-amber-700 font-medium">Rate →</span>
+            </Link>
+          ))}
+        </div>
+      )}
       {user?.accountStatus === 'DRIVER_VERIFICATION_PENDING' && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start justify-between gap-3">
           <div>
@@ -475,7 +492,7 @@ export default function DashboardPage() {
                             }}
                             disabled={processing === req.id}
                             className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap">
-                            ✅ Approve
+                            ✅ Approve…
                           </button>
                           <button
                             onClick={() => { setRejectingId(req.id); setRejectReason(''); setApprovingId(null); }}
@@ -500,7 +517,7 @@ export default function DashboardPage() {
                             onClick={() => handleApprove(req.id, ride.id, approvePickupTime || undefined)}
                             disabled={processing === req.id}
                             className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
-                            ✅ Confirm &amp; Approve
+                            ✅ Confirm
                           </button>
                           <button onClick={() => setApprovingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1 shrink-0">Cancel</button>
                         </div>

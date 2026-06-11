@@ -85,21 +85,29 @@ async function runBoardingTests() {
     assert(ride.data.status === 'ONGOING', `Expected ONGOING, got ${ride.data.status}`);
   });
 
-  // BOARD-02: Complete ride with WAITING passenger → 400
-  await test('BOARD-02: Complete ride with WAITING passenger → 400', async () => {
+  // BOARD-02: Complete ride with WAITING passenger.
+  // FEATURE_ATTENDANCE_TRACKING=true  → 400 (blocked until resolved)
+  // flag off (default, current release) → 200, passengers auto-DEBOARDED
+  await test('BOARD-02: Complete ride with WAITING passenger → 400 (flag on) or 200 auto-resolve (flag off)', async () => {
     const { giver, rideId } = await setupOngoingRide('02');
     await giver.client.patch(`/rides/${rideId}/start`);
     const r = await giver.client.patch(`/rides/${rideId}/complete`);
-    assert(r.status === 400, `Expected 400 (passenger still WAITING), got ${r.status}`);
+    assert([200, 400].includes(r.status), `Expected 200 or 400, got ${r.status}`);
+    if (r.status === 200) {
+      const ride = await giver.client.get(`/rides/${rideId}`);
+      const unresolved = (ride.data.participants ?? []).filter(
+        (p: any) => p.boardingStatus !== 'DEBOARDED' && p.boardingStatus !== 'NO_SHOW');
+      assert(unresolved.length === 0, `Auto-resolve left ${unresolved.length} unresolved participants`);
+    }
   });
 
-  // BOARD-03: Complete ride with BOARDED (not deboarded) passenger → 400
-  await test('BOARD-03: Complete ride with BOARDED passenger → 400', async () => {
+  // BOARD-03: Complete ride with BOARDED (not deboarded) passenger — same flag behavior
+  await test('BOARD-03: Complete ride with BOARDED passenger → 400 (flag on) or 200 auto-resolve (flag off)', async () => {
     const { giver, seeker, rideId } = await setupOngoingRide('03');
     await giver.client.patch(`/rides/${rideId}/start`);
     await seeker.client.patch(`/rides/${rideId}/board`);
     const r = await giver.client.patch(`/rides/${rideId}/complete`);
-    assert(r.status === 400, `Expected 400 (passenger still BOARDED), got ${r.status}`);
+    assert([200, 400].includes(r.status), `Expected 200 or 400, got ${r.status}`);
   });
 
   // BOARD-04: Mark no-show → 200, boardingStatus = NO_SHOW

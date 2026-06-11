@@ -314,16 +314,25 @@ export class RidesService {
       throw new BadRequestException('Only ONGOING rides can be completed');
     }
 
-    // Block completion until ALL participants have deboarded
     const boardingCheck = await this.prisma.rideParticipant.findMany({ where: { rideId } });
     // Allow DEBOARDED or NO_SHOW — both count as resolved
     const notYetResolved = boardingCheck.filter(
       p => p.boardingStatus !== 'DEBOARDED' && p.boardingStatus !== 'NO_SHOW'
     );
     if (notYetResolved.length > 0) {
-      throw new BadRequestException(
-        `Cannot complete ride — ${notYetResolved.length} passenger(s) have not deboarded yet. Mark them as no-show if they didn't board.`
-      );
+      if (process.env.FEATURE_ATTENDANCE_TRACKING === 'true') {
+        // Attendance tracking on: block completion until all passengers resolved
+        throw new BadRequestException(
+          `Cannot complete ride — ${notYetResolved.length} passenger(s) have not deboarded yet. Mark them as no-show if they didn't board.`
+        );
+      }
+      // Attendance tracking off (current release): auto-resolve so the giver
+      // can complete without per-passenger boarding actions. DEBOARDED (not
+      // NO_SHOW) so nobody takes a trust-score penalty.
+      await this.prisma.rideParticipant.updateMany({
+        where: { id: { in: notYetResolved.map(p => p.id) } },
+        data: { boardingStatus: 'DEBOARDED', deboardedAt: new Date() },
+      });
     }
 
     const [updated] = await this.prisma.$transaction([

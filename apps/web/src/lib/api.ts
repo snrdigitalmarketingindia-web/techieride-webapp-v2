@@ -191,6 +191,7 @@ export const ratingsApi = {
   submit: (data: { rideId: string; rateeId: string; score: number; comment?: string }) =>
     api.post('/ratings', data),
   getRideRatings: (rideId: string) => api.get(`/ratings/ride/${rideId}`),
+  getPending: () => api.get('/ratings/pending'),
   getUserStats: (userId: string) => api.get(`/ratings/stats/${userId}`),
 };
 

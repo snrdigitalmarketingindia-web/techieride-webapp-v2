@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { vehiclesApi, verificationApi, api, usersApi } from '@/lib/api';
-import { convertToWebp } from '@/lib/convertToWebp';
+import { uploadDocument } from '@/lib/uploadDocument';
 import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 
 // Returns a mismatch message or null if RC data matches vehicle form
@@ -131,15 +131,8 @@ export default function ProfilePage() {
     api.get('/uploads/status').then(r => setMinioAvailable(r.data.available)).catch(() => setMinioAvailable(false));
   }, []);
 
-  const uploadFile = async (file: File, docType: string): Promise<string> => {
-    const webp = await convertToWebp(file);
-    const form = new FormData();
-    form.append('file', webp);
-    const { data } = await api.post(`/uploads/document?type=${docType}`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data.url;
-  };
+  const uploadFile = (file: File, docType: string): Promise<string> =>
+    uploadDocument(file, docType);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
     const file = e.target.files?.[0];

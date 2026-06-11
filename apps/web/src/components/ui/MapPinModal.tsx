@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { OLA_STYLE_URL } from '@/lib/olamaps';
 import { reverseGeocodeWithCache } from '@/lib/geo';
+import { FEATURES } from '@/lib/featureFlags';
 
 export interface MapLocation {
   lat: number;
@@ -31,7 +32,128 @@ interface MapPinModalProps {
 const HYD_LAT = 17.4065;
 const HYD_LNG = 78.4772;
 
-export function MapPinModal({
+/**
+ * No-map fallback (MAPS_ENABLED=false): pick a location by address search
+ * (autocomplete returns coordinates) or GPS, no map tiles involved.
+ */
+function SearchPinModal({ title, defaultAlias = '', onConfirm, onClose }: MapPinModalProps) {
+  const [query,     setQuery]     = useState('');
+  const [results,   setResults]   = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [picked,    setPicked]    = useState<{ lat: number; lng: number; address: string } | null>(null);
+  const [alias,     setAlias]     = useState(defaultAlias);
+  const [error,     setError]     = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const search = (input: string) => {
+    setQuery(input);
+    setPicked(null);
+    clearTimeout(debounceRef.current);
+    if (input.trim().length < 3) { setResults([]); return; }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/maps/autocomplete?input=${encodeURIComponent(input.trim())}`);
+        const data = await res.json();
+        setResults((data.predictions ?? []).filter((p: any) => p.lat && p.lng));
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 350);
+  };
+
+  const useGPS = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const address = await reverseGeocodeWithCache(lat, lng);
+        setPicked({ lat, lng, address: address || `${lat.toFixed(5)}, ${lng.toFixed(5)}` });
+        setResults([]);
+        setQuery('');
+      },
+      () => setError('Could not get your location'),
+    );
+  };
+
+  const handleConfirm = () => {
+    if (!picked)       { setError('Please search and select a location'); return; }
+    if (!alias.trim()) { setError('Please give this location a name (e.g. Home, Office)'); return; }
+    onConfirm({ ...picked, alias: alias.trim() });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 bg-white shrink-0">
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-xl leading-none">←</button>
+        <h2 className="text-base font-semibold text-gray-900 flex-1">{title}</h2>
+        <button onClick={useGPS}
+          className="text-xs bg-brand-50 text-brand-700 border border-brand-200 px-3 py-1.5 rounded-lg hover:bg-brand-100 transition">
+          📍 Use my location
+        </button>
+      </div>
+
+      <div className="flex-1 px-4 py-4 space-y-3 overflow-y-auto">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => search(e.target.value)}
+          placeholder="Search for an area, landmark or address…"
+          autoFocus
+          className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+        />
+        {searching && <p className="text-xs text-gray-400">Searching…</p>}
+        {results.map((r: any, i: number) => (
+          <button key={r.place_id || i}
+            onClick={() => { setPicked({ lat: r.lat, lng: r.lng, address: r.description }); setResults([]); setQuery(r.description); }}
+            className="w-full text-left bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 hover:bg-brand-50 transition">
+            <p className="text-sm text-gray-800 font-medium">{r.structured_formatting?.main_text}</p>
+            <p className="text-xs text-gray-500 line-clamp-1">{r.structured_formatting?.secondary_text}</p>
+          </button>
+        ))}
+        {picked && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+            <p className="text-xs text-gray-500 mb-0.5">📍 Selected location</p>
+            <p className="text-sm text-gray-800 font-medium line-clamp-2">{picked.address}</p>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border-t border-gray-200 px-4 py-4 space-y-3 shrink-0">
+        <div>
+          <label className="text-xs font-medium text-gray-700 mb-1 block">
+            Alias / Name <span className="text-gray-400 font-normal">(e.g. Home, Office, Mom&apos;s house)</span>
+          </label>
+          <input
+            type="text"
+            value={alias}
+            onChange={(e) => setAlias(e.target.value)}
+            placeholder="Give this location a name…"
+            maxLength={40}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+          />
+        </div>
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <button
+          onClick={handleConfirm}
+          disabled={!picked}
+          className="w-full bg-brand-600 text-white text-sm font-medium py-2.5 rounded-xl hover:bg-brand-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          ✅ Confirm Location
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function MapPinModal(props: MapPinModalProps) {
+  if (!FEATURES.MAPS_ENABLED) return <SearchPinModal {...props} />;
+  return <MapPinModalInner {...props} />;
+}
+
+function MapPinModalInner({
   title,
   defaultAlias = '',
   initialLat,

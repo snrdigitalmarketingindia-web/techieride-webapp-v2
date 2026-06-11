@@ -795,11 +795,15 @@ async function run() {
       assert(r.status === 400, `Expected 400 for non-COMPLETED ride, got ${r.status}`);
     });
 
-    await test('GET /ratings/ride/:rideId returns ratings array', async () => {
+    await test('GET /ratings/ride/:rideId returns only the caller\'s own ratings (privacy)', async () => {
       const r = await giver.client.get(`/ratings/ride/${rideId}`);
       assert(r.status === 200, `Expected 200, got ${r.status}`);
       assert(Array.isArray(r.data), 'Expected array');
-      assert(r.data.length >= 2, `Expected at least 2 ratings, got ${r.data.length}`);
+      assert(r.data.length >= 1, `Expected at least the giver's own rating, got ${r.data.length}`);
+      const foreign = r.data.filter((x: any) => x.raterId !== giver.userId);
+      assert(foreign.length === 0, `Privacy leak: endpoint returned ${foreign.length} ratings by other users`);
+      const withComment = r.data.filter((x: any) => 'comment' in x);
+      assert(withComment.length === 0, 'Privacy: comment field must not be exposed on this endpoint');
     });
 
     await test('GET /ratings/stats/:userId returns averageRating and count', async () => {

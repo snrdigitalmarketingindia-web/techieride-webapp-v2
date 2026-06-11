@@ -1,5 +1,6 @@
 'use client';
 
+import { FEATURES } from '@/lib/featureFlags';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
@@ -61,12 +62,18 @@ export default function TrackingPage({ params }: { params: { rideId: string } })
         </div>
       )}
 
-      <div className="h-[50vh] rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-        <LiveTrackingMap
-          rideId={params.rideId}
-          isGiver={isGiver}
-        />
-      </div>
+      {FEATURES.MAPS_ENABLED ? (
+        <div className="h-[50vh] rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+          <LiveTrackingMap
+            rideId={params.rideId}
+            isGiver={isGiver}
+          />
+        </div>
+      ) : (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-sm text-gray-500">
+          🗺️ Live map is not available in this release — use the contact cards below to coordinate.
+        </div>
+      )}
 
       {/* Contact cards — giver sees seekers, seeker sees giver */}
       {ride && (

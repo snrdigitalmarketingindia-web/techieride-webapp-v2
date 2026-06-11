@@ -189,7 +189,7 @@ export default function CreateRidePage() {
   const submit = async () => {
     if (!form.vehicleId) { setError('Please select a vehicle'); return; }
     if (!form.originName || !form.destinationName) { setError('Please fill in origin and destination'); return; }
-    if (!originPinned) { setError('Please pin your pickup location on the map to set accurate coordinates'); return; }
+    if (!originPinned) { setError('Please pin your start location on the map to set accurate coordinates'); return; }
     if (!destPinned) { setError('Please pin your destination on the map to set accurate coordinates'); return; }
     if (!isAtLeast15MinAhead(form.departureDate, form.departureTime)) {
       setError('Departure time must be at least 15 minutes from now'); return;
@@ -298,7 +298,7 @@ export default function CreateRidePage() {
             </p>
           )}
           <div>
-            <label className="text-sm font-medium text-gray-700">📍 From (Pickup area)</label>
+            <label className="text-sm font-medium text-gray-700">📍 From (Start location)</label>
             <button
               type="button"
               onClick={() => setMapModal('origin')}
@@ -377,7 +377,7 @@ export default function CreateRidePage() {
       {/* Map pin modal for origin / destination */}
       {mapModal && (
         <MapPinModal
-          title={mapModal === 'origin' ? 'Set Pickup Location' : 'Set Destination'}
+          title={mapModal === 'origin' ? 'Set Start Location' : 'Set Destination'}
           defaultAlias={mapModal === 'origin' ? (form.originName || '') : (form.destinationName || '')}
           initialLat={mapModal === 'origin' ? (form.originLat || undefined) : (form.destinationLat || undefined)}
           initialLng={mapModal === 'origin' ? (form.originLng || undefined) : (form.destinationLng || undefined)}

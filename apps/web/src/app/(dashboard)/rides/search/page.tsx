@@ -1,5 +1,6 @@
 'use client';
 
+import { FEATURES } from '@/lib/featureFlags';
 import { useState, useEffect, useRef } from 'react';
 import { ridesApi, requestsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -584,7 +585,7 @@ export default function RideSearchPage() {
       </div>
 
       {/* View toggle */}
-      {rides.length > 0 && (
+      {FEATURES.MAPS_ENABLED && rides.length > 0 && (
         <div className="flex bg-gray-100 rounded-lg p-1">
           <button onClick={() => setView('list')} className={`flex-1 py-1.5 text-sm font-medium rounded-md transition ${view === 'list' ? 'bg-white shadow text-gray-900' : 'text-gray-500'}`}>
             📋 List
@@ -596,7 +597,7 @@ export default function RideSearchPage() {
       )}
 
       {/* Map view */}
-      {view === 'map' && rides.length > 0 && (
+      {FEATURES.MAPS_ENABLED && view === 'map' && rides.length > 0 && (
         <div className="h-80 rounded-xl overflow-hidden border border-gray-200">
           <RideMap
             rides={rides}

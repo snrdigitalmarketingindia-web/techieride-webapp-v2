@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { verificationApi, api } from '@/lib/api';
-import { convertToWebp } from '@/lib/convertToWebp';
+import { uploadDocument } from '@/lib/uploadDocument';
 
 const STEPS = ['Requirements', 'Company ID', 'Govt ID', 'Declaration', 'Submit'];
 
@@ -156,16 +156,10 @@ export default function VerifyIdentityPage() {
     setUploading(true);
     setError('');
     try {
-      const webp = await convertToWebp(file).catch(() => file);
-      const form = new FormData();
-      form.append('file', webp);
-      const { data } = await api.post(`/uploads/document?type=${type}`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setUrl(data.url);
+      const url = await uploadDocument(file, type);
+      setUrl(url);
     } catch (err: any) {
-      const msg = err?.response?.data?.message;
-      setError(Array.isArray(msg) ? msg.join(', ') : msg || 'Upload failed. Please try again.');
+      setError(err?.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);
     }

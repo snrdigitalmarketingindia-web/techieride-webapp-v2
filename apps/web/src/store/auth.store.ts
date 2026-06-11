@@ -107,10 +107,16 @@ export const useAuthStore = create<AuthState>()(
           const { data } = await usersApi.getMe();
           set({ user: data, isAuthenticated: true });
         } catch (e: any) {
-          // 401 = not authenticated, clear silently
-          // Other errors (network, 500) — clear auth but let caller surface the error
-          set({ user: null, isAuthenticated: false });
-          if (e?.response?.status !== 401) throw e;
+          // 401 = not authenticated, clear silently.
+          // Network/5xx errors keep the cached session (background refreshes
+          // must not log the user out on a flaky connection) and rethrow.
+          if (e?.response?.status === 401) {
+            set({ user: null, isAuthenticated: false });
+            return;
+          }
+          // Initial login (no cached user yet) still needs a clean failure state
+          if (!get().user) set({ user: null, isAuthenticated: false });
+          throw e;
         }
       },
     }),

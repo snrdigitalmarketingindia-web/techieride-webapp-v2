@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideCard } from '@/components/ui/RideCard';
 import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
+import { FEATURES } from '@/lib/featureFlags';
 
 export default function MyRidesPage() {
   const { user, _hasHydrated } = useAuthStore();
@@ -437,7 +438,7 @@ export default function MyRidesPage() {
             // Per-passenger No-Show buttons — built here so they render INLINE on the
             // passenger row in RideCard rather than in a separate duplicate section below.
             const participantActionsMap: Record<string, React.ReactNode> = {};
-            if (tab === 'given' && ride.status === 'ONGOING') {
+            if (FEATURES.ATTENDANCE_TRACKING_ENABLED && tab === 'given' && ride.status === 'ONGOING') {
               for (const p of (ride.participants ?? [])) {
                 if (p.boardingStatus !== 'WAITING') continue;
                 const reqId  = p.request?.id;
@@ -540,7 +541,7 @@ export default function MyRidesPage() {
                               }}
                               disabled={processing === req.id}
                               className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap">
-                              ✅ Approve
+                              ✅ Approve…
                             </button>
                             <button
                               onClick={() => { setRejectingId(req.id); setRejectReason(''); setApprovingId(null); }}
@@ -565,7 +566,7 @@ export default function MyRidesPage() {
                               onClick={() => handleApprove(req.id, ride.id, approvePickupTime || undefined)}
                               disabled={processing === req.id}
                               className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
-                              ✅ Confirm &amp; Approve
+                              ✅ Confirm
                             </button>
                             <button onClick={() => setApprovingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1 shrink-0">Cancel</button>
                           </div>
@@ -600,14 +601,14 @@ export default function MyRidesPage() {
                   const unresolvedPassengers = participants.filter(
                     (p: any) => p.boardingStatus !== 'DEBOARDED' && p.boardingStatus !== 'NO_SHOW'
                   );
-                  const canComplete = unresolvedPassengers.length === 0;
+                  const canComplete = !FEATURES.ATTENDANCE_TRACKING_ENABLED || unresolvedPassengers.length === 0;
 
                   return (
                     <div className="space-y-2">
                       {/* Warning text only — No-Show buttons are now inline on each
                           passenger row via participantActionsMap, so we don't repeat
                           the passenger names here. */}
-                      {tab === 'given' && ride.status === 'ONGOING' && waitingPassengers.length > 0 && (
+                      {FEATURES.ATTENDANCE_TRACKING_ENABLED && tab === 'given' && ride.status === 'ONGOING' && waitingPassengers.length > 0 && (
                         <p className="text-xs text-red-500 font-medium">
                           ⚠️ {waitingPassengers.length} passenger(s) still waiting — tap 👻 No-Show on their row above to complete the ride
                         </p>

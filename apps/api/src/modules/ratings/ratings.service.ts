@@ -83,15 +83,11 @@ export class RatingsService {
       data: { rideId, raterId, rateeId, score, comment },
     });
 
-    // Notify ratee
-    const rater = await this.prisma.user.findUnique({
-      where: { id: raterId },
-      select: { fullName: true },
-    });
+    // Notify ratee — rater identity stays private (anonymous rating policy)
     await this.notifications.create(rateeId, {
       type: NotificationType.RATING_RECEIVED,
       title: 'You received a new rating',
-      body: `${rater?.fullName ?? 'Someone'} gave you ${score} star${score !== 1 ? 's' : ''}`,
+      body: `A co-traveller gave you ${score} star${score !== 1 ? 's' : ''}`,
       data: { ratingId: rating.id, rideId, score },
     });
 
@@ -101,18 +97,81 @@ export class RatingsService {
     return { ratingId: rating.id, message: 'Rating submitted successfully' };
   }
 
-  async getRideRatings(rideId: string) {
+  /**
+   * Privacy: individual ratings are never exposed to other users.
+   * Returns only the ratings the CALLER submitted for this ride — that's all
+   * the frontend needs (to show "✅ Rated" on already-rated participants).
+   * Admin moderation uses the admin module, not this endpoint.
+   */
+  async getRideRatings(rideId: string, callerId: string) {
     const ride = await this.prisma.ride.findUnique({ where: { id: rideId } });
     if (!ride) throw new NotFoundException('Ride not found');
 
     return this.prisma.rideRating.findMany({
-      where: { rideId },
-      include: {
-        rater: { select: { id: true, fullName: true } },
+      where: { rideId, raterId: callerId },
+      select: {
+        id: true,
+        rideId: true,
+        raterId: true,
+        rateeId: true,
+        score: true,
+        createdAt: true,
         ratee: { select: { id: true, fullName: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  /**
+   * Rides completed in the last 14 days where the caller still has someone
+   * left to rate. Powers the "Rate your ride" prompt on the dashboard.
+   */
+  async getPendingRatings(userId: string) {
+    const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+    const rides = await this.prisma.ride.findMany({
+      where: {
+        status: 'COMPLETED',
+        completedAt: { gte: since },
+        OR: [
+          { rideGiver: { userId } },
+          { requests: { some: { status: 'COMPLETED', seeker: { userId } } } },
+        ],
+      },
+      include: {
+        rideGiver: { include: { user: { select: { id: true, fullName: true } } } },
+        requests: {
+          where: { status: 'COMPLETED' },
+          include: { seeker: { include: { user: { select: { id: true, fullName: true } } } } },
+        },
+        ratings: { where: { raterId: userId }, select: { rateeId: true } },
+      },
+      orderBy: { completedAt: 'desc' },
+      take: 20,
+    });
+
+    return rides
+      .map((ride) => {
+        const giverUser = ride.rideGiver.user;
+        const seekerUsers = ride.requests
+          .map((r) => r.seeker?.user)
+          .filter(Boolean) as { id: string; fullName: string }[];
+
+        const counterparts = giverUser.id === userId
+          ? seekerUsers
+          : [giverUser, ...seekerUsers.filter((s) => s.id !== userId)];
+
+        const rated = new Set(ride.ratings.map((r) => r.rateeId));
+        const unrated = counterparts.filter((c) => !rated.has(c.id));
+        return {
+          rideId: ride.id,
+          originName: ride.originName,
+          destinationName: ride.destinationName,
+          completedAt: ride.completedAt,
+          unrated: unrated.map((u) => ({ id: u.id, fullName: u.fullName })),
+        };
+      })
+      .filter((r) => r.unrated.length > 0);
   }
 
   async getUserRatingStats(userId: string) {

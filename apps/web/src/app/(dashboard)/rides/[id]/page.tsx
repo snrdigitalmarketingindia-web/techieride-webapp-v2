@@ -9,6 +9,7 @@ import { ridesApi, requestsApi, ratingsApi } from '@/lib/api';
 import { SavedLocationPicker, type PickedLocation } from '@/components/ui/SavedLocationPicker';
 import { useAuthStore } from '@/store/auth.store';
 import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
+import { FEATURES } from '@/lib/featureFlags';
 
 const BOARDING_COLORS: Record<string, string> = {
   WAITING:   'bg-yellow-100 text-yellow-700',
@@ -410,7 +411,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
       </div>
 
       {/* Route map */}
-      <div className="h-48 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+      {FEATURES.MAPS_ENABLED && <div className="h-48 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
         <RideMap
           rides={[]}
           originLat={ride.originLat}
@@ -418,7 +419,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
           destLat={ride.destinationLat}
           destLng={ride.destinationLng}
         />
-      </div>
+      </div>}
 
       {/* Ride info */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
@@ -550,7 +551,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                       disabled={actionLoading === `approve-${req.id}` || actionLoading === `reject-${req.id}`}
                       className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg hover:bg-brand-700 disabled:opacity-50 whitespace-nowrap"
                     >
-                      ✅ Approve
+                      ✅ Approve…
                     </button>
                     <button
                       onClick={() => { setRejectingReqId(req.id); setRejectReason(''); setApprovingId(null); }}
@@ -576,7 +577,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                       onClick={() => handleApproveRequest(req.id, approvePickupTime || undefined)}
                       disabled={actionLoading === `approve-${req.id}`}
                       className="text-xs bg-brand-600 text-white px-2.5 py-1 rounded-lg hover:bg-brand-700 disabled:opacity-50 shrink-0">
-                      ✅ Confirm &amp; Approve
+                      ✅ Confirm
                     </button>
                     <button onClick={() => setApprovingId(null)} className="text-xs text-gray-400 hover:text-gray-600 px-1 shrink-0">Cancel</button>
                   </div>
@@ -674,7 +675,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                     {!isMyRide && eta && <p className="text-xs text-gray-400">🕐 Est. ~{eta}</p>}
                   </div>
                   {/* Status badge + no-show button stacked on right */}
-                  <div className="flex flex-col items-end gap-1 shrink-0">
+                  {FEATURES.ATTENDANCE_TRACKING_ENABLED && <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${BOARDING_COLORS[status]}`}>
                       {BOARDING_LABELS[status]}
                     </span>
@@ -687,7 +688,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                         {actionLoading === `noshow-${seekerUserId}` ? '…' : '👻 No-Show'}
                       </button>
                     )}
-                  </div>
+                  </div>}
                 </div>
               );
             })}
@@ -728,9 +729,9 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
               </div>
             )}
             {ride.status === 'ONGOING' && (() => {
-              const allResolved = ride.participants?.every(
+              const allResolved = !FEATURES.ATTENDANCE_TRACKING_ENABLED || (ride.participants?.every(
                 (p: any) => p.boardingStatus === 'DEBOARDED' || p.boardingStatus === 'NO_SHOW'
-              ) ?? true;
+              ) ?? true);
               const hasUnresolved = ride.participants?.some(
                 (p: any) => p.boardingStatus === 'WAITING' || p.boardingStatus === 'BOARDED'
               );
@@ -800,7 +801,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                   className="flex-1 text-center bg-white border border-gray-300 text-gray-700 py-3 rounded-xl text-sm font-medium hover:bg-gray-50 transition shadow">
                   📍 Track
                 </Link>
-                {myStatus === 'WAITING' && (
+                {FEATURES.ATTENDANCE_TRACKING_ENABLED && myStatus === 'WAITING' && (
                   <button
                     onClick={handleBoard}
                     disabled={actionLoading === 'board'}
@@ -809,7 +810,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                     {actionLoading === 'board' ? '…' : '🚗 I\'ve Boarded'}
                   </button>
                 )}
-                {myStatus === 'BOARDED' && (
+                {FEATURES.ATTENDANCE_TRACKING_ENABLED && myStatus === 'BOARDED' && (
                   <button
                     onClick={handleDeboard}
                     disabled={actionLoading === 'deboard'}
@@ -818,7 +819,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
                     {actionLoading === 'deboard' ? '…' : '✅ I\'ve Arrived'}
                   </button>
                 )}
-                {(myStatus === 'DEBOARDED' || myStatus === 'NO_SHOW') && (
+                {FEATURES.ATTENDANCE_TRACKING_ENABLED && (myStatus === 'DEBOARDED' || myStatus === 'NO_SHOW') && (
                   <div className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl text-sm font-medium text-center">
                     {BOARDING_LABELS[myStatus]}
                   </div>

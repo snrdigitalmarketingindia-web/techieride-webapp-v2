@@ -42,8 +42,16 @@ export class RatingsController {
   }
 
   @Get('ride/:rideId')
-  getRideRatings(@Param('rideId') rideId: string) {
-    return this.ratingsService.getRideRatings(rideId);
+  getRideRatings(
+    @Param('rideId') rideId: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.ratingsService.getRideRatings(rideId, userId);
+  }
+
+  @Get('pending')
+  getPending(@CurrentUser('id') userId: string) {
+    return this.ratingsService.getPendingRatings(userId);
   }
 
   @Get('stats/:userId')
