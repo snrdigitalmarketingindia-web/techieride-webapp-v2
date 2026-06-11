@@ -62,8 +62,13 @@ export class RidesService {
   ) {}
 
   async create(userId: string, dto: CreateRideDto) {
-    const giver = await this.prisma.rideGiver.findUnique({ where: { userId } });
-    if (!giver) throw new ForbiddenException('You must be a Ride Giver to create rides');
+    const giver = await this.prisma.rideGiver.findUnique({
+      where: { userId },
+      include: { user: { select: { accountStatus: true } } },
+    });
+    if (!giver || giver.user.accountStatus !== 'DRIVER_VERIFIED') {
+      throw new ForbiddenException('You must be a verified Ride Giver to create rides');
+    }
 
     const vehicle = await this.prisma.vehicle.findFirst({
       where: { id: dto.vehicleId, rideGiverId: giver.id, isActive: true },
