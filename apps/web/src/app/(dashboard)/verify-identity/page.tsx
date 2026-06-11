@@ -9,7 +9,7 @@ import { convertToWebp } from '@/lib/convertToWebp';
 
 const STEPS = ['Requirements', 'Company ID', 'Govt ID', 'Declaration', 'Submit'];
 
-const GOVT_ID_TYPES = ['Aadhaar Card', 'PAN Card', 'Passport', 'Voter ID', 'Driving Licence'];
+const GOVT_ID_TYPES = ['Passport', 'Voter ID', 'Driving Licence'];
 
 // ── Reusable upload button ─────────────────────────────────────────────────
 function UploadBtn({
@@ -263,7 +263,7 @@ export default function VerifyIdentityPage() {
               <span className="text-2xl">🪪</span>
               <div>
                 <p className="text-sm font-medium text-gray-800">Government ID (address proof)</p>
-                <p className="text-xs text-gray-500">Aadhaar Card, PAN Card, Passport, Voter ID, or Driving Licence</p>
+                <p className="text-xs text-gray-500">Passport, Voter ID, or Driving Licence</p>
               </div>
             </div>
             <div className="flex gap-3 items-start">

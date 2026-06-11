@@ -139,7 +139,7 @@ export class EmailService {
         <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px;margin:16px 0">
           <p style="color:#9a3412;font-size:14px;font-weight:600;margin:0 0 6px">Next step — Ride Seeker verification:</p>
           <ol style="color:#9a3412;font-size:14px;margin:0;padding-left:18px">
-            <li>Upload a government ID (Aadhaar / PAN / Passport)</li>
+            <li>Upload a government ID (Passport / Voter ID / Driving Licence)</li>
             <li>Accept the self-declaration</li>
             <li>Admin reviews — your TechieRide ID (TRID) is assigned on approval</li>
           </ol>
