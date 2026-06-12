@@ -698,3 +698,49 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "All stages passed. Build is eligible for deployment." >> "$GITHUB_STEP_SUMMARY"
           echo "✅ All quality gates passed. Build is eligible for deployment."
+
+  # ── Stage 6: Version bump (only after a fully green run on main) ────────────
+  # Replaces the standalone "Bump Build Version" workflow so each push shows a
+  # single CI run, and red builds never get a version bump.
+  bump-version:
+    name: 🔖 Bump Build Version
+    runs-on: ubuntu-latest
+    needs: [quality-gate]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.quality-gate.result == 'success' &&
+      !contains(github.event.head_commit.message, '[skip version]')
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history needed for accurate commit count
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute version
+        id: ver
+        run: |
+          COUNT=$(git rev-list --count HEAD)
+          echo "version=2.1.0.$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Update package.json
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${{ steps.ver.outputs.version }}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Commit & push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git pull --rebase
+          git diff --cached --quiet || git commit -m "chore: bump version to ${{ steps.ver.outputs.version }} [skip version] [vercel skip]"
+          git push
+          echo "🔖 Bumped to ${{ steps.ver.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
