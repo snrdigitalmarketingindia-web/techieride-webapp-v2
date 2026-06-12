@@ -5,6 +5,22 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import * as http from 'http';
 import * as https from 'https';
+import * as fs from 'fs';
+import * as path from 'path';
+
+/** App version from the root package.json (stamped 2.1.0.{build} by CI). */
+function readAppVersion(): string {
+  // dist layout differs between local (dist/main.js) and Render
+  // (dist/apps/api/src/main.js) — try both relative roots.
+  for (const rel of ['../../..', '../../../../..', '../..']) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, rel, 'package.json'), 'utf8'));
+      if (pkg.name !== '@techieride/api' && pkg.version) return pkg.version;
+    } catch { /* try next */ }
+  }
+  return 'unknown';
+}
+const APP_VERSION = readAppVersion();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -65,6 +81,7 @@ async function bootstrap() {
       status: 'ok',
       ts: new Date().toISOString(),
       commit: process.env.RENDER_GIT_COMMIT || 'unknown',
+      version: APP_VERSION,
     });
   });
 

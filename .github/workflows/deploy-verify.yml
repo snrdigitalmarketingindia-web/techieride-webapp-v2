@@ -1,4 +1,5 @@
 name: 🔍 Deploy Verify
+run-name: "🔍 Deploy Verify · ${{ github.event.head_commit.message || github.sha }}"
 
 # Verifies that Render (API) and Vercel (frontend) actually picked up the
 # pushed commit. Polls the live /health and /api/version endpoints for up to
@@ -53,53 +54,60 @@ jobs:
         id: check
         run: |
           EXPECTED="${{ github.sha }}"
-          echo "Expecting commit: $EXPECTED"
-
-          check_endpoint () {
-            # $1 = name, $2 = url
-            DEPLOYED=$(curl -sf --max-time 20 "$2" | jq -r '.commit // "unreachable"' 2>/dev/null || echo "unreachable")
-            echo "$DEPLOYED"
-          }
+          # Build number stamped in this commit's package.json (2.1.0.{build}) —
+          # the single number shown in the app footer, header and here.
+          EXPECTED_VERSION=$(curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/$EXPECTED/package.json" | jq -r '.version // "unknown"')
+          echo "Expecting commit $EXPECTED (v$EXPECTED_VERSION)"
 
           API_OK=false
           WEB_OK=false
-          API_SEEN="never reached"
-          WEB_SEEN="never reached"
+          API_SEEN="never reached"; API_VER="—"
+          WEB_SEEN="never reached"; WEB_VER="—"
 
           # 24 attempts x 30s = up to 12 minutes for builds to finish
           for i in $(seq 1 24); do
             if [ "$API_OK" != "true" ]; then
-              API_SEEN=$(check_endpoint "render" "$API_URL/health")
+              RESP=$(curl -sf --max-time 20 "$API_URL/health" || echo '{}')
+              API_SEEN=$(echo "$RESP" | jq -r '.commit // "unreachable"')
+              API_VER=$(echo "$RESP" | jq -r '.version // "—"')
               [ "$API_SEEN" = "$EXPECTED" ] && API_OK=true
             fi
             if [ "$WEB_OK" != "true" ]; then
-              WEB_SEEN=$(check_endpoint "vercel" "$WEB_URL/api/version")
+              RESP=$(curl -sf --max-time 20 "$WEB_URL/api/version" || echo '{}')
+              WEB_SEEN=$(echo "$RESP" | jq -r '.commit // "unreachable"')
+              WEB_VER=$(echo "$RESP" | jq -r '.version // "—"')
               [ "$WEB_SEEN" = "$EXPECTED" ] && WEB_OK=true
             fi
-            echo "attempt $i/24 — render: $API_SEEN | vercel: $WEB_SEEN"
+            echo "attempt $i/24 — render: $API_SEEN (v$API_VER) | vercel: $WEB_SEEN (v$WEB_VER)"
             [ "$API_OK" = "true" ] && [ "$WEB_OK" = "true" ] && break
             sleep 30
           done
 
           {
             echo "expected=$EXPECTED"
+            echo "expected_version=$EXPECTED_VERSION"
             echo "api_ok=$API_OK"
             echo "web_ok=$WEB_OK"
             echo "api_seen=$API_SEEN"
             echo "web_seen=$WEB_SEEN"
+            echo "api_version=$API_VER"
+            echo "web_version=$WEB_VER"
           } >> "$GITHUB_OUTPUT"
 
-          echo "## 🔍 Deploy Verification" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Target | Expected | Live | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 🔍 Deploy Verification — v$EXPECTED_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Expected:** \`${EXPECTED:0:7}\` · **v$EXPECTED_VERSION**" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Target | Live commit | Live version | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Render API | \`${EXPECTED:0:7}\` | \`${API_SEEN:0:7}\` | $([ "$API_OK" = true ] && echo ✅ || echo ❌) |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Vercel Web | \`${EXPECTED:0:7}\` | \`${WEB_SEEN:0:7}\` | $([ "$WEB_OK" = true ] && echo ✅ || echo ❌) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Render API | \`${API_SEEN:0:7}\` | v$API_VER | $([ "$API_OK" = true ] && echo ✅ || echo ❌) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Vercel Web | \`${WEB_SEEN:0:7}\` | v$WEB_VER | $([ "$WEB_OK" = true ] && echo ✅ || echo ❌) |" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$API_OK" != "true" ] || [ "$WEB_OK" != "true" ]; then
             echo "❌ Deploy verification failed"
             exit 1
           fi
-          echo "✅ Both deploys match $EXPECTED"
+          echo "✅ Both deploys match $EXPECTED (v$EXPECTED_VERSION)"
 
       - name: Email failure report (Resend)
         if: failure()
@@ -112,12 +120,12 @@ jobs:
             -d "$(jq -n \
               --arg from "TechieRide CI <noreply@techieride.in>" \
               --arg to "${{ secrets.CONTACTS_EMAIL || 'hydtechieride@gmail.com' }}" \
-              --arg subject "🚨 Deploy verification FAILED for $SHORT" \
+              --arg subject "🚨 Deploy verification FAILED for $SHORT (v${{ steps.check.outputs.expected_version }})" \
               --arg html "<h2>Deploy verification failed</h2>
-                <p><strong>Expected commit:</strong> ${{ github.sha }}</p>
+                <p><strong>Expected:</strong> ${{ github.sha }} · v${{ steps.check.outputs.expected_version }}</p>
                 <ul>
-                  <li>Render API: ${{ steps.check.outputs.api_ok == 'true' && '✅ matched' || format('❌ live = {0}', steps.check.outputs.api_seen) }}</li>
-                  <li>Vercel Web: ${{ steps.check.outputs.web_ok == 'true' && '✅ matched' || format('❌ live = {0}', steps.check.outputs.web_seen) }}</li>
+                  <li>Render API: ${{ steps.check.outputs.api_ok == 'true' && '✅ matched' || format('❌ live = {0} (v{1})', steps.check.outputs.api_seen, steps.check.outputs.api_version) }}</li>
+                  <li>Vercel Web: ${{ steps.check.outputs.web_ok == 'true' && '✅ matched' || format('❌ live = {0} (v{1})', steps.check.outputs.web_seen, steps.check.outputs.web_version) }}</li>
                 </ul>
                 <p><a href='${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'>Open the workflow run</a></p>
                 <p>Check the Render / Vercel dashboards — the deploy may have failed to build or is still queued.</p>" \
