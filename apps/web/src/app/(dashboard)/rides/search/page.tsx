@@ -9,6 +9,7 @@ import { formatDistance } from '@/lib/geo';
 import dynamic from 'next/dynamic';
 import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 import OlaPlacesAutocomplete from '@/components/ui/OlaPlacesAutocomplete';
+import { LocationInput } from '@/components/ui/LocationInput';
 
 const RideMap = dynamic(() => import('@/components/maps/RideMap'), { ssr: false });
 
@@ -119,12 +120,10 @@ function BoardingModal({
               <p className="text-xs text-green-600">📡 Location auto-detected — tap to adjust if needed</p>
             )}
             </>) : (
-            <input
-              type="text"
+            <LocationInput
               value={pickupName}
-              onChange={(e) => setPickupName(e.target.value)}
+              onChange={setPickupName}
               placeholder="e.g. LB Nagar Metro, Gate 2…"
-              maxLength={80}
               className={inputCls}
             />
             )}
@@ -147,12 +146,10 @@ function BoardingModal({
               </span>
             </button>
             ) : (
-            <input
-              type="text"
+            <LocationInput
               value={dropName}
-              onChange={(e) => setDropName(e.target.value)}
+              onChange={setDropName}
               placeholder="e.g. Hitec City…"
-              maxLength={80}
               className={inputCls}
             />
             )}
@@ -534,6 +531,7 @@ export default function RideSearchPage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs font-medium text-gray-600">📍 Pickup area</label>
+            {FEATURES.MAPS_ENABLED ? (
             <OlaPlacesAutocomplete
               value={form.originName}
               onChange={(v) => setForm((f) => ({ ...f, originName: v }))}
@@ -549,9 +547,18 @@ export default function RideSearchPage() {
               placeholder="Kondapur"
               className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
+            ) : (
+            <LocationInput
+              value={form.originName}
+              onChange={(v) => setForm((f) => ({ ...f, originName: v }))}
+              placeholder="Kondapur"
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            )}
           </div>
           <div>
             <label className="text-xs font-medium text-gray-600">🏢 Drop area</label>
+            {FEATURES.MAPS_ENABLED ? (
             <OlaPlacesAutocomplete
               value={form.destinationName}
               onChange={(v) => setForm((f) => ({ ...f, destinationName: v }))}
@@ -567,6 +574,14 @@ export default function RideSearchPage() {
               placeholder="HITEC City"
               className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
+            ) : (
+            <LocationInput
+              value={form.destinationName}
+              onChange={(v) => setForm((f) => ({ ...f, destinationName: v }))}
+              placeholder="HITEC City"
+              className="w-full mt-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            )}
           </div>
         </div>
         <div>

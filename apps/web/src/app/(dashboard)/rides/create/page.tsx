@@ -7,6 +7,7 @@ import { ridesApi, vehiclesApi, templatesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 import { FEATURES } from '@/lib/featureFlags';
+import { LocationInput } from '@/components/ui/LocationInput';
 
 const PREFS_KEY = 'tr_ride_prefs';
 
@@ -304,6 +305,13 @@ export default function CreateRidePage() {
               🔁 Pre-filled from your last ride route. Edit freely.
             </p>
           )}
+          {/* Nudge: home/office unlock one-tap direction fill + suggestions */}
+          {user && !(user as any).homeAddress && !(user as any).officeAddress && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+              💡 Save your <Link href="/profile" className="font-medium underline">Home &amp; Office locations</Link> once —
+              they&apos;ll auto-fill here and appear as typing suggestions.
+            </p>
+          )}
           <div>
             <label className="text-sm font-medium text-gray-700">📍 From (Start location)</label>
             {FEATURES.MAPS_ENABLED ? (
@@ -319,10 +327,9 @@ export default function CreateRidePage() {
               {form.originName && !originPinned && <span className="text-[10px] text-amber-600 font-medium shrink-0">Pin required →</span>}
             </button>
             ) : (
-            <input
-              type="text"
+            <LocationInput
               value={form.originName}
-              onChange={(e) => update('originName', e.target.value)}
+              onChange={(v) => update('originName', v)}
               placeholder="e.g. Hayathnagar, LB Nagar…"
               maxLength={60}
               className={`${inputCls} mt-1`}
@@ -344,10 +351,9 @@ export default function CreateRidePage() {
               {form.destinationName && !destPinned && <span className="text-[10px] text-amber-600 font-medium shrink-0">Pin required →</span>}
             </button>
             ) : (
-            <input
-              type="text"
+            <LocationInput
               value={form.destinationName}
-              onChange={(e) => update('destinationName', e.target.value)}
+              onChange={(v) => update('destinationName', v)}
               placeholder="e.g. Hitec City, Gachibowli…"
               maxLength={60}
               className={`${inputCls} mt-1`}
