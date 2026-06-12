@@ -6,6 +6,10 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { loginUI, ACCOUNTS, SEED_PASSWORD, clearActiveRides, apiLogin, API } from './helpers';
 
+// Attendance tracking is feature-flagged (off in the current release). The
+// boarding UI (badges, I've Boarded button, completion gate) only exists when on.
+const ATTENDANCE_ON = process.env.NEXT_PUBLIC_FEATURE_ATTENDANCE_TRACKING === 'true';
+
 
 async function api(token: string, method: 'get'|'post'|'patch'|'delete', path: string, data?: object) {
   const ctx = await playwrightRequest.newContext();
@@ -74,10 +78,12 @@ test.describe('🚏 Boarding Flow', () => {
     // inFourHours() can cross midnight in CI (UTC) → ride appears as "tomorrow" →
     // hidden by the default 'today' period filter. Click 'All' to show all rides.
     await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByText(/waiting/i).first()).toBeVisible({ timeout: 8_000 });
+    // Flag on: "Waiting" status · flag off: seat-status badge "Yet to board"
+    await expect(page.getByText(/waiting|yet to board/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('BF-02: complete blocked when passenger still WAITING', async ({ page }) => {
+    test.skip(!ATTENDANCE_ON, 'Attendance tracking disabled — completion is not gated on boarding');
     await loginUI(page, 'giver');
     await page.goto('/rides');
     // Click 'All' to bypass the default 'today' period filter (ride may be for tomorrow)
@@ -93,6 +99,7 @@ test.describe('🚏 Boarding Flow', () => {
   });
 
   test('BF-03: seeker sees boarding button on ONGOING ride', async ({ page }) => {
+    test.skip(!ATTENDANCE_ON, 'Attendance tracking disabled — boarding button hidden');
     await loginUI(page, 'seeker');
     await page.goto('/rides');
     // Click 'All' to bypass the default 'today' period filter (ride may be for tomorrow)

@@ -144,11 +144,11 @@ export function RideCard({ ride, viewAs, actions, participantActions }: RideCard
             const phone     = p.seeker?.user?.phone;
             const cc        = p.seeker?.user?.countryCode;
             const recvId    = p.seeker?.userId;
-            const badge     = !FEATURES.ATTENDANCE_TRACKING_ENABLED
-              ? null
-              : p.boardingStatus === 'WAITING'
-                ? waitingBadge(ride.status)
-                : BOARDING_BADGE[p.boardingStatus];
+            // Seat-status badge (Seat Confirmed / Yet to board) always shows;
+            // true attendance badges (Boarded/Deboarded/No-show) are feature-gated.
+            const badge     = p.boardingStatus === 'WAITING' || !FEATURES.ATTENDANCE_TRACKING_ENABLED
+              ? waitingBadge(ride.status)
+              : BOARDING_BADGE[p.boardingStatus];
             const noShow    = p.boardingStatus === 'NO_SHOW';
             // Pickup info — prefer request coords, fallback to participant pickupName
             const pickupName = p.request?.pickupName ?? p.pickupName;
