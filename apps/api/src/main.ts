@@ -10,13 +10,21 @@ import * as path from 'path';
 
 /** App version from the root package.json (stamped 2.1.0.{build} by CI). */
 function readAppVersion(): string {
-  // dist layout differs between local (dist/main.js) and Render
-  // (dist/apps/api/src/main.js) — try both relative roots.
-  for (const rel of ['../../..', '../../../../..', '../..']) {
+  // The root package.json's depth depends on how we were started:
+  // ts-node:  apps/api/src/main.ts            → 3 levels up
+  // Render:   apps/api/dist/apps/api/src/main.js → 6 levels up
+  // Walk upward until we find the workspace root package.json.
+  let dir = __dirname;
+  for (let i = 0; i < 8; i++) {
     try {
-      const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, rel, 'package.json'), 'utf8'));
+      const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+      // Skip the api workspace's own package.json — we want the root one,
+      // which is the file the CI bump job stamps.
       if (pkg.name !== '@techieride/api' && pkg.version) return pkg.version;
-    } catch { /* try next */ }
+    } catch { /* keep climbing */ }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
   return 'unknown';
 }

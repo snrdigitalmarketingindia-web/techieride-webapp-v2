@@ -7,6 +7,9 @@ SOURCE="$2"
 
 # Skip merges, squashes, amends with explicit messages, and already-prefixed msgs
 case "$SOURCE" in merge|squash) exit 0 ;; esac
+# Amend replaces HEAD (count stays the same) — an unprefixed amend would get
+# the wrong number, so leave amended messages untouched.
+[ "$SOURCE" = "commit" ] && exit 0
 head -1 "$MSG_FILE" | grep -qE '^\[v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\]' && exit 0
 # Skip the CI bump commit itself
 head -1 "$MSG_FILE" | grep -q '\[skip version\]' && exit 0

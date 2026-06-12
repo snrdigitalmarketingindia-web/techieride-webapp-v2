@@ -23,6 +23,11 @@ jobs:
     # doesn't deploy them, so verifying would always fail.
     if: ${{ !contains(github.event.head_commit.message, '[vercel skip]') }}
     steps:
+      - name: Checkout (for commit ancestry checks)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Render build status (early failure detection)
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
@@ -67,17 +72,23 @@ jobs:
 
           # 60 attempts x 30s = up to 30 minutes — Render free tier is slow
           for i in $(seq 1 60); do
+            # A live commit that CONTAINS the expected one means a newer push
+            # superseded this run — that's healthy, count it as a match.
+            is_current_or_newer () {
+              [ "$1" = "$EXPECTED" ] && return 0
+              git cat-file -e "$1" 2>/dev/null && git merge-base --is-ancestor "$EXPECTED" "$1" 2>/dev/null
+            }
             if [ "$API_OK" != "true" ]; then
               RESP=$(curl -sf --max-time 20 "$API_URL/health" || echo '{}')
               API_SEEN=$(echo "$RESP" | jq -r '.commit // "unreachable"')
               API_VER=$(echo "$RESP" | jq -r '.version // "—"')
-              [ "$API_SEEN" = "$EXPECTED" ] && API_OK=true
+              is_current_or_newer "$API_SEEN" && API_OK=true
             fi
             if [ "$WEB_OK" != "true" ]; then
               RESP=$(curl -sf --max-time 20 "$WEB_URL/api/version" || echo '{}')
               WEB_SEEN=$(echo "$RESP" | jq -r '.commit // "unreachable"')
               WEB_VER=$(echo "$RESP" | jq -r '.version // "—"')
-              [ "$WEB_SEEN" = "$EXPECTED" ] && WEB_OK=true
+              is_current_or_newer "$WEB_SEEN" && WEB_OK=true
             fi
             echo "attempt $i/60 — render: $API_SEEN (v$API_VER) | vercel: $WEB_SEEN (v$WEB_VER)"
             [ "$API_OK" = "true" ] && [ "$WEB_OK" = "true" ] && break
