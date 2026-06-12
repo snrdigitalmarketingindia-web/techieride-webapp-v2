@@ -734,22 +734,48 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Update package.json
-        run: |
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            pkg.version = '${{ steps.ver.outputs.version }}';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-          "
-
       - name: Commit & push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json
-          git diff --cached --quiet || git commit -m "chore: bump version to ${{ steps.ver.outputs.version }} [skip version] [vercel skip]"
-          # Rebase AFTER committing — rebase refuses to run with staged changes
-          git pull --rebase
-          git push
-          echo "🔖 Bumped to ${{ steps.ver.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          VERSION="${{ steps.ver.outputs.version }}"
+
+          # Conflict-proof: two runs' bump jobs can race (both edit the same
+          # version line, rebase conflicts). Rebuild the edit on top of fresh
+          # origin/main each attempt instead of rebasing our commit over it.
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git checkout -B main origin/main
+
+            # Superseded? If origin HEAD carries a newer [vN] prefix than ours,
+            # the newer run's bump is authoritative — skip quietly.
+            HEAD_PREFIX=$(git log -1 --format=%s | sed -n 's/^\[v2\.1\.0\.\([0-9]*\)\].*/\1/p')
+            OURS=$(echo "$VERSION" | sed 's/.*\.//')
+            if [ -n "$HEAD_PREFIX" ] && [ "$HEAD_PREFIX" -gt "$OURS" ]; then
+              echo "⏭️ Superseded by v2.1.0.$HEAD_PREFIX on main — skipping bump"
+              echo "⏭️ Bump skipped (superseded by v2.1.0.$HEAD_PREFIX)" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            node -e "
+              const fs = require('fs');
+              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+              if (pkg.version === '$VERSION') process.exit(0);
+              pkg.version = '$VERSION';
+              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            "
+            git add package.json
+            if git diff --cached --quiet; then
+              echo "Version already $VERSION — nothing to do"
+              exit 0
+            fi
+            git commit -m "chore: bump version to $VERSION [skip version] [vercel skip]"
+            if git push origin main; then
+              echo "🔖 Bumped to $VERSION" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Push rejected (race) — retrying ($attempt/3)"
+            sleep $((attempt * 5))
+          done
+          echo "❌ Could not push version bump after 3 attempts"
+          exit 1
