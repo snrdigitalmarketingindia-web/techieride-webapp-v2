@@ -19,9 +19,9 @@ jobs:
   verify:
     name: Verify Render + Vercel picked up this commit
     runs-on: ubuntu-latest
-    # Skip version-bump commits — they deploy fine but verifying them is
-    # redundant (the next code push gets verified anyway).
-    if: ${{ !contains(github.event.head_commit.message, '[skip version]') }}
+    # Version-bump commits are tagged [vercel skip] — Vercel intentionally
+    # doesn't deploy them, so verifying would always fail.
+    if: ${{ !contains(github.event.head_commit.message, '[vercel skip]') }}
     steps:
       - name: Checkout (for commit ancestry checks)
         uses: actions/checkout@v4

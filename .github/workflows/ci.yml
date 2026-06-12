@@ -740,7 +740,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
-          git diff --cached --quiet || git commit -m "chore: bump version to ${{ steps.ver.outputs.version }} [skip version]"
+          git diff --cached --quiet || git commit -m "chore: bump version to ${{ steps.ver.outputs.version }} [skip version] [vercel skip]"
           # Rebase AFTER committing — rebase refuses to run with staged changes
           git pull --rebase
           git push
