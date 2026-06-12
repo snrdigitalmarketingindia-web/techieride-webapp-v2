@@ -674,7 +674,13 @@ export default function MyRidesPage() {
                               {FEATURES.ATTENDANCE_TRACKING_ENABLED ? (
                                 <>🎉 Seat confirmed! <span className="font-medium">Board Now</span> button will appear once the Ride Giver starts the ride.</>
                               ) : (
-                                <>🎉 Seat confirmed! Your Ride Giver will pick you up at the agreed time.</>
+                                <>🎉 Seat confirmed!{' '}
+                                  <span className="font-medium">{ride.rideGiver?.user?.fullName?.split(' ')[0] ?? 'Your Ride Giver'}</span>
+                                  {' '}will pick you up
+                                  {(myParticipant.request?.pickupName ?? myParticipant.pickupName)
+                                    ? <> at <span className="font-medium">{myParticipant.request?.pickupName ?? myParticipant.pickupName}</span></>
+                                    : null}
+                                  {' '}at the agreed time. Please be on time to avoid delays for your fellow TechieRide members.</>
                               )}
                             </p>
                           );

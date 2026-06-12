@@ -712,8 +712,18 @@ export default function RideSearchPage() {
                   <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">🚗 Ride in progress — board en route</span>
                 )}
                 {ride.womenOnly && <span className="bg-pink-100 text-pink-700 px-2 py-0.5 rounded font-medium">👩 Women only</span>}
+                {ride.vehicle?.photoUrl && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={ride.vehicle.photoUrl} alt="Vehicle"
+                    className="w-10 h-10 rounded-lg object-cover border border-gray-200" />
+                )}
                 <span className="bg-gray-100 px-2 py-0.5 rounded">{ride.vehicle?.make} {ride.vehicle?.model}</span>
                 <span className="bg-gray-100 px-2 py-0.5 rounded">{ride.vehicle?.color}</span>
+                {ride.vehicle?.plateNumber && (
+                  <span className="bg-amber-50 border border-amber-200 text-amber-800 px-2 py-0.5 rounded font-mono font-semibold uppercase tracking-wide">
+                    🔖 {ride.vehicle.plateNumber}
+                  </span>
+                )}
               </div>
 
               {(() => {
