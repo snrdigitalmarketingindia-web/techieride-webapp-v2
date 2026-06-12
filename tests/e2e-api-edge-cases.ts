@@ -8,7 +8,7 @@
  * EDGE-05  Pending request exists when ride is forcibly completed → request rejected
  * EDGE-06  Notification ordering — GET /notifications returns newest notification first
  * EDGE-07  Board after manual start (simulates cron auto-start path) → 200
- * EDGE-08  Complete ride with mix of WAITING + DEBOARDED → 400 (WAITING blocks completion)
+ * EDGE-08  Complete with WAITING + DEBOARDED → 400 if attendance flag on, else 200 auto-resolve
  */
 
 import {
@@ -313,7 +313,9 @@ async function runEdgeCaseTests() {
   // ── EDGE-08: WAITING blocks completion even with some DEBOARDED ─────────────
   section('EDGE — Completion Gate With Mixed Boarding States');
 
-  await test('EDGE-08: Complete with 1 DEBOARDED + 1 WAITING → 400 (WAITING blocks)', async () => {
+  // FEATURE_ATTENDANCE_TRACKING=true → 400 (WAITING blocks completion)
+  // flag off (default, current release) → 200, WAITING passengers auto-DEBOARDED
+  await test('EDGE-08: Complete with 1 DEBOARDED + 1 WAITING → 400 (flag on) or 200 auto-resolve (flag off)', async () => {
     const giver   = await freshGiver('edge08');
     const seeker1 = await freshSeeker('edge08a');
     const seeker2 = await freshSeeker('edge08b');
@@ -334,7 +336,15 @@ async function runEdgeCaseTests() {
 
     // seeker2 is still WAITING — giver tries to complete
     const complete = await giver.client.patch(`/rides/${rideId}/complete`);
-    assert(complete.status === 400, `Expected 400 (seeker2 still WAITING), got ${complete.status}: ${JSON.stringify(complete.data)}`);
+    assert([200, 400].includes(complete.status), `Expected 200/400, got ${complete.status}: ${JSON.stringify(complete.data)}`);
+    if (complete.status === 200) {
+      const ride = await giver.client.get(`/rides/${rideId}`);
+      const bad = (ride.data.participants ?? []).filter(
+        (p: any) => p.boardingStatus !== 'DEBOARDED' && p.boardingStatus !== 'NO_SHOW');
+      assert(bad.length === 0, `Auto-resolve left ${bad.length} unresolved participants`);
+      const penalised = (ride.data.participants ?? []).filter((p: any) => p.boardingStatus === 'NO_SHOW');
+      assert(penalised.length === 0, 'Auto-resolve must use DEBOARDED, not NO_SHOW');
+    }
   });
 }
 

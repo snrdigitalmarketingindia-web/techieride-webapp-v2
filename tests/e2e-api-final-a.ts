@@ -670,7 +670,9 @@ async function run() {
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
       // Use a 50 km radius so ONGOING ride is always within range regardless of exact coords
       const r = await seeker.client.get('/rides/search', {
-        params: { originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.36, date: tomorrow, radiusMeters: 50000 },
+        // limit: 500 — CI DB accumulates rides at these coords across suites; the
+        // default limit of 20 can page the target ride out of the results.
+        params: { originLat: 17.44, originLng: 78.34, destinationLat: 17.45, destinationLng: 78.36, date: tomorrow, radiusMeters: 50000, limit: 500 },
       });
       assert(r.status === 200, `Expected 200 from search, got ${r.status}`);
       const found = r.data.find((rd: any) => rd.id === rideId);

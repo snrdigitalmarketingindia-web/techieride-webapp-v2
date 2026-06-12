@@ -1,4 +1,5 @@
 import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { IsString, IsNumber, IsOptional, IsBoolean, MaxLength, Min, Max } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const MAX_SAVED_LOCATIONS = 30;
@@ -16,12 +17,15 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
 }
 
 export class CreateSavedLocationDto {
-  alias: string;
-  lat: number;
-  lng: number;
-  address?: string;
-  isFavorite?: boolean;
-  sourceType?: string; // "SEARCH" | "PIN"
+  // Decorators are required: the global ValidationPipe runs with
+  // whitelist + forbidNonWhitelisted, which rejects undecorated properties —
+  // without these, every POST /saved-locations was a 400.
+  @IsString() @MaxLength(40) alias: string;
+  @IsNumber() @Min(-90)  @Max(90)  lat: number;
+  @IsNumber() @Min(-180) @Max(180) lng: number;
+  @IsOptional() @IsString() @MaxLength(255) address?: string;
+  @IsOptional() @IsBoolean() isFavorite?: boolean;
+  @IsOptional() @IsString() sourceType?: string; // "SEARCH" | "PIN"
 }
 
 @Injectable()
