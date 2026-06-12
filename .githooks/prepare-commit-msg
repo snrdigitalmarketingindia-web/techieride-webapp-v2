@@ -1,0 +1,16 @@
+#!/bin/bash
+# Prefixes every commit message with the build version this commit will become
+# (version = 2.1.0.{commit count}, same formula as the CI bump job), so the
+# version shows up in GitHub Actions run names, git log, and PR titles.
+MSG_FILE="$1"
+SOURCE="$2"
+
+# Skip merges, squashes, amends with explicit messages, and already-prefixed msgs
+case "$SOURCE" in merge|squash) exit 0 ;; esac
+head -1 "$MSG_FILE" | grep -qE '^\[v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\]' && exit 0
+# Skip the CI bump commit itself
+head -1 "$MSG_FILE" | grep -q '\[skip version\]' && exit 0
+
+COUNT=$(( $(git rev-list --count HEAD 2>/dev/null || echo 0) + 1 ))
+VERSION="2.1.0.$COUNT"
+printf '[v%s] %s' "$VERSION" "$(cat "$MSG_FILE")" > "$MSG_FILE.tmp" && mv "$MSG_FILE.tmp" "$MSG_FILE"
