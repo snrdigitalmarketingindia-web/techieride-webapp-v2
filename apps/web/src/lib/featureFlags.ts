@@ -17,4 +17,8 @@ export const FEATURES = {
    *  Disabled for the current release — location selection uses address search,
    *  Home/Office and Saved Locations. Re-enable via NEXT_PUBLIC_FEATURE_MAPS=true. */
   MAPS_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_MAPS, false),
+
+  /** Seeker-adjustable search radius slider. Hidden for the current release —
+   *  search uses the 10 km default; matching itself remains distance-based. */
+  RADIUS_SLIDER_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_RADIUS_SLIDER, false),
 } as const;

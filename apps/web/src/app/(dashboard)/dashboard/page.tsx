@@ -60,7 +60,17 @@ export default function DashboardPage() {
 
   // Check if identity docs have been submitted (for DOCUMENT_VERIFICATION_PENDING banner)
   useEffect(() => {
-    ratingsApi.getPending().then(r => setPendingRatings(r.data ?? [])).catch(() => {});
+    const loadPending = () => ratingsApi.getPending().then(r => setPendingRatings(r.data ?? [])).catch(() => {});
+    loadPending();
+    // Refetch on focus so a ride completed in another tab/page shows its
+    // rating prompt without a manual reload.
+    const onFocus = () => { if (document.visibilityState === 'visible') loadPending(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
   }, []);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ridesApi, requestsApi, quickMessagesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -10,6 +11,7 @@ import { haversineMeters, formatDistance, estimatePickupTime } from '@/lib/geo';
 import { FEATURES } from '@/lib/featureFlags';
 
 export default function MyRidesPage() {
+  const router = useRouter();
   const { user, _hasHydrated } = useAuthStore();
   const role = user?.role;
   const isGiver  = role === 'RIDE_GIVER' || role === 'ADMIN';
@@ -176,6 +178,9 @@ export default function MyRidesPage() {
   const handleComplete = async (rideId: string) => {
     await ridesApi.complete(rideId);
     setRides((prev) => prev.map((r) => r.id === rideId ? { ...r, status: 'COMPLETED' } : r));
+    // Hand off to the detail page where the "Rate your ride" panel lives —
+    // otherwise the rating flow is never discovered (release review issue 4).
+    router.push(`/rides/${rideId}`);
   };
 
   // ── Period filter helpers ──────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { notificationsApi } from '@/lib/api';
 import { connectSocket, WsEvents } from '@/lib/socket';
 import { useAuthStore } from '@/store/auth.store';
@@ -14,6 +15,39 @@ const TYPE_ICONS: Record<string, string> = {
   SOS_ALERT: '🆘', GENERIC: '🔔',
 };
 
+/**
+ * Where a notification leads when clicked. Backends attach data.rideId etc. —
+ * resolve a destination per type, falling back to sensible hubs.
+ */
+function notificationRoute(n: any): string | null {
+  const rideId = n.data?.rideId;
+  switch (n.type) {
+    case 'RIDE_COMPLETED':                       // rating panel lives on ride detail
+    case 'RIDE_STARTED':
+    case 'RIDE_CANCELLED':
+    case 'REQUEST_APPROVED':
+    case 'RIDE_CONFIRMED':
+    case 'SEEKER_BOARDED':
+    case 'SEEKER_DEBOARDED':
+    case 'SEEKER_NO_SHOW':
+    case 'QUICK_MESSAGE':
+      return rideId ? `/rides/${rideId}` : '/rides';
+    case 'REQUEST_REJECTED':
+    case 'HOLD_EXPIRING':
+    case 'HOLD_EXPIRED':
+      return '/requests';
+    case 'RATING_RECEIVED':
+      return '/profile';
+    case 'VERIFICATION_APPROVED':
+    case 'VERIFICATION_REJECTED':
+      return '/dashboard';
+    case 'SOS_ALERT':
+      return rideId ? `/rides/${rideId}` : '/dashboard';
+    default:
+      return rideId ? `/rides/${rideId}` : null;
+  }
+}
+
 function timeAgo(iso: string) {
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (secs < 60) return 'just now';
@@ -23,6 +57,7 @@ function timeAgo(iso: string) {
 }
 
 export default function NotificationDrawer() {
+  const router = useRouter();
   const { isAuthenticated } = useAuthStore();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -120,7 +155,11 @@ export default function NotificationDrawer() {
               notifications.map(n => (
                 <div
                   key={n.id}
-                  onClick={() => !n.isRead && markRead(n.id)}
+                  onClick={() => {
+                    if (!n.isRead) markRead(n.id);
+                    const route = notificationRoute(n);
+                    if (route) { setOpen(false); router.push(route); }
+                  }}
                   className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-gray-50 transition ${!n.isRead ? 'bg-brand-50' : ''}`}
                 >
                   <span className="text-xl flex-shrink-0 mt-0.5">

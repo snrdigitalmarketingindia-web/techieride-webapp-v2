@@ -563,8 +563,9 @@ export default function RideSearchPage() {
           <span className="text-sm text-gray-600">👩 Show women-only rides only</span>
         </label>
 
-        {/* Search radius — seeker picks how far they'll travel to a meeting point */}
-        <div className="space-y-1">
+        {/* Search radius — seeker picks how far they'll travel to a meeting point.
+            Hidden for the current release (10 km default applies). */}
+        {FEATURES.RADIUS_SLIDER_ENABLED && <div className="space-y-1">
           <div className="flex justify-between text-sm text-gray-600">
             <span>📍 Search radius</span>
             <span className="font-semibold text-brand-700">{radiusKm} km</span>
@@ -581,7 +582,7 @@ export default function RideSearchPage() {
             <span>Default: 10 km</span>
             <span>50 km</span>
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* View toggle */}
