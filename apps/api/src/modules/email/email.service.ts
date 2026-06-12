@@ -279,7 +279,7 @@ export class EmailService {
   ) {
     if (!contacts.length) return;
 
-    const to = this.config.get<string>('CONTACTS_EMAIL', 'hydtechieride@gmail.com');
+    const to = this.config.get<string>('CONTACTS_EMAIL', 'snrdigitalmarketingindia@gmail.com');
 
     // ── Build filename: {YYYYMMDD_HHMMSS}_TR001_TR002.csv (IST) ────────────
     const nowIST = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata', hour12: false })

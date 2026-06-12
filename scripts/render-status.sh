@@ -18,13 +18,13 @@ fi
 LIMIT="${1:-5}"
 AUTH=(-H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json")
 
-SERVICE_ID="${RENDER_SERVICE_ID:-}"
+SERVICE_ID="${RENDER_SERVICE_ID:-srv-d8e3g7jbc2fs73c7la50}"
 if [ -z "$SERVICE_ID" ]; then
-  SERVICE_ID=$(curl -sf "${AUTH[@]}" "https://api.render.com/v1/services?name=techieride-api&limit=5" \
+  SERVICE_ID=$(curl -sf "${AUTH[@]}" "https://api.render.com/v1/services?name=techieride-webapp-v2&limit=5" \
     | jq -r '.[0].service.id // empty')
   if [ -z "$SERVICE_ID" ]; then
     # Fall back to listing everything so the user can see what exists
-    echo "⚠️  Service 'techieride-api' not found by name. Available services:"
+    echo "⚠️  Service 'techieride-webapp-v2' not found by name. Available services:"
     curl -sf "${AUTH[@]}" "https://api.render.com/v1/services?limit=20" \
       | jq -r '.[].service | "  \(.id)  \(.name)  (\(.type))"'
     echo "Set RENDER_SERVICE_ID=srv-... and re-run."

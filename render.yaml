@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: techieride-api
+    name: techieride-webapp-v2
     runtime: node
     rootDir: apps/api
     buildCommand: cd ../.. && npm ci && npx prisma generate --schema=./prisma/schema.prisma && npm run build --workspace=packages/shared && npm run build --workspace=apps/api

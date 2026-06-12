@@ -34,21 +34,22 @@ jobs:
             exit 0
           fi
           # Poll the Render API for the deploy of THIS commit; fail fast on build errors
-          SID="$RENDER_SERVICE_ID"
+          SID="${RENDER_SERVICE_ID:-srv-d8e3g7jbc2fs73c7la50}"
           if [ -z "$SID" ]; then
-            SID=$(curl -sf -H "Authorization: Bearer $RENDER_API_KEY"               "https://api.render.com/v1/services?name=techieride-api&limit=5" | jq -r '.[0].service.id // empty')
+            SID=$(curl -sf -H "Authorization: Bearer $RENDER_API_KEY"               "https://api.render.com/v1/services?name=techieride-webapp-v2&limit=5" | jq -r '.[0].service.id // empty')
           fi
           [ -z "$SID" ] && { echo "⚠️ Could not resolve Render service id — skipping"; exit 0; }
-          for i in $(seq 1 20); do
+          # Render free tier deploys take 20-30 min — wait up to 30
+          for i in $(seq 1 60); do
             ROW=$(curl -sf -H "Authorization: Bearer $RENDER_API_KEY"               "https://api.render.com/v1/services/$SID/deploys?limit=10"               | jq -r --arg sha "${{ github.sha }}" '.[].deploy | select(.commit.id == $sha) | .status' | head -1)
-            echo "attempt $i/20 — render deploy status for ${GITHUB_SHA:0:7}: ${ROW:-not started yet}"
+            echo "attempt $i/60 — render deploy status for ${GITHUB_SHA:0:7}: ${ROW:-not started yet}"
             case "$ROW" in
               live) echo "✅ Render deploy is live"; exit 0 ;;
               *failed*|canceled|deactivated) echo "❌ Render build failed: $ROW"; exit 1 ;;
             esac
             sleep 30
           done
-          echo "⏳ Render deploy still building after 10 min — endpoint check below will verify"
+          echo "⏳ Render deploy still building after 30 min — endpoint check below will verify"
 
       - name: Wait for deploys and compare commits
         id: check
@@ -64,8 +65,8 @@ jobs:
           API_SEEN="never reached"; API_VER="—"
           WEB_SEEN="never reached"; WEB_VER="—"
 
-          # 24 attempts x 30s = up to 12 minutes for builds to finish
-          for i in $(seq 1 24); do
+          # 60 attempts x 30s = up to 30 minutes — Render free tier is slow
+          for i in $(seq 1 60); do
             if [ "$API_OK" != "true" ]; then
               RESP=$(curl -sf --max-time 20 "$API_URL/health" || echo '{}')
               API_SEEN=$(echo "$RESP" | jq -r '.commit // "unreachable"')
@@ -78,7 +79,7 @@ jobs:
               WEB_VER=$(echo "$RESP" | jq -r '.version // "—"')
               [ "$WEB_SEEN" = "$EXPECTED" ] && WEB_OK=true
             fi
-            echo "attempt $i/24 — render: $API_SEEN (v$API_VER) | vercel: $WEB_SEEN (v$WEB_VER)"
+            echo "attempt $i/60 — render: $API_SEEN (v$API_VER) | vercel: $WEB_SEEN (v$WEB_VER)"
             [ "$API_OK" = "true" ] && [ "$WEB_OK" = "true" ] && break
             sleep 30
           done
@@ -119,7 +120,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$(jq -n \
               --arg from "TechieRide CI <noreply@techieride.in>" \
-              --arg to "${{ secrets.CONTACTS_EMAIL || 'hydtechieride@gmail.com' }}" \
+              --arg to "${{ secrets.CONTACTS_EMAIL || 'snrdigitalmarketingindia@gmail.com' }}" \
               --arg subject "🚨 Deploy verification FAILED for $SHORT (v${{ steps.check.outputs.expected_version }})" \
               --arg html "<h2>Deploy verification failed</h2>
                 <p><strong>Expected:</strong> ${{ github.sha }} · v${{ steps.check.outputs.expected_version }}</p>
