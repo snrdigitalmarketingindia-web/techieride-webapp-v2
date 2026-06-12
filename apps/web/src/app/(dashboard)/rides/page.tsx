@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ridesApi, requestsApi, quickMessagesApi } from '@/lib/api';
+import { ridesApi, requestsApi, quickMessagesApi, ratingsApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { CallButton } from '@/components/ui/CallButton';
 import { RideCard } from '@/components/ui/RideCard';
@@ -30,6 +30,8 @@ export default function MyRidesPage() {
   // Giver: pending requests per ride  { rideId: req[] }
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [processing, setProcessing] = useState<string | null>(null);
+  // Rides where the caller still has someone to rate (powers the ⭐ Rate CTA)
+  const [pendingRatingIds, setPendingRatingIds] = useState<Set<string>>(new Set());
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   // Inline pickup-time picker shown when giver clicks "Approve"
@@ -86,6 +88,9 @@ export default function MyRidesPage() {
   // _hasHydrated is kept so givers (tab stays 'given') still get one guaranteed trigger.
   useEffect(() => {
     if (!user || !_hasHydrated) return;
+    ratingsApi.getPending()
+      .then((r) => setPendingRatingIds(new Set((r.data ?? []).map((x: any) => x.rideId))))
+      .catch(() => {});
     setLoading(true);
     // History always included — the period filters (Today/Week/All…) decide visibility
     const fetch = tab === 'given' ? ridesApi.getGiven(undefined, true) : ridesApi.getTaken();
@@ -179,7 +184,7 @@ export default function MyRidesPage() {
     setRides((prev) => prev.map((r) => r.id === rideId ? { ...r, status: 'COMPLETED' } : r));
     // Hand off to the detail page where the "Rate your ride" panel lives —
     // otherwise the rating flow is never discovered (release review issue 4).
-    router.push(`/rides/${rideId}`);
+    router.push(`/rides/${rideId}#rate`);
   };
 
   // ── Period filter helpers ──────────────────────────────────────────────────
@@ -409,6 +414,13 @@ export default function MyRidesPage() {
 
             const actions = (
               <div className="space-y-2">
+                {/* Rating CTA — completed ride with unrated co-travellers */}
+                {ride.status === 'COMPLETED' && pendingRatingIds.has(ride.id) && (
+                  <Link href={`/rides/${ride.id}#rate`}
+                    className="block w-full text-center text-xs bg-amber-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-amber-600 transition">
+                    ⭐ Rate this ride
+                  </Link>
+                )}
                 {/* Pending requests */}
                 {pendingReqs.length > 0 && (
                   <div className="space-y-2">

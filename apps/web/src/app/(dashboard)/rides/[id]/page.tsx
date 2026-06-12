@@ -75,6 +75,18 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [ratingDone, setRatingDone] = useState<Record<string, boolean>>({});
 
+  // Arriving via a ⭐ Rate link or completion redirect: bring the rating
+  // panel into view once the COMPLETED ride has rendered (it sits below
+  // the fold on phones).
+  useEffect(() => {
+    if (ride?.status !== 'COMPLETED') return;
+    if (typeof window === 'undefined' || window.location.hash !== '#rate') return;
+    const t = setTimeout(() => {
+      document.getElementById('rate')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [ride?.status]);
+
   // Pickup time overrides — persisted in DB via PATCH /ride-requests/:id/pickup-time
   const [etaOverrides, setEtaOverrides] = useState<Record<string, string>>({});
   const [editingEta, setEditingEta] = useState<string | null>(null); // reqId being edited
@@ -832,7 +844,7 @@ export default function RideDetailPage({ params }: { params: { id: string } }) {
 
       {/* Rate participants — shown on COMPLETED rides */}
       {ride.status === 'COMPLETED' && user && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div id="rate" className="bg-white rounded-xl border border-gray-200 p-4 space-y-3 target:ring-2 target:ring-amber-400">
           <h3 className="font-semibold text-gray-800 text-sm">⭐ Rate your ride</h3>
           {/* Seeker rates the giver */}
           {!isMyRide && alreadyParticipant && ride.rideGiver?.userId && (
