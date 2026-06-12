@@ -70,8 +70,10 @@ jobs:
           API_SEEN="never reached"; API_VER="—"
           WEB_SEEN="never reached"; WEB_VER="—"
 
-          # 60 attempts x 30s = up to 30 minutes — Render free tier is slow
-          for i in $(seq 1 60); do
+          # 100 attempts x 30s = up to 50 minutes — Render free tier builds
+          # twice per green push (code commit + version-bump commit) at
+          # ~25 min each, so 30 min was not enough.
+          for i in $(seq 1 100); do
             # A live commit that CONTAINS the expected one means a newer push
             # superseded this run — that's healthy, count it as a match.
             is_current_or_newer () {
@@ -90,7 +92,7 @@ jobs:
               WEB_VER=$(echo "$RESP" | jq -r '.version // "—"')
               is_current_or_newer "$WEB_SEEN" && WEB_OK=true
             fi
-            echo "attempt $i/60 — render: $API_SEEN (v$API_VER) | vercel: $WEB_SEEN (v$WEB_VER)"
+            echo "attempt $i/100 — render: $API_SEEN (v$API_VER) | vercel: $WEB_SEEN (v$WEB_VER)"
             [ "$API_OK" = "true" ] && [ "$WEB_OK" = "true" ] && break
             sleep 30
           done
