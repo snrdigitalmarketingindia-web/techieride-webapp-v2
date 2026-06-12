@@ -60,7 +60,7 @@ function BoardingModal({
   }, []);
 
   const handleSubmit = async () => {
-    if (!pickupName.trim()) { setError('Please pin your boarding point on the map'); return; }
+    if (!pickupName.trim()) { setError(FEATURES.MAPS_ENABLED ? 'Please pin your boarding point on the map' : 'Please enter your boarding point'); return; }
     if (!dropName.trim()) { setError('Please set your drop point'); return; }
     setSubmitting(true);
     try {
@@ -94,11 +94,12 @@ function BoardingModal({
             <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
           )}
 
-          {/* Boarding point — map pin */}
+          {/* Boarding point — map pin (maps on) or plain label (maps off) */}
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700">
               📍 Where should the giver pick you up? <span className="text-red-500">*</span>
             </label>
+            {FEATURES.MAPS_ENABLED ? (<>
             {gpsLoading && (
               <p className="text-xs text-brand-600 flex items-center gap-1">
                 <span className="animate-pulse">📡</span> Detecting your location…
@@ -117,6 +118,16 @@ function BoardingModal({
             {pickupLat && (
               <p className="text-xs text-green-600">📡 Location auto-detected — tap to adjust if needed</p>
             )}
+            </>) : (
+            <input
+              type="text"
+              value={pickupName}
+              onChange={(e) => setPickupName(e.target.value)}
+              placeholder="e.g. LB Nagar Metro, Gate 2…"
+              maxLength={80}
+              className={inputCls}
+            />
+            )}
           </div>
 
           {/* Drop point — map pin */}
@@ -124,6 +135,7 @@ function BoardingModal({
             <label className="text-sm font-medium text-gray-700">
               🏁 Where are you dropping off? <span className="text-red-500">*</span>
             </label>
+            {FEATURES.MAPS_ENABLED ? (
             <button
               type="button"
               onClick={() => setShowDropMap(true)}
@@ -134,6 +146,16 @@ function BoardingModal({
                 {dropName || 'Tap to pin your drop-off on map'}
               </span>
             </button>
+            ) : (
+            <input
+              type="text"
+              value={dropName}
+              onChange={(e) => setDropName(e.target.value)}
+              placeholder="e.g. Hitec City…"
+              maxLength={80}
+              className={inputCls}
+            />
+            )}
             <p className="text-xs text-gray-400">Default is ride destination — change if getting off earlier.</p>
           </div>
 
@@ -338,13 +360,19 @@ export default function RideSearchPage() {
     setLoading(true);
     setSearchError('');
     try {
-      const { data } = await ridesApi.search({
+      // Maps on: geo radius matching. Maps off: locations are display labels —
+      // match rides by name text instead of coordinates.
+      const { data } = await ridesApi.search(FEATURES.MAPS_ENABLED ? {
         originLat: form.originLat,
         originLng: form.originLng,
         destinationLat: form.destinationLat,
         destinationLng: form.destinationLng,
         date: form.date,
         radiusMeters: radiusKm * 1000,
+      } : {
+        originQuery: form.originName,
+        destinationQuery: form.destinationName,
+        date: form.date,
       });
       // Only apply results if this is still the most-recent search
       if (mySeq === searchSeqRef.current) setRides(data);

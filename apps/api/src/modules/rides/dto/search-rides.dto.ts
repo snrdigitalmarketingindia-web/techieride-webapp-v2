@@ -2,10 +2,18 @@ import { IsDateString, IsInt, IsNumber, IsOptional, IsString, Min, Max } from 'c
 import { Type } from 'class-transformer';
 
 export class SearchRidesDto {
-  @IsNumber() @Type(() => Number) originLat: number;
-  @IsNumber() @Type(() => Number) originLng: number;
-  @IsNumber() @Type(() => Number) destinationLat: number;
-  @IsNumber() @Type(() => Number) destinationLng: number;
+  // Coordinates are optional: the maps-off client searches by location NAME
+  // (originQuery/destinationQuery) instead. When coords are present the
+  // geo radius engine applies; when only names are present, fuzzy
+  // name-matching applies; with neither, all rides for the date are returned.
+  @IsOptional() @IsNumber() @Type(() => Number) originLat: number = 0;
+  @IsOptional() @IsNumber() @Type(() => Number) originLng: number = 0;
+  @IsOptional() @IsNumber() @Type(() => Number) destinationLat: number = 0;
+  @IsOptional() @IsNumber() @Type(() => Number) destinationLng: number = 0;
+
+  /** Free-text location filters (maps-off mode) — fuzzy-matched against ride names */
+  @IsOptional() @IsString() originQuery?: string;
+  @IsOptional() @IsString() destinationQuery?: string;
   @IsDateString() date: string;
   @IsOptional() @IsString() userId?: string;   // injected server-side from auth token
   @IsOptional() @IsInt() @Min(1) @Type(() => Number) page: number = 1;

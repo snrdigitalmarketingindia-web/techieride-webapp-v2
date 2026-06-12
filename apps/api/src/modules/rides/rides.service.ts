@@ -1008,6 +1008,21 @@ export class RidesService {
 
     const radius = dto.radiusMeters ?? 10_000; // default 10 km
 
+    // ── Name-matching mode (maps off): locations are display labels, not geo ──
+    // Fuzzy: lowercase, strip non-alphanumerics, then substring either way, so
+    // "Hitech City" / "HITEC city" / "hi-tech city" all match.
+    const norm = (v: string | null | undefined) => (v ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const fuzzyMatch = (rideName: string | null | undefined, query: string | null | undefined) => {
+      const r = norm(rideName);
+      const q = norm(query);
+      if (!q) return true;          // no filter on this leg
+      if (!r) return false;
+      return r.includes(q) || q.includes(r);
+    };
+    const originQ = (dto.originQuery ?? '').trim();
+    const destQ   = (dto.destinationQuery ?? '').trim();
+    const hasNameQuery = originQ.length > 0 || destQ.length > 0;
+
     const withDistances = (rides: typeof publishedRides, skipOriginFilter = false) =>
       rides
         .map((ride) => {
@@ -1016,7 +1031,11 @@ export class RidesService {
           return { ...ride, distanceFromOriginM: Math.round(distFromOrigin), distanceFromDestinationM: Math.round(distFromDest) };
         })
         .filter((r) => {
-          if (!hasCoords) return true; // no coordinates provided — return all (used in tests / admin views)
+          if (hasNameQuery) {
+            // Maps-off: match by display name only
+            return fuzzyMatch(r.originName, originQ) && fuzzyMatch(r.destinationName, destQ);
+          }
+          if (!hasCoords) return true; // no filters at all — return all (tests / admin views)
           if (skipOriginFilter) return r.distanceFromDestinationM <= radius; // ONGOING: only destination proximity matters
           return r.distanceFromOriginM <= radius && r.distanceFromDestinationM <= radius;
         });

@@ -817,6 +817,45 @@ async function run() {
     });
   }
 
+  // ── 16b. NAME-BASED SEARCH (maps-off mode) ────────────────────────────────
+  section('16b. Search by location name (maps off)');
+  {
+    const giver = await freshGiver('namesearch');
+    const seeker = await freshSeeker('namesearch');
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    const createR = await giver.client.post('/rides', {
+      originName: 'Hayathnagar X Roads', originLat: 0, originLng: 0,
+      destinationName: 'HITEC City', destinationLat: 0, destinationLng: 0,
+      departureDate: tomorrow, departureTime: '09:30', totalSeats: 2, vehicleId: giver.vehicleId,
+    });
+    const nameRideId = createR.data.id;
+    await giver.client.patch(`/rides/${nameRideId}/publish`);
+
+    await test('Fuzzy name search finds the ride (case/punctuation-insensitive)', async () => {
+      const r = await seeker.client.get('/rides/search', {
+        params: { originQuery: 'hayathnagar', destinationQuery: 'hi-tech city', date: tomorrow },
+      });
+      assert(r.status === 200, `Expected 200, got ${r.status}: ${JSON.stringify(r.data)}`);
+      assert(r.data.some((x: any) => x.id === nameRideId), 'Ride not found by name query');
+    });
+
+    await test('Non-matching destination name excludes the ride', async () => {
+      const r = await seeker.client.get('/rides/search', {
+        params: { originQuery: 'hayathnagar', destinationQuery: 'Shamshabad Airport', date: tomorrow },
+      });
+      assert(r.status === 200, `Expected 200, got ${r.status}`);
+      assert(!r.data.some((x: any) => x.id === nameRideId), 'Ride should not match a different destination name');
+    });
+
+    await test('Search with neither coords nor names returns rides for the date', async () => {
+      const r = await seeker.client.get('/rides/search', { params: { date: tomorrow } });
+      assert(r.status === 200, `Expected 200 (coords now optional), got ${r.status}`);
+      assert(Array.isArray(r.data), 'Expected array');
+    });
+
+    await giver.client.patch(`/rides/${nameRideId}/cancel`, { reason: 'test cleanup' }).catch(() => {});
+  }
+
   // ── 17. RATINGS — PENDING PROMPTS ─────────────────────────────────────────
   section('17. Ratings — Pending prompt list');
   {

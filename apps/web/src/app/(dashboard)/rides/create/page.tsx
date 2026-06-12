@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ridesApi, vehiclesApi, templatesApi } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
+import { FEATURES } from '@/lib/featureFlags';
 
 const PREFS_KEY = 'tr_ride_prefs';
 
@@ -189,8 +190,8 @@ export default function CreateRidePage() {
   const submit = async () => {
     if (!form.vehicleId) { setError('Please select a vehicle'); return; }
     if (!form.originName || !form.destinationName) { setError('Please fill in origin and destination'); return; }
-    if (!originPinned) { setError('Please pin your start location on the map to set accurate coordinates'); return; }
-    if (!destPinned) { setError('Please pin your destination on the map to set accurate coordinates'); return; }
+    if (FEATURES.MAPS_ENABLED && !originPinned) { setError('Please pin your start location on the map to set accurate coordinates'); return; }
+    if (FEATURES.MAPS_ENABLED && !destPinned) { setError('Please pin your destination on the map to set accurate coordinates'); return; }
     if (!isAtLeast15MinAhead(form.departureDate, form.departureTime)) {
       setError('Departure time must be at least 15 minutes from now'); return;
     }
@@ -198,6 +199,12 @@ export default function CreateRidePage() {
     setError('');
     try {
       const { saveAsTemplate, departureDays, ...ridePayload } = form;
+      if (!FEATURES.MAPS_ENABLED) {
+        // Maps off: locations are display labels only — never persist the
+        // form's default/stale coordinates (they poison geo search later).
+        ridePayload.originLat = 0; ridePayload.originLng = 0;
+        ridePayload.destinationLat = 0; ridePayload.destinationLng = 0;
+      }
       const { data: ride } = await ridesApi.create(ridePayload);
 
       if (form.saveAsTemplate) {
@@ -299,6 +306,7 @@ export default function CreateRidePage() {
           )}
           <div>
             <label className="text-sm font-medium text-gray-700">📍 From (Start location)</label>
+            {FEATURES.MAPS_ENABLED ? (
             <button
               type="button"
               onClick={() => setMapModal('origin')}
@@ -310,9 +318,20 @@ export default function CreateRidePage() {
               </span>
               {form.originName && !originPinned && <span className="text-[10px] text-amber-600 font-medium shrink-0">Pin required →</span>}
             </button>
+            ) : (
+            <input
+              type="text"
+              value={form.originName}
+              onChange={(e) => update('originName', e.target.value)}
+              placeholder="e.g. Hayathnagar, LB Nagar…"
+              maxLength={60}
+              className={`${inputCls} mt-1`}
+            />
+            )}
           </div>
           <div>
             <label className="text-sm font-medium text-gray-700">🏢 To (Destination)</label>
+            {FEATURES.MAPS_ENABLED ? (
             <button
               type="button"
               onClick={() => setMapModal('destination')}
@@ -324,6 +343,16 @@ export default function CreateRidePage() {
               </span>
               {form.destinationName && !destPinned && <span className="text-[10px] text-amber-600 font-medium shrink-0">Pin required →</span>}
             </button>
+            ) : (
+            <input
+              type="text"
+              value={form.destinationName}
+              onChange={(e) => update('destinationName', e.target.value)}
+              placeholder="e.g. Hitec City, Gachibowli…"
+              maxLength={60}
+              className={`${inputCls} mt-1`}
+            />
+            )}
           </div>
         </div>
 
