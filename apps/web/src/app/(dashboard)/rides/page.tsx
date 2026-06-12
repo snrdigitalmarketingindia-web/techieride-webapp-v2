@@ -22,8 +22,6 @@ export default function MyRidesPage() {
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasActiveRide, setHasActiveRide] = useState(false);
-  // showHistory=false so the "Show History" button is visible by default (tests click it to reveal past rides).
-  const [showHistory, setShowHistory] = useState(false);
   // Period filter — default 'today'.
   type Period = 'all' | 'today' | 'tomorrow' | 'week' | 'month' | 'custom';
   const [period, setPeriod] = useState<Period>('today');
@@ -89,7 +87,8 @@ export default function MyRidesPage() {
   useEffect(() => {
     if (!user || !_hasHydrated) return;
     setLoading(true);
-    const fetch = tab === 'given' ? ridesApi.getGiven() : ridesApi.getTaken();
+    // History always included — the period filters (Today/Week/All…) decide visibility
+    const fetch = tab === 'given' ? ridesApi.getGiven(undefined, true) : ridesApi.getTaken();
     fetch.then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; }).finally(() => setLoading(false));
     if (tab === 'taken' && isSeeker) reloadMyRequests();
   }, [tab, _hasHydrated, user?.id]);
@@ -233,24 +232,6 @@ export default function MyRidesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">My Rides</h1>
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              const next = !showHistory;
-              setShowHistory(next);
-              if (next) {
-                // Showing history — reset period to 'all' so date filter doesn't hide old rides
-                setPeriod('all');
-                setCustomFrom(''); setCustomTo('');
-                if (tab === 'given') {
-                  ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
-                }
-                // taken rides: getTaken() already returns all statuses, no re-fetch needed
-              }
-            }}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition ${showHistory ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-300 text-gray-500 hover:border-gray-400'}`}
-          >
-            {showHistory ? '🕐 Hide History' : '🕐 Show History'}
-          </button>
         {isGiver && (
           hasActiveRide ? (
             <span
@@ -355,33 +336,12 @@ export default function MyRidesPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-10 text-center">
           <div className="text-4xl mb-2">{tab === 'given' ? '🚗' : '🧳'}</div>
           <p className="text-gray-500 text-sm">No {tab === 'given' ? 'rides offered' : 'rides taken'} yet</p>
-          {/* Giver: rides=[] means only completed/cancelled exist — let them load history */}
-          {tab === 'given' && (
-            <button onClick={() => {
-              setShowHistory(true);
-              ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
-            }} className="mt-3 text-xs text-brand-600 hover:underline">🕐 Load ride history</button>
-          )}
           {tab === 'taken' && (
             <p className="mt-2 text-xs text-gray-400">
               Completed rides appear here after your Ride Giver marks the ride done.{' '}
               <a href="/requests" className="text-brand-600 hover:underline">View all your seat requests →</a>
             </p>
           )}
-        </div>
-      ) : rides.filter((r: any) => tab === 'given'
-            ? ['PUBLISHED','ONGOING'].includes(r.status) && !r.archivedAt
-            : ['PUBLISHED','ONGOING'].includes(r.status) && !r.archivedAt
-          ).length === 0 && tab === 'given' && !showHistory ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <div className="text-3xl mb-2">✅</div>
-          <p className="text-gray-500 text-sm">No active rides</p>
-          <button onClick={() => {
-            setShowHistory(true);
-            ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
-          }} className="mt-2 text-xs text-brand-600 hover:underline">
-            Show history →
-          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -390,51 +350,26 @@ export default function MyRidesPage() {
             // Active list definitions:
             //   Giver  → PUBLISHED or ONGOING (not DRAFT, not terminal, not archived)
             //   Seeker → rides where their request is PENDING or CONFIRMED
-            const isActiveForGiver = (r: any) =>
-              ['PUBLISHED', 'ONGOING'].includes(r.status) && !r.archivedAt;
-            const isActiveForSeeker = (r: any) => {
-              const myReq = myRequests.find((req: any) => req.rideId === r.id);
-              if (myReq) return ['PENDING', 'CONFIRMED'].includes(myReq.status);
-              // fallback: show PUBLISHED/ONGOING rides the seeker is a participant on
-              return ['PUBLISHED', 'ONGOING'].includes(r.status) && !r.archivedAt;
-            };
-            const periodRides = applyPeriod(rides);
-            const visibleRides = showHistory
-              ? periodRides
-              : tab === 'given'
-                ? periodRides.filter(isActiveForGiver)
-                : periodRides.filter(isActiveForSeeker);
-            const hiddenCount = periodRides.length - visibleRides.length;
-
-            const showHistoryHint = () => {
-              setShowHistory(true);
-              setPeriod('all'); setCustomFrom(''); setCustomTo('');
-              if (tab === 'given') {
-                ridesApi.getGiven(undefined, true).then((r) => { setRides(r.data ?? []); ridesRef.current = r.data ?? []; });
-              }
-            };
+            // Period filters are authoritative for BOTH tabs — completed/cancelled
+            // rides stay visible in their period with status badges (a ride
+            // completed today remains under Today, where the rating flow lives).
+            const visibleRides = applyPeriod(rides);
 
             return (<>
-              {/* Hidden history hint — both giver and seeker tabs */}
-              {hiddenCount > 0 && !showHistory && (
-                <button onClick={showHistoryHint}
-                  className="w-full text-xs text-gray-400 hover:text-gray-600 py-1 transition">
-                  🕐 {hiddenCount} past ride{hiddenCount > 1 ? 's' : ''} in history — tap to view
-                </button>
-              )}
-              {/* Empty active state — show history prompt */}
-              {visibleRides.length === 0 && hiddenCount > 0 && (
+              {/* Empty state for the selected period */}
+              {visibleRides.length === 0 && rides.length > 0 && (
                 <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                  <p className="text-gray-500 text-sm">No active rides</p>
-                  <button onClick={showHistoryHint} className="mt-2 text-xs text-brand-600 hover:underline">
-                    Show {hiddenCount} completed / cancelled
+                  <p className="text-gray-500 text-sm">No rides in this period</p>
+                  <button onClick={() => { setPeriod('all'); setCustomFrom(''); setCustomTo(''); }}
+                    className="mt-2 text-xs text-brand-600 hover:underline">
+                    Show all rides
                   </button>
                 </div>
               )}
             </>);
           })()}
-          {/* Taken tab: always show all rides incl. history. Given tab: respect showHistory toggle. */}
-          {(tab === 'taken' || showHistory ? applyPeriod(rides) : applyPeriod(rides).filter((r: any) => !['COMPLETED', 'CANCELLED'].includes(r.status))).map((ride, idx, arr) => {
+          {/* Period filters decide visibility for both tabs — status badges tell the story */}
+          {applyPeriod(rides).map((ride, idx, arr) => {
             // Pending requests section for giver PUBLISHED rides
             const pendingReqs = tab === 'given' && ride.status === 'PUBLISHED'
               ? (pendingMap[ride.id] ?? []).filter((r: any) => r.status === 'PENDING')

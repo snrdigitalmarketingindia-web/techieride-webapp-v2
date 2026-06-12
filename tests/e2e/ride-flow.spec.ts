@@ -278,7 +278,8 @@ test.describe('📅 My Rides — Period Filter Tabs', () => {
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
-    await page.getByRole('button', { name: /Show History/i }).click().catch(() => {});
+    // Show History button removed — 'All' period filter reveals past rides
+    await page.getByRole('button', { name: /^All$/i }).click().catch(() => {});
     await page.getByRole('button', { name: /^Tomorrow$/i }).click();
     await page.waitForTimeout(1_000);
 

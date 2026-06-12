@@ -124,7 +124,8 @@ test.describe('🚏 Boarding Flow', () => {
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
-    await page.getByRole('button', { name: /show history/i }).click();
+    // Show History button removed — 'All' period filter reveals past rides
+    await page.getByRole('button', { name: /^All$/i }).click();
     await expect(page.getByText(/completed/i).filter({ visible: true }).first()).toBeVisible({ timeout: 8_000 });
   });
 
