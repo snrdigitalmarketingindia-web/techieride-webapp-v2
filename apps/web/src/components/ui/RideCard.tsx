@@ -161,58 +161,60 @@ export function RideCard({ ride, viewAs, actions, participantActions }: RideCard
               : null;
             const eta        = estimatePickupTime(ride.departureTime, ride.originLat, ride.originLng, pickupLat, pickupLng);
 
+            const timeStr = p.pickupTime ?? eta;
             return (
-              <div key={p.id} className={`flex items-start gap-2 ${noShow ? 'opacity-40' : ''}`}>
-                <div className="w-6 h-6 rounded-full bg-brand-100 flex items-center justify-center text-xs font-bold text-brand-700 shrink-0 mt-0.5">
-                  {name[0]}
-                </div>
-                <div className="flex-1 min-w-0">
+              /* Compact two-line row: ① name · company · time  ② pickup · badge/actions
+                 so multiple passengers fit on one phone screen */
+              <div key={p.id} className={`py-1 ${noShow ? 'opacity-40' : ''}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[10px] font-bold text-brand-700 shrink-0">
+                    {name[0]}
+                  </div>
                   <p className="text-xs font-medium text-gray-800 truncate">{name}</p>
-                  {company && (
-                    <p className="text-xs text-gray-500 truncate">{company}</p>
+                  {company && <p className="text-xs text-gray-400 truncate hidden sm:block">· {company}</p>}
+                  <span className="flex-1" />
+                  {timeStr && (
+                    <span className={`text-xs whitespace-nowrap shrink-0 ${p.pickupTime ? 'text-brand-600 font-medium' : 'text-gray-400'}`}>
+                      🕐 {p.pickupTime ? timeStr : `~${timeStr}`}
+                    </span>
                   )}
-                  {pickupName && (
-                    <a
-                      href={pickupLat && pickupLng
-                        ? `https://maps.google.com/?q=${pickupLat},${pickupLng}`
-                        : `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(pickupName)}`}
-                      target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-brand-600 hover:underline flex items-center gap-0.5"
-                      title="Open pickup location in Google Maps"
-                    >
-                      📍 {pickupName} <span className="text-gray-400 text-[10px]">↗</span>
-                    </a>
-                  )}
-                  {p.pickupTime ? (
-                    <p className="text-xs text-brand-600 font-medium">🕐 Pickup at {p.pickupTime}</p>
-                  ) : eta ? (
-                    <p className="text-xs text-gray-400">🕐 Est. pickup ~{eta}</p>
-                  ) : null}
-                </div>
-                {/* Right column: Call → Badge/NoShow → dist (top to bottom) */}
-                <div className="flex flex-col items-end gap-1 shrink-0">
                   {phone && !noShow && (
                     <CallButton
                       phone={phone}
                       countryCode={cc}
                       receiverId={recvId}
                       rideId={ride.id}
-                      label="Call"
+                      label=""
                       size="sm"
                       variant="ghost"
                     />
                   )}
+                </div>
+                <div className="flex items-center gap-2 pl-7 min-w-0">
+                  {pickupName && (
+                    <a
+                      href={pickupLat && pickupLng
+                        ? `https://maps.google.com/?q=${pickupLat},${pickupLng}`
+                        : `https://maps.google.com/maps/search/?api=1&query=${encodeURIComponent(pickupName)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="text-xs text-brand-600 hover:underline truncate"
+                      title="Open pickup location in Google Maps"
+                    >
+                      📍 {pickupName} <span className="text-gray-400 text-[10px]">↗</span>
+                    </a>
+                  )}
+                  <span className="flex-1" />
                   {/* Inline participant action (e.g. No-Show button) takes priority over badge */}
                   {participantActions?.[p.id]
                     ? participantActions[p.id]
                     : badge && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${badge.cls}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0 ${badge.cls}`}>
                           {badge.label}
                         </span>
                       )
                   }
                   {distStr && (
-                    <span className="text-xs text-gray-400 whitespace-nowrap">📏 {distStr} from you</span>
+                    <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0 hidden sm:inline">📏 {distStr}</span>
                   )}
                 </div>
               </div>
