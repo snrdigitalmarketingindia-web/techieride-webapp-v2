@@ -16,13 +16,18 @@ echo "🔨 Building API..."
 cd apps/api
 NODE_ENV=development npm run build
 
-# Stamp the exact build number for THIS commit (same formula as the CI bump
-# job) so /health reports it without waiting for the post-CI package.json bump.
-COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
-COMMIT=$(git rev-parse HEAD 2>/dev/null || echo unknown)
-if [ "$COUNT" != "0" ]; then
-  echo "{\"version\": \"2.1.0.$COUNT\", \"commit\": \"$COMMIT\"}" > build-info.json
-  echo "🔖 Stamped build-info.json: 2.1.0.$COUNT ($COMMIT)"
+# Stamp the exact build number for THIS commit. Prefer the [vN] prefix the
+# commit hook writes into the message (works on Render's shallow clone);
+# fall back to commit count only when the clone has full history.
+MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+VERSION=$(echo "$MSG" | sed -n 's/^\[v\([0-9.]*\)\].*/\1/p')
+if [ -z "$VERSION" ] && [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "false" ]; then
+  COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
+  [ "$COUNT" != "0" ] && VERSION="2.1.0.$COUNT"
+fi
+if [ -n "$VERSION" ]; then
+  echo "{\"version\": \"$VERSION\", \"commit\": \"$(git rev-parse HEAD)\"}" > build-info.json
+  echo "🔖 Stamped build-info.json: $VERSION"
 fi
 
 echo "✅ Done. Searching for main.js:"

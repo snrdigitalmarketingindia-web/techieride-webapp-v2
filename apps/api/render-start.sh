@@ -21,8 +21,9 @@ if [ ! -f "$MAIN_JS" ]; then
   echo "🔨 Building API..."
   cd apps/api
   NODE_ENV=development npm run build
-  COUNT=$(git rev-list --count HEAD 2>/dev/null || echo 0)
-  [ "$COUNT" != "0" ] && echo "{\"version\": \"2.1.0.$COUNT\", \"commit\": \"$(git rev-parse HEAD)\"}" > build-info.json
+  MSG=$(git log -1 --format=%s 2>/dev/null || echo "")
+  VERSION=$(echo "$MSG" | sed -n 's/^\[v\([0-9.]*\)\].*/\1/p')
+  [ -n "$VERSION" ] && echo "{\"version\": \"$VERSION\", \"commit\": \"$(git rev-parse HEAD)\"}" > build-info.json
   echo "✅ Build complete."
   # Return to apps/api (we may have changed dir inside npm run build)
   cd "$REPO_ROOT/apps/api"
