@@ -23,12 +23,17 @@ jobs:
     if: ${{ !contains(github.event.head_commit.message, '[vercel skip]') }}
     steps:
       - name: Render build status (early failure detection)
-        if: ${{ secrets.RENDER_API_KEY != '' }}
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
+          # secrets aren't usable in `if:` — skip inside the script instead
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "RENDER_API_KEY not set — skipping early build detection"
+            exit 0
+          fi
           # Poll the Render API for the deploy of THIS commit; fail fast on build errors
-          SID="${{ secrets.RENDER_SERVICE_ID }}"
+          SID="$RENDER_SERVICE_ID"
           if [ -z "$SID" ]; then
             SID=$(curl -sf -H "Authorization: Bearer $RENDER_API_KEY"               "https://api.render.com/v1/services?name=techieride-api&limit=5" | jq -r '.[0].service.id // empty')
           fi
