@@ -1012,12 +1012,25 @@ export class RidesService {
     // Fuzzy: lowercase, strip non-alphanumerics, then substring either way, so
     // "Hitech City" / "HITEC city" / "hi-tech city" all match.
     const norm = (v: string | null | undefined) => (v ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    // Levenshtein distance — tolerates near-miss spellings like
+    // "hitech city" vs "HITEC City" that substring checks cannot catch.
+    const editDistance = (a: string, b: string): number => {
+      const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]);
+      for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+      for (let i = 1; i <= a.length; i++)
+        for (let j = 1; j <= b.length; j++)
+          dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      return dp[a.length][b.length];
+    };
     const fuzzyMatch = (rideName: string | null | undefined, query: string | null | undefined) => {
       const r = norm(rideName);
       const q = norm(query);
       if (!q) return true;          // no filter on this leg
       if (!r) return false;
-      return r.includes(q) || q.includes(r);
+      if (r.includes(q) || q.includes(r)) return true;
+      // Allow ~25% character drift between the names (min 1 edit)
+      const tolerance = Math.max(1, Math.floor(Math.max(r.length, q.length) * 0.25));
+      return editDistance(r, q) <= tolerance;
     };
     const originQ = (dto.originQuery ?? '').trim();
     const destQ   = (dto.destinationQuery ?? '').trim();

@@ -1,6 +1,9 @@
 import { test, expect } from '@playwright/test';
 import { loginUI, ACCOUNTS } from './helpers';
 
+// Pin/map UX exists only when maps are enabled; maps-off uses plain text inputs.
+const MAPS_ON = process.env.NEXT_PUBLIC_FEATURE_MAPS === 'true';
+
 test.describe('🚗 Ride Giver', () => {
   test.beforeEach(async ({ page }) => {
     await loginUI(page, 'giver');
@@ -39,6 +42,7 @@ test.describe('🚗 Ride Giver', () => {
   });
 
   test('create ride form shows Pin required badge when name filled but not pinned', async ({ page }) => {
+    test.skip(!MAPS_ON, 'Maps disabled — locations are plain text, no pinning');
     await loginUI(page, 'giver');
     await page.goto('/rides/create');
     await page.waitForLoadState('networkidle');
@@ -53,6 +57,7 @@ test.describe('🚗 Ride Giver', () => {
   });
 
   test('create ride form blocked with "pin" error when names filled but map not pinned', async ({ page }) => {
+    test.skip(!MAPS_ON, 'Maps disabled — locations are plain text, no pinning');
     await loginUI(page, 'giver');
     await page.goto('/rides/create');
     await page.waitForLoadState('networkidle');
