@@ -723,8 +723,16 @@ jobs:
       - name: Compute version
         id: ver
         run: |
-          COUNT=$(git rev-list --count HEAD)
-          echo "version=2.1.0.$COUNT" >> $GITHUB_OUTPUT
+          # Single source of truth: the [vN] prefix the commit hook stamped.
+          # This keeps package.json identical to what the app footer and
+          # /health display for this commit (a pre-push rebase over the bump
+          # commit shifts the raw count by one, so recounting here drifts).
+          MSG=$(git log -1 --format=%s)
+          VERSION=$(echo "$MSG" | sed -n 's/^\[v\([0-9.]*\)\].*/\1/p')
+          if [ -z "$VERSION" ]; then
+            VERSION="2.1.0.$(git rev-list --count HEAD)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Update package.json
         run: |
