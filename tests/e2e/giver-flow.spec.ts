@@ -124,7 +124,7 @@ test.describe('🚗 Giver Full Flow', () => {
 
     await loginUI(page, 'giver');
     await gotoRideDetail(page, rideId);
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('GF-06: giver rejects a second request — requests page updates', async ({ page }) => {

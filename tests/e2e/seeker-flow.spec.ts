@@ -119,7 +119,7 @@ test.describe('🙋 Seeker Full Flow', () => {
     await page.locator('input[type="date"]').fill(tomorrowDateStr());
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
-    await expect(page.getByText(/seat confirmed/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/seat confirmed/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('SF-07: seeker requests page shows CONFIRMED request with correct status', async ({ page }) => {

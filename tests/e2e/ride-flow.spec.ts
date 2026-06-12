@@ -130,7 +130,7 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     await page.getByRole('button', { name: /search/i }).click();
     await page.waitForTimeout(2_000);
 
-    await expect(page.getByText(/seat confirmed/i)).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/seat confirmed/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('giver sees confirmed passenger on My Rides page', async ({ page }) => {
@@ -144,7 +144,8 @@ test.describe('🚗 Ride Flow — Giver publishes, Seeker requests', () => {
     await ridesFetch;
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /^All$/i }).click();
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 8_000 });
+    // History always visible — the name may appear on several ride cards
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('giver rejects a request — seeker sees rejected state on requests page', async ({ page }) => {
@@ -351,8 +352,8 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
     await page.goto('/rides', { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: /^All$/i }).click();
     await page.waitForTimeout(500);
-    await expect(page.getByText(/Seat Confirmed/i)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/^Waiting$/i)).not.toBeVisible();
+    await expect(page.getByText(/Seat Confirmed/i).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/^Waiting$/i).first()).not.toBeVisible();
   });
 
   test('BD-02: confirmed passenger shows "Yet to board" badge on ONGOING ride (giver view)', async ({ page }) => {
@@ -368,8 +369,8 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
     await page.getByRole('button', { name: /^All$/i }).click();
     await page.waitForTimeout(500);
     // Attendance flag on: "Yet to board" · off: neutral "On this ride"
-    await expect(page.getByText(/Yet to board|On this ride/i)).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByText(/Seat Confirmed/i)).not.toBeVisible();
+    await expect(page.getByText(/Yet to board|On this ride/i).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page.getByText(/Seat Confirmed/i).first()).not.toBeVisible();
 
     // Cleanup: use clearActiveRides because /cancel is rejected on ONGOING rides.
     // A leaked ONGOING ride would block SR-04's publish call with "active ride" error.

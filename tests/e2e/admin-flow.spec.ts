@@ -49,7 +49,7 @@ test.describe('🛡️ Admin Full Flow', () => {
     await page.waitForLoadState('networkidle', { timeout: 15_000 });
     await page.getByText(/arjun mehta/i).first().click();
     await expect(page).toHaveURL(/\/admin\/users\//);
-    await expect(page.getByText(/arjun mehta/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('AF-05: user detail shows account status', async ({ page }) => {
