@@ -13,6 +13,8 @@ export const FEATURES = {
   /** Boarded / Deboarded / No-Show attendance tracking — parked, not in current release */
   ATTENDANCE_TRACKING_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_ATTENDANCE_TRACKING, false),
 
-  /** Interactive maps (pin pickers, route display, live tracking, commute board) */
-  MAPS_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_MAPS, true),
+  /** Interactive maps (pin pickers, route display, live tracking, commute board).
+   *  Disabled for the current release — location selection uses address search,
+   *  Home/Office and Saved Locations. Re-enable via NEXT_PUBLIC_FEATURE_MAPS=true. */
+  MAPS_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_MAPS, false),
 } as const;

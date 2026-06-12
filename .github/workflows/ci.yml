@@ -29,7 +29,7 @@ env:
   # Feature flags — keep in sync with production defaults
   FEATURE_ATTENDANCE_TRACKING: "false"
   NEXT_PUBLIC_FEATURE_ATTENDANCE_TRACKING: "false"
-  NEXT_PUBLIC_FEATURE_MAPS: "true"
+  NEXT_PUBLIC_FEATURE_MAPS: "false"
 
 jobs:
 

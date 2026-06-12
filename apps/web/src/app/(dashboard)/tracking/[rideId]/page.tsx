@@ -56,7 +56,7 @@ export default function TrackingPage({ params }: { params: { rideId: string } })
         </button>
       </div>
 
-      {isGiver && (
+      {FEATURES.MAPS_ENABLED && isGiver && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800">
           ✅ Your location is being shared with passengers in real-time
         </div>
