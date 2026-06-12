@@ -731,7 +731,11 @@ export default function MyRidesPage() {
                           if (!myParticipant) return null;
                           return (
                             <p className="w-full text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                              🎉 Seat confirmed! <span className="font-medium">Board Now</span> button will appear once the Ride Giver starts the ride.
+                              {FEATURES.ATTENDANCE_TRACKING_ENABLED ? (
+                                <>🎉 Seat confirmed! <span className="font-medium">Board Now</span> button will appear once the Ride Giver starts the ride.</>
+                              ) : (
+                                <>🎉 Seat confirmed! Your Ride Giver will pick you up at the agreed time.</>
+                              )}
                             </p>
                           );
                         })()}
@@ -742,7 +746,7 @@ export default function MyRidesPage() {
                           const bs = myParticipant?.boardingStatus;
                           return (
                             <>
-                              {bs === 'WAITING' && (
+                              {FEATURES.ATTENDANCE_TRACKING_ENABLED && bs === 'WAITING' && (
                                 <button
                                   onClick={() => handleBoard(ride.id)}
                                   disabled={processing === ride.id}
@@ -751,7 +755,7 @@ export default function MyRidesPage() {
                                   ✅ I've Boarded
                                 </button>
                               )}
-                              {bs === 'BOARDED' && (
+                              {FEATURES.ATTENDANCE_TRACKING_ENABLED && bs === 'BOARDED' && (
                                 <button
                                   onClick={() => handleDeboard(ride.id)}
                                   disabled={processing === ride.id}

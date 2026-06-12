@@ -366,7 +366,8 @@ test.describe('🎫 Boarding Badge — Seat Confirmed vs Yet to board', () => {
     // Ride is for tomorrow → click 'All' to bypass the default 'today' period filter.
     await page.getByRole('button', { name: /^All$/i }).click();
     await page.waitForTimeout(500);
-    await expect(page.getByText(/Yet to board/i)).toBeVisible({ timeout: 8_000 });
+    // Attendance flag on: "Yet to board" · off: neutral "On this ride"
+    await expect(page.getByText(/Yet to board|On this ride/i)).toBeVisible({ timeout: 8_000 });
     await expect(page.getByText(/Seat Confirmed/i)).not.toBeVisible();
 
     // Cleanup: use clearActiveRides because /cancel is rejected on ONGOING rides.

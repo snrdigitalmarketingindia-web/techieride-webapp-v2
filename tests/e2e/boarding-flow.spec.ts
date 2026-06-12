@@ -78,8 +78,8 @@ test.describe('🚏 Boarding Flow', () => {
     // inFourHours() can cross midnight in CI (UTC) → ride appears as "tomorrow" →
     // hidden by the default 'today' period filter. Click 'All' to show all rides.
     await page.getByRole('button', { name: /^All$/i }).click();
-    // Flag on: "Waiting" status · flag off: seat-status badge "Yet to board"
-    await expect(page.getByText(/waiting|yet to board/i).first()).toBeVisible({ timeout: 8_000 });
+    // Flag on: "Waiting"/"Yet to board" · flag off: neutral "On this ride" badge
+    await expect(page.getByText(/waiting|yet to board|on this ride/i).first()).toBeVisible({ timeout: 8_000 });
   });
 
   test('BF-02: complete blocked when passenger still WAITING', async ({ page }) => {

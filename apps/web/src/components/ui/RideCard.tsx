@@ -21,11 +21,13 @@ const BOARDING_BADGE: Record<string, { label: string; cls: string }> = {
   NO_SHOW:   { label: '👻 No-show',   cls: 'bg-red-100 text-red-500'     },
 };
 
-/** WAITING means different things depending on whether the ride has started */
+/** WAITING means different things depending on whether the ride has started.
+ *  With attendance tracking parked, boarding vocabulary is avoided entirely. */
 function waitingBadge(rideStatus: string) {
-  return rideStatus === 'ONGOING'
+  if (rideStatus !== 'ONGOING') return { label: '✅ Seat Confirmed', cls: 'bg-green-100 text-green-700' };
+  return FEATURES.ATTENDANCE_TRACKING_ENABLED
     ? { label: '⏳ Yet to board', cls: 'bg-amber-100 text-amber-700' }
-    : { label: '✅ Seat Confirmed', cls: 'bg-green-100 text-green-700' };
+    : { label: '🚗 On this ride', cls: 'bg-blue-100 text-blue-700' };
 }
 
 interface RideCardProps {
