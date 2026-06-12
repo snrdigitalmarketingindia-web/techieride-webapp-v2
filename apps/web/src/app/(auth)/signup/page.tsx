@@ -202,7 +202,7 @@ export default function SignupPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
           <p className="text-sm text-gray-500 mt-1">Join TechieRide — Hyderabad's IT carpool network</p>
-          <span className="inline-block mt-1 text-xs text-orange-400 font-medium">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+          <span className="inline-block mt-1 text-xs text-orange-400 font-medium">v{process.env.NEXT_PUBLIC_APP_VERSION} · {process.env.NEXT_PUBLIC_APP_COMMIT}</span>
         </div>
 
         {/* Step indicators */}

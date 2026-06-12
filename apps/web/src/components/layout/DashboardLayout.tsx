@@ -102,7 +102,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="flex flex-col items-center gap-0 shrink-0">
           <Image src="/TR_Logo_black.png" alt="Techieride" width={36} height={36} className="object-contain" priority />
           <span className="text-[9px] font-medium text-gray-400 leading-none tracking-tight">
-            v{process.env.NEXT_PUBLIC_APP_VERSION}
+            v{process.env.NEXT_PUBLIC_APP_VERSION} · {process.env.NEXT_PUBLIC_APP_COMMIT}
           </span>
         </div>
 
@@ -197,7 +197,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               SNR Digital Marketing
             </a>
           </span>
-          <span className="text-[10px] text-gray-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+          <span className="text-[10px] text-gray-400">v{process.env.NEXT_PUBLIC_APP_VERSION} · {process.env.NEXT_PUBLIC_APP_COMMIT}</span>
         </div>
       </div>
 

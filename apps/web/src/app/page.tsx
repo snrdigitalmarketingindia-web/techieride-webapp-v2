@@ -227,7 +227,7 @@ export default function LandingPage() {
         <p className="font-semibold text-gray-600">TechieRide Society</p>
         <p className="italic">"For a Better Society"</p>
         <p>Established 2011 · Hyderabad</p>
-        <p className="text-xs mt-2">© 2026 TechieRide v{process.env.NEXT_PUBLIC_APP_VERSION}</p>
+        <p className="text-xs mt-2">© 2026 TechieRide v{process.env.NEXT_PUBLIC_APP_VERSION} · {process.env.NEXT_PUBLIC_APP_COMMIT}</p>
       </footer>
 
     </main>

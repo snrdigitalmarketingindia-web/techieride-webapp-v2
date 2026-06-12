@@ -69,7 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Image src="/TR_Logo_black.png" alt="Techieride" width={48} height={48} className="object-contain" />
           <div className="flex items-center gap-1 mt-1">
             <span className="text-xs text-gray-400">Admin Panel</span>
-            <span className="text-xs font-medium text-orange-400">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+            <span className="text-xs font-medium text-orange-400">v{process.env.NEXT_PUBLIC_APP_VERSION} · {process.env.NEXT_PUBLIC_APP_COMMIT}</span>
           </div>
         </div>
         <nav className="space-y-1 flex-1">
@@ -104,7 +104,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center gap-2">
           <Image src="/TR_Logo_black.png" alt="Techieride" width={28} height={28} className="object-contain" />
           <span className="text-sm font-bold text-gray-900">Admin</span>
-          <span className="text-xs text-orange-400 font-medium">v{process.env.NEXT_PUBLIC_APP_VERSION}</span>
+          <span className="text-xs text-orange-400 font-medium">v{process.env.NEXT_PUBLIC_APP_VERSION} · {process.env.NEXT_PUBLIC_APP_COMMIT}</span>
         </div>
         <button onClick={() => { logout(); router.push('/'); }}
           className="text-xs text-red-500 border border-red-200 px-3 py-1 rounded-lg">
