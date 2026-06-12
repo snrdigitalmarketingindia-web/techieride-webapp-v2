@@ -308,7 +308,7 @@ export default function CreateRidePage() {
           {/* Nudge: home/office unlock one-tap direction fill + suggestions */}
           {user && !(user as any).homeAddress && !(user as any).officeAddress && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-              💡 Save your <Link href="/profile" className="font-medium underline">Home &amp; Office locations</Link> once —
+              💡 Save your <Link href="/profile?edit=locations" className="font-medium underline">Home &amp; Office locations</Link> once —
               they&apos;ll auto-fill here and appear as typing suggestions.
             </p>
           )}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { vehiclesApi, verificationApi, api, usersApi } from '@/lib/api';
 import { uploadDocument } from '@/lib/uploadDocument';
+import { FEATURES } from '@/lib/featureFlags';
 import { MapPinModal, type MapLocation } from '@/components/ui/MapPinModal';
 
 // Returns a mismatch message or null if RC data matches vehicle form
@@ -61,6 +62,15 @@ export default function ProfilePage() {
   const [newPersonalEmail, setNewPersonalEmail] = useState('');
   const [personalEmailSending, setPersonalEmailSending] = useState(false);
   const [personalEmailMsg, setPersonalEmailMsg] = useState('');
+
+  // Deep link from the ride-create nudge: /profile?edit=locations
+  useEffect(() => {
+    if (!user) return;
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('edit')) {
+      openEdit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const openEdit = () => {
     setEditForm({
@@ -235,6 +245,22 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* Home / Office — always visible so the feature is discoverable */}
+        {!editing && (
+          <div className="border-t border-gray-100 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {([['🏠 Home', (user as any)?.homeAddress || (user as any)?.homeLocation],
+               ['🏢 Office', (user as any)?.officeAddress || (user as any)?.officeLocation]] as const).map(([label, value]) => (
+              <button key={label} onClick={openEdit}
+                className="flex items-center justify-between gap-2 text-left px-3 py-2 rounded-lg border border-gray-100 hover:border-brand-300 hover:bg-brand-50 transition">
+                <span className="text-xs text-gray-500 shrink-0">{label}</span>
+                <span className={`text-xs truncate ${value ? 'text-gray-800 font-medium' : 'text-amber-600'}`}>
+                  {value || 'Not set — add →'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Inline edit form */}
         {editing && (
           <div className="border-t border-gray-100 pt-4 space-y-3">
@@ -275,9 +301,10 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Home Location — map pin */}
+            {/* Home Location — pin picker (maps on) or text label (maps off) */}
             <div>
               <label className="text-xs text-gray-500 mb-1 block">🏠 Home Location</label>
+              {FEATURES.MAPS_ENABLED ? (
               <button
                 type="button"
                 onClick={() => setMapModal('home')}
@@ -290,11 +317,22 @@ export default function ProfilePage() {
                     : 'Tap to pin on map'}
                 </span>
               </button>
+              ) : (
+              <input
+                type="text"
+                value={editForm.homeAddress || editForm.homeLocation}
+                onChange={(e) => setEditForm((f: any) => ({ ...f, homeLocation: e.target.value, homeAddress: e.target.value }))}
+                placeholder="e.g. Hayathnagar"
+                maxLength={60}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+              )}
             </div>
 
-            {/* Office Location — map pin */}
+            {/* Office Location — pin picker (maps on) or text label (maps off) */}
             <div>
               <label className="text-xs text-gray-500 mb-1 block">🏢 Office Location</label>
+              {FEATURES.MAPS_ENABLED ? (
               <button
                 type="button"
                 onClick={() => setMapModal('office')}
@@ -307,6 +345,16 @@ export default function ProfilePage() {
                     : 'Tap to pin on map'}
                 </span>
               </button>
+              ) : (
+              <input
+                type="text"
+                value={editForm.officeAddress || editForm.officeLocation}
+                onChange={(e) => setEditForm((f: any) => ({ ...f, officeLocation: e.target.value, officeAddress: e.target.value }))}
+                placeholder="e.g. Hitec City"
+                maxLength={60}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+              />
+              )}
             </div>
             {/* Saved locations shortcut */}
             <div className="flex items-center justify-between py-1">
