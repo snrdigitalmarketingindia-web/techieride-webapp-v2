@@ -8,8 +8,22 @@ import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
 
-/** App version from the root package.json (stamped 2.1.0.{build} by CI). */
+/**
+ * App version. Preferred source: build-info.json written by render-build.sh
+ * with the exact number for the deployed commit. Fallback: root package.json
+ * (stamped by CI only after a green run, so it lags one bump behind).
+ */
 function readAppVersion(): string {
+  let probe = __dirname;
+  for (let i = 0; i < 8; i++) {
+    try {
+      const info = JSON.parse(fs.readFileSync(path.join(probe, 'build-info.json'), 'utf8'));
+      if (info.version) return info.version;
+    } catch { /* keep climbing */ }
+    const up = path.dirname(probe);
+    if (up === probe) break;
+    probe = up;
+  }
   // The root package.json's depth depends on how we were started:
   // ts-node:  apps/api/src/main.ts            → 3 levels up
   // Render:   apps/api/dist/apps/api/src/main.js → 6 levels up
