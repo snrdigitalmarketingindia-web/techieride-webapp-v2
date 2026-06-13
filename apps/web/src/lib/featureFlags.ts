@@ -21,4 +21,12 @@ export const FEATURES = {
   /** Seeker-adjustable search radius slider. Hidden for the current release —
    *  search uses the 10 km default; matching itself remains distance-based. */
   RADIUS_SLIDER_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_RADIUS_SLIDER, false),
+
+  /** Women-only rides — giver can restrict to female passengers, seeker can filter.
+   *  Disabled until backend validation and gender verification are complete. */
+  WOMEN_ONLY_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_WOMEN_ONLY, false),
+
+  /** Recurring ride templates — giver can save a Mon–Fri commute template.
+   *  Disabled until recurring-ride scheduling is implemented on the backend. */
+  RECURRING_RIDES_ENABLED: flag(process.env.NEXT_PUBLIC_FEATURE_RECURRING_RIDES, false),
 } as const;

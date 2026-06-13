@@ -34,11 +34,10 @@ const saveLastRoute = (route: object) => {
   try { localStorage.setItem(PREFS_ROUTE_KEY, JSON.stringify(route)); } catch {}
 };
 
-// Returns now+20min rounded up to the nearest 5 min as "HH:MM"
-// (20 min gives comfortable buffer above the 15-min minimum)
+// Returns now+60min rounded up to the nearest 5 min as "HH:MM"
 const defaultDepartureTime = () => {
   const d = new Date();
-  d.setMinutes(d.getMinutes() + 20);
+  d.setMinutes(d.getMinutes() + 60);
   const m = Math.ceil(d.getMinutes() / 5) * 5;
   if (m >= 60) { d.setHours(d.getHours() + 1); d.setMinutes(0); }
   else { d.setMinutes(m); }
@@ -95,6 +94,7 @@ export default function CreateRidePage() {
   // Track whether coords were explicitly pinned via map (not just defaults or text-only profile fill)
   const [originPinned, setOriginPinned] = useState(false);
   const [destPinned, setDestPinned] = useState(false);
+  const [direction, setDirection] = useState<'h2o' | 'o2h' | null>(null);
 
   // Initialise pinned state from last route on mount — runs before user loads.
   // This ensures that if tr_last_route already has coords (e.g. set by a test or
@@ -120,10 +120,11 @@ export default function CreateRidePage() {
     const homeLng    = (user as any).homeLng    as number | undefined;
     const officeLat  = (user as any).officeLat  as number | undefined;
     const officeLng  = (user as any).officeLng  as number | undefined;
-    const direction  = getCommuteDirection();
+    const commuteDir = getCommuteDirection();
+    setDirection(commuteDir === 'morning' ? 'h2o' : 'o2h');
 
     if (homeLabel && officeLabel) {
-      const isMorning  = direction === 'morning';
+      const isMorning  = commuteDir === 'morning';
       const originName = isMorning ? homeLabel   : officeLabel;
       const destName   = isMorning ? officeLabel  : homeLabel;
       const oLat       = isMorning ? homeLat    : officeLat;
@@ -280,20 +281,20 @@ export default function CreateRidePage() {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-3">
           {/* Profile-based quick-fill chips */}
           {((user as any)?.homeLocation || (user as any)?.officeLocation) && (
             <div className="flex flex-wrap gap-2">
               {(user as any)?.homeLocation && (user as any)?.officeLocation && (
                 <>
                   <button type="button"
-                    onClick={() => { update('originName', (user as any).homeLocation); update('destinationName', (user as any).officeLocation); setOriginPinned(false); setDestPinned(false); }}
-                    className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition">
+                    onClick={() => { setDirection('h2o'); update('originName', (user as any).homeLocation); update('destinationName', (user as any).officeLocation); setOriginPinned(false); setDestPinned(false); }}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition ${direction === 'h2o' ? 'bg-brand-600 text-white border-brand-600' : 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'}`}>
                     🏠→🏢 Home to Office
                   </button>
                   <button type="button"
-                    onClick={() => { update('originName', (user as any).officeLocation); update('destinationName', (user as any).homeLocation); setOriginPinned(false); setDestPinned(false); }}
-                    className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition">
+                    onClick={() => { setDirection('o2h'); update('originName', (user as any).officeLocation); update('destinationName', (user as any).homeLocation); setOriginPinned(false); setDestPinned(false); }}
+                    className={`text-xs px-2.5 py-1 rounded-full border transition ${direction === 'o2h' ? 'bg-brand-600 text-white border-brand-600' : 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'}`}>
                     🏢→🏠 Office to Home
                   </button>
                 </>
@@ -305,20 +306,19 @@ export default function CreateRidePage() {
               🔁 Pre-filled from your last ride route. Edit freely.
             </p>
           )}
-          {/* Nudge: home/office unlock one-tap direction fill + suggestions */}
           {user && !(user as any).homeLocation && !(user as any).homeAddress && !(user as any).officeLocation && !(user as any).officeAddress && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
               💡 Save your <Link href="/profile?edit=locations" className="font-medium underline">Home &amp; Office locations</Link> once —
               they&apos;ll auto-fill here and appear as typing suggestions.
             </p>
           )}
-          <div>
-            <label className="text-sm font-medium text-gray-700">📍 From (Start location)</label>
+          <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-3">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">📍 From</label>
             {FEATURES.MAPS_ENABLED ? (
             <button
               type="button"
               onClick={() => setMapModal('origin')}
-              className={`${inputCls} mt-1 flex items-center gap-2 text-left ${form.originName && !originPinned ? 'border-amber-400 bg-amber-50' : ''}`}
+              className={`${inputCls} flex items-center gap-2 text-left ${form.originName && !originPinned ? 'border-amber-400 bg-amber-50' : ''}`}
             >
               <span>{originPinned ? '✅' : '📍'}</span>
               <span className={form.originName ? 'text-gray-800 flex-1' : 'text-gray-400 flex-1'}>
@@ -332,17 +332,15 @@ export default function CreateRidePage() {
               onChange={(v) => update('originName', v)}
               placeholder="e.g. Hayathnagar, LB Nagar…"
               maxLength={60}
-              className={`${inputCls} mt-1`}
+              className={inputCls}
             />
             )}
-          </div>
-          <div>
-            <label className="text-sm font-medium text-gray-700">🏢 To (Destination)</label>
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">🏢 To</label>
             {FEATURES.MAPS_ENABLED ? (
             <button
               type="button"
               onClick={() => setMapModal('destination')}
-              className={`${inputCls} mt-1 flex items-center gap-2 text-left ${form.destinationName && !destPinned ? 'border-amber-400 bg-amber-50' : ''}`}
+              className={`${inputCls} flex items-center gap-2 text-left ${form.destinationName && !destPinned ? 'border-amber-400 bg-amber-50' : ''}`}
             >
               <span>{destPinned ? '✅' : '🏁'}</span>
               <span className={form.destinationName ? 'text-gray-800 flex-1' : 'text-gray-400 flex-1'}>
@@ -356,7 +354,7 @@ export default function CreateRidePage() {
               onChange={(v) => update('destinationName', v)}
               placeholder="e.g. Hitec City, Gachibowli…"
               maxLength={60}
-              className={`${inputCls} mt-1`}
+              className={inputCls}
             />
             )}
           </div>
@@ -371,7 +369,7 @@ export default function CreateRidePage() {
             <label className="text-sm font-medium text-gray-700">🕐 Departure Time</label>
             <input type="time" value={form.departureTime} onChange={(e) => update('departureTime', e.target.value)} className={`${inputCls} mt-1`} />
             {!isAtLeast15MinAhead(form.departureDate, form.departureTime) && (
-              <p className="text-xs text-red-500 mt-1">⚠️ Must be at least 15 minutes from now</p>
+              <p className="text-xs text-red-500 mt-1">⚠️ Must be at least 15 min from now</p>
             )}
           </div>
         </div>
@@ -393,15 +391,19 @@ export default function CreateRidePage() {
           <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)} placeholder="E.g. No music, no smoking" rows={2} className={`${inputCls} mt-1 resize-none`} />
         </div>
 
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" checked={form.womenOnly} onChange={(e) => update('womenOnly', e.target.checked)} className="w-4 h-4 text-pink-600" />
-          <span className="text-sm text-gray-700">👩 Women-only ride <span className="text-gray-400">(only female passengers allowed)</span></span>
-        </label>
+        {FEATURES.WOMEN_ONLY_ENABLED && (
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={form.womenOnly} onChange={(e) => update('womenOnly', e.target.checked)} className="w-4 h-4 text-pink-600" />
+            <span className="text-sm text-gray-700">👩 Women-only ride <span className="text-gray-400">(only female passengers allowed)</span></span>
+          </label>
+        )}
 
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" checked={form.saveAsTemplate} onChange={(e) => update('saveAsTemplate', e.target.checked)} className="w-4 h-4 text-brand-600" />
-          <span className="text-sm text-gray-700">Save as recurring commute template (Mon–Fri)</span>
-        </label>
+        {FEATURES.RECURRING_RIDES_ENABLED && (
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={form.saveAsTemplate} onChange={(e) => update('saveAsTemplate', e.target.checked)} className="w-4 h-4 text-brand-600" />
+            <span className="text-sm text-gray-700">Save as recurring commute template (Mon–Fri)</span>
+          </label>
+        )}
       </div>
 
       <button onClick={submit} disabled={loading || vehicles.length === 0 || !!activeRide}

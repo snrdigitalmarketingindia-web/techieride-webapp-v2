@@ -3,18 +3,6 @@ import { IsString, IsNumber, IsOptional, IsBoolean, MaxLength, Min, Max } from '
 import { PrismaService } from '../../prisma/prisma.service';
 
 const MAX_SAVED_LOCATIONS = 30;
-const DUPLICATE_RADIUS_M  = 50; // metres
-
-function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6_371_000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 export class CreateSavedLocationDto {
   // Decorators are required: the global ValidationPipe runs with
@@ -99,20 +87,6 @@ export class SavedLocationsService {
     const alias = (dto.alias ?? '').trim();
     if (!alias) throw new BadRequestException('Alias is required');
 
-    // Duplicate check — reject if another location is within 50m
-    const existing = await this.prisma.savedLocation.findMany({
-      where: { userId },
-      select: { id: true, alias: true, lat: true, lng: true },
-    });
-    const duplicate = existing.find(
-      loc => haversineMeters(loc.lat, loc.lng, dto.lat, dto.lng) < DUPLICATE_RADIUS_M,
-    );
-    if (duplicate) {
-      throw new BadRequestException(
-        `A location named "${duplicate.alias}" is already saved very close to this point.`,
-      );
-    }
-
     return this.prisma.savedLocation.create({
       data: {
         userId,
@@ -132,24 +106,6 @@ export class SavedLocationsService {
 
     const alias = dto.alias !== undefined ? dto.alias.trim() : undefined;
     if (alias !== undefined && !alias) throw new BadRequestException('Alias cannot be empty');
-
-    // Duplicate check when coordinates are changing
-    if (dto.lat !== undefined || dto.lng !== undefined) {
-      const newLat = dto.lat ?? loc.lat;
-      const newLng = dto.lng ?? loc.lng;
-      const others = await this.prisma.savedLocation.findMany({
-        where: { userId, NOT: { id } },
-        select: { id: true, alias: true, lat: true, lng: true },
-      });
-      const duplicate = others.find(
-        l => haversineMeters(l.lat, l.lng, newLat, newLng) < DUPLICATE_RADIUS_M,
-      );
-      if (duplicate) {
-        throw new BadRequestException(
-          `A location named "${duplicate.alias}" is already saved very close to this point.`,
-        );
-      }
-    }
 
     return this.prisma.savedLocation.update({
       where: { id },

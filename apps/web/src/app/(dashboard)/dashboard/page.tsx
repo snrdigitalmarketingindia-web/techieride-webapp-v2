@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [docsSubmitted, setDocsSubmitted] = useState(false);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [pendingRatings, setPendingRatings] = useState<any[]>([]);
+  const [showRatings, setShowRatings] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -201,7 +202,7 @@ export default function DashboardPage() {
       {/* Greeting */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          {greeting}, {user?.fullName?.split(' ')[0]} 👋
+          {greeting}, {user?.fullName?.split(' ')[0]}{user?.trid ? ` (${user.trid})` : ''} 👋
         </h1>
         <p className="text-gray-500 text-sm mt-1">
           {ECO_BADGES[user?.ecoLevel || 'SEED']} {user?.ecoLevel} · {user?.ecoPoints || 0} ECO points
@@ -312,8 +313,11 @@ export default function DashboardPage() {
       )}
       {pendingRatings.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
-          <p className="text-amber-800 text-sm font-medium">⭐ Rate your recent ride{pendingRatings.length > 1 ? 's' : ''}</p>
-          {pendingRatings.slice(0, 3).map((r: any) => (
+          <button type="button" onClick={() => setShowRatings(v => !v)} className="w-full flex items-center justify-between">
+            <span className="text-amber-800 text-sm font-medium">⭐ Rate your recent ride{pendingRatings.length > 1 ? 's' : ''} ({pendingRatings.length})</span>
+            <span className="text-amber-600 text-xs">{showRatings ? '▲ Hide' : '▼ Show'}</span>
+          </button>
+          {showRatings && pendingRatings.slice(0, 3).map((r: any) => (
             <Link key={r.rideId} href={`/rides/${r.rideId}`}
               className="flex items-center justify-between gap-2 bg-white border border-amber-100 rounded-lg px-3 py-2 hover:bg-amber-100 transition">
               <span className="text-xs text-gray-700 truncate">{r.originName} → {r.destinationName}</span>

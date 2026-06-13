@@ -191,6 +191,8 @@ export class RidesService {
     });
 
     // Notify all participants
+    const giverUserRec = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const giverFirst = giverUserRec?.fullName?.split(' ')[0] ?? 'Your giver';
     const participants = await this.prisma.rideParticipant.findMany({
       where: { rideId },
       include: { seeker: { include: { user: true } } },
@@ -198,8 +200,8 @@ export class RidesService {
     for (const p of participants) {
       await this.notifications.create(p.seeker.userId, {
         type: NotificationType.RIDE_STARTED,
-        title: 'Your ride has started! 🚗',
-        body: `${ride.originName} → ${ride.destinationName}`,
+        title: '🚗 Wheels turning — ride is live!',
+        body: `${giverFirst} just kicked off the ride — be ready at your pickup point! 🚦`,
         data: { rideId },
       });
     }
@@ -258,11 +260,13 @@ export class RidesService {
         where: { rideId },
         include: { seeker: { include: { user: true } } },
       });
+      const boardGiverUser = await this.prisma.rideGiver.findUnique({ where: { id: ride.rideGiverId }, include: { user: { select: { fullName: true } } } });
+      const boardGiverFirst = boardGiverUser?.user?.fullName?.split(' ')[0] ?? 'Your giver';
       for (const p of allWithUsers) {
         await this.notifications.create(p.seeker.userId, {
           type: NotificationType.RIDE_STARTED,
-          title: 'All aboard! Ride has started 🚗',
-          body: `${ride.originName} → ${ride.destinationName}`,
+          title: '🚗 Wheels turning — ride is live!',
+          body: `Everyone's on board! ${boardGiverFirst} is rolling — enjoy the ride 🚦`,
           data: { rideId },
         });
       }
@@ -380,6 +384,9 @@ export class RidesService {
       this.logger.error(`Gamification/trust failed for giver ${ride.rideGiverId}: ${e.message}`);
     }
 
+    const giverUserRecord = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const giverFirst = giverUserRecord?.fullName?.split(' ')[0] ?? 'your giver';
+
     for (const p of boardedParticipants) {
       try {
         await this.gamification.awardRideCompletion(
@@ -395,8 +402,8 @@ export class RidesService {
       }
       await this.notifications.create(p.seeker.userId, {
         type: NotificationType.RIDE_COMPLETED,
-        title: 'Ride completed! Rate your experience',
-        body: `How was your ride on ${ride.originName} → ${ride.destinationName}?`,
+        title: '🎯 You made it! Drop a quick rating',
+        body: `${ride.originName} → ${ride.destinationName} ✓ — rate ${giverFirst} and earn ECO points! Takes 5 seconds ⚡`,
         data: { rideId },
       });
     }

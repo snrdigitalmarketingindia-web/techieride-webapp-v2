@@ -98,7 +98,7 @@ function BoardingModal({
 
           {/* Ride info */}
           <div className="bg-brand-50 rounded-xl px-4 py-3 text-sm">
-            <p className="font-medium text-brand-800">{ride.rideGiver?.user?.fullName}</p>
+            <p className="font-medium text-brand-800">{ride.rideGiver?.user?.fullName}{ride.rideGiver?.user?.trid ? ` (${ride.rideGiver.user.trid})` : ''}</p>
             <p className="text-brand-600 text-xs mt-0.5">
               {ride.originName} → {ride.destinationName} · {ride.departureTime}
             </p>
@@ -314,6 +314,8 @@ export default function RideSearchPage() {
   const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'confirmed' | 'sent'>>({});
   const [radiusKm, setRadiusKm] = useState(10); // default 10 km, seeker-adjustable (1–50 km)
   const [womenOnlyFilter, setWomenOnlyFilter] = useState(false);
+  const [direction, setDirection] = useState<'h2o' | 'o2h' | null>(null);
+  const [filterByRoute, setFilterByRoute] = useState(() => { try { return localStorage.getItem('tr_filter_by_route') !== 'false'; } catch { return true; } });
   const [view, setView] = useState<'list' | 'map'>('list');
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
   // set when API returns 409 — holds { existingReq, pendingData } so user can confirm switch
@@ -338,24 +340,46 @@ export default function RideSearchPage() {
         destinationLat: prefs.destinationLat ?? f.destinationLat,
         destinationLng: prefs.destinationLng ?? f.destinationLng,
       }));
+    } else if ((user as any)?.homeLocation && (user as any)?.officeLocation) {
+      const istHour = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata', hour: 'numeric', hour12: false });
+      const h = parseInt(istHour, 10);
+      const morning = h >= 4 && h < 14;
+      setDirection(morning ? 'h2o' : 'o2h');
+      setForm((f) => ({
+        ...f,
+        originName: morning ? (user as any).homeLocation : (user as any).officeLocation,
+        destinationName: morning ? (user as any).officeLocation : (user as any).homeLocation,
+      }));
     } else {
       setIsFirstVisit(true);
     }
   }, []);
 
-  // Pre-load seeker's active requests so buttons are disabled immediately
-  // Also auto-search today's rides on mount
-  useEffect(() => {
+  const refreshRequests = () => {
     requestsApi.getMine().then((r) => {
       const active: Record<string, 'pending' | 'confirmed'> = {};
       for (const req of r.data ?? []) {
         if (req.status === 'PENDING') active[req.ride?.id] = 'pending';
         if (req.status === 'CONFIRMED') active[req.ride?.id] = 'confirmed';
       }
-      setRequestedMap(active);
+      setRequestedMap((prev) => {
+        const merged = { ...prev };
+        for (const [id, status] of Object.entries(active)) merged[id] = status;
+        for (const id of Object.keys(prev)) {
+          if (prev[id] === 'sent' && active[id]) merged[id] = active[id];
+        }
+        return merged;
+      });
     }).catch(() => {});
+  };
 
+  // Pre-load seeker's active requests so buttons are disabled immediately
+  // Also auto-search today's rides on mount
+  useEffect(() => {
+    refreshRequests();
     search();
+    const interval = setInterval(refreshRequests, 15_000);
+    return () => clearInterval(interval);
   }, []);
 
   const search = async () => {
@@ -380,8 +404,7 @@ export default function RideSearchPage() {
         date: form.date,
         radiusMeters: radiusKm * 1000,
       } : {
-        originQuery: form.originName,
-        destinationQuery: form.destinationName,
+        ...(filterByRoute ? { originQuery: form.originName, destinationQuery: form.destinationName } : {}),
         date: form.date,
       });
       // Only apply results if this is still the most-recent search
@@ -509,15 +532,15 @@ export default function RideSearchPage() {
               <>
                 <button
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, originName: (user as any).homeLocation, destinationName: (user as any).officeLocation }))}
-                  className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition"
+                  onClick={() => { setDirection('h2o'); setForm((f) => ({ ...f, originName: (user as any).homeLocation, destinationName: (user as any).officeLocation })); }}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition ${direction === 'h2o' ? 'bg-brand-600 text-white border-brand-600' : 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'}`}
                 >
                   🏠→🏢 Home to Office
                 </button>
                 <button
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, originName: (user as any).officeLocation, destinationName: (user as any).homeLocation }))}
-                  className="text-xs px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 hover:bg-brand-100 transition"
+                  onClick={() => { setDirection('o2h'); setForm((f) => ({ ...f, originName: (user as any).officeLocation, destinationName: (user as any).homeLocation })); }}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition ${direction === 'o2h' ? 'bg-brand-600 text-white border-brand-600' : 'bg-brand-50 text-brand-700 border-brand-200 hover:bg-brand-100'}`}
                 >
                   🏢→🏠 Office to Home
                 </button>
@@ -617,9 +640,15 @@ export default function RideSearchPage() {
           {loading ? 'Searching...' : '🔍 Search Rides'}
         </button>
         <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={womenOnlyFilter} onChange={(e) => setWomenOnlyFilter(e.target.checked)} className="w-4 h-4 text-pink-600" />
-          <span className="text-sm text-gray-600">👩 Show women-only rides only</span>
+          <input type="checkbox" checked={filterByRoute} onChange={(e) => { setFilterByRoute(e.target.checked); try { localStorage.setItem('tr_filter_by_route', String(e.target.checked)); } catch {} }} className="w-4 h-4 text-brand-600" />
+          <span className="text-sm text-gray-600">📍 Filter by pickup &amp; drop area</span>
         </label>
+        {FEATURES.WOMEN_ONLY_ENABLED && (
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={womenOnlyFilter} onChange={(e) => setWomenOnlyFilter(e.target.checked)} className="w-4 h-4 text-pink-600" />
+            <span className="text-sm text-gray-600">👩 Show women-only rides only</span>
+          </label>
+        )}
 
         {/* Search radius — seeker picks how far they'll travel to a meeting point.
             Hidden for the current release (10 km default applies). */}
@@ -706,7 +735,7 @@ export default function RideSearchPage() {
                       {ride.rideGiver?.user?.fullName?.[0]}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{ride.rideGiver?.user?.fullName}</p>
+                      <p className="text-sm font-medium text-gray-900">{ride.rideGiver?.user?.fullName}{ride.rideGiver?.user?.trid ? ` (${ride.rideGiver.user.trid})` : ''}</p>
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-gray-500">⭐ {ride.rideGiver?.averageRating?.toFixed(1) || '—'}</p>
                         {ride.rideGiver?.user?.companyName && (

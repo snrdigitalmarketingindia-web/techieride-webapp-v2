@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { vehiclesApi, verificationApi, api, usersApi } from '@/lib/api';
 import { uploadDocument } from '@/lib/uploadDocument';
@@ -263,47 +263,44 @@ export default function ProfilePage() {
 
         {/* Inline edit form */}
         {editing && (
-          <div className="border-t border-gray-100 pt-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-700">Edit Profile</p>
-            {[
-              { label: 'Full Name', key: 'fullName', type: 'text' },
-              { label: 'Company',   key: 'companyName', type: 'text' },
-            ].map(({ label, key, type }) => (
-              <div key={key}>
-                <label htmlFor={`edit-${key}`} className="text-xs text-gray-500 mb-1 block">{label}</label>
-                <input
-                  id={`edit-${key}`}
-                  type={type}
-                  value={(editForm as any)[key]}
-                  onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
-                />
+          <div className="border-t border-gray-100 pt-4 space-y-2">
+            <p className="text-sm font-semibold text-gray-700 mb-2">Edit Profile</p>
+            <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
+              {[
+                { label: 'Full Name', key: 'fullName', type: 'text' },
+                { label: 'Company',   key: 'companyName', type: 'text' },
+              ].map(({ label, key, type }) => (
+                <React.Fragment key={key}>
+                  <label htmlFor={`edit-${key}`} className="text-xs text-gray-500 whitespace-nowrap">{label}</label>
+                  <input
+                    id={`edit-${key}`}
+                    type={type}
+                    value={(editForm as any)[key]}
+                    onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  />
+                </React.Fragment>
+              ))}
+              <label htmlFor="edit-phone" className="text-xs text-gray-500 whitespace-nowrap">Phone</label>
+              <div>
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 text-xs text-gray-500 bg-gray-50 border border-r-0 border-gray-200 rounded-l-lg">🇮🇳 +91</span>
+                  <input
+                    id="edit-phone"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
+                    placeholder="98765 43210"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  />
+                </div>
+                {editForm.phone.length > 0 && !/^[6-9]\d{9}$/.test(editForm.phone) && (
+                  <p className="text-xs text-red-500 mt-1">Must be a 10-digit number starting with 6–9</p>
+                )}
               </div>
-            ))}
-            {/* Phone — separate with inline validation */}
-            <div>
-              <label htmlFor="edit-phone" className="text-xs text-gray-500 mb-1 block">Phone</label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 text-xs text-gray-500 bg-gray-50 border border-r-0 border-gray-200 rounded-l-lg">🇮🇳 +91</span>
-                <input
-                  id="edit-phone"
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
-                  placeholder="98765 43210"
-                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
-                />
-              </div>
-              {editForm.phone.length > 0 && !/^[6-9]\d{9}$/.test(editForm.phone) && (
-                <p className="text-xs text-red-500 mt-1">Must be a 10-digit number starting with 6–9</p>
-              )}
-            </div>
-
-            {/* Home Location — pin picker (maps on) or text label (maps off) */}
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">🏠 Home Location</label>
+              <label className="text-xs text-gray-500 whitespace-nowrap">🏠 Home</label>
               {FEATURES.MAPS_ENABLED ? (
               <button
                 type="button"
@@ -327,11 +324,7 @@ export default function ProfilePage() {
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
               />
               )}
-            </div>
-
-            {/* Office Location — pin picker (maps on) or text label (maps off) */}
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">🏢 Office Location</label>
+              <label className="text-xs text-gray-500 whitespace-nowrap">🏢 Office</label>
               {FEATURES.MAPS_ENABLED ? (
               <button
                 type="button"
@@ -355,15 +348,9 @@ export default function ProfilePage() {
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
               />
               )}
-            </div>
-            {/* Saved locations shortcut */}
-            <div className="flex items-center justify-between py-1">
-              <span className="text-xs text-gray-500">📁 Saved Locations</span>
+              <span className="text-xs text-gray-500">📁 Saved</span>
               <a href="/profile/locations" className="text-xs text-brand-600 hover:underline font-medium">Manage Locations →</a>
-            </div>
-
-            <div>
-              <label htmlFor="bloodGroup" className="text-xs text-gray-500 mb-1 block">Blood Group</label>
+              <label htmlFor="bloodGroup" className="text-xs text-gray-500 whitespace-nowrap">Blood Group</label>
               <select
                 id="bloodGroup"
                 value={editForm.bloodGroup}
@@ -375,9 +362,7 @@ export default function ProfilePage() {
                   <option key={bg} value={bg}>{bg}</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Gender</label>
+              <label className="text-xs text-gray-500 whitespace-nowrap">Gender</label>
               <select
                 value={editForm.gender}
                 onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
@@ -389,8 +374,8 @@ export default function ProfilePage() {
                 <option value="OTHER">Other</option>
               </select>
             </div>
-            {editMsg && <p className="text-xs text-red-600">{editMsg}</p>}
-            <div className="flex gap-2 pt-1">
+            {editMsg && <p className="text-xs text-red-600 mt-2">{editMsg}</p>}
+            <div className="flex gap-2 pt-2">
               <button onClick={saveEdit} disabled={editSaving}
                 className="flex-1 bg-brand-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition">
                 {editSaving ? 'Saving…' : 'Save Changes'}

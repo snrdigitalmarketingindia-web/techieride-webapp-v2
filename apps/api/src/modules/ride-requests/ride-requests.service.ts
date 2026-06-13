@@ -223,7 +223,7 @@ export class RideRequestsService {
       throw new BadRequestException('Request is no longer pending');
     }
 
-    const ride = await this.prisma.ride.findUnique({ where: { id: request.rideId } });
+    const ride = await this.prisma.ride.findUnique({ where: { id: request.rideId }, include: { rideGiver: { include: { user: { select: { fullName: true } } } } } });
     if (!ride) throw new NotFoundException('Ride not found');
     if (ride.archivedAt) throw new BadRequestException('This ride has been archived and can no longer accept approvals');
 
@@ -262,13 +262,14 @@ export class RideRequestsService {
 
     if (seeker) {
       const isOngoing = ride.status === 'ONGOING';
-      const pickupNote = pickupTime ? ` Your pickup is scheduled at ${pickupTime}.` : '';
+      const giverName = ride.rideGiver?.user?.fullName?.split(' ')[0] ?? 'your giver';
+      const pickupNote = pickupTime ? ` Pickup at ${pickupTime} — don't keep ${giverName} waiting!` : '';
       await this.notifications.create(seeker.userId, {
         type: NotificationType.REQUEST_APPROVED,
-        title: 'Seat confirmed! 🎉',
+        title: '🚗 Buckle up! Seat locked in!',
         body: isOngoing
-          ? `Your seat is confirmed — the ride is already underway. Get ready at your pickup point!${pickupNote}`
-          : `Your seat has been confirmed. You're all set for the ride!${pickupNote}`,
+          ? `You're riding with ${giverName} — the ride is already rolling! Head to your pickup point now.${pickupNote}`
+          : `You + ${giverName} = one less car on the road 🌿.${pickupNote}`,
         data: { requestId },
       });
     }
