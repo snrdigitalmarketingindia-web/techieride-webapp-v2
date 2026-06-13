@@ -61,8 +61,13 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { data } = await authApi.login(email, password);
           get().setTokens(data.accessToken, data.refreshToken);
+          if (data.mustChangePassword) {
+            set({ isLoading: false });
+            throw Object.assign(new Error('MUST_CHANGE_PASSWORD'), {
+              response: { data: { message: 'MUST_CHANGE_PASSWORD' } },
+            });
+          }
           await get().fetchProfile();
-          // If profile fetch silently failed, surface it as an error
           if (!get().isAuthenticated) {
             throw new Error('Unable to load your profile. Please try again.');
           }

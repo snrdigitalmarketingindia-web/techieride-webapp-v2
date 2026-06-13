@@ -48,7 +48,10 @@ function LoginContent() {
       }
     } catch (e: any) {
       const msg = e.response?.data?.message || '';
-      if (msg === 'EMAIL_NOT_VERIFIED') {
+      if (msg === 'MUST_CHANGE_PASSWORD') {
+        router.push('/change-password');
+        return;
+      } else if (msg === 'EMAIL_NOT_VERIFIED') {
         setUnverifiedEmail(email.toLowerCase().trim());
         setError('');
       } else if (msg === 'EMAIL_BOUNCED') {
