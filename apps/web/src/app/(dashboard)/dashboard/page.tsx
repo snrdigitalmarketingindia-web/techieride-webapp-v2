@@ -214,6 +214,11 @@ export default function DashboardPage() {
               </span>
             );
           })()}
+          {ecoSummary && (
+            <span className="ml-2 inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">
+              🌍 {ecoSummary.co2SavedKg} kg CO₂ saved · {ecoSummary.totalRides || 0} rides
+            </span>
+          )}
         </p>
       </div>
 
@@ -600,14 +605,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ECO impact */}
-      {ecoSummary && (
-        <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-xl p-5 text-white">
-          <p className="text-brand-100 text-sm font-medium mb-1">🌍 Your ECO Impact</p>
-          <p className="text-3xl font-bold">{ecoSummary.co2SavedKg} kg CO₂</p>
-          <p className="text-brand-200 text-sm mt-1">saved across {ecoSummary.totalRides || 0} rides</p>
-        </div>
-      )}
     </div>
   );
 }

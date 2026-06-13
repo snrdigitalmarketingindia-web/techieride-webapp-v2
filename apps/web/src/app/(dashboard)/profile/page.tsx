@@ -85,7 +85,7 @@ export default function ProfilePage() {
       officeLat:      (user as any)?.officeLat      ?? 0,
       officeLng:      (user as any)?.officeLng      ?? 0,
       officeAddress:  (user as any)?.officeAddress  ?? '',
-      bloodGroup:     (user as any)?.bloodGroup     ?? '',
+      bloodGroup:     ((user as any)?.bloodGroup ?? '').replace(/−/g, '-'),
       gender:         (user as any)?.gender         ?? '',
     });
     setEditMsg('');
@@ -233,11 +233,8 @@ export default function ProfilePage() {
             {user?.fullName?.[0]}
           </div>
           <div className="flex-1">
-            <p className="font-semibold text-gray-900">{user?.fullName}</p>
+            <p className="font-semibold text-gray-900">{user?.fullName}{(user as any)?.trid ? ` [${(user as any).trid}]` : ''} <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium align-middle ${eco.color}`}>{eco.icon} {eco.label} · {user?.ecoPoints} pts</span></p>
             <p className="text-sm text-gray-500">{user?.email}</p>
-            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium mt-1 ${eco.color}`}>
-              {eco.icon} {eco.label} · {user?.ecoPoints} pts
-            </span>
           </div>
           <button onClick={openEdit}
             className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition shrink-0">
@@ -350,29 +347,30 @@ export default function ProfilePage() {
               )}
               <span className="text-xs text-gray-500">📁 Saved</span>
               <a href="/profile/locations" className="text-xs text-brand-600 hover:underline font-medium">Manage Locations →</a>
-              <label htmlFor="bloodGroup" className="text-xs text-gray-500 whitespace-nowrap">Blood Group</label>
-              <select
-                id="bloodGroup"
-                value={editForm.bloodGroup}
-                onChange={(e) => setEditForm((f) => ({ ...f, bloodGroup: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
-              >
-                <option value="">Select blood group</option>
-                {['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−'].map(bg => (
-                  <option key={bg} value={bg}>{bg}</option>
-                ))}
-              </select>
-              <label className="text-xs text-gray-500 whitespace-nowrap">Gender</label>
-              <select
-                value={editForm.gender}
-                onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
-              >
-                <option value="">Prefer not to say</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
+              <label htmlFor="bloodGroup" className="text-xs text-gray-500 whitespace-nowrap">Blood / Gender</label>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  id="bloodGroup"
+                  value={editForm.bloodGroup}
+                  onChange={(e) => setEditForm((f) => ({ ...f, bloodGroup: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+                >
+                  <option value="">Blood group</option>
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => (
+                    <option key={bg} value={bg}>{bg}</option>
+                  ))}
+                </select>
+                <select
+                  value={editForm.gender}
+                  onChange={(e) => setEditForm((f) => ({ ...f, gender: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400"
+                >
+                  <option value="">Gender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
             </div>
             {editMsg && <p className="text-xs text-red-600 mt-2">{editMsg}</p>}
             <div className="flex gap-2 pt-2">
@@ -385,14 +383,6 @@ export default function ProfilePage() {
                 Cancel
               </button>
             </div>
-          </div>
-        )}
-
-        {/* TRID Member Card */}
-        {(user as any)?.trid && (
-          <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-xl p-4 text-white text-center mb-1">
-            <p className="text-brand-200 text-xs mb-1">TechieRide Member ID</p>
-            <p className="text-2xl font-bold tracking-widest">{(user as any).trid}</p>
           </div>
         )}
 
@@ -421,21 +411,42 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Change Official Email */}
+      {/* Email Management */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="grid grid-cols-2 gap-3">
+          {/* Official Email */}
           <div>
-            <p className="text-sm font-semibold text-gray-900">Official Email</p>
-            <p className="text-sm text-gray-500">{user?.email}</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-gray-900">Official Email</p>
+              <button onClick={() => { setEmailChangeMode(!emailChangeMode); setEmailChangeMsg(''); }}
+                className="text-xs text-brand-600 hover:underline">
+                {emailChangeMode ? 'Cancel' : '✏️'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
           </div>
-          <button onClick={() => { setEmailChangeMode(!emailChangeMode); setEmailChangeMsg(''); }}
-            className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
-            {emailChangeMode ? 'Cancel' : '✏️ Change'}
-          </button>
+          {/* Personal Email */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-semibold text-gray-900">Personal Email</p>
+              <button onClick={() => { setPersonalEmailMode(!personalEmailMode); setPersonalEmailMsg(''); }}
+                className="text-xs text-brand-600 hover:underline">
+                {personalEmailMode ? 'Cancel' : (user as any)?.personalEmail ? '✏️' : '+ Add'}
+              </button>
+            </div>
+            <div className="flex items-center gap-1">
+              <p className="text-xs text-gray-500 truncate">{(user as any)?.personalEmail || 'Not set'}</p>
+              {(user as any)?.personalEmail && (
+                (user as any)?.personalEmailVerified
+                  ? <span className="text-[10px] text-green-600">✅</span>
+                  : <span className="text-[10px] text-amber-600">⚠️</span>
+              )}
+            </div>
+          </div>
         </div>
         {emailChangeMode && (
-          <div className="space-y-2 pt-1">
-            <p className="text-xs text-gray-500">Enter your new corporate email. A verification link will be sent there — your current email stays active until confirmed.</p>
+          <div className="space-y-2 pt-1 border-t border-gray-100">
+            <p className="text-xs text-gray-500 pt-2">Enter your new corporate email. A verification link will be sent there.</p>
             <input type="email" value={newOfficialEmail} onChange={(e) => setNewOfficialEmail(e.target.value)}
               placeholder="new@company.com"
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400" />
@@ -448,30 +459,9 @@ export default function ProfilePage() {
             </button>
           </div>
         )}
-      </div>
-
-      {/* Change Personal Email */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-gray-900">Personal Email</p>
-            <div className="flex items-center gap-1.5">
-              <p className="text-sm text-gray-500">{(user as any)?.personalEmail || 'Not set'}</p>
-              {(user as any)?.personalEmail && (
-                (user as any)?.personalEmailVerified
-                  ? <span className="text-xs text-green-600 font-medium">✅ Verified</span>
-                  : <span className="text-xs text-amber-600 font-medium">⚠️ Unverified</span>
-              )}
-            </div>
-          </div>
-          <button onClick={() => { setPersonalEmailMode(!personalEmailMode); setPersonalEmailMsg(''); }}
-            className="text-xs border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition">
-            {personalEmailMode ? 'Cancel' : (user as any)?.personalEmail ? '✏️ Change' : '+ Add'}
-          </button>
-        </div>
         {personalEmailMode && (
-          <div className="space-y-2 pt-1">
-            <p className="text-xs text-gray-500">A confirmation link will be sent to this address before it's saved.</p>
+          <div className="space-y-2 pt-1 border-t border-gray-100">
+            <p className="text-xs text-gray-500 pt-2">A confirmation link will be sent to this address before it's saved.</p>
             <input type="email" value={newPersonalEmail} onChange={(e) => setNewPersonalEmail(e.target.value)}
               placeholder="you@gmail.com"
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-400" />
