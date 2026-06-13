@@ -123,13 +123,17 @@ test.describe('🚗 Giver Full Flow', () => {
     await api(giverToken, 'patch', `/ride-requests/${requestId}/approve`);
 
     await loginUI(page, 'giver');
-    await gotoRideDetail(page, rideId);
-    // Retry with reload if the first render missed the participant (Zustand hydration race)
+    // Navigate directly — skip gotoRideDetail's profile-wait which can race
+    await page.goto(`/rides/${rideId}`, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1_000);
     const loc = page.getByText(/arjun mehta/i).first();
-    await loc.waitFor({ state: 'visible', timeout: 15_000 }).catch(async () => {
-      await page.reload({ waitUntil: 'networkidle' });
-      await page.waitForTimeout(500);
-    });
+    try {
+      await loc.waitFor({ state: 'visible', timeout: 12_000 });
+    } catch {
+      // Zustand hydration race — reload and retry
+      await page.goto(`/rides/${rideId}`, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(1_000);
+    }
     await expect(loc).toBeVisible({ timeout: 10_000 });
   });
 
