@@ -119,7 +119,7 @@ export default function AdminUserDetailPage() {
       {/* Header */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">{user.fullName}</h1>
+          <h1 className="text-xl font-bold text-gray-900">{user.fullName}{user.trid && <span className="text-xs text-brand-600 font-mono ml-1">({user.trid})</span>}</h1>
           <p className="text-sm text-gray-500">{user.email}</p>
           {user.personalEmail && <p className="text-xs text-gray-400">Personal: {user.personalEmail}</p>}
           <div className="flex items-center gap-2 mt-2 flex-wrap">

@@ -133,8 +133,8 @@ export class ComplaintsService {
     return this.prisma.complaint.findMany({
       where,
       include: {
-        reporter: { select: { id: true, fullName: true, email: true } },
-        reported: { select: { id: true, fullName: true, email: true } },
+        reporter: { select: { id: true, fullName: true, trid: true, email: true } },
+        reported: { select: { id: true, fullName: true, trid: true, email: true } },
         ride: { select: { id: true, originName: true, destinationName: true, departureDate: true } },
       },
       orderBy: { createdAt: 'desc' },

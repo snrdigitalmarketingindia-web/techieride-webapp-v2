@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const [docsSubmitted, setDocsSubmitted] = useState(false);
   const [pendingMap, setPendingMap] = useState<Record<string, any[]>>({});
   const [pendingRatings, setPendingRatings] = useState<any[]>([]);
-  const [showRatings, setShowRatings] = useState(true);
+  const [showRatings, setShowRatings] = useState(false);
   const [processing, setProcessing] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');

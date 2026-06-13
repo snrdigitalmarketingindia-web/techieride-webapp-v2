@@ -259,7 +259,7 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-gray-900">{giver.fullName}</p>
+                      <p className="font-semibold text-gray-900">{giver.fullName}{giver.trid && <span className="text-xs text-brand-600 font-mono ml-1">({giver.trid})</span>}</p>
                       <p className="text-xs text-gray-500">{giver.email}</p>
                       {giver.phone && <p className="text-xs text-gray-500">{giver.phone}</p>}
                       <div className="flex flex-wrap gap-1.5 mt-2">
@@ -347,7 +347,7 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-medium text-gray-900">{u?.fullName ?? '—'}</p>
+                              <p className="text-sm font-medium text-gray-900">{u?.fullName ?? '—'}{u?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({u.trid})</span>}</p>
                               <Badge label={p.boardingStatus} colorClass={BOARDING_COLOR[p.boardingStatus] ?? 'bg-gray-100 text-gray-600'} />
                             </div>
                             <p className="text-xs text-gray-500">{u?.email}</p>
@@ -435,7 +435,7 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                         const u = r.seeker?.user;
                         return (
                           <div key={r.id} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-gray-700">{u?.fullName ?? '—'}</span>
+                            <span className="text-gray-700">{u?.fullName ?? '—'}{u?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({u.trid})</span>}</span>
                             <div className="flex items-center gap-2">
                               {r.cancelReason && <span className="text-gray-400 truncate max-w-[100px]">{r.cancelReason}</span>}
                               <Badge
@@ -495,7 +495,7 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                           } />
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          Reported by {c.reporter?.fullName ?? '—'} · {fmt(c.createdAt)}
+                          Reported by {c.reporter?.fullName ?? '—'}{c.reporter?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({c.reporter.trid})</span>} · {fmt(c.createdAt)}
                         </p>
                         {c.description && <p className="text-xs text-gray-700 mt-1">{c.description}</p>}
                       </div>
@@ -527,7 +527,7 @@ export default function RideDetailPanel({ rideId, onClose }: Props) {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{u.fullName}</p>
+                            <p className="text-sm font-medium text-gray-900 truncate">{u.fullName}{u.trid && <span className="text-xs text-brand-600 font-mono ml-1">({u.trid})</span>}</p>
                             <p className="text-xs text-gray-500">
                               {rel.rideCount} ride{rel.rideCount !== 1 ? 's' : ''} together ·{' '}
                               {new Date(rel.firstRide).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}

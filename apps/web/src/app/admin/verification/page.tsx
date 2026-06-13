@@ -97,8 +97,7 @@ export default function AdminVerificationPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <button onClick={() => router.push(`/admin/users/${req.userId}`)} className="text-left">
-                        <p className="font-semibold text-gray-900">{req.user.fullName}</p>
-                        {(req.user as any).trid && <p className="text-xs font-mono text-brand-600 font-semibold">{(req.user as any).trid}</p>}
+                        <p className="font-semibold text-gray-900">{req.user.fullName}{(req.user as any).trid && <span className="text-xs text-brand-600 font-mono ml-1">({(req.user as any).trid})</span>}</p>
                         <p className="text-xs text-gray-400 truncate">{req.user.email}</p>
                         {req.user.companyName && <p className="text-xs text-gray-400">{req.user.companyName}</p>}
                       </button>
@@ -183,8 +182,7 @@ export default function AdminVerificationPage() {
                     <tr key={req.id} className="hover:bg-gray-50">
                       <td className="px-4 py-4">
                         <button onClick={() => router.push(`/admin/users/${req.userId}`)} className="text-left hover:underline">
-                          <p className="font-medium text-gray-900">{req.user.fullName}</p>
-                          {(req.user as any).trid && <p className="text-xs font-mono text-brand-600 font-semibold">{(req.user as any).trid}</p>}
+                          <p className="font-medium text-gray-900">{req.user.fullName}{(req.user as any).trid && <span className="text-xs text-brand-600 font-mono ml-1">({(req.user as any).trid})</span>}</p>
                           <p className="text-xs text-gray-400">{req.user.email}</p>
                           {req.user.companyName && <p className="text-xs text-gray-400">{req.user.companyName}</p>}
                         </button>

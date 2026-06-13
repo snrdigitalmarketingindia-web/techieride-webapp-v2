@@ -364,7 +364,7 @@ export class AdminService {
         where: { rideRequests: { some: { status: 'NO_SHOW', updatedAt: { gte: noShowSince } } } },
         select: {
           userId: true,
-          user: { select: { id: true, fullName: true, email: true, accountStatus: true } },
+          user: { select: { id: true, fullName: true, trid: true, email: true, accountStatus: true } },
           _count: { select: { rideRequests: { where: { status: 'NO_SHOW', updatedAt: { gte: noShowSince } } } } },
         },
       }),
@@ -374,7 +374,7 @@ export class AdminService {
         where: { rideRequests: { some: { status: 'CANCELLED', updatedAt: { gte: cancellationSince } } } },
         select: {
           userId: true,
-          user: { select: { id: true, fullName: true, email: true, accountStatus: true } },
+          user: { select: { id: true, fullName: true, trid: true, email: true, accountStatus: true } },
           _count: { select: { rideRequests: { where: { status: 'CANCELLED', updatedAt: { gte: cancellationSince } } } } },
         },
       }),
@@ -388,7 +388,7 @@ export class AdminService {
           ],
         },
         select: {
-          id: true, fullName: true, email: true, accountStatus: true,
+          id: true, fullName: true, trid: true, email: true, accountStatus: true,
           rideGiver:  { select: { averageRating: true, totalRidesGiven: true } },
           rideSeeker: { select: { averageRating: true, totalRidesTaken: true } },
         },
@@ -398,7 +398,7 @@ export class AdminService {
       this.prisma.user.findMany({
         where: { complaintsReceived: { some: { status: 'OPEN' } } },
         select: {
-          id: true, fullName: true, email: true, accountStatus: true,
+          id: true, fullName: true, trid: true, email: true, accountStatus: true,
           _count: { select: { complaintsReceived: { where: { status: 'OPEN' } } } },
         },
       }),
@@ -407,47 +407,47 @@ export class AdminService {
       this.prisma.user.findMany({
         where: { sosEvents: { some: {} } },
         select: {
-          id: true, fullName: true, email: true, accountStatus: true,
+          id: true, fullName: true, trid: true, email: true, accountStatus: true,
           _count: { select: { sosEvents: true } },
         },
       }),
     ]);
 
     // Merge into a map keyed by userId
-    const map = new Map<string, { userId: string; fullName: string; email: string; accountStatus: string; flags: string[] }>();
+    const map = new Map<string, { userId: string; fullName: string; trid: string | null; email: string; accountStatus: string; flags: string[] }>();
 
-    const getOrCreate = (id: string, fullName: string, email: string, accountStatus: string) => {
-      if (!map.has(id)) map.set(id, { userId: id, fullName, email, accountStatus, flags: [] });
+    const getOrCreate = (id: string, fullName: string, email: string, accountStatus: string, trid?: string | null) => {
+      if (!map.has(id)) map.set(id, { userId: id, fullName, trid: trid ?? null, email, accountStatus, flags: [] });
       return map.get(id)!;
     };
 
     for (const s of noShows) {
       const count = s._count.rideRequests;
       if (count >= cfg.noShowThreshold)
-        getOrCreate(s.user.id, s.user.fullName, s.user.email, s.user.accountStatus as string)
+        getOrCreate(s.user.id, s.user.fullName, s.user.email, s.user.accountStatus as string, s.user.trid)
           .flags.push(`🚫 ${count} no-show${count !== 1 ? 's' : ''} (${cfg.noShowDays}d)`);
     }
     for (const s of cancellations) {
       const count = s._count.rideRequests;
       if (count >= cfg.cancellationThreshold)
-        getOrCreate(s.user.id, s.user.fullName, s.user.email, s.user.accountStatus as string)
+        getOrCreate(s.user.id, s.user.fullName, s.user.email, s.user.accountStatus as string, s.user.trid)
           .flags.push(`⚠️ ${count} cancellations (${cfg.cancellationDays}d)`);
     }
     for (const u of lowRating) {
       const rating = u.rideGiver?.averageRating ?? u.rideSeeker?.averageRating ?? 0;
-      getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string)
+      getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string, u.trid)
         .flags.push(`⭐ Rating ${rating.toFixed(1)}`);
     }
     for (const u of complaints) {
       const count = u._count.complaintsReceived;
       if (count >= cfg.openComplaintsThreshold)
-        getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string)
+        getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string, u.trid)
           .flags.push(`📋 ${count} open complaint${count !== 1 ? 's' : ''}`);
     }
     for (const u of sos) {
       const count = u._count.sosEvents;
       if (count >= cfg.sosThreshold)
-        getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string)
+        getOrCreate(u.id, u.fullName, u.email, u.accountStatus as string, u.trid)
           .flags.push(`🆘 ${count} SOS event${count !== 1 ? 's' : ''}`);
     }
 
@@ -520,6 +520,7 @@ export class AdminService {
     const rows = await this.prisma.$queryRaw<{
       giverId: string;
       fullName: string;
+      trid: string | null;
       totalRides: bigint;
       completedRides: bigint;
       totalSeats: bigint;
@@ -528,6 +529,7 @@ export class AdminService {
       SELECT
         rg.id                                         AS "giverId",
         u.full_name                                   AS "fullName",
+        u.trid                                        AS "trid",
         COUNT(r.id)                                   AS "totalRides",
         COUNT(r.id) FILTER (WHERE r.status = 'COMPLETED') AS "completedRides",
         COALESCE(SUM(r.total_seats), 0)              AS "totalSeats",
@@ -535,7 +537,7 @@ export class AdminService {
       FROM ride_givers rg
       JOIN users u ON u.id = rg.user_id
       LEFT JOIN rides r ON r.ride_giver_id = rg.id AND r.status IN ('COMPLETED','ONGOING','PUBLISHED')
-      GROUP BY rg.id, u.full_name
+      GROUP BY rg.id, u.full_name, u.trid
       ORDER BY "completedRides" DESC, "totalRides" DESC
       LIMIT 100
     `;
@@ -543,6 +545,7 @@ export class AdminService {
     return rows.map(r => ({
       giverId:        r.giverId,
       fullName:       r.fullName,
+      trid:           r.trid,
       totalRides:     Number(r.totalRides),
       completedRides: Number(r.completedRides),
       totalSeats:     Number(r.totalSeats),
@@ -590,7 +593,7 @@ export class AdminService {
   async listActiveSos() {
     return this.prisma.sosEvent.findMany({
       where: { status: { in: ['TRIGGERED', 'ACKNOWLEDGED'] } },
-      include: { user: { select: { fullName: true, phone: true } }, ride: true },
+      include: { user: { select: { fullName: true, trid: true, phone: true } }, ride: true },
       orderBy: { triggeredAt: 'desc' },
     });
   }
@@ -610,7 +613,7 @@ export class AdminService {
       },
       include: {
         rideGiver: {
-          include: { user: { select: { fullName: true, email: true, phone: true } } },
+          include: { user: { select: { fullName: true, email: true, phone: true, trid: true, accountStatus: true } } },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -649,7 +652,7 @@ export class AdminService {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.ride.findMany({
         where,
-        include: { rideGiver: { include: { user: { select: { fullName: true } } } }, vehicle: true },
+        include: { rideGiver: { include: { user: { select: { fullName: true, trid: true } } } }, vehicle: true },
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -669,7 +672,7 @@ export class AdminService {
           include: {
             user: {
               select: {
-                id: true, fullName: true, email: true, phone: true,
+                id: true, fullName: true, trid: true, email: true, phone: true,
                 profilePhoto: true, trustScore: true, trustBand: true,
                 accountStatus: true, createdAt: true,
               },
@@ -682,7 +685,7 @@ export class AdminService {
               include: {
                 user: {
                   select: {
-                    id: true, fullName: true, email: true, phone: true,
+                    id: true, fullName: true, trid: true, email: true, phone: true,
                     profilePhoto: true, trustScore: true,
                   },
                 },
@@ -697,7 +700,7 @@ export class AdminService {
               include: {
                 user: {
                   select: {
-                    id: true, fullName: true, email: true, profilePhoto: true,
+                    id: true, fullName: true, trid: true, email: true, profilePhoto: true,
                   },
                 },
               },
@@ -713,7 +716,7 @@ export class AdminService {
         sosEvents: { orderBy: { triggeredAt: 'desc' }, take: 5 },
         complaints: {
           include: {
-            reporter: { select: { id: true, fullName: true } },
+            reporter: { select: { id: true, fullName: true, trid: true } },
           },
           orderBy: { createdAt: 'desc' },
         },
@@ -802,7 +805,7 @@ export class AdminService {
     const seekerIds = rows.map((r) => r.seeker_id);
     const seekers = await this.prisma.rideSeeker.findMany({
       where: { id: { in: seekerIds } },
-      include: { user: { select: { id: true, fullName: true, email: true, profilePhoto: true, trustScore: true } } },
+      include: { user: { select: { id: true, fullName: true, trid: true, email: true, profilePhoto: true, trustScore: true } } },
     });
     const seekerMap = Object.fromEntries(seekers.map((s) => [s.id, s]));
 
@@ -897,8 +900,8 @@ export class AdminService {
         take: 10,
         select: {
           id: true, status: true, description: true, createdAt: true,
-          reporter: { select: { fullName: true, email: true } },
-        reported: { select: { fullName: true, email: true } },
+          reporter: { select: { fullName: true, trid: true, email: true } },
+        reported: { select: { fullName: true, trid: true, email: true } },
         },
       }),
 

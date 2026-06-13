@@ -243,7 +243,7 @@ export default function AdminUsersPage() {
                       <input type="checkbox" checked={selected.has(u.id)} onChange={() => {}} onClick={(e) => e.stopPropagation()} className="rounded border-gray-300 cursor-pointer" />
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-900">{u.fullName}</p>
+                      <p className="font-medium text-gray-900">{u.fullName}{u.trid && <span className="text-xs text-brand-600 font-mono ml-1">({u.trid})</span>}</p>
                       <p className="text-xs text-gray-400">{u.email}</p>
                       {complianceFlags(u).map((f) => (
                         <span key={f} className="inline-block text-xs bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded mr-1 mt-0.5">{f}</span>
@@ -299,7 +299,7 @@ export default function AdminUsersPage() {
                       onChange={() => {}}
                       className="mt-0.5 rounded border-gray-300 shrink-0 cursor-pointer" />
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 truncate">{u.fullName}</p>
+                    <p className="font-semibold text-gray-900 truncate">{u.fullName}{u.trid && <span className="text-xs text-brand-600 font-mono ml-1">({u.trid})</span>}</p>
                     <p className="text-xs text-gray-400 truncate">{u.email}</p>
                     {u.trid && <p className="text-xs font-mono text-brand-600 font-semibold mt-0.5">{u.trid}</p>}
                     {u.companyName && <p className="text-xs text-gray-500 mt-0.5">{u.companyName}</p>}

@@ -118,7 +118,7 @@ export default function AdminComplaintsPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-xs text-gray-400">Reporter → Reported</p>
-                    <p className="text-sm font-semibold text-gray-900">{c.reporter?.fullName ?? '—'} <span className="text-gray-400 font-normal">→</span> {c.reported?.fullName ?? '—'}</p>
+                    <p className="text-sm font-semibold text-gray-900">{c.reporter?.fullName ?? '—'}{c.reporter?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({c.reporter.trid})</span>} <span className="text-gray-400 font-normal">→</span> {c.reported?.fullName ?? '—'}{c.reported?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({c.reported.trid})</span>}</p>
                   </div>
                   <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_BADGE[c.status] ?? 'bg-gray-100 text-gray-500'}`}>
                     {c.status.replace('_', ' ')}
@@ -151,8 +151,8 @@ export default function AdminComplaintsPage() {
               <tbody className="divide-y divide-gray-100">
                 {complaints.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50 transition">
-                    <td className="px-4 py-3 font-medium text-gray-900">{c.reporter?.fullName ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-700">{c.reported?.fullName ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{c.reporter?.fullName ?? '—'}{c.reporter?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({c.reporter.trid})</span>}</td>
+                    <td className="px-4 py-3 text-gray-700">{c.reported?.fullName ?? '—'}{c.reported?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({c.reported.trid})</span>}</td>
                     <td className="px-4 py-3 text-gray-600">{REASON_LABELS[c.reason] ?? c.reason}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
                       {c.ride ? <span>{c.ride.originName} → {c.ride.destinationName}</span> : <span className="italic text-gray-400">Platform-level</span>}
@@ -188,12 +188,12 @@ export default function AdminComplaintsPage() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-0.5">Reporter</p>
-                  <p className="font-medium text-gray-900">{selected.reporter?.fullName}</p>
+                  <p className="font-medium text-gray-900">{selected.reporter?.fullName}{selected.reporter?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({selected.reporter.trid})</span>}</p>
                   <p className="text-xs text-gray-500">{selected.reporter?.email}</p>
                 </div>
                 <div className="bg-red-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400 mb-0.5">Reported</p>
-                  <p className="font-medium text-gray-900">{selected.reported?.fullName}</p>
+                  <p className="font-medium text-gray-900">{selected.reported?.fullName}{selected.reported?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({selected.reported.trid})</span>}</p>
                   <p className="text-xs text-gray-500">{selected.reported?.email}</p>
                 </div>
               </div>

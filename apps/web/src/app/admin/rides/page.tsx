@@ -74,7 +74,7 @@ function RideDetailContent({
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-gray-50 rounded-lg p-3">
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Ride Giver</p>
-          <p className="text-gray-800 font-medium text-xs">{ride.rideGiver?.user?.fullName ?? '—'}</p>
+          <p className="text-gray-800 font-medium text-xs">{ride.rideGiver?.user?.fullName ?? '—'}{ride.rideGiver?.user?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({ride.rideGiver.user.trid})</span>}</p>
           <p className="text-gray-400 text-xs">{ride.rideGiver?.user?.phone ?? ''}</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
@@ -110,7 +110,7 @@ function RideDetailContent({
             {ride.participants.map((p: any) => (
               <div key={p.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
                 <div>
-                  <p className="text-xs font-medium text-gray-800">{p.seeker?.user?.fullName ?? '—'}</p>
+                  <p className="text-xs font-medium text-gray-800">{p.seeker?.user?.fullName ?? '—'}{p.seeker?.user?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({p.seeker.user.trid})</span>}</p>
                   <p className="text-xs text-gray-400">{p.seeker?.user?.phone ?? ''}</p>
                   {p.request?.pickupName && <p className="text-xs text-gray-400">📍 {p.request.pickupName}</p>}
                 </div>
@@ -286,7 +286,7 @@ export default function AdminRidesPage() {
                 className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{r.rideGiver?.user?.fullName}</p>
+                    <p className="font-semibold text-gray-900 text-sm truncate">{r.rideGiver?.user?.fullName}{r.rideGiver?.user?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({r.rideGiver.user.trid})</span>}</p>
                     <p className="text-xs text-gray-500 truncate">{r.originName} → {r.destinationName}</p>
                     <p className="text-xs text-gray-400">{fmt(r.departureDate, r.departureTime)}</p>
                   </div>
@@ -329,7 +329,7 @@ export default function AdminRidesPage() {
                     <tr key={r.id} onClick={() => openDetail(r.id)}
                       className={`hover:bg-brand-50 cursor-pointer transition ${selectedRide?.id === r.id ? 'bg-brand-50 ring-1 ring-inset ring-brand-200' : ''}`}>
                       <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{r.rideGiver?.user?.fullName}</p>
+                        <p className="font-medium text-gray-900">{r.rideGiver?.user?.fullName}{r.rideGiver?.user?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({r.rideGiver.user.trid})</span>}</p>
                         {r.vehicle?.plateNumber && <p className="text-xs text-gray-400">{r.vehicle.plateNumber}</p>}
                       </td>
                       <td className="px-4 py-3 text-gray-600 text-xs">{r.originName} → {r.destinationName}</td>

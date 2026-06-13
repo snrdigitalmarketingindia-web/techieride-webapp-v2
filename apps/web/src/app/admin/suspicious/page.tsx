@@ -18,6 +18,7 @@ type Config = {
 type FlaggedUser = {
   userId: string;
   fullName: string;
+  trid?: string | null;
   email: string;
   accountStatus: string;
   flags: string[];
@@ -170,7 +171,7 @@ export default function SuspiciousPage() {
                     onClick={() => router.push(`/admin/users/${u.userId}`)}
                     className="hover:bg-red-50 cursor-pointer"
                   >
-                    <td className="px-4 py-3 font-medium text-gray-900">{u.fullName}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{u.fullName}{u.trid && <span className="text-xs text-brand-600 font-mono ml-1">({u.trid})</span>}</td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{u.email}</td>
                     <td className="px-4 py-3">
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{u.accountStatus}</span>
@@ -200,7 +201,7 @@ export default function SuspiciousPage() {
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
-                    <p className="font-semibold text-gray-900">{u.fullName}</p>
+                    <p className="font-semibold text-gray-900">{u.fullName}{u.trid && <span className="text-xs text-brand-600 font-mono ml-1">({u.trid})</span>}</p>
                     <p className="text-xs text-gray-400">{u.email}</p>
                   </div>
                   <span className="shrink-0 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{u.accountStatus}</span>

@@ -78,7 +78,9 @@ export default function AdminVehiclesPage() {
                   </div>
                   <p className="text-sm text-gray-500 mt-0.5">Plate: <span className="font-mono font-medium">{veh.plateNumber}</span> · {veh.totalSeats} seats</p>
                   <p className="text-sm text-gray-500 mt-0.5">
-                    Giver: <span className="font-medium">{veh.rideGiver?.user?.fullName}</span> · {veh.rideGiver?.user?.email}
+                    Giver: <span className="font-medium">{veh.rideGiver?.user?.fullName}</span>
+                    {veh.rideGiver?.user?.trid && <span className="text-xs text-brand-600 font-mono ml-1">({veh.rideGiver.user.trid})</span>}
+                    {' · '}{veh.rideGiver?.user?.email}
                   </p>
                   {/* Show what RC was parsed as — so admin can cross-check the physical document */}
                   {veh.rcParsedData && (

@@ -7,6 +7,7 @@ import { adminApi } from '@/lib/api';
 type GiverOccupancy = {
   giverId: string;
   fullName: string;
+  trid?: string | null;
   totalRides: number;
   completedRides: number;
   totalSeats: number;
@@ -73,7 +74,7 @@ export default function OccupancyPage() {
                   <tr key={g.giverId}
                     onClick={() => router.push(`/admin/users/${g.giverId}`)}
                     className="hover:bg-gray-50 cursor-pointer">
-                    <td className="px-4 py-3 font-medium text-gray-900">{g.fullName}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{g.fullName}{g.trid && <span className="text-xs text-brand-600 font-mono ml-1">({g.trid})</span>}</td>
                     <td className="px-4 py-3 text-gray-600">{g.totalRides}</td>
                     <td className="px-4 py-3 text-gray-600">{g.completedRides}</td>
                     <td className="px-4 py-3 text-gray-600">{g.totalSeats}</td>
@@ -105,7 +106,7 @@ export default function OccupancyPage() {
                 onClick={() => router.push(`/admin/users/${g.giverId}`)}
                 className="bg-white rounded-xl border border-gray-200 p-4 cursor-pointer active:bg-gray-50">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-semibold text-gray-900">{g.fullName}</p>
+                  <p className="font-semibold text-gray-900">{g.fullName}{g.trid && <span className="text-xs text-brand-600 font-mono ml-1">({g.trid})</span>}</p>
                   <span className={`text-sm font-bold ${g.occupancyPct >= 70 ? 'text-green-600' : g.occupancyPct >= 40 ? 'text-amber-600' : 'text-red-500'}`}>
                     {g.occupancyPct}%
                   </span>
