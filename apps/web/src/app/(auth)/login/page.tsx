@@ -24,6 +24,7 @@ function LoginContent() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotPersonalEmail, setForgotPersonalEmail] = useState('');
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Please enter your email and password'); return; }
@@ -64,7 +65,8 @@ function LoginContent() {
     if (!forgotEmail) return;
     setForgotLoading(true);
     try {
-      await authApi.forgotPassword(forgotEmail.toLowerCase().trim());
+      const res = await authApi.forgotPassword(forgotEmail.toLowerCase().trim());
+      if (res?.data?.personalEmail) setForgotPersonalEmail(res.data.personalEmail);
       setForgotSent(true);
     } catch {
       setForgotSent(true); // Always show success to prevent email enumeration
@@ -83,17 +85,17 @@ function LoginContent() {
               <Image src="/TR_Logo_black.png" alt="TechieRide" width={80} height={80} className="object-contain" priority />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Reset password</h2>
-            <p className="text-sm text-gray-500 mt-1">Enter your office email — a temporary password will be sent to your personal email</p>
+            <p className="text-sm text-gray-500 mt-1">A temporary password will be sent to your personal email</p>
           </div>
 
           {forgotSent ? (
             <div className="text-center space-y-4">
               <div className="text-4xl">📬</div>
               <p className="text-sm text-gray-700">
-                If an account exists for <strong>{forgotEmail}</strong>, a temporary password has been sent to the registered personal email. Check your personal inbox.
+                A temporary password has been sent to {forgotPersonalEmail ? <><strong>{forgotPersonalEmail}</strong></> : 'your personal email'}. Check your inbox.
               </p>
               <button
-                onClick={() => { setForgotMode(false); setForgotSent(false); setForgotEmail(''); }}
+                onClick={() => { setForgotMode(false); setForgotSent(false); setForgotEmail(''); setForgotPersonalEmail(''); }}
                 className="w-full bg-brand-600 text-white py-2.5 rounded-lg font-medium hover:bg-brand-700 transition"
               >
                 Back to Login
@@ -106,11 +108,15 @@ function LoginContent() {
                 <input
                   type="email"
                   value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  placeholder="you@company.com"
-                  className="w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  readOnly
+                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                 />
               </div>
+              {forgotPersonalEmail && (
+                <p className="text-sm text-gray-600">
+                  📩 Temporary password will be sent to <strong className="text-gray-800">{forgotPersonalEmail}</strong>
+                </p>
+              )}
               <button
                 onClick={handleForgot}
                 disabled={forgotLoading || !forgotEmail}
@@ -219,7 +225,10 @@ function LoginContent() {
             </div>
             <div className="text-right mt-1">
               <button
-                onClick={() => { setForgotMode(true); setForgotEmail(email); }}
+                onClick={async () => {
+                  setForgotMode(true); setForgotEmail(email); setForgotPersonalEmail('');
+                  try { const r = await authApi.forgotPasswordPreview(email.toLowerCase().trim()); if (r?.data?.personalEmail) setForgotPersonalEmail(r.data.personalEmail); } catch {}
+                }}
                 className="text-xs text-brand-600 hover:underline"
               >
                 Forgot password?

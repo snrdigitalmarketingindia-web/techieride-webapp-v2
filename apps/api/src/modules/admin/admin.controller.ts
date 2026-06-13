@@ -43,6 +43,11 @@ export class AdminController {
     return this.adminService.getUserDetail(id);
   }
 
+  @Patch('users/:id/profile')
+  updateUserProfile(@Param('id') id: string, @Body() data: any) {
+    return this.adminService.updateUserProfile(id, data);
+  }
+
   @Patch('users/:id/role')
   assignRole(
     @Param('id') id: string,

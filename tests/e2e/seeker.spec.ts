@@ -18,8 +18,8 @@ test.describe('🙋 Ride Seeker', () => {
 
   test('search form renders origin, destination, date fields', async ({ page }) => {
     await page.goto('/rides/search');
-    await expect(page.getByText(/pickup area/i)).toBeVisible();
-    await expect(page.getByText(/drop area/i)).toBeVisible();
+    await expect(page.getByText('📍 Pickup area')).toBeVisible();
+    await expect(page.getByText('🏢 Drop area')).toBeVisible();
     await expect(page.getByRole('button', { name: /search/i })).toBeVisible();
   });
 

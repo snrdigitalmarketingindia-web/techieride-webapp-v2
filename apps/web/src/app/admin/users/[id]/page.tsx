@@ -44,6 +44,8 @@ export default function AdminUserDetailPage() {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [trustDelta, setTrustDelta] = useState('');
   const [trustReason, setTrustReason] = useState('');
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
 
   const load = () => {
     setLoading(true);
@@ -203,27 +205,95 @@ export default function AdminUserDetailPage() {
 
       {/* Profile info */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Profile Details</h2>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-          {[
-            ['Phone', user.phone || '—'],
-            ['Gender', user.gender || '—'],
-            ['Blood Group', user.bloodGroup || '—'],
-            ['Company', user.companyName || '—'],
-            ['Employee ID', user.employeeId || '—'],
-            ['Home', user.homeLocation || '—'],
-            ['Office', user.officeLocation || '—'],
-            ['Rides Given', user.rideGiver?.totalRidesGiven ?? '—'],
-            ['Rides Taken', user.rideSeeker?.totalRidesTaken ?? '—'],
-            ['Avg Rating (Giver)', user.rideGiver?.averageRating?.toFixed(1) ?? '—'],
-            ['Avg Rating (Seeker)', user.rideSeeker?.averageRating?.toFixed(1) ?? '—'],
-          ].map(([label, value]) => (
-            <div key={label as string}>
-              <p className="text-xs text-gray-400">{label}</p>
-              <p className="font-medium text-gray-800">{value}</p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Profile Details</h2>
+          {!editMode ? (
+            <button onClick={() => {
+              setEditForm({
+                fullName: user.fullName || '', personalEmail: user.personalEmail || '',
+                phone: user.phone || '', gender: user.gender || '', bloodGroup: user.bloodGroup || '',
+                companyName: user.companyName || '', employeeId: user.employeeId || '',
+                homeLocation: user.homeLocation || '', officeLocation: user.officeLocation || '',
+              });
+              setEditMode(true);
+            }} className="text-xs bg-brand-50 text-brand-700 px-3 py-1 rounded-lg hover:bg-brand-100 transition font-medium">
+              ✏️ Edit
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={async () => {
+                await act(() => adminApi.updateUserProfile(id, editForm));
+                setEditMode(false);
+              }} className="text-xs bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition font-medium">
+                💾 Save
+              </button>
+              <button onClick={() => setEditMode(false)}
+                className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-lg hover:bg-gray-200 transition font-medium">
+                Cancel
+              </button>
             </div>
-          ))}
+          )}
         </div>
+
+        {editMode ? (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            {([
+              ['fullName', 'Full Name', 'text'],
+              ['personalEmail', 'Personal Email', 'email'],
+              ['phone', 'Phone', 'tel'],
+              ['gender', 'Gender', 'select'],
+              ['bloodGroup', 'Blood Group', 'select'],
+              ['companyName', 'Company', 'text'],
+              ['employeeId', 'Employee ID', 'text'],
+              ['homeLocation', 'Home Location', 'text'],
+              ['officeLocation', 'Office Location', 'text'],
+            ] as const).map(([key, label, type]) => (
+              <div key={key}>
+                <label className="text-xs text-gray-500 mb-0.5 block">{label}</label>
+                {type === 'select' && key === 'gender' ? (
+                  <select value={editForm[key] || ''} onChange={(e) => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400">
+                    <option value="">—</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                ) : type === 'select' && key === 'bloodGroup' ? (
+                  <select value={editForm[key] || ''} onChange={(e) => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400">
+                    <option value="">—</option>
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                  </select>
+                ) : (
+                  <input type={type} value={editForm[key] || ''} onChange={(e) => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-brand-400" />
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+            {[
+              ['Phone', user.phone || '—'],
+              ['Personal Email', user.personalEmail || '—'],
+              ['Gender', user.gender || '—'],
+              ['Blood Group', user.bloodGroup || '—'],
+              ['Company', user.companyName || '—'],
+              ['Employee ID', user.employeeId || '—'],
+              ['Home', user.homeLocation || '—'],
+              ['Office', user.officeLocation || '—'],
+              ['Rides Given', user.rideGiver?.totalRidesGiven ?? '—'],
+              ['Rides Taken', user.rideSeeker?.totalRidesTaken ?? '—'],
+              ['Avg Rating (Giver)', user.rideGiver?.averageRating?.toFixed(1) ?? '—'],
+              ['Avg Rating (Seeker)', user.rideSeeker?.averageRating?.toFixed(1) ?? '—'],
+            ].map(([label, value]) => (
+              <div key={label as string}>
+                <p className="text-xs text-gray-400">{label}</p>
+                <p className="font-medium text-gray-800">{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Admin actions */}

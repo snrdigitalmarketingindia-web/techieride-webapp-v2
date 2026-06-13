@@ -98,6 +98,24 @@ export class AdminService {
     });
   }
 
+  async updateUserProfile(userId: string, data: {
+    fullName?: string; companyName?: string; phone?: string; gender?: string;
+    bloodGroup?: string; personalEmail?: string; homeLocation?: string; officeLocation?: string;
+    employeeId?: string;
+  }) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const allowed: Record<string, any> = {};
+    const fields = ['fullName', 'companyName', 'phone', 'gender', 'bloodGroup', 'personalEmail', 'homeLocation', 'officeLocation', 'employeeId'] as const;
+    for (const f of fields) {
+      if (data[f] !== undefined) allowed[f] = data[f] || null;
+    }
+    if (data.fullName) allowed.fullName = data.fullName;
+
+    return this.prisma.user.update({ where: { id: userId }, data: allowed });
+  }
+
   async assignRole(userId: string, role: 'RIDE_SEEKER' | 'RIDE_GIVER' | 'ADMIN') {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error('User not found');

@@ -60,16 +60,17 @@ test.describe('👤 Profile Flow', () => {
     await loginUI(page, 'giver');
     await page.goto('/profile');
     await page.getByRole('button', { name: /edit/i }).click();
-    // Home/office are now MapPin buttons (not labeled inputs)
-    await expect(page.getByText(/home location/i).first()).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText(/office location/i).first()).toBeVisible({ timeout: 5_000 });
+    // Home/office labels are emoji-prefixed in compact layout
+    await expect(page.getByText(/🏠 Home/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/🏢 Office/i).first()).toBeVisible({ timeout: 5_000 });
   });
 
   test('PF-08: blood group field is editable', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
     await page.getByRole('button', { name: /edit/i }).click();
-    await expect(page.getByLabel(/blood group/i)).toBeVisible({ timeout: 5_000 });
+    // Blood group is a select inside the "Blood / Gender" row
+    await expect(page.locator('select#bloodGroup')).toBeVisible({ timeout: 5_000 });
   });
 
   // ── Personal Email ───────────────────────────────────────────────────────
@@ -90,16 +91,17 @@ test.describe('👤 Profile Flow', () => {
   test('PF-10: clicking Add/Change personal email shows input field', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    // Personal Email Change button is the last Add/Change button (Official Email's is first)
-    await page.getByRole('button', { name: /add|change/i }).last().click();
+    // Personal email section has a ✏️ or "+ Add" button next to the "Personal Email" heading
+    const personalSection = page.locator('div').filter({ hasText: /^Personal Email/ }).first();
+    await personalSection.locator('button').click();
     await expect(page.getByPlaceholder(/gmail/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('PF-11: send confirmation email button present for personal email change', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    // Personal Email Change button is the last Add/Change button (Official Email's is first)
-    await page.getByRole('button', { name: /add|change/i }).last().click();
+    const personalSection = page.locator('div').filter({ hasText: /^Personal Email/ }).first();
+    await personalSection.locator('button').click();
     await expect(page.getByRole('button', { name: /send confirmation/i })).toBeVisible({ timeout: 5_000 });
   });
 
@@ -108,8 +110,10 @@ test.describe('👤 Profile Flow', () => {
   test('PF-12: official email section visible with change button', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await expect(page.getByText(/official email/i)).toBeVisible({ timeout: 8_000 });
-    await expect(page.getByRole('button', { name: /change/i }).last()).toBeVisible();
+    await expect(page.getByText(/Official Email/)).toBeVisible({ timeout: 8_000 });
+    // Official email has a ✏️ edit button
+    const officialSection = page.locator('div').filter({ hasText: /^Official Email/ }).first();
+    await expect(officialSection.locator('button')).toBeVisible();
   });
 
   // ── Verification Documents ───────────────────────────────────────────────
@@ -238,7 +242,9 @@ test.describe('📍 Location Management (/profile/locations)', () => {
   test('PF-24: personal email change — rejects non-personal email domain', async ({ page }) => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
-    await page.getByRole('button', { name: /add|change/i }).last().click();
+    // Open personal email change form
+    const personalSection = page.locator('div').filter({ hasText: /^Personal Email/ }).first();
+    await personalSection.locator('button').click();
     const input = page.getByPlaceholder(/gmail/i);
     await input.fill('work@techcorp.com');
     // Send button — if the API rejects corporate emails for personal email field, we expect an error

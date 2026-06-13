@@ -60,6 +60,15 @@ export class AuthController {
   }
 
   @Public()
+  @Post('forgot-password/preview')
+  @Throttle({ default: { ttl: 60000, limit: 5 } })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Preview masked personal email for password reset' })
+  forgotPasswordPreview(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPasswordPreview(dto.email);
+  }
+
+  @Public()
   @Post('forgot-password')
   @Throttle({ default: { ttl: 60000, limit: 3 } })
   @HttpCode(HttpStatus.OK)

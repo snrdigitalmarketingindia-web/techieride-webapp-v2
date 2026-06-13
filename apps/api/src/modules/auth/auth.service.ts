@@ -403,11 +403,27 @@ export class AuthService {
     return { ...tokens, mustChangePassword: user.mustChangePassword ?? false };
   }
 
+  private maskEmail(email: string): string {
+    const [local, domain] = email.split('@');
+    if (local.length <= 4) return local.slice(0, 1) + '***@' + domain;
+    return local.slice(0, 2) + '***' + local.slice(-2) + '@' + domain;
+  }
+
+  // ── Forgot Password Preview ────────────────────────────────────────────
+  async forgotPasswordPreview(email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: { personalEmail: true },
+    });
+    if (!user?.personalEmail) return { personalEmail: null };
+    return { personalEmail: this.maskEmail(user.personalEmail) };
+  }
+
   // ── Forgot Password ──────────────────────────────────────────────────────
   async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
     // Always return same message to prevent email enumeration
-    if (!user) return { message: 'If an account exists for that email, a temporary password has been sent to the registered personal email.' };
+    if (!user) return { message: 'If an account exists for that email, a temporary password has been sent to your personal email.' };
 
     if (!user.personalEmail) {
       throw new BadRequestException('No personal email on file. Please contact admin to reset your password.');
@@ -424,7 +440,8 @@ export class AuthService {
     });
 
     await this.email.sendTemporaryPasswordEmail(user.personalEmail, user.fullName, tempPassword, ttlHours);
-    return { message: 'If an account exists for that email, a temporary password has been sent to the registered personal email.' };
+
+    return { message: 'A temporary password has been sent to your personal email.', personalEmail: this.maskEmail(user.personalEmail) };
   }
 
   // ── Change Password (temp → permanent) ──────────────────────────────────

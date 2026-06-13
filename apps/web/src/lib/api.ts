@@ -53,6 +53,7 @@ export const authApi = {
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
   verifyEmail: (token: string) => api.get(`/auth/verify-email?token=${token}`),
   resendVerification: (email: string) => api.post('/auth/resend-verification', { email }),
+  forgotPasswordPreview: (email: string) => api.post('/auth/forgot-password/preview', { email }),
   forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
   changePassword: (oldPassword: string, newPassword: string) => api.post('/auth/change-password', { oldPassword, newPassword }),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
@@ -211,6 +212,7 @@ export const complaintsApi = {
 export const adminApi = {
   listUsers: (params?: any) => api.get('/admin/users', { params }),
   getUser: (id: string) => api.get(`/admin/users/${id}`),
+  updateUserProfile: (id: string, data: any) => api.patch(`/admin/users/${id}/profile`, data),
   suspendUser: (id: string) => api.patch(`/admin/users/${id}/suspend`),
   deactivateUser: (id: string) => api.patch(`/admin/users/${id}/deactivate`),
   rejectUser: (id: string, reason: string) => api.patch(`/admin/users/${id}/reject`, { reason }),

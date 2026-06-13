@@ -383,14 +383,10 @@ test.describe('👤 Profile — Blood Group Dropdown', () => {
   test('PR-01: blood group field is a <select> not a text input', async ({ page }) => {
     await loginUI(page, 'giver');
     await page.goto('/profile');
-    // Click any button that opens the edit form (label may vary)
     await page.locator('button').filter({ hasText: /edit/i }).first().click();
     await page.waitForTimeout(500);
-    // Blood group must be a select element (look for the label then adjacent select)
-    const bgLabel = page.locator('label').filter({ hasText: /blood group/i });
-    await expect(bgLabel).toBeVisible({ timeout: 5_000 });
-    // The select should be present (not an input[type=text])
-    const bgSelect = page.locator('select').filter({ hasText: /select blood group|A\+|B\+|O\+|AB/i });
+    // Blood group is a select with id="bloodGroup" inside the "Blood / Gender" row
+    const bgSelect = page.locator('select#bloodGroup');
     await expect(bgSelect).toBeVisible({ timeout: 5_000 });
   });
 
@@ -400,11 +396,12 @@ test.describe('👤 Profile — Blood Group Dropdown', () => {
     await page.locator('button').filter({ hasText: /edit/i }).first().click();
     await page.waitForTimeout(500);
 
-    const bgSelect = page.locator('select').filter({ hasText: /select blood group|A\+|B\+|O\+|AB/i });
+    const bgSelect = page.locator('select#bloodGroup');
     await expect(bgSelect).toBeVisible({ timeout: 5_000 });
 
     const options = await bgSelect.locator('option').allTextContents();
-    for (const grp of ['A+', 'A−', 'B+', 'B−', 'AB+', 'AB−', 'O+', 'O−']) {
+    // Profile uses ASCII hyphens for blood groups
+    for (const grp of ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']) {
       expect(options.some(o => o.includes(grp)), `Missing blood group option: ${grp}`).toBe(true);
     }
   });

@@ -103,13 +103,10 @@ test.describe('📱 Mobile Flows', () => {
     await loginUI(page, 'giver');
     await page.goto('/rides/create');
     await expect(page.getByRole('heading', { name: /offer a ride/i })).toBeVisible();
-    // Origin field label is always present regardless of pre-fill state.
-    // GF-18 saves homeLocation/officeLocation to the giver profile, which causes
-    // the create page to auto-fill the origin — making the button text change from
-    // "Tap to pin on map" to the saved location. Check the label instead of button text.
-    await expect(page.getByText(/from.*start location/i).first()).toBeVisible({ timeout: 5_000 });
-    // Also confirm the origin map-pin button itself exists (type=button opens MapPinModal)
-    await expect(page.locator('button[type="button"]').first()).toBeVisible({ timeout: 5_000 });
+    // Origin field label "📍 From" is always present regardless of pre-fill state
+    await expect(page.getByText(/📍 From/)).toBeVisible({ timeout: 5_000 });
+    // Destination field label
+    await expect(page.getByText(/🏢 To/)).toBeVisible({ timeout: 5_000 });
   });
 
   test('admin dashboard is usable on mobile', async ({ page }) => {

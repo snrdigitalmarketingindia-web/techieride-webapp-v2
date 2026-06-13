@@ -404,7 +404,7 @@ export default function RideSearchPage() {
         date: form.date,
         radiusMeters: radiusKm * 1000,
       } : {
-        ...(filterByRoute ? { originQuery: form.originName, destinationQuery: form.destinationName } : {}),
+        ...(filterByRoute && (form.originName || form.destinationName) ? { originQuery: form.originName, destinationQuery: form.destinationName } : {}),
         date: form.date,
       });
       // Only apply results if this is still the most-recent search

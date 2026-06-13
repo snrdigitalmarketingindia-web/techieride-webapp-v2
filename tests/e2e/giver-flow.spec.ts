@@ -303,7 +303,7 @@ test.describe('🚗 Giver Full Flow', () => {
     await page.locator('input[type="time"]').fill(timeStr);
     await page.locator('input[type="time"]').blur();
 
-    await expect(page.getByText(/15 minutes/i)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByText(/15 min/i)).toBeVisible({ timeout: 5_000 });
   });
 
   test('GF-18: profile home/office locations are saved and returned via API', async ({ page }) => {
