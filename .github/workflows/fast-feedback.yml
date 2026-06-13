@@ -172,5 +172,6 @@ jobs:
           name: smoke-report
           path: |
             tests/e2e/report-smoke/
+            test-results/
             /tmp/tr-logs/smoke.log
           retention-days: 7

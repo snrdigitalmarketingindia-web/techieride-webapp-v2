@@ -120,21 +120,23 @@ test.describe('🚗 Giver Full Flow', () => {
   });
 
   test('GF-05: giver approves request — passenger shows in ride detail', async ({ page }) => {
-    await api(giverToken, 'patch', `/ride-requests/${requestId}/approve`);
+    // Step 1: Approve via API and verify
+    const approveRes = await api(giverToken, 'patch', `/ride-requests/${requestId}/approve`);
+    expect(approveRes.status).toBe('CONFIRMED');
 
+    // Step 2: Verify participant exists in API response
+    const rideData = await api(giverToken, 'get', `/rides/${rideId}`);
+    const parts = rideData.participants ?? rideData.data?.participants ?? [];
+    console.log(`GF-05 debug: ${parts.length} participants, names: ${parts.map((p: any) => p.seeker?.user?.fullName).join(', ')}`);
+    expect(parts.length).toBeGreaterThan(0);
+
+    // Step 3: Navigate and check UI
     await loginUI(page, 'giver');
-    // Navigate directly — skip gotoRideDetail's profile-wait which can race
-    await page.goto(`/rides/${rideId}`, { waitUntil: 'networkidle' });
-    await page.waitForTimeout(1_000);
-    const loc = page.getByText(/arjun mehta/i).first();
-    try {
-      await loc.waitFor({ state: 'visible', timeout: 12_000 });
-    } catch {
-      // Zustand hydration race — reload and retry
-      await page.goto(`/rides/${rideId}`, { waitUntil: 'networkidle' });
-      await page.waitForTimeout(1_000);
-    }
-    await expect(loc).toBeVisible({ timeout: 10_000 });
+    await gotoRideDetail(page, rideId);
+    const url = page.url();
+    console.log(`GF-05 debug: page URL after gotoRideDetail = ${url}`);
+    await expect(page.getByText(/gachibowli/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('GF-06: giver rejects a second request — requests page updates', async ({ page }) => {
