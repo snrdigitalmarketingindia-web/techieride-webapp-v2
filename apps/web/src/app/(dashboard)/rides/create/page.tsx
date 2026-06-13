@@ -114,18 +114,18 @@ export default function CreateRidePage() {
     // Restore last-used seat count for this giver
     setForm((f) => ({ ...f, totalSeats: loadSeatPref(user.id) }));
 
-    const homeAddr   = (user as any).homeAddress   as string | undefined;
-    const officeAddr = (user as any).officeAddress as string | undefined;
+    const homeLabel   = ((user as any).homeLocation || (user as any).homeAddress) as string | undefined;
+    const officeLabel = ((user as any).officeLocation || (user as any).officeAddress) as string | undefined;
     const homeLat    = (user as any).homeLat    as number | undefined;
     const homeLng    = (user as any).homeLng    as number | undefined;
     const officeLat  = (user as any).officeLat  as number | undefined;
     const officeLng  = (user as any).officeLng  as number | undefined;
     const direction  = getCommuteDirection();
 
-    if (homeAddr && officeAddr) {
+    if (homeLabel && officeLabel) {
       const isMorning  = direction === 'morning';
-      const originName = isMorning ? homeAddr   : officeAddr;
-      const destName   = isMorning ? officeAddr  : homeAddr;
+      const originName = isMorning ? homeLabel   : officeLabel;
+      const destName   = isMorning ? officeLabel  : homeLabel;
       const oLat       = isMorning ? homeLat    : officeLat;
       const oLng       = isMorning ? homeLng    : officeLng;
       const dLat       = isMorning ? officeLat  : homeLat;
@@ -306,7 +306,7 @@ export default function CreateRidePage() {
             </p>
           )}
           {/* Nudge: home/office unlock one-tap direction fill + suggestions */}
-          {user && !(user as any).homeAddress && !(user as any).officeAddress && (
+          {user && !(user as any).homeLocation && !(user as any).homeAddress && !(user as any).officeLocation && !(user as any).officeAddress && (
             <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
               💡 Save your <Link href="/profile?edit=locations" className="font-medium underline">Home &amp; Office locations</Link> once —
               they&apos;ll auto-fill here and appear as typing suggestions.
