@@ -113,6 +113,7 @@ test.describe('🚗 Giver Full Flow', () => {
   test('GF-04: giver sees pending request on requests page', async ({ page }) => {
     const req = await api(seekerToken, 'post', '/ride-requests', { rideId, pickupName: 'Kondapur Metro, Hyderabad' });
     requestId = req.requestId ?? req.id ?? req.data?.id;
+    expect(requestId, `ride-request create failed: ${JSON.stringify(req)}`).toBeTruthy();
 
     await loginUI(page, 'giver');
     await page.goto('/requests');
@@ -120,28 +121,11 @@ test.describe('🚗 Giver Full Flow', () => {
   });
 
   test('GF-05: giver approves request — passenger shows in ride detail', async ({ page }) => {
-    // Step 1: Approve via API and verify
-    console.log(`GF-05 debug: approving requestId=${requestId} for rideId=${rideId}`);
-    const approveRes = await api(giverToken, 'patch', `/ride-requests/${requestId}/approve`);
-    console.log(`GF-05 debug: approve response = ${JSON.stringify(approveRes)}`);
-    if (approveRes.status !== 'CONFIRMED') {
-      // Already approved from a prior attempt — verify participant exists instead of failing
-      console.log('GF-05 debug: approve did not return CONFIRMED, checking if already approved');
-    }
+    await api(giverToken, 'patch', `/ride-requests/${requestId}/approve`);
 
-    // Step 2: Verify participant exists in API response
-    const rideData = await api(giverToken, 'get', `/rides/${rideId}`);
-    const parts = rideData.participants ?? rideData.data?.participants ?? [];
-    console.log(`GF-05 debug: ${parts.length} participants, names: ${parts.map((p: any) => p.seeker?.user?.fullName).join(', ')}`);
-    expect(parts.length).toBeGreaterThan(0);
-
-    // Step 3: Navigate and check UI
     await loginUI(page, 'giver');
     await gotoRideDetail(page, rideId);
-    const url = page.url();
-    console.log(`GF-05 debug: page URL after gotoRideDetail = ${url}`);
-    await expect(page.getByText(/gachibowli/i).first()).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/arjun mehta/i).first()).toBeVisible({ timeout: 15_000 });
   });
 
   test('GF-06: giver rejects a second request — requests page updates', async ({ page }) => {

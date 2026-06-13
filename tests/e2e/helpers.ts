@@ -88,11 +88,23 @@ export async function clearSeekerRequests(seekerToken: string) {
   const body = await res.json();
   const requests: any[] = body.data ?? body;
   if (!Array.isArray(requests)) { await ctx.dispose(); return; }
+
+  let adminToken: string | null = null;
   for (const req of requests) {
     if (req.status === 'PENDING' || req.status === 'CONFIRMED') {
-      await ctx.patch(`${API}/ride-requests/${req.id}/cancel`, {
+      const cancelRes = await ctx.patch(`${API}/ride-requests/${req.id}/cancel`, {
         headers: { Authorization: `Bearer ${seekerToken}` },
-      }).catch(() => {});
+      }).catch(() => null);
+      // If cancel fails (e.g. ride is ONGOING), force-complete the ride via admin then retry
+      if (cancelRes && !cancelRes.ok()) {
+        if (!adminToken) adminToken = await apiLogin(ACCOUNTS.admin.email);
+        await ctx.post(`${API}/admin/rides/${req.rideId}/force-complete`, {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }).catch(() => {});
+        await ctx.patch(`${API}/ride-requests/${req.id}/cancel`, {
+          headers: { Authorization: `Bearer ${seekerToken}` },
+        }).catch(() => {});
+      }
     }
   }
   await ctx.dispose();
