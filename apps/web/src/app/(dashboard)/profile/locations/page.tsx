@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useAuthStore } from '@/store/auth.store';
 import { savedLocationsApi, usersApi } from '@/lib/api';
+import { FEATURES } from '@/lib/featureFlags';
 import OlaPlacesAutocomplete from '@/components/ui/OlaPlacesAutocomplete';
 
 const MapPinModal = dynamic(
@@ -133,27 +134,29 @@ export default function LocationManagementPage() {
   // ── Save add/edit ─────────────────────────────────────────────────────────
   const handleFormSave = async () => {
     if (!formAlias.trim()) { setFormError('Name is required'); return; }
-    if (formLat === null || formLng === null) { setFormError('Please select a location'); return; }
+    if (FEATURES.MAPS_ENABLED && (formLat === null || formLng === null)) { setFormError('Please select a location'); return; }
     setFormSaving(true);
     setFormError('');
+    const lat = formLat ?? 0;
+    const lng = formLng ?? 0;
     try {
       if (modalMode === 'add') {
         const res = await savedLocationsApi.create({
           alias:      formAlias.trim(),
-          lat:        formLat,
-          lng:        formLng,
-          address:    formAddress,
+          lat,
+          lng,
+          address:    formAddress || formAlias.trim(),
           isFavorite: false,
-          sourceType: formSource,
+          sourceType: FEATURES.MAPS_ENABLED ? formSource : 'AUTO',
         });
         setLocs(prev => [res.data, ...prev]);
       } else if (editingLoc) {
         const res = await savedLocationsApi.update(editingLoc.id, {
           alias:     formAlias.trim(),
-          lat:       formLat,
-          lng:       formLng,
-          address:   formAddress,
-          sourceType: formSource,
+          lat,
+          lng,
+          address:   formAddress || formAlias.trim(),
+          sourceType: FEATURES.MAPS_ENABLED ? formSource : 'AUTO',
         });
         setLocs(prev => prev.map(l => l.id === editingLoc.id ? res.data : l));
       }
@@ -205,8 +208,8 @@ export default function LocationManagementPage() {
     ...locs.filter(l => !l.isFavorite && !l.lastUsedAt),
   ];
 
-  const homeSet   = !!(user as any)?.homeLat;
-  const officeSet = !!(user as any)?.officeLat;
+  const homeSet   = FEATURES.MAPS_ENABLED ? !!(user as any)?.homeLat : !!((user as any)?.homeLocation || (user as any)?.homeAddress);
+  const officeSet = FEATURES.MAPS_ENABLED ? !!(user as any)?.officeLat : !!((user as any)?.officeLocation || (user as any)?.officeAddress);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -229,22 +232,24 @@ export default function LocationManagementPage() {
               onClick={() => setHomeModal(true)}
               className="text-xs text-brand-600 font-medium hover:underline"
             >
-              {homeSet ? '📍 Update Pin' : '+ Set Location'}
+              {homeSet ? (FEATURES.MAPS_ENABLED ? '📍 Update Pin' : '✏️ Edit') : '+ Set Location'}
             </button>
           </div>
           <div className="px-4 py-3">
             {homeSet ? (
               <div>
                 <p className="text-sm font-medium text-gray-800">{(user as any).homeLocation ?? 'Home'}</p>
-                {(user as any).homeAddress && (
+                {FEATURES.MAPS_ENABLED && (user as any).homeAddress && (
                   <p className="text-xs text-gray-500 mt-0.5 truncate">{(user as any).homeAddress}</p>
                 )}
+                {FEATURES.MAPS_ENABLED && (
                 <p className="text-xs text-gray-400 mt-0.5">
                   {(user as any).homeLat?.toFixed(5)}, {(user as any).homeLng?.toFixed(5)}
                 </p>
+                )}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">Not set — tap "+ Set Location" to pin your home</p>
+              <p className="text-sm text-gray-400">Not set — tap &quot;+ Set Location&quot; to add your home</p>
             )}
           </div>
         </section>
@@ -260,22 +265,24 @@ export default function LocationManagementPage() {
               onClick={() => setOfficeModal(true)}
               className="text-xs text-brand-600 font-medium hover:underline"
             >
-              {officeSet ? '📍 Update Pin' : '+ Set Location'}
+              {officeSet ? (FEATURES.MAPS_ENABLED ? '📍 Update Pin' : '✏️ Edit') : '+ Set Location'}
             </button>
           </div>
           <div className="px-4 py-3">
             {officeSet ? (
               <div>
                 <p className="text-sm font-medium text-gray-800">{(user as any).officeLocation ?? 'Office'}</p>
-                {(user as any).officeAddress && (
+                {FEATURES.MAPS_ENABLED && (user as any).officeAddress && (
                   <p className="text-xs text-gray-500 mt-0.5 truncate">{(user as any).officeAddress}</p>
                 )}
+                {FEATURES.MAPS_ENABLED && (
                 <p className="text-xs text-gray-400 mt-0.5">
                   {(user as any).officeLat?.toFixed(5)}, {(user as any).officeLng?.toFixed(5)}
                 </p>
+                )}
               </div>
             ) : (
-              <p className="text-sm text-gray-400">Not set — tap "+ Set Location" to pin your office</p>
+              <p className="text-sm text-gray-400">Not set — tap &quot;+ Set Location&quot; to add your office</p>
             )}
           </div>
         </section>
@@ -339,11 +346,13 @@ export default function LocationManagementPage() {
                     ) : (
                       <p className="text-sm font-medium text-gray-800 truncate">{loc.alias}</p>
                     )}
-                    {loc.address && <p className="text-xs text-gray-400 truncate mt-0.5">{loc.address}</p>}
+                    {FEATURES.MAPS_ENABLED && loc.address && <p className="text-xs text-gray-400 truncate mt-0.5">{loc.address}</p>}
                     <div className="flex items-center gap-2 mt-0.5">
+                      {FEATURES.MAPS_ENABLED && (
                       <span className="text-[10px] text-gray-300">
                         {loc.sourceType === 'PIN' ? '📍 Pinned' : '🔍 Search'}
                       </span>
+                      )}
                       {loc.lastUsedAt && (
                         <span className="text-[10px] text-gray-300">
                           · Used {new Date(loc.lastUsedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
@@ -382,8 +391,8 @@ export default function LocationManagementPage() {
         </p>
       </div>
 
-      {/* ── Home pin modal ──────────────────────────────────────────────── */}
-      {homeModal && (
+      {/* ── Home pin modal (maps-on) / text modal (maps-off) ────────── */}
+      {homeModal && FEATURES.MAPS_ENABLED && (
         <MapPinModal
           title="Pin your Home location"
           defaultAlias="Home"
@@ -393,14 +402,39 @@ export default function LocationManagementPage() {
           onClose={() => setHomeModal(false)}
         />
       )}
+      {homeModal && !FEATURES.MAPS_ENABLED && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-40 sm:items-center">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-gray-900">🏠 Set Home Location</h2>
+              <button onClick={() => setHomeModal(false)} className="text-gray-400 text-xl leading-none">×</button>
+            </div>
+            <input
+              autoFocus
+              type="text"
+              defaultValue={(user as any)?.homeLocation || ''}
+              placeholder="e.g. Hasthinapuram, Miyapur"
+              maxLength={60}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+              onKeyDown={e => { if (e.key === 'Enter') { saveHome({ alias: (e.target as HTMLInputElement).value, lat: 0, lng: 0, address: (e.target as HTMLInputElement).value }); } }}
+              ref={el => el?.focus()}
+              id="home-loc-input"
+            />
+            <button
+              onClick={() => { const v = (document.getElementById('home-loc-input') as HTMLInputElement)?.value; if (v?.trim()) saveHome({ alias: v.trim(), lat: 0, lng: 0, address: v.trim() }); }}
+              className="w-full py-3 bg-brand-600 text-white rounded-xl font-semibold text-sm hover:bg-brand-700"
+            >Save</button>
+          </div>
+        </div>
+      )}
       {savingHome && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl px-8 py-6 text-sm text-gray-700">Saving home location…</div>
         </div>
       )}
 
-      {/* ── Office pin modal ────────────────────────────────────────────── */}
-      {officeModal && (
+      {/* ── Office pin modal (maps-on) / text modal (maps-off) ──────── */}
+      {officeModal && FEATURES.MAPS_ENABLED && (
         <MapPinModal
           title="Pin your Office location"
           defaultAlias="Office"
@@ -409,6 +443,30 @@ export default function LocationManagementPage() {
           onConfirm={loc => saveOffice(loc)}
           onClose={() => setOfficeModal(false)}
         />
+      )}
+      {officeModal && !FEATURES.MAPS_ENABLED && (
+        <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-40 sm:items-center">
+          <div className="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-gray-900">🏢 Set Office Location</h2>
+              <button onClick={() => setOfficeModal(false)} className="text-gray-400 text-xl leading-none">×</button>
+            </div>
+            <input
+              autoFocus
+              type="text"
+              defaultValue={(user as any)?.officeLocation || ''}
+              placeholder="e.g. Hitech City, Gachibowli"
+              maxLength={60}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+              onKeyDown={e => { if (e.key === 'Enter') { saveOffice({ alias: (e.target as HTMLInputElement).value, lat: 0, lng: 0, address: (e.target as HTMLInputElement).value }); } }}
+              id="office-loc-input"
+            />
+            <button
+              onClick={() => { const v = (document.getElementById('office-loc-input') as HTMLInputElement)?.value; if (v?.trim()) saveOffice({ alias: v.trim(), lat: 0, lng: 0, address: v.trim() }); }}
+              className="w-full py-3 bg-brand-600 text-white rounded-xl font-semibold text-sm hover:bg-brand-700"
+            >Save</button>
+          </div>
+        </div>
       )}
       {savingOff && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
@@ -427,6 +485,8 @@ export default function LocationManagementPage() {
               <button onClick={() => setShowAddModal(false)} className="text-gray-400 text-xl leading-none">×</button>
             </div>
 
+            {FEATURES.MAPS_ENABLED ? (
+            <>
             {/* Method tabs */}
             <div className="flex gap-2">
               <button
@@ -472,14 +532,16 @@ export default function LocationManagementPage() {
                 📍 {formAddress || `${formLat.toFixed(5)}, ${formLng?.toFixed(5)}`}
               </div>
             )}
+            </>
+            ) : null}
 
             {/* Alias input */}
             <div>
-              <label className="text-xs font-medium text-gray-600 block mb-1">Name <span className="text-red-500">*</span></label>
+              <label className="text-xs font-medium text-gray-600 block mb-1">{FEATURES.MAPS_ENABLED ? 'Name' : 'Location Name'} <span className="text-red-500">*</span></label>
               <input
                 value={formAlias}
                 onChange={e => setFormAlias(e.target.value)}
-                placeholder="e.g. Gym, Parents' Home, Client Office"
+                placeholder={FEATURES.MAPS_ENABLED ? "e.g. Gym, Parents' Home, Client Office" : 'e.g. Hasthinapuram, Hitech City, LB Nagar'}
                 maxLength={60}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
               />
