@@ -56,8 +56,8 @@ export function LocationInput({ value, onChange, placeholder, className, maxLeng
       seen.add(norm(l));
       out.push({ label: l, icon });
     };
-    add((user as any)?.homeAddress, '🏠');
-    add((user as any)?.officeAddress, '🏢');
+    add((user as any)?.homeLocation || (user as any)?.homeAddress, '🏠');
+    add((user as any)?.officeLocation || (user as any)?.officeAddress, '🏢');
     for (const loc of savedLocations) add(loc.alias, loc.isFavorite ? '⭐' : '📍');
     return out;
   }, [user, savedLocations]);

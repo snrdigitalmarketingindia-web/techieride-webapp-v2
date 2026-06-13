@@ -248,8 +248,8 @@ export default function ProfilePage() {
         {/* Home / Office — always visible so the feature is discoverable */}
         {!editing && (
           <div className="border-t border-gray-100 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {([['🏠 Home', (user as any)?.homeAddress || (user as any)?.homeLocation],
-               ['🏢 Office', (user as any)?.officeAddress || (user as any)?.officeLocation]] as const).map(([label, value]) => (
+            {([['🏠 Home', (user as any)?.homeLocation || (user as any)?.homeAddress],
+               ['🏢 Office', (user as any)?.officeLocation || (user as any)?.officeAddress]] as const).map(([label, value]) => (
               <button key={label} onClick={openEdit}
                 className="flex items-center justify-between gap-2 text-left px-3 py-2 rounded-lg border border-gray-100 hover:border-brand-300 hover:bg-brand-50 transition">
                 <span className="text-xs text-gray-500 shrink-0">{label}</span>
@@ -320,7 +320,7 @@ export default function ProfilePage() {
               ) : (
               <input
                 type="text"
-                value={editForm.homeAddress || editForm.homeLocation}
+                value={editForm.homeLocation || editForm.homeAddress || ''}
                 onChange={(e) => setEditForm((f: any) => ({ ...f, homeLocation: e.target.value, homeAddress: e.target.value }))}
                 placeholder="e.g. Hayathnagar"
                 maxLength={60}
@@ -348,7 +348,7 @@ export default function ProfilePage() {
               ) : (
               <input
                 type="text"
-                value={editForm.officeAddress || editForm.officeLocation}
+                value={editForm.officeLocation || editForm.officeAddress || ''}
                 onChange={(e) => setEditForm((f: any) => ({ ...f, officeLocation: e.target.value, officeAddress: e.target.value }))}
                 placeholder="e.g. Hitec City"
                 maxLength={60}

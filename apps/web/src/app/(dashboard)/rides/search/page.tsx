@@ -295,7 +295,7 @@ function ConflictModal({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function RideSearchPage() {
-  const { user } = useAuthStore();
+  const { user, invalidateSavedLocations } = useAuthStore();
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
   const [form, setForm] = useState({
     originName: '',
@@ -416,6 +416,7 @@ export default function RideSearchPage() {
         dropName: data.dropName,
       });
       setRequestedMap((prev) => ({ ...prev, [boardingRide.id]: 'sent' }));
+      invalidateSavedLocations();
       setBoardingRide(null);
     } catch (e: any) {
       const msg = e.response?.data?.message;
@@ -462,6 +463,7 @@ export default function RideSearchPage() {
       dropName: pendingBoardingData.dropName,
     });
     setRequestedMap((prev) => ({ ...prev, [pendingBoardingData.rideId]: 'sent' }));
+    invalidateSavedLocations();
     setConflictReq(null);
     setPendingBoardingData(null);
   };
