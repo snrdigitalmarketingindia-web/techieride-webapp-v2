@@ -99,6 +99,7 @@ export const ridesApi = {
 export const requestsApi = {
   create: (data: any) => api.post('/ride-requests', data),
   getMine: () => api.get('/ride-requests/mine'),
+  prefill: (rideId: string) => api.get(`/ride-requests/prefill/${rideId}`),
   getIncoming: (rideId: string) => api.get('/ride-requests/incoming', { params: { rideId } }),
   approve: (id: string, pickupTime?: string) => api.patch(`/ride-requests/${id}/approve`, pickupTime ? { pickupTime } : {}),
   reject: (id: string, reason?: string) => api.patch(`/ride-requests/${id}/reject`, { reason }),

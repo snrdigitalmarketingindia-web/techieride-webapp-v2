@@ -7,5 +7,6 @@ import { PrismaModule } from '../../prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [SavedLocationsController],
   providers: [SavedLocationsService],
+  exports: [SavedLocationsService],
 })
 export class SavedLocationsModule {}

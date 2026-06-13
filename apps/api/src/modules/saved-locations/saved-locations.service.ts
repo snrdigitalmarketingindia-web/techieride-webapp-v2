@@ -32,6 +32,46 @@ export class CreateSavedLocationDto {
 export class SavedLocationsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Auto-learn a location label the user just typed (pickup/drop/origin/dest).
+   * No explicit save action needed: fuzzy-dedupes against existing entries
+   * (bumping usage instead of duplicating), creates with sourceType AUTO,
+   * and evicts the least-recently-used non-favorite when the 30 cap is hit.
+   * Never throws — learning must not break the ride flow.
+   */
+  async learn(userId: string, rawAlias: string | null | undefined) {
+    try {
+      const alias = (rawAlias ?? '').trim();
+      if (alias.length < 2) return;
+      const norm = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const existing = await this.prisma.savedLocation.findMany({ where: { userId } });
+      const match = existing.find(l => {
+        const a = norm(l.alias); const b = norm(alias);
+        return a === b || a.includes(b) || b.includes(a);
+      });
+      if (match) {
+        await this.prisma.savedLocation.update({
+          where: { id: match.id },
+          data: { usageCount: { increment: 1 }, lastUsedAt: new Date() },
+        });
+        return;
+      }
+
+      if (existing.length >= MAX_SAVED_LOCATIONS) {
+        const evictable = existing
+          .filter(l => !l.isFavorite)
+          .sort((a, b) => (a.lastUsedAt?.getTime() ?? a.createdAt.getTime()) - (b.lastUsedAt?.getTime() ?? b.createdAt.getTime()));
+        if (evictable.length === 0) return; // all favorites — don't evict
+        await this.prisma.savedLocation.delete({ where: { id: evictable[0].id } });
+      }
+
+      await this.prisma.savedLocation.create({
+        data: { userId, alias: alias.slice(0, 40), lat: 0, lng: 0, address: '', sourceType: 'AUTO', usageCount: 1, lastUsedAt: new Date() },
+      });
+    } catch { /* learning is best-effort */ }
+  }
+
   async findMine(userId: string) {
     const locs = await this.prisma.savedLocation.findMany({
       where: { userId },

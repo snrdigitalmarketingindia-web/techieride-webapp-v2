@@ -39,8 +39,21 @@ function BoardingModal({
   const [error, setError] = useState('');
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  // Auto-capture GPS on mount — silent fallback if denied
+  // Pre-fill from the pickup/drop this seeker last used with THIS giver
+  // ("you boarded at Rohini Marbles last time"). Editable — only fills blanks.
   useEffect(() => {
+    let cancelled = false;
+    requestsApi.prefill(ride.id).then(({ data }) => {
+      if (cancelled || !data) return;
+      if (data.pickupName) setPickupName((cur) => cur || data.pickupName);
+      if (data.dropName) setDropName((cur) => (cur && cur !== ride.destinationName ? cur : data.dropName));
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [ride.id]);
+
+  // Auto-capture GPS on mount — silent fallback if denied (maps mode only)
+  useEffect(() => {
+    if (!FEATURES.MAPS_ENABLED) return;
     if (!navigator.geolocation) return;
     setGpsLoading(true);
     navigator.geolocation.getCurrentPosition(

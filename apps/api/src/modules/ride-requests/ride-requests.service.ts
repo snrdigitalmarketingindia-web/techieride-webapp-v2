@@ -11,6 +11,7 @@ import { Cron } from '@nestjs/schedule';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../../config/redis.module';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SavedLocationsService } from '../saved-locations/saved-locations.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateRequestDto } from './dto/create-request.dto';
 import { NotificationType, REDIS_KEYS } from '@techieride/shared';
@@ -32,6 +33,7 @@ export class RideRequestsService {
     private prisma: PrismaService,
     private notifications: NotificationsService,
     @Inject(REDIS_CLIENT) private redis: Redis,
+    private savedLocations: SavedLocationsService,
   ) {}
 
   // Runs every hour — auto-rejects PENDING requests older than 24h
@@ -65,6 +67,29 @@ export class RideRequestsService {
         });
       }
     }
+  }
+
+  /**
+   * Pre-fill suggestion for the request dialog: the pickup/drop this seeker
+   * used the LAST time they rode with this ride's giver ("you boarded at
+   * Rohini Marbles last time").
+   */
+  async prefillForRide(userId: string, rideId: string) {
+    const seeker = await this.prisma.rideSeeker.findUnique({ where: { userId } });
+    if (!seeker) return { pickupName: null, dropName: null };
+    const ride = await this.prisma.ride.findUnique({ where: { id: rideId }, select: { rideGiverId: true } });
+    if (!ride) return { pickupName: null, dropName: null };
+    const last = await this.prisma.rideRequest.findFirst({
+      where: {
+        seekerId: seeker.id,
+        rideId: { not: rideId },
+        ride: { rideGiverId: ride.rideGiverId },
+        pickupName: { not: null },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { pickupName: true, dropName: true },
+    });
+    return { pickupName: last?.pickupName ?? null, dropName: last?.dropName ?? null };
   }
 
   async create(userId: string, dto: CreateRequestDto) {
@@ -152,6 +177,11 @@ export class RideRequestsService {
         dropName: dto.dropName,
       },
     });
+
+    // Auto-learn the typed locations into the seeker's saved locations
+    // (fire-and-forget — suggestions improve with every request)
+    void this.savedLocations.learn(userId, dto.pickupName);
+    void this.savedLocations.learn(userId, dto.dropName);
 
     // Notify giver
     await this.notifications.create(ride.rideGiver.userId, {

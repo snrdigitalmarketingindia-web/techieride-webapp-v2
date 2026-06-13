@@ -20,6 +20,11 @@ export class RideRequestsController {
     return this.service.getIncomingRequests(rideId, userId);
   }
 
+  @Get('prefill/:rideId')
+  prefill(@CurrentUser('id') userId: string, @Param('rideId') rideId: string) {
+    return this.service.prefillForRide(userId, rideId);
+  }
+
   @Get('mine')
   mine(@CurrentUser('id') userId: string) {
     return this.service.getMyRequests(userId);
