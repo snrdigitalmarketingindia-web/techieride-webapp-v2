@@ -97,10 +97,12 @@ test.describe('📋 Ride Sort Order', () => {
     await page.getByRole('button', { name: 'All' }).click();
     await page.waitForTimeout(500);
 
-    // The UI formats departureDate as e.g. "13 Jun" (en-IN locale, day + short month)
-    const d = new Date();
-    d.setDate(d.getDate() + 3);
-    const farDateLabel = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
+    // The UI formats departureDate as e.g. "13 Jun" (en-IN locale, day + short month).
+    // Derive the label from the SAME UTC date string the ride was stored with
+    // (daysFromNow uses toISOString) — computing it from a fresh IST `new Date()`
+    // drifts a day when CI runs after 18:30 UTC (past midnight IST).
+    const farDateLabel = new Date(daysFromNow(3) + 'T00:00:00Z')
+      .toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' });
 
     await expect(page.getByText(farDateLabel).first()).toBeVisible({ timeout: 8_000 });
   });
