@@ -100,7 +100,9 @@ test.describe('🚗 Giver Full Flow', () => {
       ...tomorrow9am(), totalSeats: 3, vehicleId,
     });
     rideId = (created.data ?? created).id;
-    await api(giverToken, 'patch', `/rides/${rideId}/publish`);
+    expect(rideId, `ride create failed: ${JSON.stringify(created)}`).toBeTruthy();
+    const pubRes = await api(giverToken, 'patch', `/rides/${rideId}/publish`);
+    expect(pubRes.status, `publish failed: ${JSON.stringify(pubRes)}`).toBe('PUBLISHED');
 
     await loginUI(page, 'giver');
     await page.goto('/rides');
