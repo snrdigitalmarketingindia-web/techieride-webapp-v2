@@ -315,7 +315,7 @@ export default function RideSearchPage() {
   const [radiusKm, setRadiusKm] = useState(10); // default 10 km, seeker-adjustable (1–50 km)
   const [womenOnlyFilter, setWomenOnlyFilter] = useState(false);
   const [direction, setDirection] = useState<'h2o' | 'o2h' | null>(null);
-  const [filterByRoute, setFilterByRoute] = useState(() => { try { return localStorage.getItem('tr_filter_by_route') !== 'false'; } catch { return true; } });
+  const [filterByRoute, setFilterByRoute] = useState(() => { try { return localStorage.getItem('tr_filter_by_route') === 'true'; } catch { return false; } });
   const [view, setView] = useState<'list' | 'map'>('list');
   const [boardingRide, setBoardingRide] = useState<any | null>(null);
   // set when API returns 409 — holds { existingReq, pendingData } so user can confirm switch

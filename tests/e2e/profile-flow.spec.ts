@@ -111,9 +111,9 @@ test.describe('👤 Profile Flow', () => {
     await loginUI(page, 'seeker');
     await page.goto('/profile');
     await expect(page.getByText(/Official Email/)).toBeVisible({ timeout: 8_000 });
-    // Official email has a ✏️ edit button
+    // Official email has a ✏️ edit button — use .first() since parent div may contain multiple buttons
     const officialSection = page.locator('div').filter({ hasText: /^Official Email/ }).first();
-    await expect(officialSection.locator('button')).toBeVisible();
+    await expect(officialSection.locator('button').first()).toBeVisible();
   });
 
   // ── Verification Documents ───────────────────────────────────────────────
