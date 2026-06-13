@@ -140,6 +140,18 @@ export class AdminService {
     return this.prisma.user.update({ where: { id: userId }, data: { isActive: true } });
   }
 
+  async forceVerifyUser(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+    const targetStatus = user.role === 'RIDE_GIVER'
+      ? AccountStatus.DRIVER_VERIFIED
+      : AccountStatus.SEEKER_VERIFIED;
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { accountStatus: targetStatus, emailStatus: 'VERIFIED', isActive: true },
+    });
+  }
+
   // Hard-delete a user and all related records — for testing/admin use only
   async deleteUser(userId: string) {
     // Delete in dependency order to avoid FK constraint errors

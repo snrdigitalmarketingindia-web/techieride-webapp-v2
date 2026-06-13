@@ -71,6 +71,11 @@ export class AdminController {
     return this.adminService.activateUser(id);
   }
 
+  @Patch('users/:id/force-verify')
+  forceVerifyUser(@Param('id') id: string) {
+    return this.adminService.forceVerifyUser(id);
+  }
+
   @Delete('users/:id')
   deleteUser(@Param('id') id: string) {
     return this.adminService.deleteUser(id);
