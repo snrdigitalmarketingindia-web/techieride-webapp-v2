@@ -261,4 +261,32 @@ export const adminApi = {
   bulkActivateUsers: (userIds: string[]) => api.post('/admin/users/bulk-activate', { userIds }),
   bulkEmailUsers: (userIds: string[], subject: string, body: string) =>
     api.post('/admin/users/bulk-email', { userIds, subject, body }),
+  // Pending Registrations (new signup flow)
+  listPendingRegistrations: (status?: string, search?: string) =>
+    api.get('/admin/pending-registrations', { params: { status, search } }),
+  getPendingRegistration: (id: string) => api.get(`/admin/pending-registrations/${id}`),
+  reviewPendingRegistration: (id: string, data: { decision: 'APPROVED' | 'REJECTED'; rejectionReason?: string }) =>
+    api.patch(`/admin/pending-registrations/${id}/review`, data),
+};
+
+// ── Registration API (new signup flow — no auth required) ─────────────
+
+export const registrationApi = {
+  start: (personalEmail: string) => api.post('/register/start', { personalEmail }),
+  resendPersonal: (pendingId: string) => api.post('/register/resend-personal', { pendingId }),
+  updatePersonalEmail: (pendingId: string, email: string) =>
+    api.patch('/register/update-personal-email', { pendingId, email }),
+  verifyPersonal: (token: string) => api.get(`/register/verify-personal?token=${token}`),
+  submitProfile: (id: string, data: any) => api.post(`/register/${id}/profile`, data),
+  submitOfficeEmail: (id: string, officeEmail: string) =>
+    api.post(`/register/${id}/office-email`, { officeEmail }),
+  updateOfficeEmail: (id: string, email: string) =>
+    api.patch(`/register/${id}/update-office-email`, { email }),
+  resendOffice: (id: string) => api.post(`/register/${id}/resend-office`),
+  verifyOffice: (token: string) => api.get(`/register/verify-office?token=${token}`),
+  submitException: (id: string, reason: string) =>
+    api.post(`/register/${id}/exception`, { reason }),
+  submitDocuments: (id: string, data: { employeeIdUrl: string; govtIdUrl: string; selfDeclarationAccepted: boolean; profilePhotoUrl?: string }) =>
+    api.post(`/register/${id}/documents`, data),
+  getStatus: (id: string) => api.get(`/register/${id}/status`),
 };

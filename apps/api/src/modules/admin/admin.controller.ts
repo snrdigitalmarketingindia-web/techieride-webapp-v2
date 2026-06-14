@@ -2,6 +2,7 @@ import { Controller, Get, Patch, Post, Delete, Body, Param, Query, UseGuards, Re
 import { Response } from 'express';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
+import { RegistrationService } from '../registration/registration.service';
 import { VerificationService } from '../verification/verification.service';
 import { TrustScoreService } from '../trust-score/trust-score.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -19,6 +20,7 @@ import { UserRole } from '@techieride/shared';
 export class AdminController {
   constructor(
     private adminService: AdminService,
+    private registrationService: RegistrationService,
     private verificationService: VerificationService,
     private trustScoreService: TrustScoreService,
     private auditLogService: AuditLogService,
@@ -332,5 +334,32 @@ export class AdminController {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(csv);
+  }
+
+  // ── Pending Registrations (new signup flow) ─────────────────────────
+
+  @Get('pending-registrations')
+  listPendingRegistrations(
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.listPendingRegistrations(status, search);
+  }
+
+  @Get('pending-registrations/:id')
+  getPendingRegistration(@Param('id') id: string) {
+    return this.adminService.getPendingRegistration(id);
+  }
+
+  @Patch('pending-registrations/:id/review')
+  reviewPendingRegistration(
+    @Param('id') id: string,
+    @CurrentUser('id') adminId: string,
+    @Body() body: { decision: 'APPROVED' | 'REJECTED'; rejectionReason?: string },
+  ) {
+    if (body.decision === 'APPROVED') {
+      return this.registrationService.approveRegistration(id, adminId);
+    }
+    return this.registrationService.rejectRegistration(id, adminId, body.rejectionReason || 'No reason provided');
   }
 }

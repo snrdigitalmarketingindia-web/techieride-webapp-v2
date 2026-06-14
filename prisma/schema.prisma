@@ -129,6 +129,18 @@ enum EmailStatus {
   BOUNCED
 }
 
+enum PendingRegStatus {
+  PERSONAL_EMAIL_SENT
+  PERSONAL_EMAIL_VERIFIED
+  OFFICE_EMAIL_SENT
+  OFFICE_EMAIL_VERIFIED
+  EXCEPTION_REQUESTED
+  DOCS_UPLOADED
+  PENDING_REVIEW
+  REJECTED
+  APPROVED
+}
+
 enum BoardingStatus {
   WAITING
   BOARDED
@@ -214,6 +226,63 @@ model User {
   @@index([emailStatus])
   @@index([verificationStatus])
   @@map("users")
+}
+
+
+// ─── Pending Registration (staging table — account created only after admin approval) ──
+
+model PendingRegistration {
+  id                      String           @id @default(uuid())
+
+  // Step 1: Personal email
+  personalEmail           String           @unique
+  personalEmailVerified   Boolean          @default(false)
+  personalEmailToken      String?          @unique
+  personalEmailExpiry     DateTime?
+
+  // Step 2: Profile (filled after personal email verified)
+  fullName                String?
+  passwordHash            String?
+  phone                   String?
+  countryCode             String           @default("+91")
+  companyName             String?
+  gender                  Gender?
+  bloodGroup              String?
+  homeLocation            String?
+  officeLocation          String?
+  emergencyContactName    String?
+  emergencyContactPhone   String?
+
+  // Step 3: Office email
+  officeEmail             String?
+  officeEmailVerified     Boolean          @default(false)
+  officeEmailToken        String?          @unique
+  officeEmailExpiry       DateTime?
+
+  // Exception path (can't verify office email)
+  isException             Boolean          @default(false)
+  exceptionReason         String?
+  verificationMethod      String?          // EMAIL_VERIFIED | MANUAL_EXCEPTION
+
+  // Step 4: Document uploads
+  employeeIdUrl           String?          // Company ID card photo
+  govtIdUrl               String?          // Aadhaar/PAN
+  profilePhotoUrl         String?
+  selfDeclarationAccepted Boolean          @default(false)
+
+  // Admin review
+  status                  PendingRegStatus @default(PERSONAL_EMAIL_SENT)
+  rejectionReason         String?
+  reviewedBy              String?
+  reviewedAt              DateTime?
+
+  // Lifecycle
+  createdAt               DateTime         @default(now())
+  expiresAt               DateTime
+
+  @@index([status])
+  @@index([expiresAt])
+  @@map("pending_registrations")
 }
 
 

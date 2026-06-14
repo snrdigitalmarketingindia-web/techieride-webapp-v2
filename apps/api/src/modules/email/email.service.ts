@@ -384,6 +384,51 @@ export class EmailService {
     return { sent, failed };
   }
 
+  // ── New Signup Flow (v2) emails ──────────────────────────────────────────
+
+  async sendPersonalEmailVerificationV2(personalEmail: string, name: string, token: string) {
+    const link = `${this.appUrl}/verify-personal-v2?token=${token}`;
+    const firstName = name.split(' ')[0] || 'there';
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">Verify your personal email, ${firstName}!</h2>
+        <p style="color:#374151">Welcome to TechieRide — Hyderabad's verified IT carpooling network.</p>
+        <p style="color:#374151">Click the button below to verify your email and continue registration.</p>
+        <a href="${link}"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Verify Email
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+          This link expires in 24 hours. If you didn't register, ignore this email.<br/>
+          <em>for a better society...</em>
+        </p>
+      </div>`;
+    await this.send(personalEmail, 'Verify your email — TechieRide', html);
+    this.logger.log(`V2 personal email verification → ${personalEmail}`);
+  }
+
+  async sendOfficeEmailVerificationV2(officeEmail: string, name: string, token: string) {
+    const link = `${this.appUrl}/verify-office?token=${token}`;
+    const firstName = name.split(' ')[0] || 'there';
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#0d9488">Verify your office email, ${firstName}!</h2>
+        <p style="color:#374151">Click below to verify your company email for employment verification.</p>
+        <a href="${link}"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Verify Office Email
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px">
+          This link expires in 24 hours.<br/>
+          <em>for a better society...</em>
+        </p>
+      </div>`;
+    await this.send(officeEmail, 'Verify your office email — TechieRide', html);
+    this.logger.log(`V2 office email verification → ${officeEmail}`);
+  }
+
   // ── Internal send ───────────────────────────────────────────────────────
   private async send(to: string, subject: string, html: string) {
     if (!this.resend || this.isDev) {

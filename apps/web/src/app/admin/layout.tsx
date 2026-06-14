@@ -18,6 +18,7 @@ const links = [
   { href: '/admin/occupancy',    label: 'Occupancy',    icon: '💺' },
   { href: '/admin/travel',       label: 'Travel',       icon: '🗺️' },
   { href: '/admin/suspicious',   label: 'Suspicious',   icon: '🚨' },
+  { href: '/admin/pending-registrations', label: 'Registrations', icon: '📝' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

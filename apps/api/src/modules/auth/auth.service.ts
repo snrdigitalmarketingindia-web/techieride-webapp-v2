@@ -380,7 +380,9 @@ export class AuthService {
   // ── Login ────────────────────────────────────────────────────────────────
   async login(dto: LoginDto) {
     const emailLower = dto.email.toLowerCase().trim();
-    const user = await this.prisma.user.findUnique({ where: { email: emailLower } });
+    // Try personal email first (new flow), then office email (legacy)
+    let user = await this.prisma.user.findFirst({ where: { personalEmail: emailLower } });
+    if (!user) user = await this.prisma.user.findUnique({ where: { email: emailLower } });
 
     if (!user) throw new UnauthorizedException('Invalid email or password');
 
@@ -411,17 +413,26 @@ export class AuthService {
 
   // ── Forgot Password Preview ────────────────────────────────────────────
   async forgotPasswordPreview(email: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+    const emailLower = email.toLowerCase();
+    let user = await this.prisma.user.findFirst({
+      where: { personalEmail: emailLower },
       select: { personalEmail: true },
     });
+    if (!user) {
+      user = await this.prisma.user.findUnique({
+        where: { email: emailLower },
+        select: { personalEmail: true },
+      });
+    }
     if (!user?.personalEmail) return { personalEmail: null };
     return { personalEmail: this.maskEmail(user.personalEmail) };
   }
 
   // ── Forgot Password ──────────────────────────────────────────────────────
   async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const emailLower = email.toLowerCase();
+    let user = await this.prisma.user.findFirst({ where: { personalEmail: emailLower } });
+    if (!user) user = await this.prisma.user.findUnique({ where: { email: emailLower } });
     // Always return same message to prevent email enumeration
     if (!user) return { message: 'If an account exists for that email, a temporary password has been sent to your personal email.' };
 

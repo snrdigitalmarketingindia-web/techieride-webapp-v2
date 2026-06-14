@@ -29,6 +29,7 @@ import { ComplaintsModule } from './modules/complaints/complaints.module';
 import { TrustScoreModule } from './modules/trust-score/trust-score.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { SavedLocationsModule } from './modules/saved-locations/saved-locations.module';
+import { RegistrationModule } from './modules/registration/registration.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { SavedLocationsModule } from './modules/saved-locations/saved-locations.
     TrustScoreModule,
     AuditLogModule,
     SavedLocationsModule,
+    RegistrationModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

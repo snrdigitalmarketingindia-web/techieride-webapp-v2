@@ -999,4 +999,50 @@ export class AdminService {
 
     return [header, ...rows].join('\n');
   }
+
+  // ── Pending Registrations (new signup flow) ─────────────────────────
+
+  async listPendingRegistrations(status?: string, search?: string) {
+    const where: any = {};
+    if (status) where.status = status;
+    if (search) {
+      where.OR = [
+        { fullName: { contains: search, mode: 'insensitive' } },
+        { personalEmail: { contains: search, mode: 'insensitive' } },
+        { officeEmail: { contains: search, mode: 'insensitive' } },
+        { companyName: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    return this.prisma.pendingRegistration.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        personalEmail: true,
+        personalEmailVerified: true,
+        fullName: true,
+        gender: true,
+        phone: true,
+        companyName: true,
+        officeEmail: true,
+        officeEmailVerified: true,
+        isException: true,
+        exceptionReason: true,
+        employeeIdUrl: true,
+        govtIdUrl: true,
+        selfDeclarationAccepted: true,
+        status: true,
+        rejectionReason: true,
+        reviewedAt: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async getPendingRegistration(id: string) {
+    const pending = await this.prisma.pendingRegistration.findUnique({ where: { id } });
+    if (!pending) throw new NotFoundException('Pending registration not found.');
+    return pending;
+  }
 }

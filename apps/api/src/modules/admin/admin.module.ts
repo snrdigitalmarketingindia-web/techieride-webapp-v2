@@ -6,9 +6,10 @@ import { TrustScoreModule } from '../trust-score/trust-score.module';
 import { AuditLogModule } from '../audit-log/audit-log.module';
 import { RidesModule } from '../rides/rides.module';
 import { EmailModule } from '../email/email.module';
+import { RegistrationModule } from '../registration/registration.module';
 
 @Module({
-  imports: [VerificationModule, TrustScoreModule, AuditLogModule, RidesModule, EmailModule],
+  imports: [VerificationModule, TrustScoreModule, AuditLogModule, RidesModule, EmailModule, RegistrationModule],
   controllers: [AdminController],
   providers: [AdminService],
 })
