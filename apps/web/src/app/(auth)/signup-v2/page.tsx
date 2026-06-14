@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { registrationApi } from '@/lib/api';
 
 const STEPS = ['Personal Email', 'Profile', 'Office Email', 'Documents', 'Review'];
@@ -61,7 +60,6 @@ export default function SignupV2Page() {
 }
 
 function SignupV2Content() {
-  const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -104,7 +102,10 @@ function SignupV2Content() {
             setSubmitted(true);
             setStep(4);
           } else if (s.status === 'REJECTED') {
-            setStep(3); // back to documents
+            localStorage.removeItem('tr_pending_reg');
+            setPendingId('');
+            setError(`Your previous application was rejected${s.rejectionReason ? ': ' + s.rejectionReason : ''}. Please register again.`);
+            setStep(0);
           } else if (s.employeeIdUrl) {
             setStep(4);
             setSubmitted(true);
@@ -123,6 +124,8 @@ function SignupV2Content() {
           }
         }).catch(() => {
           localStorage.removeItem('tr_pending_reg');
+          setPendingId('');
+          setSuccess('Your registration may have been approved! Try logging in with your personal email.');
         });
       } catch { localStorage.removeItem('tr_pending_reg'); }
     }

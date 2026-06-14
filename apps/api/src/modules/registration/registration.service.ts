@@ -54,17 +54,22 @@ export class RegistrationService {
       throw new ConflictException('An account with this personal email already exists');
     }
 
+    const usedAsOffice = await this.prisma.user.findUnique({ where: { email: personalEmail } });
+    if (usedAsOffice) {
+      throw new ConflictException('This email is already registered as an office email.');
+    }
+
     const existing = await this.prisma.pendingRegistration.findUnique({
       where: { personalEmail },
     });
 
-    if (existing && existing.expiresAt > new Date()) {
+    if (existing && existing.expiresAt > new Date() && existing.status !== 'REJECTED') {
       throw new ConflictException(
         'A registration is already in progress for this email. Check your inbox or try again later.',
       );
     }
 
-    // Delete expired record if exists
+    // Delete expired or rejected record if exists
     if (existing) {
       await this.prisma.pendingRegistration.delete({ where: { id: existing.id } });
     }
@@ -242,6 +247,9 @@ export class RegistrationService {
     const existingUser = await this.prisma.user.findUnique({ where: { email: officeEmail } });
     if (existingUser) throw new ConflictException('An account with this office email already exists.');
 
+    const usedAsPersonal = await this.prisma.user.findFirst({ where: { personalEmail: officeEmail } });
+    if (usedAsPersonal) throw new ConflictException('This email is already registered as a personal email by another user.');
+
     const { token, expiry } = tokenAndExpiry();
 
     await this.prisma.pendingRegistration.update({
@@ -284,6 +292,9 @@ export class RegistrationService {
 
     const existingUser = await this.prisma.user.findUnique({ where: { email: officeEmail } });
     if (existingUser) throw new ConflictException('An account with this office email already exists.');
+
+    const usedAsPersonal = await this.prisma.user.findFirst({ where: { personalEmail: officeEmail } });
+    if (usedAsPersonal) throw new ConflictException('This email is already registered as a personal email by another user.');
 
     const { token, expiry } = tokenAndExpiry();
 
@@ -456,6 +467,17 @@ export class RegistrationService {
 
     if (!pending.fullName || !pending.passwordHash || !pending.officeEmail || !pending.personalEmail) {
       throw new BadRequestException('Registration is incomplete — missing required fields.');
+    }
+
+    const emailTaken = await this.prisma.user.findUnique({ where: { email: pending.officeEmail } });
+    if (emailTaken) throw new ConflictException('An account with this office email already exists.');
+
+    const personalTaken = await this.prisma.user.findFirst({ where: { personalEmail: pending.personalEmail } });
+    if (personalTaken) throw new ConflictException('An account with this personal email already exists.');
+
+    if (pending.phone) {
+      const phoneTaken = await this.prisma.user.findUnique({ where: { phone: pending.phone } });
+      if (phoneTaken) throw new ConflictException('An account with this phone number already exists.');
     }
 
     // Assign TRID
