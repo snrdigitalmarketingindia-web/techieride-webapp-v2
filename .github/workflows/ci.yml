@@ -81,10 +81,10 @@ jobs:
         run: |
           npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready on attempt $i" && break
+            curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 && echo "API ready on attempt $i" && break
             sleep 2
           done
-          curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
+          curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
 
       - name: Run base API tests (37)
         continue-on-error: true
@@ -325,10 +325,10 @@ jobs:
         run: |
           npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready on attempt $i" && break
+            curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 && echo "API ready on attempt $i" && break
             sleep 2
           done
-          curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
+          curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
 
       - name: Run API security tests
         continue-on-error: true
@@ -444,19 +444,19 @@ jobs:
         run: |
           npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready on attempt $i" && break
+            curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 && echo "API ready on attempt $i" && break
             sleep 2
           done
-          curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
+          curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
 
       - name: Start web server
         run: |
           npm run dev --workspace=apps/web > /tmp/tr-logs/web-server.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://localhost:3000 > /dev/null 2>&1 && echo "Web ready on attempt $i" && break
+            curl -sf http://127.0.0.1:3000 > /dev/null 2>&1 && echo "Web ready on attempt $i" && break
             sleep 2
           done
-          curl -sf http://localhost:3000 > /dev/null 2>&1 || { echo "::error::Web server failed to start within 120s"; cat /tmp/tr-logs/web-server.log | tail -50; exit 1; }
+          curl -sf http://127.0.0.1:3000 > /dev/null 2>&1 || { echo "::error::Web server failed to start within 120s"; cat /tmp/tr-logs/web-server.log | tail -50; exit 1; }
 
       - name: ⚡ Run smoke E2E tests
         continue-on-error: true
@@ -575,19 +575,19 @@ jobs:
         run: |
           npm run dev --workspace=apps/api > /tmp/tr-logs/api-server.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 && echo "API ready on attempt $i" && break
+            curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 && echo "API ready on attempt $i" && break
             sleep 2
           done
-          curl -sf http://localhost:3001/api/v1 > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
+          curl -sf http://127.0.0.1:3001/health > /dev/null 2>&1 || { echo "::error::API server failed to start within 120s"; cat /tmp/tr-logs/api-server.log | tail -50; exit 1; }
 
       - name: Start web server
         run: |
           npm run dev --workspace=apps/web > /tmp/tr-logs/web-server.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://localhost:3000 > /dev/null 2>&1 && echo "Web ready on attempt $i" && break
+            curl -sf http://127.0.0.1:3000 > /dev/null 2>&1 && echo "Web ready on attempt $i" && break
             sleep 2
           done
-          curl -sf http://localhost:3000 > /dev/null 2>&1 || { echo "::error::Web server failed to start within 120s"; cat /tmp/tr-logs/web-server.log | tail -50; exit 1; }
+          curl -sf http://127.0.0.1:3000 > /dev/null 2>&1 || { echo "::error::Web server failed to start within 120s"; cat /tmp/tr-logs/web-server.log | tail -50; exit 1; }
 
       - name: Run Playwright tests
         continue-on-error: true
