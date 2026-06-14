@@ -179,6 +179,8 @@ export class AdminService {
     await this.prisma.sosEvent.deleteMany({ where: { userId } });
     await this.prisma.gamificationPoint.deleteMany({ where: { userId } });
     await this.prisma.verificationRequest.deleteMany({ where: { userId } });
+    await this.prisma.complaint.deleteMany({ where: { OR: [{ reporterId: userId }, { reportedId: userId }] } });
+    await this.prisma.quickMessage.deleteMany({ where: { senderId: userId } });
     // Ratings where this user is rater or ratee
     await this.prisma.rideRating.deleteMany({ where: { OR: [{ raterId: userId }, { rateeId: userId }] } });
 
