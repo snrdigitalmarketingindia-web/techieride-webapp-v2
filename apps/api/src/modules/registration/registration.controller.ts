@@ -51,8 +51,8 @@ export class RegistrationController {
   }
 
   @Patch(':id/update-office-email')
-  updateOfficeEmail(@Param('id') id: string, @Body('email') email: string) {
-    return this.registrationService.updateOfficeEmail(id, email);
+  updateOfficeEmail(@Param('id') id: string, @Body() dto: SubmitOfficeEmailDto) {
+    return this.registrationService.updateOfficeEmail(id, dto.officeEmail);
   }
 
   @Post(':id/resend-office')

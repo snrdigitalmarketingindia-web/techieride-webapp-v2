@@ -131,6 +131,30 @@ function SignupV2Content() {
     }
   }, []);
 
+  // Poll for verification status when waiting for email clicks
+  useEffect(() => {
+    if (!pendingId || (!waitingPersonal && !waitingOffice)) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await registrationApi.getStatus(pendingId);
+        const s = res.data;
+        if (waitingPersonal && s.personalEmailVerified) {
+          setWaitingPersonal(false);
+          setStep(1);
+          setSuccess('Personal email verified!');
+          setError('');
+        }
+        if (waitingOffice && (s.officeEmailVerified || s.isException)) {
+          setWaitingOffice(false);
+          setStep(3);
+          setSuccess('Office email verified!');
+          setError('');
+        }
+      } catch {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pendingId, waitingPersonal, waitingOffice]);
+
   // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown <= 0) return;

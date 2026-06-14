@@ -248,6 +248,28 @@ export class EmailService {
     this.logger.log(`Driver rejection email → ${email}`);
   }
 
+  async sendRegistrationRejectedEmail(email: string, fullName: string, reason: string) {
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <img src="${this.appUrl}/logo.png" alt="TechieRide" style="height:48px;margin-bottom:24px"/>
+        <h2 style="color:#dc2626">Registration — action required</h2>
+        <p style="color:#374151">Hi ${fullName.split(' ')[0]}, your TechieRide registration could not be approved at this time.</p>
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin:16px 0">
+          <p style="color:#b91c1c;font-size:14px;font-weight:600;margin:0 0 4px">Reason:</p>
+          <p style="color:#b91c1c;font-size:14px;margin:0">${reason || 'Please re-upload clear, legible copies of your documents.'}</p>
+        </div>
+        <p style="color:#374151;font-size:14px">You can register again with the same email. Please ensure your Company ID and Government ID are clearly visible.</p>
+        <a href="${this.appUrl}/signup-v2"
+           style="display:inline-block;background:#0d9488;color:white;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+          Register again →
+        </a>
+        <p style="color:#9ca3af;font-size:12px;margin-top:24px"><em>for a better society...</em></p>
+      </div>`;
+
+    await this.send(email, 'TechieRide — Registration needs attention', html);
+    this.logger.log(`Registration rejection email → ${email}`);
+  }
+
   // ── Notification email (uses personalEmail if available) ────────────────
   // Call this for ride/request notifications, not for auth emails
   async sendNotification(

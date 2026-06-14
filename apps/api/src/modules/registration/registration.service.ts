@@ -571,7 +571,7 @@ export class RegistrationService {
     });
 
     if (pending.personalEmail) {
-      this.email.sendDriverVerificationRejectedEmail(
+      this.email.sendRegistrationRejectedEmail(
         pending.personalEmail, pending.fullName || 'Applicant', reason,
       ).catch(() => {});
     }

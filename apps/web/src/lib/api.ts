@@ -281,7 +281,7 @@ export const registrationApi = {
   submitOfficeEmail: (id: string, officeEmail: string) =>
     api.post(`/register/${id}/office-email`, { officeEmail }),
   updateOfficeEmail: (id: string, email: string) =>
-    api.patch(`/register/${id}/update-office-email`, { email }),
+    api.patch(`/register/${id}/update-office-email`, { officeEmail: email }),
   resendOffice: (id: string) => api.post(`/register/${id}/resend-office`),
   verifyOffice: (token: string) => api.get(`/register/verify-office?token=${token}`),
   submitException: (id: string, reason: string) =>
