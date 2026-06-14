@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { registrationApi } from '@/lib/api';
 import Link from 'next/link';
 
 export default function VerifyPersonalV2Page() {
+  return <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>}><VerifyPersonalV2Content /></Suspense>;
+}
+
+function VerifyPersonalV2Content() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');

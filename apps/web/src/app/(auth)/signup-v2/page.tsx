@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { registrationApi } from '@/lib/api';
@@ -57,6 +57,10 @@ function Stepper({ current }: { current: number }) {
 }
 
 export default function SignupV2Page() {
+  return <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">Loading...</p></div>}><SignupV2Content /></Suspense>;
+}
+
+function SignupV2Content() {
   const searchParams = useSearchParams();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
