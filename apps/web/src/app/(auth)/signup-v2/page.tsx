@@ -287,7 +287,7 @@ function SignupV2Content() {
     formData.append('type', type);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/uploads/document`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/register/${pendingId}/upload?type=${type}`,
         { method: 'POST', body: formData },
       );
       const data = await res.json();
